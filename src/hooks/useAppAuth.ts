@@ -32,13 +32,22 @@ export const useAppAuth = ({
   
   const handleOpenFinetuningWithAuth = useCallback(() => {
     console.log('Checking admin access...', { user, profile });
-    if (!user || !profile || profile.role !== 'administrativo') {
-      console.log('Acceso denegado: Solo los administradores pueden acceder al panel de configuración');
+    
+    // Check if user is authenticated and has admin role
+    if (!user || !profile) {
+      console.log('Usuario no autenticado. Redirigiendo al login...');
       if (onLogin) {
         onLogin();
       }
       return;
     }
+    
+    if (profile.role !== 'administrativo') {
+      console.log('Acceso denegado: Solo los administradores pueden acceder al panel de configuración');
+      // Could show a toast or alert here
+      return;
+    }
+    
     handleOpenFinetuning();
   }, [user, profile, onLogin, handleOpenFinetuning]);
 

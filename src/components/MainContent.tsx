@@ -61,12 +61,6 @@ const MainContent: React.FC<MainContentProps> = ({
     setUserMenuAnchorEl(null);
   };
 
-  console.log('MainContent - Props recibidas:', { 
-    hasUser: !!user, 
-    hasOnLogin: !!onLogin,
-    userEmail: user?.email 
-  });
-
   return (
     <Box
       component="main"

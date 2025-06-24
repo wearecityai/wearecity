@@ -5,8 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useApiInitialization } from '../hooks/useApiInitialization';
 import { useAppState } from '../hooks/useAppState';
 import AppContainer from '../components/AppContainer';
-import { Button } from '@/components/ui/button';
-import { LogIn } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -42,7 +40,7 @@ const Index = () => {
     navigate('/auth');
   };
 
-  // Show loading state while auth is initializing
+  // Show loading state only while auth is initializing AND we don't have a definitive auth state
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -54,33 +52,7 @@ const Index = () => {
     );
   }
 
-  // Show login prompt for unauthenticated users
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">City Chat</h1>
-            <p className="text-muted-foreground">
-              Asistente de IA especializado en información y servicios para ciudades
-            </p>
-          </div>
-          
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Inicia sesión o regístrate para acceder al chat y guardar tus conversaciones
-            </p>
-            <Button onClick={handleLogin} className="w-full">
-              <LogIn className="w-4 h-4 mr-2" />
-              Iniciar Sesión / Registrarse
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Main app for authenticated users
+  // Always show the main app - authentication is optional
   return (
     <AppContainer
       toggleTheme={toggleTheme}

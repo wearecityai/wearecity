@@ -70,6 +70,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             ¡Hola! ¿Cómo puedo ayudarte hoy
             {chatConfig.restrictedCity ? ` desde ${chatConfig.restrictedCity.name}` : ''}?
           </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+            Puedes comenzar a chatear inmediatamente. Inicia sesión para guardar tus conversaciones.
+          </Typography>
         </Box>
       )}
       <MessageList
