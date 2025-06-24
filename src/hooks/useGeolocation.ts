@@ -8,7 +8,13 @@ interface UserLocation {
 
 type GeolocationStatus = 'idle' | 'pending' | 'success' | 'error';
 
-export const useGeolocation = (allowGeolocation: boolean) => {
+interface UseGeolocationReturn {
+  userLocation: UserLocation | null;
+  geolocationError: string | null;
+  geolocationStatus: GeolocationStatus;
+}
+
+export const useGeolocation = (allowGeolocation: boolean): UseGeolocationReturn => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [geolocationStatus, setGeolocationStatus] = useState<GeolocationStatus>('idle');

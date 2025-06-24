@@ -40,7 +40,7 @@ interface AppLayoutProps {
   handleSelectChat: (index: number) => void;
   chatConfig: any;
   userLocation: any;
-  geolocationStatus: string;
+  geolocationStatus: 'idle' | 'pending' | 'success' | 'error';
   currentThemeMode: 'light' | 'dark';
   toggleTheme: () => void;
   handleOpenSettings: () => void;
