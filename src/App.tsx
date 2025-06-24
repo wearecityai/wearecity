@@ -1,23 +1,22 @@
 
-import React, { useEffect } from 'react';
-import { BrowserRouter } from 'react-router-dom';
-import { initializeGeminiService } from '../city-chat/services/geminiService';
-import CityChat from '../city-chat/App';
-
-// Import the themed app wrapper from city-chat
-import '../city-chat/index.tsx';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from '@/hooks/useAuth';
+import Index from '@/pages/Index';
+import AuthPage from '@/components/auth/AuthPage';
+import ProfilePage from '@/components/auth/ProfilePage';
 
 const App = () => {
-  useEffect(() => {
-    // Initialize Gemini service automatically with hardcoded API key
-    initializeGeminiService();
-  }, []);
-
   return (
     <BrowserRouter>
-      <div id="city-chat-root">
-        {/* The city-chat app will be rendered here by its own index.tsx */}
-      </div>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 };
