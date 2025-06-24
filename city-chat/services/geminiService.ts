@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Chat, GenerateContentResponse, Tool } from "@google/genai";
 import { 
   GEMINI_MODEL_NAME, 
@@ -6,21 +7,18 @@ import {
   SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION
 } from '../constants';
 
+// Hardcoded API key
+const HARDCODED_API_KEY = "AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g";
+
 let ai: GoogleGenAI | null = null;
 
 /**
- * Initializes the GoogleGenAI service with the provided API key.
- * @param apiKey The API key for Google Gemini.
+ * Initializes the GoogleGenAI service with the hardcoded API key.
  * @returns True if initialization was successful, false otherwise.
  */
-export const initializeGeminiService = (apiKey: string): boolean => {
-  if (!apiKey || apiKey.trim() === "") {
-    console.error("API Key es requerida para inicializar Gemini y no puede estar vacía.");
-    ai = null; // Ensure ai is null if key is empty or invalid
-    return false;
-  }
+export const initializeGeminiService = (): boolean => {
   try {
-    ai = new GoogleGenAI({ apiKey });
+    ai = new GoogleGenAI({ apiKey: HARDCODED_API_KEY });
     console.log("Servicio Gemini inicializado exitosamente.");
     return true;
   } catch (error) {
