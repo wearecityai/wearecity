@@ -14,6 +14,8 @@ interface AppHeaderProps {
   currentThemeMode: 'light' | 'dark';
   onToggleTheme: () => void;
   onOpenSettings: () => void;
+  isAuthenticated?: boolean;
+  onLogin?: () => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -21,7 +23,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onMenuToggle,
   currentThemeMode,
   onToggleTheme,
-  onOpenSettings
+  onOpenSettings,
+  isAuthenticated = false,
+  onLogin
 }) => {
   const theme = useTheme();
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -89,6 +93,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         currentThemeMode={currentThemeMode}
         onToggleTheme={onToggleTheme}
         onOpenSettings={onOpenSettings}
+        isAuthenticated={isAuthenticated}
+        onLogin={onLogin}
       />
     </>
   );
