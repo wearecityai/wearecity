@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Settings, LogOut, Shield } from 'lucide-react';
+import { User, Settings, LogOut, Shield, LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 const UserButton = () => {
@@ -19,8 +19,14 @@ const UserButton = () => {
   const { user, profile, signOut } = useAuth();
 
   const handleSignOut = async () => {
+    console.log('User signing out');
     await signOut();
     navigate('/');
+  };
+
+  const handleLogin = () => {
+    console.log('Redirecting to login page');
+    navigate('/auth');
   };
 
   const getInitials = () => {
@@ -44,6 +50,16 @@ const UserButton = () => {
     return profile?.role === 'administrativo' ? 'Administrador' : 'Ciudadano';
   };
 
+  // If user is not authenticated, show login button
+  if (!user) {
+    return (
+      <Button variant="ghost" onClick={handleLogin} className="h-8">
+        <LogIn className="w-4 h-4 mr-2" />
+        Iniciar Sesión
+      </Button>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -62,10 +78,12 @@ const UserButton = () => {
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {profile?.role === 'administrativo' && <Shield className="w-3 h-3" />}
-              {getRoleDisplay()}
-            </div>
+            {profile && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                {profile?.role === 'administrativo' && <Shield className="w-3 h-3" />}
+                {getRoleDisplay()}
+              </div>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

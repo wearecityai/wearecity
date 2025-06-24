@@ -5,6 +5,9 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface UserMenuProps {
   anchorEl: null | HTMLElement;
@@ -27,7 +30,18 @@ const UserMenu: React.FC<UserMenuProps> = ({
   isAuthenticated = false,
   onLogin
 }) => {
-  console.log('UserMenu props:', { isAuthenticated, hasOnLogin: !!onLogin });
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  
+  // Use actual authentication state from useAuth hook
+  const actuallyAuthenticated = !!user;
+  
+  console.log('UserMenu props:', { 
+    isAuthenticated, 
+    actuallyAuthenticated, 
+    hasOnLogin: !!onLogin,
+    hasUser: !!user 
+  });
 
   const handleToggleTheme = () => {
     onToggleTheme();
@@ -43,7 +57,15 @@ const UserMenu: React.FC<UserMenuProps> = ({
     console.log('Login button clicked');
     if (onLogin) {
       onLogin();
+    } else {
+      navigate('/auth');
     }
+    onClose();
+  };
+
+  const handleLogout = async () => {
+    console.log('Logout button clicked');
+    await signOut();
     onClose();
   };
 
@@ -63,10 +85,15 @@ const UserMenu: React.FC<UserMenuProps> = ({
         <ListItemText>Cambiar a modo {currentThemeMode === 'dark' ? 'Claro' : 'Oscuro'}</ListItemText>
       </MenuItem>
       
-      {!isAuthenticated && onLogin && (
+      {!actuallyAuthenticated ? (
         <MenuItem onClick={handleLogin}>
           <ListItemIcon><LoginIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Iniciar Sesión</ListItemText>
+        </MenuItem>
+      ) : (
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Cerrar Sesión</ListItemText>
         </MenuItem>
       )}
       

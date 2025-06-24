@@ -35,21 +35,25 @@ const AuthPage = () => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting login with email:', loginEmail);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
 
       if (error) {
+        console.error('Login error:', error);
         if (error.message.includes('Invalid login credentials')) {
           setError('Credenciales incorrectas. Verifica tu email y contraseña.');
         } else {
           setError(error.message);
         }
       } else {
+        console.log('Login successful:', data);
         navigate('/');
       }
     } catch (err) {
+      console.error('Login catch error:', err);
       setError('Error inesperado al iniciar sesión.');
     } finally {
       setIsLoading(false);
@@ -63,9 +67,10 @@ const AuthPage = () => {
     setSuccess(null);
 
     try {
+      console.log('Attempting signup with email:', signupEmail);
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
         options: {
@@ -79,13 +84,21 @@ const AuthPage = () => {
       });
 
       if (error) {
+        console.error('Signup error:', error);
         if (error.message.includes('User already registered')) {
           setError('Este email ya está registrado. Intenta iniciar sesión.');
         } else {
-          setError(error.message);
+          setError(`Error de registro: ${error.message}`);
         }
       } else {
-        setSuccess('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.');
+        console.log('Signup successful:', data);
+        if (data.user && !data.session) {
+          setSuccess('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.');
+        } else {
+          setSuccess('¡Registro exitoso! Ya puedes usar la aplicación.');
+          // If user is automatically logged in, redirect to main page
+          setTimeout(() => navigate('/'), 1000);
+        }
         // Clear form
         setSignupEmail('');
         setSignupPassword('');
@@ -94,6 +107,7 @@ const AuthPage = () => {
         setRole('ciudadano');
       }
     } catch (err) {
+      console.error('Signup catch error:', err);
       setError('Error inesperado al registrarse.');
     } finally {
       setIsLoading(false);
