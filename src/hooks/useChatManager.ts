@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Chat as GeminiChat } from '@google/genai';
 import { ChatMessage, MessageRole, CustomChatConfig } from '../types';

@@ -1,4 +1,3 @@
-
 import { ChatMessage, GroundingMetadata } from '../types';
 import {
   EVENT_CARD_START_MARKER,
@@ -9,6 +8,7 @@ import {
 import { useEventParser } from './parsers/useEventParser';
 import { usePlaceCardParser } from './parsers/usePlaceCardParser';
 import { useContentParser } from './parsers/useContentParser';
+import { API_KEY_ERROR_MESSAGE } from '../constants';
 
 export const useMessageParser = () => {
   const { parseEvents, handleSeeMoreEvents: eventHandleSeeMoreEvents, clearEventTracking } = useEventParser();

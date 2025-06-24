@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { CustomChatConfig } from '../types';
 import {
@@ -16,6 +15,7 @@ import {
   RICH_TEXT_FORMATTING_SYSTEM_INSTRUCTION,
   LANGUAGE_PROMPT_CLAUSE,
   DEFAULT_LANGUAGE_CODE,
+  SYSTEM_INSTRUCTION_TEMPLATE,
 } from '../constants';
 
 interface UserLocation {

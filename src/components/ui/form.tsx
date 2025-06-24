@@ -12,6 +12,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
+import { omitLovProps } from '../../lib/omitLovProps'
 
 const Form = FormProvider
 
@@ -34,7 +35,7 @@ const FormField = <
 }: ControllerProps<TFieldValues, TName>) => {
   return (
     <FormFieldContext.Provider value={{ name: props.name }}>
-      <Controller {...props} />
+      <Controller {...omitLovProps(props)} />
     </FormFieldContext.Provider>
   )
 }
@@ -78,7 +79,7 @@ const FormItem = React.forwardRef<
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn("space-y-2", className)} {...props} />
+      <div ref={ref} className={cn("space-y-2", className)} {...omitLovProps(props)} />
     </FormItemContext.Provider>
   )
 })
@@ -95,7 +96,7 @@ const FormLabel = React.forwardRef<
       ref={ref}
       className={cn(error && "text-destructive", className)}
       htmlFor={formItemId}
-      {...props}
+      {...omitLovProps(props)}
     />
   )
 })
@@ -117,7 +118,7 @@ const FormControl = React.forwardRef<
           : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
-      {...props}
+      {...omitLovProps(props)}
     />
   )
 })
@@ -134,7 +135,7 @@ const FormDescription = React.forwardRef<
       ref={ref}
       id={formDescriptionId}
       className={cn("text-sm text-muted-foreground", className)}
-      {...props}
+      {...omitLovProps(props)}
     />
   )
 })
@@ -156,7 +157,7 @@ const FormMessage = React.forwardRef<
       ref={ref}
       id={formMessageId}
       className={cn("text-sm font-medium text-destructive", className)}
-      {...props}
+      {...omitLovProps(props)}
     >
       {body}
     </p>

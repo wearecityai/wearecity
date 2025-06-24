@@ -14,6 +14,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { ChatMessage as ChatMessageType, MessageRole } from '../types';
 import EventCard from './EventCard';
 import PlaceCard from './PlaceCard';
+import { omitLovProps } from '../lib/omitLovProps';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -80,7 +81,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       }
       if (part.match(/^~.*?~$/)) return <s key={index}>{part.substring(1, part.length - 1)}</s>;
       return part.split('\n').map((line, i, arr) => (
-        <React.Fragment key={`${index}-${i}`}>
+        <React.Fragment key={`${index}-${i}`} {...omitLovProps({})}>
           {line}
           {i < arr.length - 1 && <br />}
         </React.Fragment>

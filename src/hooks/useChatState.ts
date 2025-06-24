@@ -1,11 +1,11 @@
-
 import { useState } from 'react';
 import { CustomChatConfig } from '../types';
 import { 
   DEFAULT_CHAT_CONFIG, 
   SUPPORTED_LANGUAGES, 
   DEFAULT_LANGUAGE_CODE, 
-  DEFAULT_CHAT_TITLE 
+  DEFAULT_CHAT_TITLE,
+  API_KEY_ERROR_MESSAGE
 } from '../constants';
 
 export const useChatState = () => {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAppHandlers } from '../hooks/useAppHandlers';
 import { useAppAuth } from '../hooks/useAppAuth';

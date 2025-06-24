@@ -1,11 +1,11 @@
-
 import { useCallback } from 'react';
 import { ChatMessage, CustomChatConfig } from '../types';
 import { 
   DEFAULT_CHAT_CONFIG, 
   SUPPORTED_LANGUAGES, 
   DEFAULT_CHAT_TITLE,
-  MAPS_API_KEY_INVALID_ERROR_MESSAGE 
+  MAPS_API_KEY_INVALID_ERROR_MESSAGE,
+  API_KEY_ERROR_MESSAGE
 } from '../constants';
 
 interface UseAppHandlersProps {

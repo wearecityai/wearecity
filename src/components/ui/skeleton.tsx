@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { omitLovProps } from '../../lib/omitLovProps';
 
 function Skeleton({
   className,
@@ -7,7 +8,7 @@ function Skeleton({
   return (
     <div
       className={cn("animate-pulse rounded-md bg-muted", className)}
-      {...props}
+      {...omitLovProps(props)}
     />
   )
 }

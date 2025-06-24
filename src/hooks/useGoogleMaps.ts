@@ -1,7 +1,6 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ChatMessage, PlaceCardInfo } from '../types';
 import { MAPS_API_KEY_INVALID_ERROR_MESSAGE, DEFAULT_LANGUAGE_CODE } from '../constants';
+import { ChatMessage, PlaceCardInfo } from '../types';
 
 interface UserLocation {
   latitude: number;
