@@ -27,6 +27,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error }) => {
     
     setIsLoading(true);
     try {
+      // Basic validation for Google API key format
+      if (!apiKey.startsWith('AIza') || apiKey.length < 35) {
+        throw new Error('El formato de la API Key no es válido. Debe comenzar con "AIza" y tener al menos 35 caracteres.');
+      }
+      
       onLogin(apiKey.trim());
     } catch (error) {
       console.error('Login error:', error);
@@ -85,11 +90,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error }) => {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Ingresa tu API Key de Gemini"
+              placeholder="AIzaSy..."
               variant="outlined"
               sx={{ mb: 3 }}
               disabled={isLoading}
-              helperText="Necesitas una API Key de Google Gemini para usar esta aplicación"
+              helperText="Ingresa tu API Key de Google Gemini (debe comenzar con 'AIza')"
+              error={apiKey.length > 0 && !apiKey.startsWith('AIza')}
             />
             
             <Button
@@ -97,7 +103,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error }) => {
               fullWidth
               variant="contained"
               size="large"
-              disabled={!apiKey.trim() || isLoading}
+              disabled={!apiKey.trim() || isLoading || (apiKey.length > 0 && !apiKey.startsWith('AIza'))}
               sx={{ 
                 py: 1.5,
                 borderRadius: 2,

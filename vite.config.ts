@@ -22,9 +22,6 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     // Define process.env for browser compatibility
-    'process.env': {
-      API_KEY: JSON.stringify('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g'),
-      GEMINI_API_KEY: JSON.stringify('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g'),
-    }
+    'process.env': {}
   },
 }));
