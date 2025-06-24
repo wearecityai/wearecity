@@ -1,13 +1,8 @@
 
 import React from 'react';
-import { Box } from '@mui/material';
-import FinetuningPage from './FinetuningPage';
-import AppHeader from './AppHeader';
-import AppDrawer from './AppDrawer';
-import ChatContainer from './ChatContainer';
-import ErrorBoundary from './ErrorBoundary';
 import { useAppHandlers } from '../hooks/useAppHandlers';
 import { useAppAuth } from '../hooks/useAppAuth';
+import AppLayout from './AppLayout';
 
 interface User {
   id: string;
@@ -121,86 +116,40 @@ const AppContainer: React.FC<AppContainerProps> = ({
     isAuthenticated: !!user 
   });
 
-  // Show error boundary if needed
-  const errorBoundary = <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError} />;
-  if (errorBoundary.props.isGeminiReady === false && errorBoundary.props.appError) {
-    return errorBoundary;
-  }
-
-  if (currentView === 'finetuning') {
-    // Solo mostrar el panel de configuración si el usuario es administrador
-    if (!user || !profile || profile.role !== 'administrativo') {
-      setCurrentView('chat');
-      setIsMenuOpen(false);
-      return null;
-    }
-    
-    return (
-      <FinetuningPage
-        currentConfig={chatConfig}
-        onSave={handleSaveCustomization}
-        onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
-        googleMapsScriptLoaded={googleMapsScriptLoaded}
-        apiKeyForMaps=""
-      />
-    );
-  }
-
   return (
-    <Box sx={{ display: 'flex', height: '100vh', maxHeight: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
-      <AppDrawer
-        isMenuOpen={isMenuOpen}
-        onMenuToggle={handleMenuToggle}
-        onNewChat={handleNewChat}
-        onOpenFinetuning={handleOpenFinetuningWithAuth}
-        chatTitles={chatTitles}
-        selectedChatIndex={selectedChatIndex}
-        onSelectChat={handleSelectChat}
-        chatConfig={chatConfig}
-        userLocation={userLocation}
-        geolocationStatus={geolocationStatus}
-      />
-
-      <Box component="main" sx={{
-        flexGrow: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        maxHeight: '100vh',
-        overflow: 'hidden',
-        transition: theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-        }),
-        ...(isMenuOpen && !isMobile && {
-            transition: theme.transitions.create(['margin', 'width'], {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-            }),
-        }),
-      }}>
-        <AppHeader
-          isMobile={isMobile}
-          onMenuToggle={handleMenuToggle}
-          currentThemeMode={currentThemeMode}
-          onToggleTheme={toggleTheme}
-          onOpenSettings={handleOpenSettings}
-          isAuthenticated={!!user}
-          onLogin={onLogin}
-        />
-
-        <ChatContainer
-          messages={messages}
-          isLoading={isLoading}
-          appError={appError}
-          chatConfig={chatConfig}
-          onSendMessage={handleSendMessage}
-          onDownloadPdf={handleDownloadPdf}
-          onSeeMoreEvents={handleSeeMoreEvents}
-          onSetLanguageCode={handleSetCurrentLanguageCode}
-        />
-      </Box>
-    </Box>
+    <AppLayout
+      isGeminiReady={isGeminiReady}
+      appError={appError}
+      currentView={currentView}
+      setCurrentView={setCurrentView}
+      setIsMenuOpen={setIsMenuOpen}
+      user={user}
+      profile={profile}
+      theme={theme}
+      isMobile={isMobile}
+      isMenuOpen={isMenuOpen}
+      handleMenuToggle={handleMenuToggle}
+      handleNewChat={handleNewChat}
+      handleOpenFinetuningWithAuth={handleOpenFinetuningWithAuth}
+      chatTitles={chatTitles}
+      selectedChatIndex={selectedChatIndex}
+      handleSelectChat={handleSelectChat}
+      chatConfig={chatConfig}
+      userLocation={userLocation}
+      geolocationStatus={geolocationStatus}
+      currentThemeMode={currentThemeMode}
+      toggleTheme={toggleTheme}
+      handleOpenSettings={handleOpenSettings}
+      onLogin={onLogin}
+      messages={messages}
+      isLoading={isLoading}
+      handleSendMessage={handleSendMessage}
+      handleDownloadPdf={handleDownloadPdf}
+      handleSeeMoreEvents={handleSeeMoreEvents}
+      handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+      handleSaveCustomization={handleSaveCustomization}
+      googleMapsScriptLoaded={googleMapsScriptLoaded}
+    />
   );
 };
 
