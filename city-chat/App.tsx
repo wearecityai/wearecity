@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Container, Paper, Typography, Button, useTheme, useMediaQuery } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -355,7 +354,7 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
         onSave={handleSaveCustomization}
         onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
         googleMapsScriptLoaded={googleMapsScriptLoaded}
-        apiKeyForMaps={'' || ''}
+        apiKeyForMaps=""
       />
     );
   }
@@ -381,6 +380,7 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
         flexDirection: 'column',
         height: '100vh',
         maxHeight: '100vh',
+        overflow: 'hidden',
         transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
