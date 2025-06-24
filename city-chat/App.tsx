@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 
@@ -111,6 +110,7 @@ const App: React.FC<AppProps> = ({
 
   // Verificar si el usuario es administrador antes de permitir acceso al panel de configuración
   const handleOpenFinetuningWithAuth = () => {
+    console.log('Checking admin access...', { user, profile });
     if (!user || !profile || profile.role !== 'administrativo') {
       console.log('Acceso denegado: Solo los administradores pueden acceder al panel de configuración');
       if (onLogin) {
@@ -120,6 +120,13 @@ const App: React.FC<AppProps> = ({
     }
     handleOpenFinetuning();
   };
+
+  console.log('App.tsx - Props recibidas:', { 
+    user: !!user, 
+    profile: !!profile, 
+    onLogin: !!onLogin,
+    isAuthenticated: !!user 
+  });
 
   useEffect(() => {
     if (isMenuOpen && isMobile) {

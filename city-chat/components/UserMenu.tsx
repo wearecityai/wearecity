@@ -27,6 +27,8 @@ const UserMenu: React.FC<UserMenuProps> = ({
   isAuthenticated = false,
   onLogin
 }) => {
+  console.log('UserMenu props:', { isAuthenticated, hasOnLogin: !!onLogin });
+
   const handleToggleTheme = () => {
     onToggleTheme();
     onClose();
@@ -38,6 +40,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
   };
 
   const handleLogin = () => {
+    console.log('Login button clicked');
     if (onLogin) {
       onLogin();
     }
