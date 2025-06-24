@@ -89,9 +89,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   googleMapsScriptLoaded
 }) => {
   // Show error boundary if needed
-  const errorBoundary = <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError} />;
-  if (errorBoundary.props.isGeminiReady === false && errorBoundary.props.appError) {
-    return errorBoundary;
+  if (!isGeminiReady && appError) {
+    return <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError} />;
   }
 
   if (currentView === 'finetuning') {

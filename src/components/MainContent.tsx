@@ -150,7 +150,7 @@ const MainContent: React.FC<MainContentProps> = ({
         chatConfig={chatConfig}
         onDownloadPdf={handleDownloadPdf}
         onSeeMoreEvents={handleSeeMoreEvents}
-        onSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+        onSetLanguageCode={handleSetCurrentLanguageCode}
       />
     </Box>
   );

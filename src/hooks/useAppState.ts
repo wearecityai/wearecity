@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { useChatState } from './useChatState';
 import { useGeolocation } from './useGeolocation';
@@ -10,6 +10,13 @@ import { useChatManager } from './useChatManager';
 export const useAppState = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // Theme state management
+  const [currentThemeMode, setCurrentThemeMode] = useState<'light' | 'dark'>('light');
+  
+  const toggleTheme = () => {
+    setCurrentThemeMode(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
   const { isGeminiReady, setIsGeminiReady, appError, setAppError } = useApiInitialization();
   
@@ -70,6 +77,8 @@ export const useAppState = () => {
   return {
     theme,
     isMobile,
+    currentThemeMode,
+    toggleTheme,
     isGeminiReady,
     setIsGeminiReady,
     appError,
