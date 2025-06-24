@@ -1,68 +1,117 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import UserButton from '@/components/auth/UserButton';
-import AppContainer from '../components/AppContainer';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { deepPurple, amber } from '@mui/material/colors';
+import { useApiInitialization } from '../hooks/useApiInitialization';
 import { useAppState } from '../hooks/useAppState';
+import AppContainer from '../components/AppContainer';
+import { Button } from '@/components/ui/button';
+import { LogIn } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, isLoading } = useAuth();
-  const [currentThemeMode, setCurrentThemeMode] = React.useState<'light' | 'dark'>('light');
-  const appState = useAppState();
-
-  const toggleTheme = () => {
-    setCurrentThemeMode(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  const { user, profile, isLoading: authLoading } = useAuth();
+  const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
+  
+  // App state hooks
+  const {
+    theme,
+    isMobile,
+    currentView,
+    setCurrentView,
+    chatTitles,
+    selectedChatIndex,
+    setSelectedChatIndex,
+    isMenuOpen,
+    setIsMenuOpen,
+    chatConfig,
+    setChatConfig,
+    userLocation,
+    geolocationStatus,
+    googleMapsScriptLoaded,
+    messages,
+    isLoading,
+    handleSendMessage,
+    handleSeeMoreEvents,
+    clearMessages,
+    currentThemeMode,
+    toggleTheme
+  } = useAppState();
 
   const handleLogin = () => {
     navigate('/auth');
   };
 
-  const theme = createTheme({
-    palette: {
-      mode: currentThemeMode,
-      primary: {
-        main: currentThemeMode === 'light' ? deepPurple[600] : deepPurple[400],
-      },
-      secondary: {
-        main: currentThemeMode === 'light' ? amber[600] : amber[400],
-      },
-    },
-  });
-
-  if (isLoading) {
+  // Show loading state while auth is initializing
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <ThemeProvider theme={theme}>
-      <div className="relative">
-        {user && (
-          <div className="absolute top-4 right-4 z-50">
-            <UserButton />
+  // Show login prompt for unauthenticated users
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">City Chat</h1>
+            <p className="text-muted-foreground">
+              Asistente de IA especializado en información y servicios para ciudades
+            </p>
           </div>
-        )}
-        <AppContainer 
-          toggleTheme={toggleTheme} 
-          currentThemeMode={currentThemeMode}
-          user={user}
-          profile={profile}
-          onLogin={handleLogin}
-          theme={theme}
-          {...appState}
-        />
+          
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Inicia sesión o regístrate para acceder al chat y guardar tus conversaciones
+            </p>
+            <Button onClick={handleLogin} className="w-full">
+              <LogIn className="w-4 h-4 mr-2" />
+              Iniciar Sesión / Registrarse
+            </Button>
+          </div>
+        </div>
       </div>
-    </ThemeProvider>
+    );
+  }
+
+  // Main app for authenticated users
+  return (
+    <AppContainer
+      toggleTheme={toggleTheme}
+      currentThemeMode={currentThemeMode}
+      user={user}
+      profile={profile}
+      onLogin={handleLogin}
+      theme={theme}
+      isMobile={isMobile}
+      isGeminiReady={isGeminiReady}
+      appError={appError}
+      currentView={currentView}
+      setCurrentView={setCurrentView}
+      chatTitles={chatTitles}
+      selectedChatIndex={selectedChatIndex}
+      setSelectedChatIndex={setSelectedChatIndex}
+      isMenuOpen={isMenuOpen}
+      setIsMenuOpen={setIsMenuOpen}
+      chatConfig={chatConfig}
+      setChatConfig={setChatConfig}
+      userLocation={userLocation}
+      geolocationStatus={geolocationStatus}
+      googleMapsScriptLoaded={googleMapsScriptLoaded}
+      messages={messages}
+      isLoading={isLoading}
+      handleSendMessage={handleSendMessage}
+      handleSeeMoreEvents={handleSeeMoreEvents}
+      clearMessages={clearMessages}
+      setAppError={setAppError}
+      setIsGeminiReady={setIsGeminiReady}
+    />
   );
 };
 
