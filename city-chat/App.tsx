@@ -27,6 +27,7 @@ import GpsOffIcon from '@mui/icons-material/GpsOff';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 
+import LoginPage from './components/LoginPage';
 
 import {
     ChatMessage, MessageRole, CustomChatConfig, GroundingMetadata, RestrictedCityInfo, EventInfo, PlaceCardInfo, SupportedLanguage, UploadedProcedureDocument
@@ -78,7 +79,6 @@ interface UserLocation {
   // console.log("Google Maps API script (potentially) loaded via callback.");
 };
 
-
 const getFriendlyError = (error: any, defaultMessage: string): string => {
   let message = defaultMessage;
   if (!error) return defaultMessage;
@@ -115,6 +115,9 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
   const [chatTitles, setChatTitles] = useState<string[]>([DEFAULT_CHAT_TITLE]); // Placeholder for recent chats
   const [selectedChatIndex, setSelectedChatIndex] = useState<number>(0);
 
+  // Add state for API key management
+  const [apiKey, setApiKey] = useState<string>('');
+  const [showLogin, setShowLogin] = useState<boolean>(true);
 
   const [chatConfig, setChatConfig] = useState<CustomChatConfig>(() => {
     let loadedConfig: CustomChatConfig = { ...DEFAULT_CHAT_CONFIG };
@@ -173,7 +176,6 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
 
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const openUserMenu = Boolean(userMenuAnchorEl);
-
 
   useEffect(() => {
     const handleAuthFailure = () => {
@@ -317,23 +319,31 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
     }
   }, [isGeminiReady, appError, buildFullSystemInstruction]);
 
-
-  useEffect(() => {
-    const apiKeyFromEnv = process.env.API_KEY;
-    if (apiKeyFromEnv && apiKeyFromEnv.trim() !== "") {
-      if (initializeGeminiService(apiKeyFromEnv)) {
-        setIsGeminiReady(true);
-        if (!googleMapsScriptLoaded) loadGoogleMapsScript(apiKeyFromEnv);
-      } else {
-        setIsGeminiReady(false);
-        setAppError(API_KEY_ERROR_MESSAGE);
-      }
+  // Handle login with API key
+  const handleLogin = useCallback((providedApiKey: string) => {
+    if (initializeGeminiService(providedApiKey)) {
+      setApiKey(providedApiKey);
+      setIsGeminiReady(true);
+      setShowLogin(false);
+      setAppError(null);
+      loadGoogleMapsScript(providedApiKey);
     } else {
       setIsGeminiReady(false);
-      setGoogleMapsScriptLoaded(false);
-      setAppError(API_KEY_ERROR_MESSAGE);
+      setAppError("API Key inválida. Por favor, verifica que sea correcta.");
     }
-  }, [loadGoogleMapsScript, googleMapsScriptLoaded]);
+  }, [loadGoogleMapsScript]);
+
+  useEffect(() => {
+    // Check if API key is available from environment first
+    const apiKeyFromEnv = process.env.API_KEY;
+    if (apiKeyFromEnv && apiKeyFromEnv.trim() !== "") {
+      handleLogin(apiKeyFromEnv);
+    } else {
+      // No API key available, show login
+      setShowLogin(true);
+      setIsGeminiReady(false);
+    }
+  }, [handleLogin]);
 
   useEffect(() => {
     if (isGeminiReady) {
@@ -591,7 +601,7 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
             processedContent = processedContent.replace(pdfMarkerRegex, "").trim();
             const pdfDoc = chatConfig.uploadedProcedureDocuments.find(doc => doc.procedureName === matchedProcedureName);
             if (pdfDoc) downloadablePdfInfoForMessage = { ...pdfDoc };
-            else console.warn(`AI requested PDF '\''${matchedProcedureName}\'', not found.`);
+            else console.warn(`AI requested PDF '${matchedProcedureName}', not found.`);
           }
           const tecaLinkRegex = new RegExp(`${TECA_LINK_BUTTON_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${TECA_LINK_BUTTON_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
           tempContentForProcessing = processedContent;
@@ -702,6 +712,10 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
     setUserMenuAnchorEl(null);
   };
 
+  // Show login page if no API key is configured
+  if (showLogin || (!isGeminiReady && !apiKey)) {
+    return <LoginPage onLogin={handleLogin} error={appError} />;
+  }
 
   if (!isGeminiReady && appError === API_KEY_ERROR_MESSAGE) {
     return (
@@ -726,7 +740,7 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
         onSave={handleSaveCustomization}
         onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
         googleMapsScriptLoaded={googleMapsScriptLoaded}
-        apiKeyForMaps={process.env.API_KEY || ''}
+        apiKeyForMaps={apiKey || ''}
       />
     );
   }
@@ -921,7 +935,6 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
       geoText = geolocationError || "Error de ubicación";
     }
   }
-
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', maxHeight: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
