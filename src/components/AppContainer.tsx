@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAppHandlers } from '../hooks/useAppHandlers';
 import { useAppAuth } from '../hooks/useAppAuth';
@@ -38,7 +39,7 @@ interface AppContainerProps {
   chatConfig: any;
   setChatConfig: React.Dispatch<React.SetStateAction<any>>;
   userLocation: any;
-  geolocationStatus: string;
+  geolocationStatus: 'idle' | 'pending' | 'success' | 'error';
   googleMapsScriptLoaded: boolean;
   messages: any[];
   isLoading: boolean;
