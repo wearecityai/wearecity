@@ -94,7 +94,7 @@ export const useAppState = () => {
     setChatConfig,
     userLocation,
     geolocationError,
-    geolocationStatus: geolocationStatus as 'idle' | 'pending' | 'success' | 'error',
+    geolocationStatus,
     googleMapsScriptLoaded,
     messages,
     isLoading,

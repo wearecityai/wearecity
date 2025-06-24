@@ -6,10 +6,12 @@ interface UserLocation {
   longitude: number;
 }
 
+type GeolocationStatus = 'idle' | 'pending' | 'success' | 'error';
+
 export const useGeolocation = (allowGeolocation: boolean) => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
-  const [geolocationStatus, setGeolocationStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [geolocationStatus, setGeolocationStatus] = useState<GeolocationStatus>('idle');
 
   useEffect(() => {
     if (allowGeolocation) {
