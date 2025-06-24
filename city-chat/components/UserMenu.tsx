@@ -4,6 +4,7 @@ import { Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsIcon from '@mui/icons-material/Settings';
+import LoginIcon from '@mui/icons-material/Login';
 
 interface UserMenuProps {
   anchorEl: null | HTMLElement;
@@ -12,6 +13,8 @@ interface UserMenuProps {
   currentThemeMode: 'light' | 'dark';
   onToggleTheme: () => void;
   onOpenSettings: () => void;
+  isAuthenticated?: boolean;
+  onLogin?: () => void;
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({
@@ -20,7 +23,9 @@ const UserMenu: React.FC<UserMenuProps> = ({
   onClose,
   currentThemeMode,
   onToggleTheme,
-  onOpenSettings
+  onOpenSettings,
+  isAuthenticated = false,
+  onLogin
 }) => {
   const handleToggleTheme = () => {
     onToggleTheme();
@@ -29,6 +34,13 @@ const UserMenu: React.FC<UserMenuProps> = ({
 
   const handleOpenSettings = () => {
     onOpenSettings();
+    onClose();
+  };
+
+  const handleLogin = () => {
+    if (onLogin) {
+      onLogin();
+    }
     onClose();
   };
 
@@ -47,6 +59,14 @@ const UserMenu: React.FC<UserMenuProps> = ({
         </ListItemIcon>
         <ListItemText>Cambiar a modo {currentThemeMode === 'dark' ? 'Claro' : 'Oscuro'}</ListItemText>
       </MenuItem>
+      
+      {!isAuthenticated && onLogin && (
+        <MenuItem onClick={handleLogin}>
+          <ListItemIcon><LoginIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Iniciar Sesión</ListItemText>
+        </MenuItem>
+      )}
+      
       <MenuItem onClick={handleOpenSettings}>
         <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
         <ListItemText>Ajustes</ListItemText>

@@ -24,12 +24,36 @@ interface UserLocation {
   // console.log("Google Maps API script (potentially) loaded via callback.");
 };
 
+interface User {
+  id: string;
+  email?: string;
+}
+
+interface Profile {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: 'ciudadano' | 'administrativo';
+  created_at: string;
+  updated_at: string;
+}
+
 interface AppProps {
   toggleTheme: () => void;
   currentThemeMode: 'light' | 'dark';
+  user?: User | null;
+  profile?: Profile | null;
+  onLogin?: () => void;
 }
 
-const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
+const App: React.FC<AppProps> = ({ 
+  toggleTheme, 
+  currentThemeMode, 
+  user = null, 
+  profile = null, 
+  onLogin 
+}) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -85,6 +109,18 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
     clearMessages
   });
 
+  // Verificar si el usuario es administrador antes de permitir acceso al panel de configuración
+  const handleOpenFinetuningWithAuth = () => {
+    if (!user || !profile || profile.role !== 'administrativo') {
+      console.log('Acceso denegado: Solo los administradores pueden acceder al panel de configuración');
+      if (onLogin) {
+        onLogin();
+      }
+      return;
+    }
+    handleOpenFinetuning();
+  };
+
   useEffect(() => {
     if (isMenuOpen && isMobile) {
       document.body.style.overflow = 'hidden';
@@ -116,6 +152,13 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
   }
 
   if (currentView === 'finetuning') {
+    // Solo mostrar el panel de configuración si el usuario es administrador
+    if (!user || !profile || profile.role !== 'administrativo') {
+      setCurrentView('chat');
+      setIsMenuOpen(false);
+      return null;
+    }
+    
     return (
       <FinetuningPage
         currentConfig={chatConfig}
@@ -133,7 +176,7 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
         isMenuOpen={isMenuOpen}
         onMenuToggle={handleMenuToggle}
         onNewChat={handleNewChat}
-        onOpenFinetuning={handleOpenFinetuning}
+        onOpenFinetuning={handleOpenFinetuningWithAuth}
         chatTitles={chatTitles}
         selectedChatIndex={selectedChatIndex}
         onSelectChat={handleSelectChat}
@@ -166,6 +209,8 @@ const App: React.FC<AppProps> = ({ toggleTheme, currentThemeMode }) => {
           currentThemeMode={currentThemeMode}
           onToggleTheme={toggleTheme}
           onOpenSettings={handleOpenSettings}
+          isAuthenticated={!!user}
+          onLogin={onLogin}
         />
 
         <ChatContainer

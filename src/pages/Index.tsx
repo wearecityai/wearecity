@@ -19,6 +19,10 @@ const Index = () => {
     setCurrentThemeMode(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  const handleLogin = () => {
+    navigate('/auth');
+  };
+
   useEffect(() => {
     // Auto-redirect authenticated users to chat
     if (user && !isLoading) {
@@ -47,7 +51,10 @@ const Index = () => {
         )}
         <CityChat 
           toggleTheme={toggleTheme} 
-          currentThemeMode={currentThemeMode} 
+          currentThemeMode={currentThemeMode}
+          user={user}
+          profile={profile}
+          onLogin={handleLogin}
         />
       </div>
     );
