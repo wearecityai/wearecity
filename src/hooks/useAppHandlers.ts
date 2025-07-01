@@ -1,5 +1,6 @@
+
 import { useCallback } from 'react';
-import { ChatMessage, CustomChatConfig } from '../types';
+import { CustomChatConfig } from '../types';
 import { 
   DEFAULT_CHAT_CONFIG, 
   SUPPORTED_LANGUAGES, 
@@ -7,12 +8,11 @@ import {
   MAPS_API_KEY_INVALID_ERROR_MESSAGE,
   API_KEY_ERROR_MESSAGE
 } from '../constants';
-import { supabase } from '@/integrations/supabase/client';
-import type { TablesInsert } from '@/integrations/supabase/types';
 
 interface UseAppHandlersProps {
   chatConfig: CustomChatConfig;
   setChatConfig: React.Dispatch<React.SetStateAction<CustomChatConfig>>;
+  saveConfig: (config: CustomChatConfig) => Promise<boolean>;
   setCurrentView: React.Dispatch<React.SetStateAction<'chat' | 'finetuning'>>;
   setIsMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedChatIndex: React.Dispatch<React.SetStateAction<number>>;
@@ -21,11 +21,15 @@ interface UseAppHandlersProps {
   appError: string | null;
   setAppError: (error: string | null) => void;
   clearMessages: () => void;
+  handleNewChat: () => Promise<void>;
+  setCurrentConversationId: (id: string | null) => void;
+  conversations: Array<{ id: string; title: string }>;
 }
 
 export const useAppHandlers = ({
   chatConfig,
   setChatConfig,
+  saveConfig,
   setCurrentView,
   setIsMenuOpen,
   setSelectedChatIndex,
@@ -33,28 +37,28 @@ export const useAppHandlers = ({
   isMobile,
   appError,
   setAppError,
-  clearMessages
-}: UseAppHandlersProps & { userId?: string }) => {
+  clearMessages,
+  handleNewChat,
+  setCurrentConversationId,
+  conversations
+}: UseAppHandlersProps) => {
 
-  const handleNewChat = useCallback((newChatTitle: string = DEFAULT_CHAT_TITLE) => {
-    clearMessages();
+  const handleNewChatClick = useCallback(async (newChatTitle: string = DEFAULT_CHAT_TITLE) => {
+    await handleNewChat();
     if (appError && !appError.toLowerCase().includes("google maps") && !appError.includes("API_KEY") && appError !== MAPS_API_KEY_INVALID_ERROR_MESSAGE) {
       setAppError(null);
     }
     if (isMobile) setIsMenuOpen(false);
-  }, [clearMessages, appError, setAppError, isMobile, setIsMenuOpen]);
+  }, [handleNewChat, appError, setAppError, isMobile, setIsMenuOpen]);
 
-  const handleSetCurrentLanguageCode = useCallback((newLangCode: string) => {
-    setChatConfig(prevConfig => {
-      if (prevConfig.currentLanguageCode === newLangCode) return prevConfig;
-      const updatedConfig = { ...prevConfig, currentLanguageCode: newLangCode };
-      localStorage.setItem('chatConfig', JSON.stringify(updatedConfig));
-      clearMessages();
-      return updatedConfig;
-    });
-  }, [setChatConfig, clearMessages]);
+  const handleSetCurrentLanguageCode = useCallback(async (newLangCode: string) => {
+    const updatedConfig = { ...chatConfig, currentLanguageCode: newLangCode };
+    setChatConfig(updatedConfig);
+    await saveConfig(updatedConfig);
+    clearMessages();
+  }, [chatConfig, setChatConfig, saveConfig, clearMessages]);
 
-  const handleSaveCustomization = useCallback(async (newConfig: CustomChatConfig, userId?: string) => {
+  const handleSaveCustomization = useCallback(async (newConfig: CustomChatConfig) => {
     const configToSave: CustomChatConfig = { ...DEFAULT_CHAT_CONFIG, ...newConfig };
     configToSave.assistantName = newConfig.assistantName.trim() || DEFAULT_CHAT_CONFIG.assistantName;
     configToSave.systemInstruction = typeof newConfig.systemInstruction === 'string' ? newConfig.systemInstruction.trim() : DEFAULT_CHAT_CONFIG.systemInstruction;
@@ -64,48 +68,20 @@ export const useAppHandlers = ({
     configToSave.uploadedProcedureDocuments = newConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments;
     configToSave.sedeElectronicaUrl = newConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl;
 
-    localStorage.setItem('chatConfig', JSON.stringify(configToSave));
     setChatConfig(configToSave);
-    setCurrentView('chat');
-    clearMessages();
-    setIsMenuOpen(false);
-    if (appError && !appError.includes("API_KEY") && !appError.toLowerCase().includes("google maps") && !appError.toLowerCase().includes("offline") && !appError.toLowerCase().includes("network") && appError !== MAPS_API_KEY_INVALID_ERROR_MESSAGE) {
-      setAppError(null);
-    }
-
-    // Guardar en Supabase
-    if (userId) {
-      try {
-        const configRow: TablesInsert<'assistant_config'> = {
-          user_id: userId!,
-          assistant_name: configToSave.assistantName,
-          system_instruction: configToSave.systemInstruction,
-          recommended_prompts: configToSave.recommendedPrompts ?? null,
-          service_tags: configToSave.serviceTags ?? null,
-          enable_google_search: configToSave.enableGoogleSearch,
-          allow_map_display: configToSave.allowMapDisplay,
-          allow_geolocation: configToSave.allowGeolocation,
-          restricted_city: configToSave.restrictedCity ? JSON.stringify(configToSave.restrictedCity) : null,
-          current_language_code: configToSave.currentLanguageCode,
-          procedure_source_urls: configToSave.procedureSourceUrls ?? null,
-          uploaded_procedure_documents: configToSave.uploadedProcedureDocuments ? JSON.stringify(configToSave.uploadedProcedureDocuments) : null,
-          sede_electronica_url: configToSave.sedeElectronicaUrl || null,
-          is_active: true,
-          config_name: 'default',
-        };
-        const { error } = await supabase
-          .from('assistant_config')
-          .upsert([configRow], { onConflict: 'user_id' });
-        if (error) {
-          console.error('Error guardando configuración en Supabase:', error);
-        }
-      } catch (err) {
-        console.error('Error inesperado guardando configuración en Supabase:', err);
+    const success = await saveConfig(configToSave);
+    
+    if (success) {
+      setCurrentView('chat');
+      clearMessages();
+      setIsMenuOpen(false);
+      if (appError && !appError.includes("API_KEY") && !appError.toLowerCase().includes("google maps") && !appError.toLowerCase().includes("offline") && !appError.toLowerCase().includes("network") && appError !== MAPS_API_KEY_INVALID_ERROR_MESSAGE) {
+        setAppError(null);
       }
     }
-  }, [setChatConfig, setCurrentView, clearMessages, setIsMenuOpen, appError, setAppError]);
+  }, [setChatConfig, saveConfig, setCurrentView, clearMessages, setIsMenuOpen, appError, setAppError]);
 
-  const handleDownloadPdf = useCallback((pdfInfo: NonNullable<ChatMessage['downloadablePdfInfo']>) => {
+  const handleDownloadPdf = useCallback((pdfInfo: NonNullable<any>) => {
     try {
       const byteCharacters = atob(pdfInfo.base64Data);
       const byteNumbers = new Array(byteCharacters.length);
@@ -127,12 +103,13 @@ export const useAppHandlers = ({
   }, [setAppError]);
 
   const handleSelectChat = useCallback((index: number) => {
-    setSelectedChatIndex(index);
-    if (index !== selectedChatIndex) {
-      clearMessages(); // Clear for demo
+    if (index < conversations.length) {
+      const conversation = conversations[index];
+      setCurrentConversationId(conversation.id);
+      setSelectedChatIndex(index);
     }
     if (isMobile) setIsMenuOpen(false);
-  }, [setSelectedChatIndex, selectedChatIndex, clearMessages, isMobile, setIsMenuOpen]);
+  }, [setCurrentConversationId, setSelectedChatIndex, conversations, isMobile, setIsMenuOpen]);
 
   const handleMenuToggle = useCallback(() => {
     setIsMenuOpen(prev => !prev);
@@ -147,7 +124,7 @@ export const useAppHandlers = ({
   }, [setCurrentView]);
 
   return {
-    handleNewChat,
+    handleNewChat: handleNewChatClick,
     handleSetCurrentLanguageCode,
     handleSaveCustomization,
     handleDownloadPdf,

@@ -1,11 +1,11 @@
 
 import { useEffect, useState } from 'react';
 import { useTheme, useMediaQuery } from '@mui/material';
-import { useChatState } from './useChatState';
 import { useGeolocation } from './useGeolocation';
 import { useApiInitialization } from './useApiInitialization';
 import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
+import { useAssistantConfig } from './useAssistantConfig';
 
 export const useAppState = () => {
   const theme = useTheme();
@@ -13,6 +13,9 @@ export const useAppState = () => {
   
   // Theme state management
   const [currentThemeMode, setCurrentThemeMode] = useState<'light' | 'dark'>('light');
+  const [currentView, setCurrentView] = useState<'chat' | 'finetuning'>('chat');
+  const [selectedChatIndex, setSelectedChatIndex] = useState<number>(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const toggleTheme = () => {
     setCurrentThemeMode(prev => prev === 'light' ? 'dark' : 'light');
@@ -20,17 +23,8 @@ export const useAppState = () => {
 
   const { isGeminiReady, setIsGeminiReady, appError, setAppError } = useApiInitialization();
   
-  const {
-    currentView,
-    setCurrentView,
-    chatTitles,
-    selectedChatIndex,
-    setSelectedChatIndex,
-    isMenuOpen,
-    setIsMenuOpen,
-    chatConfig,
-    setChatConfig
-  } = useChatState();
+  // Usar el nuevo hook de configuración
+  const { config: chatConfig, setConfig: setChatConfig, saveConfig } = useAssistantConfig();
 
   const { userLocation, geolocationError, geolocationStatus } = useGeolocation(chatConfig.allowGeolocation);
 
@@ -40,7 +34,18 @@ export const useAppState = () => {
     setAppError
   );
 
-  const { messages, isLoading, handleSendMessage, handleSeeMoreEvents, clearMessages, setMessages } = useChatManager(
+  const { 
+    messages, 
+    isLoading, 
+    handleSendMessage, 
+    handleSeeMoreEvents, 
+    clearMessages, 
+    setMessages,
+    handleNewChat,
+    conversations,
+    currentConversationId,
+    setCurrentConversationId
+  } = useChatManager(
     chatConfig,
     userLocation,
     isGeminiReady,
@@ -85,13 +90,14 @@ export const useAppState = () => {
     setAppError,
     currentView,
     setCurrentView,
-    chatTitles,
+    chatTitles: conversations.map(c => c.title),
     selectedChatIndex,
     setSelectedChatIndex,
     isMenuOpen,
     setIsMenuOpen,
     chatConfig,
     setChatConfig,
+    saveConfig,
     userLocation,
     geolocationError,
     geolocationStatus,
@@ -101,6 +107,10 @@ export const useAppState = () => {
     handleSendMessage,
     handleSeeMoreEvents,
     clearMessages,
-    setMessages
+    setMessages,
+    handleNewChat,
+    conversations,
+    currentConversationId,
+    setCurrentConversationId
   };
 };

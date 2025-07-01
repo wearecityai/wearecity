@@ -38,6 +38,7 @@ interface AppContainerProps {
   setIsMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   chatConfig: any;
   setChatConfig: React.Dispatch<React.SetStateAction<any>>;
+  saveConfig: (config: any) => Promise<boolean>;
   userLocation: any;
   geolocationStatus: 'idle' | 'pending' | 'success' | 'error';
   googleMapsScriptLoaded: boolean;
@@ -48,6 +49,10 @@ interface AppContainerProps {
   clearMessages: () => void;
   setAppError: (error: string | null) => void;
   setIsGeminiReady: (ready: boolean) => void;
+  handleNewChat: () => Promise<void>;
+  conversations: Array<{ id: string; title: string }>;
+  currentConversationId: string | null;
+  setCurrentConversationId: (id: string | null) => void;
 }
 
 const AppContainer: React.FC<AppContainerProps> = ({ 
@@ -69,6 +74,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
   setIsMenuOpen,
   chatConfig,
   setChatConfig,
+  saveConfig,
   userLocation,
   geolocationStatus,
   googleMapsScriptLoaded,
@@ -78,10 +84,14 @@ const AppContainer: React.FC<AppContainerProps> = ({
   handleSeeMoreEvents,
   clearMessages,
   setAppError,
-  setIsGeminiReady
+  setIsGeminiReady,
+  handleNewChat,
+  conversations,
+  currentConversationId,
+  setCurrentConversationId
 }) => {
   const {
-    handleNewChat,
+    handleNewChat: handleNewChatClick,
     handleSetCurrentLanguageCode,
     handleSaveCustomization,
     handleDownloadPdf,
@@ -92,6 +102,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
   } = useAppHandlers({
     chatConfig,
     setChatConfig,
+    saveConfig,
     setCurrentView,
     setIsMenuOpen,
     setSelectedChatIndex,
@@ -99,7 +110,10 @@ const AppContainer: React.FC<AppContainerProps> = ({
     isMobile,
     appError,
     setAppError,
-    clearMessages
+    clearMessages,
+    handleNewChat,
+    setCurrentConversationId,
+    conversations
   });
 
   const { handleOpenFinetuningWithAuth } = useAppAuth({
@@ -129,7 +143,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
       isMobile={isMobile}
       isMenuOpen={isMenuOpen}
       handleMenuToggle={handleMenuToggle}
-      handleNewChat={handleNewChat}
+      handleNewChat={handleNewChatClick}
       handleOpenFinetuningWithAuth={handleOpenFinetuningWithAuth}
       chatTitles={chatTitles}
       selectedChatIndex={selectedChatIndex}
