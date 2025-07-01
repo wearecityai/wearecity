@@ -95,7 +95,7 @@ export const useMessages = (conversationId: string | null) => {
     
     if (!user || !conversationIdToUse) {
       console.log('No user or conversationId, cannot save message. User:', !!user, 'ConversationId:', conversationIdToUse);
-      return;
+      throw new Error('No user or conversation ID available');
     }
 
     console.log('Saving message to database only:', message.id, 'to conversation:', conversationIdToUse, 'with role:', message.role);
@@ -135,11 +135,17 @@ export const useMessages = (conversationId: string | null) => {
     await saveMessageOnly(message);
   };
 
-  // Add message locally and save it
+  // Add message locally and save it to a specific conversation
   const addMessage = async (message: ChatMessage, targetConversationId?: string) => {
-    console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role);
-    setMessages(prev => [...prev, message]);
-    await saveMessageOnly(message, targetConversationId);
+    const conversationIdToUse = targetConversationId || conversationId;
+    console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role, 'to conversation:', conversationIdToUse);
+    
+    // Only add to local state if it belongs to the current conversation
+    if (conversationIdToUse === conversationId) {
+      setMessages(prev => [...prev, message]);
+    }
+    
+    await saveMessageOnly(message, conversationIdToUse);
   };
 
   // Update existing message

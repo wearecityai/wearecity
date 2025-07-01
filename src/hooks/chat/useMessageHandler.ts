@@ -19,21 +19,27 @@ export const useMessageHandler = (
     geminiChatSession: any,
     inputText: string,
     userMessage: ChatMessage,
-    addMessage: (message: ChatMessage) => Promise<void>,
-    saveMessageOnly: (message: ChatMessage) => Promise<void>,
+    addMessage: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
+    saveMessageOnly: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     setMessages: (updater: (prev: ChatMessage[]) => ChatMessage[]) => void,
-    isGeminiReady: boolean
+    isGeminiReady: boolean,
+    conversationId?: string
   ) => {
     if (!geminiChatSession || isLoading || !isGeminiReady) {
       if (!isGeminiReady) onError(API_KEY_ERROR_MESSAGE);
       return;
     }
 
-    // Add user message to local state and save to database
-    console.log('Creating user message:', userMessage.id);
+    if (!conversationId) {
+      onError('No se pudo determinar la conversación para guardar el mensaje.');
+      return;
+    }
+
+    // Add user message to local state and save to database with specific conversation ID
+    console.log('Creating user message:', userMessage.id, 'for conversation:', conversationId);
     try {
-      await addMessage(userMessage);
-      console.log('User message added and saved successfully');
+      await addMessage(userMessage, conversationId);
+      console.log('User message added and saved successfully to conversation:', conversationId);
     } catch (e) {
       console.error('Error saving user message:', e);
       onError('No se pudo guardar tu mensaje. Intenta de nuevo.');
@@ -72,7 +78,7 @@ export const useMessageHandler = (
         },
         // Complete callback
         async (finalResponse) => {
-          console.log('AI finished responding, processing final response');
+          console.log('AI finished responding, processing final response for conversation:', conversationId);
           
           const parsedResponse = parseAIResponse(accumulatedContent, finalResponse, chatConfig, inputText);
 
@@ -91,11 +97,11 @@ export const useMessageHandler = (
             originalUserQueryForEvents: parsedResponse.storedUserQueryForEvents,
           };
           
-          console.log('Saving final AI response to database only:', finalAiMessage.id);
+          console.log('Saving final AI response to database only:', finalAiMessage.id, 'for conversation:', conversationId);
           
           try {
-            await saveMessageOnly(finalAiMessage);
-            console.log('AI response saved successfully to database');
+            await saveMessageOnly(finalAiMessage, conversationId);
+            console.log('AI response saved successfully to database for conversation:', conversationId);
             
             setMessages(prev => 
               prev.map(msg => 
@@ -134,9 +140,9 @@ export const useMessageHandler = (
             error: friendlyApiError 
           };
           
-          console.log('Saving AI error message to database only');
+          console.log('Saving AI error message to database only for conversation:', conversationId);
           try {
-            await saveMessageOnly(errorAiMessage);
+            await saveMessageOnly(errorAiMessage, conversationId);
             
             setMessages(prev => prev.map(msg => 
               msg.id === aiTempId ? errorAiMessage : msg
@@ -174,7 +180,7 @@ export const useMessageHandler = (
       };
       
       try {
-        await saveMessageOnly(errorAiMessage);
+        await saveMessageOnly(errorAiMessage, conversationId);
         setMessages(prev => prev.map(msg => 
           msg.id === aiTempId ? errorAiMessage : msg
         ));

@@ -59,50 +59,52 @@ export const useChatManager = (
   } = useChatActions();
 
   const handleSendMessage = async (inputText: string) => {
-    // Create conversation if it doesn't exist
-    let conversationId = currentConversationId;
-    let shouldUpdateTitle = false;
+    try {
+      // Create conversation if it doesn't exist
+      let conversationId = currentConversationId;
+      let shouldUpdateTitle = false;
 
-    if (!conversationId) {
-      console.log('Creating new conversation for message:', inputText);
-      const newConversation = await handleCreateConversationWithAutoTitle(inputText);
-      if (newConversation) {
+      if (!conversationId) {
+        console.log('Creating new conversation for message:', inputText);
+        const newConversation = await handleCreateConversationWithAutoTitle(inputText);
+        if (!newConversation) {
+          onError('No se pudo crear la conversación.');
+          return;
+        }
         conversationId = newConversation.id;
-        // Immediately update the current conversation ID
+        // Immediately update the current conversation ID and wait for state to update
         setCurrentConversationId(conversationId);
         console.log('New conversation created and set as current:', conversationId);
+      } else {
+        // If it's the first real message in an existing conversation (not just "Nueva conversación")
+        const currentConversation = conversations.find(c => c.id === conversationId);
+        if (currentConversation && currentConversation.title === 'Nueva conversación' && messages.length <= 1) {
+          shouldUpdateTitle = true;
+        }
       }
-    } else {
-      // If it's the first real message in an existing conversation (not just "Nueva conversación")
-      const currentConversation = conversations.find(c => c.id === conversationId);
-      if (currentConversation && currentConversation.title === 'Nueva conversación' && messages.length <= 1) {
-        shouldUpdateTitle = true;
+
+      // Update title if needed
+      if (shouldUpdateTitle) {
+        await handleUpdateConversationTitle(conversationId, inputText);
       }
-    }
 
-    // Verify conversation exists before continuing
-    if (!conversationId) {
-      onError('No se pudo crear o recuperar la conversación.');
-      return;
+      const userMessage = createUserMessage(inputText);
+      
+      // Process the message with the specific conversation ID
+      await processMessage(
+        geminiChatSessionRef.current,
+        inputText,
+        userMessage,
+        addMessage,
+        saveMessageOnly,
+        setMessages,
+        isGeminiReady,
+        conversationId // Pass the conversation ID explicitly
+      );
+    } catch (error) {
+      console.error('Error in handleSendMessage:', error);
+      onError('Error al enviar el mensaje. Intenta de nuevo.');
     }
-
-    // Update title if needed
-    if (shouldUpdateTitle) {
-      await handleUpdateConversationTitle(conversationId, inputText);
-    }
-
-    const userMessage = createUserMessage(inputText);
-    
-    // Fix: Remove the extra conversationId argument since processMessage should handle it internally
-    await processMessage(
-      geminiChatSessionRef.current,
-      inputText,
-      userMessage,
-      addMessage,
-      saveMessageOnly,
-      setMessages,
-      isGeminiReady
-    );
   };
 
   const handleNewChatWrapper = async () => {
