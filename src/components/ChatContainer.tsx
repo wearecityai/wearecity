@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Box, Alert, AlertTitle, Typography, Stack, useTheme } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -43,7 +42,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         maxWidth: { sm: '800px' },
         margin: '0 auto',
         padding: { xs: '0', sm: '0 32px' }, // 32px padding on desktop
-        paddingTop: '64px', // Add padding to account for fixed header height
       }}
     >
       {appError && !messages.some(msg => msg.error && msg.error.includes(appError)) && (
