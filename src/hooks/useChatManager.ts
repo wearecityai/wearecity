@@ -29,7 +29,7 @@ export const useChatManager = (
   const { parseAIResponse, handleSeeMoreEvents: parseHandleSeeMoreEvents, clearEventTracking } = useMessageParser();
   const { getFriendlyError } = useErrorHandler();
   
-  // Usar hooks de conversaciones y mensajes
+  // Use hooks for conversations and messages
   const { 
     conversations, 
     currentConversationId, 
@@ -75,7 +75,7 @@ export const useChatManager = (
         return;
     }
 
-    // Crear conversación si no existe
+    // Create conversation if it doesn't exist
     let conversationId = currentConversationId;
     if (!conversationId) {
       const newConversation = await createConversation('Nueva conversación');
@@ -84,13 +84,13 @@ export const useChatManager = (
       }
     }
 
-    // Verifica que hay conversación antes de continuar
+    // Verify conversation exists before continuing
     if (!conversationId) {
       onError('No se pudo crear o recuperar la conversación.');
       return;
     }
 
-    // 1. GUARDAR MENSAJE DEL USUARIO INMEDIATAMENTE
+    // 1. SAVE USER MESSAGE IMMEDIATELY
     const userMessage: ChatMessage = { 
       id: crypto.randomUUID(), 
       role: MessageRole.User, 
@@ -98,19 +98,19 @@ export const useChatManager = (
       timestamp: new Date() 
     };
     
-    console.log('Guardando mensaje del usuario:', userMessage.id);
+    console.log('Saving user message:', userMessage.id);
     try {
       await addMessage(userMessage);
-      console.log('Mensaje del usuario guardado exitosamente');
+      console.log('User message saved successfully');
     } catch (e) {
-      console.error('Error guardando mensaje del usuario:', e);
+      console.error('Error saving user message:', e);
       onError('No se pudo guardar tu mensaje. Intenta de nuevo.');
       return;
     }
 
     setIsLoading(true);
     
-    // 2. CREAR MENSAJE TEMPORAL DE LA IA PARA MOSTRAR EN LA UI
+    // 2. CREATE TEMPORARY AI MESSAGE FOR UI DISPLAY
     const aiTempId = crypto.randomUUID();
     const tempAiMessage: ChatMessage = { 
       id: aiTempId, 
@@ -120,7 +120,7 @@ export const useChatManager = (
       isTyping: true 
     };
     
-    // Agregar mensaje temporal solo a la UI (no a la base de datos)
+    // Add temporary message only to UI (not to database)
     setMessages(prev => [...prev, tempAiMessage]);
     
     let accumulatedContent = '';
@@ -129,26 +129,26 @@ export const useChatManager = (
       await sendMessageToGeminiStream(
         geminiChatSessionRef.current, 
         inputText,
-        // Callback para chunks de texto (streaming)
+        // Callback for text chunks (streaming)
         (chunkText) => {
           accumulatedContent += chunkText;
-          // Actualizar mensaje temporal en la UI
+          // Update temporary message in UI
           setMessages(prev => prev.map(msg => 
             msg.id === aiTempId 
               ? { ...msg, content: accumulatedContent, isTyping: true } 
               : msg
           ));
         },
-        // Callback cuando termina la respuesta completa
+        // Callback when complete response is finished
         async (finalResponse) => {
-          console.log('IA terminó de responder, procesando respuesta final');
+          console.log('AI finished responding, processing final response');
           
-          // Procesar la respuesta de la IA
+          // Process AI response
           const parsedResponse = parseAIResponse(accumulatedContent, finalResponse, chatConfig, inputText);
 
-          // 3. CREAR MENSAJE FINAL DE LA IA PARA GUARDAR EN LA BASE DE DATOS
+          // 3. CREATE FINAL AI MESSAGE FOR DATABASE STORAGE
           const finalAiMessage: ChatMessage = {
-            id: crypto.randomUUID(), // Nuevo ID para el mensaje persistente
+            id: crypto.randomUUID(), // New ID for persistent message
             role: MessageRole.Model, 
             content: parsedResponse.processedContent, 
             timestamp: new Date(),
@@ -162,15 +162,15 @@ export const useChatManager = (
             originalUserQueryForEvents: parsedResponse.storedUserQueryForEvents,
           };
           
-          console.log('Guardando respuesta final de la IA:', finalAiMessage.id);
+          console.log('Saving final AI response:', finalAiMessage.id);
           
-          // 4. REEMPLAZAR MENSAJE TEMPORAL CON MENSAJE FINAL
+          // 4. REPLACE TEMPORARY MESSAGE WITH FINAL MESSAGE
           try {
-            // Primero guardamos en la base de datos
+            // First save to database
             await addMessage(finalAiMessage);
-            console.log('Respuesta de la IA guardada exitosamente en la base de datos');
+            console.log('AI response saved successfully to database');
             
-            // Luego actualizamos la UI quitando el temporal y mostrando el final
+            // Then update UI by replacing temporary with final
             setMessages(prev => 
               prev.map(msg => 
                 msg.id === aiTempId ? finalAiMessage : msg
@@ -178,14 +178,14 @@ export const useChatManager = (
             );
             
           } catch (e) {
-            console.error('Error guardando respuesta de la IA:', e);
+            console.error('Error saving AI response:', e);
             
-            // Si hay error guardando, mostramos el mensaje en la UI pero marcamos el error
+            // If error saving, show message in UI but mark the error
             setMessages(prev => prev.map(msg => 
               msg.id === aiTempId 
                 ? { 
                     ...finalAiMessage, 
-                    id: aiTempId, // Mantener el ID temporal
+                    id: aiTempId, // Keep temporary ID
                     error: 'No se pudo guardar la respuesta' 
                   }
                 : msg
@@ -196,12 +196,12 @@ export const useChatManager = (
           
           setIsLoading(false);
         },
-        // Callback para errores de la API
+        // Callback for API errors
         async (apiError) => {
-          console.error("Error de la API de Gemini:", apiError);
+          console.error("Gemini API error:", apiError);
           const friendlyApiError = getFriendlyError(apiError, `Error: ${apiError.message}`);
           
-          // 5. CREAR MENSAJE DE ERROR Y GUARDARLO
+          // 5. CREATE ERROR MESSAGE AND SAVE IT
           const errorAiMessage: ChatMessage = { 
             id: crypto.randomUUID(), 
             role: MessageRole.Model, 
@@ -210,19 +210,19 @@ export const useChatManager = (
             error: friendlyApiError 
           };
           
-          console.log('Guardando mensaje de error de la IA');
+          console.log('Saving AI error message');
           try {
             await addMessage(errorAiMessage);
             
-            // Reemplazar mensaje temporal con mensaje de error
+            // Replace temporary message with error message
             setMessages(prev => prev.map(msg => 
               msg.id === aiTempId ? errorAiMessage : msg
             ));
             
           } catch (e) {
-            console.error('Error guardando mensaje de error:', e);
+            console.error('Error saving error message:', e);
             
-            // Si no se puede guardar, al menos mostrar en la UI
+            // If can't save, at least show in UI
             setMessages(prev => prev.map(msg => 
               msg.id === aiTempId 
                 ? { ...errorAiMessage, id: aiTempId }
@@ -240,7 +240,7 @@ export const useChatManager = (
         }
       );
     } catch (e: any) {
-        console.error("Error general enviando mensaje:", e);
+        console.error("General error sending message:", e);
         const errorMsg = getFriendlyError(e, "Error al enviar mensaje.");
         
         const errorAiMessage: ChatMessage = { 
@@ -257,7 +257,7 @@ export const useChatManager = (
             msg.id === aiTempId ? errorAiMessage : msg
           ));
         } catch (err) {
-          console.error('Error guardando mensaje de error:', err);
+          console.error('Error saving error message:', err);
           setMessages(prev => prev.map(msg => 
             msg.id === aiTempId 
               ? { ...errorAiMessage, id: aiTempId }

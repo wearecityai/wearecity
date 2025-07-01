@@ -14,6 +14,11 @@ export const useMessages = (conversationId: string | null) => {
     return role === 'user' ? MessageRole.User : MessageRole.Model;
   };
 
+  // Helper function to convert MessageRole to database role
+  const convertToDatabaseRole = (role: MessageRole): string => {
+    return role === MessageRole.User ? 'user' : 'model';
+  };
+
   // Helper function to safely serialize metadata for database storage
   const serializeMetadata = (message: ChatMessage) => {
     const { id, role, content, timestamp, ...metadata } = message;
@@ -37,7 +42,7 @@ export const useMessages = (conversationId: string | null) => {
     return metadata && typeof metadata === 'object' ? metadata : {};
   };
 
-  // Cargar mensajes de una conversación
+  // Load messages from a conversation
   const loadMessages = async () => {
     if (!user || !conversationId) {
       console.log('No user or conversationId, clearing messages');
@@ -62,7 +67,7 @@ export const useMessages = (conversationId: string | null) => {
       
       console.log('Loaded messages:', data?.length || 0);
       
-      // Convertir mensajes de la base de datos al formato ChatMessage
+      // Convert database messages to ChatMessage format
       const chatMessages: ChatMessage[] = (data || []).map(msg => {
         const deserializedMetadata = deserializeMetadata(msg.metadata);
         
@@ -84,23 +89,26 @@ export const useMessages = (conversationId: string | null) => {
     }
   };
 
-  // Guardar mensaje en la base de datos
+  // Save message to database
   const saveMessage = async (message: ChatMessage) => {
     if (!user || !conversationId) {
       console.log('No user or conversationId, cannot save message');
       return;
     }
 
-    console.log('Saving message:', message.id, 'to conversation:', conversationId);
+    console.log('Saving message:', message.id, 'to conversation:', conversationId, 'with role:', message.role);
     try {
       const serializedMetadata = serializeMetadata(message);
+      const databaseRole = convertToDatabaseRole(message.role);
+      
+      console.log('Database role for message:', databaseRole);
       
       const { data, error } = await supabase
         .from('messages')
         .insert({
           id: message.id,
           conversation_id: conversationId,
-          role: message.role === MessageRole.User ? 'user' : 'model',
+          role: databaseRole,
           content: message.content,
           metadata: serializedMetadata,
           created_at: message.timestamp.toISOString()
@@ -110,23 +118,24 @@ export const useMessages = (conversationId: string | null) => {
 
       if (error) {
         console.error('Error saving message:', error);
-        return;
+        throw error;
       }
       
       console.log('Message saved successfully:', data);
     } catch (error) {
       console.error('Error saving message:', error);
+      throw error;
     }
   };
 
-  // Agregar mensaje localmente y guardarlo
+  // Add message locally and save it
   const addMessage = async (message: ChatMessage) => {
-    console.log('Adding message:', message.id);
+    console.log('Adding message:', message.id, 'with role:', message.role);
     setMessages(prev => [...prev, message]);
     await saveMessage(message);
   };
 
-  // Actualizar mensaje existente
+  // Update existing message
   const updateMessage = async (messageId: string, updates: Partial<ChatMessage>) => {
     console.log('Updating message:', messageId);
     setMessages(prev => 
@@ -137,7 +146,7 @@ export const useMessages = (conversationId: string | null) => {
       )
     );
 
-    // También actualizar en la base de datos si es necesario
+    // Also update in database if necessary
     if (user && conversationId) {
       try {
         const message = messages.find(m => m.id === messageId);
@@ -163,7 +172,7 @@ export const useMessages = (conversationId: string | null) => {
     }
   };
 
-  // Limpiar mensajes
+  // Clear messages
   const clearMessages = () => {
     console.log('Clearing messages');
     setMessages([]);
