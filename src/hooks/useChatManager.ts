@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Chat as GeminiChat } from '@google/genai';
 import { ChatMessage, MessageRole, CustomChatConfig } from '../types';
@@ -83,12 +84,13 @@ export const useChatManager = (
       }
     }
 
-    // Verifica que hay conversación y usuario antes de guardar
+    // Verifica que hay conversación antes de continuar
     if (!conversationId) {
       onError('No se pudo crear o recuperar la conversación.');
       return;
     }
 
+    // 1. GUARDAR MENSAJE DEL USUARIO INMEDIATAMENTE
     const userMessage: ChatMessage = { 
       id: crypto.randomUUID(), 
       role: MessageRole.User, 
@@ -96,43 +98,57 @@ export const useChatManager = (
       timestamp: new Date() 
     };
     
-    // Agregar mensaje del usuario y verificar error
+    console.log('Guardando mensaje del usuario:', userMessage.id);
     try {
       await addMessage(userMessage);
+      console.log('Mensaje del usuario guardado exitosamente');
     } catch (e) {
       console.error('Error guardando mensaje del usuario:', e);
       onError('No se pudo guardar tu mensaje. Intenta de nuevo.');
       return;
     }
+
     setIsLoading(true);
     
-    const aiClientTempId = crypto.randomUUID();
+    // 2. CREAR MENSAJE TEMPORAL DE LA IA PARA MOSTRAR EN LA UI
+    const aiTempId = crypto.randomUUID();
     const tempAiMessage: ChatMessage = { 
-      id: aiClientTempId, 
+      id: aiTempId, 
       role: MessageRole.Model, 
       content: '', 
       timestamp: new Date(), 
       isTyping: true 
     };
     
+    // Agregar mensaje temporal solo a la UI (no a la base de datos)
     setMessages(prev => [...prev, tempAiMessage]);
     
-    let currentAiContent = '';
+    let accumulatedContent = '';
 
     try {
       await sendMessageToGeminiStream(
-        geminiChatSessionRef.current, inputText,
+        geminiChatSessionRef.current, 
+        inputText,
+        // Callback para chunks de texto (streaming)
         (chunkText) => {
-          currentAiContent += chunkText;
+          accumulatedContent += chunkText;
+          // Actualizar mensaje temporal en la UI
           setMessages(prev => prev.map(msg => 
-            msg.id === aiClientTempId ? { ...msg, content: currentAiContent, isTyping: true } : msg
+            msg.id === aiTempId 
+              ? { ...msg, content: accumulatedContent, isTyping: true } 
+              : msg
           ));
         },
+        // Callback cuando termina la respuesta completa
         async (finalResponse) => {
-          const parsedResponse = parseAIResponse(currentAiContent, finalResponse, chatConfig, inputText);
+          console.log('IA terminó de responder, procesando respuesta final');
+          
+          // Procesar la respuesta de la IA
+          const parsedResponse = parseAIResponse(accumulatedContent, finalResponse, chatConfig, inputText);
 
+          // 3. CREAR MENSAJE FINAL DE LA IA PARA GUARDAR EN LA BASE DE DATOS
           const finalAiMessage: ChatMessage = {
-            id: crypto.randomUUID(), 
+            id: crypto.randomUUID(), // Nuevo ID para el mensaje persistente
             role: MessageRole.Model, 
             content: parsedResponse.processedContent, 
             timestamp: new Date(),
@@ -146,18 +162,46 @@ export const useChatManager = (
             originalUserQueryForEvents: parsedResponse.storedUserQueryForEvents,
           };
           
-          setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
+          console.log('Guardando respuesta final de la IA:', finalAiMessage.id);
+          
+          // 4. REEMPLAZAR MENSAJE TEMPORAL CON MENSAJE FINAL
           try {
+            // Primero guardamos en la base de datos
             await addMessage(finalAiMessage);
+            console.log('Respuesta de la IA guardada exitosamente en la base de datos');
+            
+            // Luego actualizamos la UI quitando el temporal y mostrando el final
+            setMessages(prev => 
+              prev.map(msg => 
+                msg.id === aiTempId ? finalAiMessage : msg
+              )
+            );
+            
           } catch (e) {
-            console.error('Error guardando mensaje de la IA:', e);
+            console.error('Error guardando respuesta de la IA:', e);
+            
+            // Si hay error guardando, mostramos el mensaje en la UI pero marcamos el error
+            setMessages(prev => prev.map(msg => 
+              msg.id === aiTempId 
+                ? { 
+                    ...finalAiMessage, 
+                    id: aiTempId, // Mantener el ID temporal
+                    error: 'No se pudo guardar la respuesta' 
+                  }
+                : msg
+            ));
+            
             onError('No se pudo guardar la respuesta de la IA.');
           }
+          
           setIsLoading(false);
         },
+        // Callback para errores de la API
         async (apiError) => {
-          console.error("API Error:", apiError);
+          console.error("Error de la API de Gemini:", apiError);
           const friendlyApiError = getFriendlyError(apiError, `Error: ${apiError.message}`);
+          
+          // 5. CREAR MENSAJE DE ERROR Y GUARDARLO
           const errorAiMessage: ChatMessage = { 
             id: crypto.randomUUID(), 
             role: MessageRole.Model, 
@@ -166,12 +210,24 @@ export const useChatManager = (
             error: friendlyApiError 
           };
           
-          setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
+          console.log('Guardando mensaje de error de la IA');
           try {
             await addMessage(errorAiMessage);
+            
+            // Reemplazar mensaje temporal con mensaje de error
+            setMessages(prev => prev.map(msg => 
+              msg.id === aiTempId ? errorAiMessage : msg
+            ));
+            
           } catch (e) {
-            console.error('Error guardando mensaje de error de la IA:', e);
-            onError('No se pudo guardar el mensaje de error de la IA.');
+            console.error('Error guardando mensaje de error:', e);
+            
+            // Si no se puede guardar, al menos mostrar en la UI
+            setMessages(prev => prev.map(msg => 
+              msg.id === aiTempId 
+                ? { ...errorAiMessage, id: aiTempId }
+                : msg
+            ));
           }
           
           if (friendlyApiError === API_KEY_ERROR_MESSAGE) { 
@@ -184,8 +240,9 @@ export const useChatManager = (
         }
       );
     } catch (e: any) {
-        console.error("Error sending message:", e);
+        console.error("Error general enviando mensaje:", e);
         const errorMsg = getFriendlyError(e, "Error al enviar mensaje.");
+        
         const errorAiMessage: ChatMessage = { 
           id: crypto.randomUUID(), 
           role: MessageRole.Model, 
@@ -194,13 +251,20 @@ export const useChatManager = (
           error: errorMsg 
         };
         
-        setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
         try {
           await addMessage(errorAiMessage);
+          setMessages(prev => prev.map(msg => 
+            msg.id === aiTempId ? errorAiMessage : msg
+          ));
         } catch (err) {
-          console.error('Error guardando mensaje de error de la IA:', err);
-          onError('No se pudo guardar el mensaje de error de la IA.');
+          console.error('Error guardando mensaje de error:', err);
+          setMessages(prev => prev.map(msg => 
+            msg.id === aiTempId 
+              ? { ...errorAiMessage, id: aiTempId }
+              : msg
+          ));
         }
+        
         onError(errorMsg);
         if (errorMsg === API_KEY_ERROR_MESSAGE) onGeminiReadyChange(false);
         setIsLoading(false);
