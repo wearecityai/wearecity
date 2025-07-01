@@ -14,6 +14,11 @@ export const useMessages = (conversationId: string | null) => {
     return role === 'user' ? MessageRole.User : MessageRole.Model;
   };
 
+  // Helper function to convert MessageRole to database role
+  const convertToDatabaseRole = (role: MessageRole): string => {
+    return role === MessageRole.User ? 'user' : 'assistant';
+  };
+
   // Helper function to safely serialize metadata for database storage
   const serializeMetadata = (message: ChatMessage) => {
     const { id, role, content, timestamp, ...metadata } = message;
@@ -91,16 +96,19 @@ export const useMessages = (conversationId: string | null) => {
       return;
     }
 
-    console.log('Saving message:', message.id, 'to conversation:', conversationId);
+    console.log('Saving message:', message.id, 'role:', message.role, 'to conversation:', conversationId);
     try {
       const serializedMetadata = serializeMetadata(message);
+      const databaseRole = convertToDatabaseRole(message.role);
+      
+      console.log('Database role:', databaseRole, 'Content length:', message.content.length);
       
       const { data, error } = await supabase
         .from('messages')
         .insert({
           id: message.id,
           conversation_id: conversationId,
-          role: message.role === MessageRole.User ? 'user' : 'model',
+          role: databaseRole,
           content: message.content,
           metadata: serializedMetadata,
           created_at: message.timestamp.toISOString()
@@ -121,8 +129,26 @@ export const useMessages = (conversationId: string | null) => {
 
   // Agregar mensaje localmente y guardarlo
   const addMessage = async (message: ChatMessage) => {
-    console.log('Adding message:', message.id);
-    setMessages(prev => [...prev, message]);
+    console.log('Adding message:', message.id, 'role:', message.role);
+    
+    // Verificar si el mensaje ya existe en el estado local
+    const existingMessageIndex = messages.findIndex(m => m.id === message.id);
+    
+    if (existingMessageIndex >= 0) {
+      // Si ya existe, actualizarlo
+      console.log('Message already exists, updating:', message.id);
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === message.id ? message : msg
+        )
+      );
+    } else {
+      // Si no existe, agregarlo
+      console.log('Adding new message:', message.id);
+      setMessages(prev => [...prev, message]);
+    }
+    
+    // Guardar en la base de datos
     await saveMessage(message);
   };
 
