@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ErrorBoundary from './ErrorBoundary';
@@ -41,6 +42,7 @@ interface AppLayoutProps {
   handleMenuToggle: () => void;
   handleNewChat: () => void;
   handleOpenFinetuningWithAuth: () => void;
+  chatTitles: string[];
   selectedChatIndex: number;
   handleSelectChat: (index: number) => void;
   chatConfig: any;
