@@ -1,4 +1,3 @@
-
 import { ChatMessage, MessageRole } from '../../types';
 import { useMessageParser } from '../useMessageParser';
 import { useConversations } from '../useConversations';
@@ -50,7 +49,7 @@ export const useChatActions = () => {
     clearEventTracking();
   };
 
-  const handleNewChat = async (clearMessages: () => void, setCurrentConversationId?: (id: string | null) => void) => {
+  const handleNewChat = async (clearMessages: () => void, setCurrentConversationId?: (id: string | null) => void): Promise<void> => {
     console.log('Starting new chat');
     const newConversation = await createConversation('Nueva conversación');
     if (newConversation) {
@@ -61,9 +60,7 @@ export const useChatActions = () => {
       }
       clearMessages();
       clearEventTracking();
-      return newConversation;
     }
-    return null;
   };
 
   const createUserMessage = (inputText: string): ChatMessage => {

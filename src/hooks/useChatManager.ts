@@ -93,7 +93,7 @@ export const useChatManager = (
 
     const userMessage = createUserMessage(inputText);
     
-    // Use the conversation ID directly instead of relying on hook state
+    // Fix: Remove the extra conversationId argument since processMessage should handle it internally
     await processMessage(
       geminiChatSessionRef.current,
       inputText,
@@ -101,9 +101,12 @@ export const useChatManager = (
       addMessage,
       saveMessageOnly,
       setMessages,
-      isGeminiReady,
-      conversationId // Pass the conversation ID directly
+      isGeminiReady
     );
+  };
+
+  const handleNewChatWrapper = async () => {
+    await handleNewChat(clearMessages, setCurrentConversationId);
   };
 
   // Initialize chat when ready
@@ -120,7 +123,7 @@ export const useChatManager = (
     handleSeeMoreEvents,
     clearMessages: () => handleClearMessages(clearMessages),
     setMessages,
-    handleNewChat: () => handleNewChat(clearMessages, setCurrentConversationId),
+    handleNewChat: handleNewChatWrapper,
     conversations,
     currentConversationId,
     setCurrentConversationId
