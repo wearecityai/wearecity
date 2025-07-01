@@ -64,9 +64,13 @@ export const useChatManager = (
     let shouldUpdateTitle = false;
 
     if (!conversationId) {
+      console.log('Creating new conversation for message:', inputText);
       const newConversation = await handleCreateConversationWithAutoTitle(inputText);
       if (newConversation) {
         conversationId = newConversation.id;
+        // Immediately update the current conversation ID
+        setCurrentConversationId(conversationId);
+        console.log('New conversation created and set as current:', conversationId);
       }
     } else {
       // If it's the first real message in an existing conversation (not just "Nueva conversación")
@@ -89,6 +93,7 @@ export const useChatManager = (
 
     const userMessage = createUserMessage(inputText);
     
+    // Use the conversation ID directly instead of relying on hook state
     await processMessage(
       geminiChatSessionRef.current,
       inputText,
@@ -96,7 +101,8 @@ export const useChatManager = (
       addMessage,
       saveMessageOnly,
       setMessages,
-      isGeminiReady
+      isGeminiReady,
+      conversationId // Pass the conversation ID directly
     );
   };
 
@@ -114,7 +120,7 @@ export const useChatManager = (
     handleSeeMoreEvents,
     clearMessages: () => handleClearMessages(clearMessages),
     setMessages,
-    handleNewChat: () => handleNewChat(clearMessages),
+    handleNewChat: () => handleNewChat(clearMessages, setCurrentConversationId),
     conversations,
     currentConversationId,
     setCurrentConversationId

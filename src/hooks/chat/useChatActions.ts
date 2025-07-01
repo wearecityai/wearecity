@@ -1,3 +1,4 @@
+
 import { ChatMessage, MessageRole } from '../../types';
 import { useMessageParser } from '../useMessageParser';
 import { useConversations } from '../useConversations';
@@ -49,12 +50,20 @@ export const useChatActions = () => {
     clearEventTracking();
   };
 
-  const handleNewChat = async (clearMessages: () => void) => {
+  const handleNewChat = async (clearMessages: () => void, setCurrentConversationId?: (id: string | null) => void) => {
+    console.log('Starting new chat');
     const newConversation = await createConversation('Nueva conversación');
     if (newConversation) {
+      console.log('New chat conversation created:', newConversation.id);
+      // Update the current conversation ID immediately
+      if (setCurrentConversationId) {
+        setCurrentConversationId(newConversation.id);
+      }
       clearMessages();
       clearEventTracking();
+      return newConversation;
     }
+    return null;
   };
 
   const createUserMessage = (inputText: string): ChatMessage => {
@@ -67,11 +76,15 @@ export const useChatActions = () => {
   };
 
   const handleCreateConversationWithAutoTitle = async (userMessage: string) => {
+    console.log('Creating conversation with auto title for message:', userMessage);
     const generatedTitle = await generateConversationTitle(userMessage);
-    return await createConversation(generatedTitle);
+    const newConversation = await createConversation(generatedTitle);
+    console.log('Conversation created with title:', generatedTitle, 'ID:', newConversation?.id);
+    return newConversation;
   };
 
   const handleUpdateConversationTitle = async (conversationId: string, userMessage: string) => {
+    console.log('Updating conversation title for ID:', conversationId);
     const generatedTitle = await generateConversationTitle(userMessage);
     await updateConversationTitle(conversationId, generatedTitle);
   };

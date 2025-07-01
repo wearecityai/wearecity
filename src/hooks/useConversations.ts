@@ -71,8 +71,11 @@ export const useConversations = () => {
       }
       
       console.log('Created conversation:', data);
+      // Update local state immediately
       setConversations(prev => [data, ...prev]);
+      // Set as current conversation immediately
       setCurrentConversationId(data.id);
+      console.log('Conversation added to state and set as current:', data.id);
       return data;
     } catch (error) {
       console.error('Error creating conversation:', error);
@@ -97,6 +100,7 @@ export const useConversations = () => {
         return;
       }
 
+      // Update local state immediately
       setConversations(prev => 
         prev.map(conv => 
           conv.id === conversationId 
@@ -104,6 +108,7 @@ export const useConversations = () => {
             : conv
         )
       );
+      console.log('Conversation title updated in state:', conversationId, title);
     } catch (error) {
       console.error('Error updating conversation title:', error);
     }
