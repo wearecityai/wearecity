@@ -97,7 +97,20 @@ export const useMessages = (conversationId: string | null) => {
     }
 
     console.log('Saving message:', message.id, 'role:', message.role, 'to conversation:', conversationId);
+    
     try {
+      // Verificar si el mensaje ya existe antes de intentar guardarlo
+      const { data: existingMessage } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('id', message.id)
+        .single();
+
+      if (existingMessage) {
+        console.log('Message already exists in database, skipping save:', message.id);
+        return;
+      }
+
       const serializedMetadata = serializeMetadata(message);
       const databaseRole = convertToDatabaseRole(message.role);
       
@@ -117,6 +130,11 @@ export const useMessages = (conversationId: string | null) => {
         .single();
 
       if (error) {
+        // Si el error es por duplicado, no es un problema
+        if (error.code === '23505') {
+          console.log('Message already exists (duplicate key), skipping:', message.id);
+          return;
+        }
         console.error('Error saving message:', error);
         return;
       }
@@ -148,7 +166,7 @@ export const useMessages = (conversationId: string | null) => {
       setMessages(prev => [...prev, message]);
     }
     
-    // Guardar en la base de datos
+    // Guardar en la base de datos (con protección contra duplicados)
     await saveMessage(message);
   };
 

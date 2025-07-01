@@ -62,7 +62,7 @@ export const useMessageHandling = (
       isTyping: true 
     };
     
-    // Mostrar mensaje temporal mientras se genera la respuesta
+    // Agregar mensaje temporal solo al estado local (no guardar en BD)
     setMessages(prev => [...prev, tempAiMessage]);
     
     let currentAiContent = '';
@@ -105,7 +105,7 @@ export const useMessageHandling = (
             msg.id === aiMessageId ? finalAiMessage : msg
           ));
           
-          // Guardar mensaje final en la base de datos
+          // Guardar mensaje final en la base de datos SOLO UNA VEZ
           await addMessage(finalAiMessage);
         },
         async (apiError) => {
