@@ -89,14 +89,14 @@ export const useMessages = (conversationId: string | null) => {
     }
   };
 
-  // Save message to database
-  const saveMessage = async (message: ChatMessage) => {
+  // Save message to database only (without adding to local state)
+  const saveMessageOnly = async (message: ChatMessage) => {
     if (!user || !conversationId) {
       console.log('No user or conversationId, cannot save message');
       return;
     }
 
-    console.log('Saving message:', message.id, 'to conversation:', conversationId, 'with role:', message.role);
+    console.log('Saving message to database only:', message.id, 'to conversation:', conversationId, 'with role:', message.role);
     try {
       const serializedMetadata = serializeMetadata(message);
       const databaseRole = convertToDatabaseRole(message.role);
@@ -121,18 +121,23 @@ export const useMessages = (conversationId: string | null) => {
         throw error;
       }
       
-      console.log('Message saved successfully:', data);
+      console.log('Message saved successfully to database:', data);
     } catch (error) {
       console.error('Error saving message:', error);
       throw error;
     }
   };
 
+  // Save message to database (legacy function for compatibility)
+  const saveMessage = async (message: ChatMessage) => {
+    await saveMessageOnly(message);
+  };
+
   // Add message locally and save it
   const addMessage = async (message: ChatMessage) => {
-    console.log('Adding message:', message.id, 'with role:', message.role);
+    console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role);
     setMessages(prev => [...prev, message]);
-    await saveMessage(message);
+    await saveMessageOnly(message);
   };
 
   // Update existing message
@@ -186,6 +191,7 @@ export const useMessages = (conversationId: string | null) => {
     messages,
     isLoading,
     addMessage,
+    saveMessageOnly, // New function for saving without adding to local state
     updateMessage,
     clearMessages,
     setMessages,

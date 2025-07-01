@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Chat as GeminiChat } from '@google/genai';
 import { ChatMessage, MessageRole, CustomChatConfig } from '../types';
@@ -40,6 +39,7 @@ export const useChatManager = (
   const { 
     messages, 
     addMessage, 
+    saveMessageOnly, // Use the new function for saving without adding to local state
     updateMessage, 
     clearMessages, 
     setMessages 
@@ -90,7 +90,7 @@ export const useChatManager = (
       return;
     }
 
-    // 1. SAVE USER MESSAGE IMMEDIATELY
+    // 1. CREATE AND SAVE USER MESSAGE
     const userMessage: ChatMessage = { 
       id: crypto.randomUUID(), 
       role: MessageRole.User, 
@@ -98,10 +98,11 @@ export const useChatManager = (
       timestamp: new Date() 
     };
     
-    console.log('Saving user message:', userMessage.id);
+    console.log('Creating user message:', userMessage.id);
     try {
+      // Add to local state and save to database
       await addMessage(userMessage);
-      console.log('User message saved successfully');
+      console.log('User message added and saved successfully');
     } catch (e) {
       console.error('Error saving user message:', e);
       onError('No se pudo guardar tu mensaje. Intenta de nuevo.');
@@ -121,6 +122,7 @@ export const useChatManager = (
     };
     
     // Add temporary message only to UI (not to database)
+    console.log('Adding temporary AI message to UI:', aiTempId);
     setMessages(prev => [...prev, tempAiMessage]);
     
     let accumulatedContent = '';
@@ -162,12 +164,12 @@ export const useChatManager = (
             originalUserQueryForEvents: parsedResponse.storedUserQueryForEvents,
           };
           
-          console.log('Saving final AI response:', finalAiMessage.id);
+          console.log('Saving final AI response to database only:', finalAiMessage.id);
           
-          // 4. REPLACE TEMPORARY MESSAGE WITH FINAL MESSAGE
+          // 4. SAVE TO DATABASE ONLY, THEN REPLACE TEMPORARY MESSAGE IN UI
           try {
-            // First save to database
-            await addMessage(finalAiMessage);
+            // Save to database without adding to local state
+            await saveMessageOnly(finalAiMessage);
             console.log('AI response saved successfully to database');
             
             // Then update UI by replacing temporary with final
@@ -210,9 +212,9 @@ export const useChatManager = (
             error: friendlyApiError 
           };
           
-          console.log('Saving AI error message');
+          console.log('Saving AI error message to database only');
           try {
-            await addMessage(errorAiMessage);
+            await saveMessageOnly(errorAiMessage);
             
             // Replace temporary message with error message
             setMessages(prev => prev.map(msg => 
@@ -252,7 +254,7 @@ export const useChatManager = (
         };
         
         try {
-          await addMessage(errorAiMessage);
+          await saveMessageOnly(errorAiMessage);
           setMessages(prev => prev.map(msg => 
             msg.id === aiTempId ? errorAiMessage : msg
           ));
