@@ -138,22 +138,39 @@ export const useAssistantConfig = () => {
         config_name: 'default',
       };
 
-      // Use upsert with the correct conflict resolution based on the unique index
-      const { data, error } = await supabase
+      // First, check if a record exists for this user
+      const { data: existingConfig } = await supabase
         .from('assistant_config')
-        .upsert(configRow, { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false 
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error saving assistant config:', error);
+      let result;
+      
+      if (existingConfig) {
+        // Update existing record
+        result = await supabase
+          .from('assistant_config')
+          .update(configRow)
+          .eq('id', existingConfig.id)
+          .select()
+          .single();
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('assistant_config')
+          .insert(configRow)
+          .select()
+          .single();
+      }
+
+      if (result.error) {
+        console.error('Error saving assistant config:', result.error);
         return false;
       }
       
-      console.log('Config saved successfully:', data);
+      console.log('Config saved successfully:', result.data);
       return true;
     } catch (error) {
       console.error('Error saving assistant config:', error);
