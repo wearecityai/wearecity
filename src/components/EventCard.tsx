@@ -1,7 +1,5 @@
-
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardActions, Typography, Button, Box, Chip, Link, CircularProgress, useTheme, Tooltip, Stack } from '@mui/material';
+import { Card, CardContent, CardActions, Typography, Button, Box, Link, CircularProgress, useTheme, Tooltip, Stack, IconButton } from '@mui/material';
 import EventIcon from '@mui/icons-material/Event'; // Replaces CalendarIcon
 import AccessTimeIcon from '@mui/icons-material/AccessTime'; // Replaces ClockIcon
 import LocationOnIcon from '@mui/icons-material/LocationOn'; // Replaces LocationPinIcon
@@ -129,82 +127,46 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
 
   return (
-    <Card variant="outlined" sx={{ display: 'flex', flexDirection: {xs: 'column', sm: 'row'}, width: '100%', maxWidth: 450, borderRadius: 2 }}>
-      <Box sx={{
-          width: {xs: '100%', sm: 80 }, 
-          minHeight: {xs: 60, sm: 'auto'},
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          bgcolor: 'primary.main', 
-          color: 'primary.contrastText', 
-          p: 1,
-          textAlign: 'center',
-          borderTopLeftRadius: {xs: (theme.shape.borderRadius as number) * 2, sm: (theme.shape.borderRadius as number) * 2},
-          borderBottomLeftRadius: {xs: 0, sm: (theme.shape.borderRadius as number) * 2},
-          borderTopRightRadius: {xs: (theme.shape.borderRadius as number) * 2, sm: 0},
-        }}>
-        <Typography variant="h5" component="div" fontWeight="bold" lineHeight={1.1}>{dateParts.day}</Typography>
-        <Typography variant="caption" component="div" lineHeight={1}>{dateParts.monthAbbr.toUpperCase()}</Typography>
-        {dateParts.endDay && (
-            <>
-            <Typography variant="body2" component="div" sx={{my:0.2}}>-</Typography>
-            <Typography variant="h6" component="div" fontWeight="bold" lineHeight={1.1}>{dateParts.endDay}</Typography>
-            <Typography variant="caption" component="div" lineHeight={1}>{dateParts.endMonthAbbr.toUpperCase()}</Typography>
-            </>
-        )}
-      </Box>
-      <CardContent sx={{ flexGrow: 1, p: 1.5, '&:last-child': { pb: 1.5 } }}>
-        <Typography variant="subtitle1" component="h3" fontWeight="medium" gutterBottom noWrap title={event.title}>
-          {event.title}
-        </Typography>
-        <Stack spacing={0.5}>
-            <Chip 
-              icon={<EventIcon fontSize="small"/>} 
-              label={renderDateDisplay()} 
-              size="small" 
-              variant="outlined" 
-              sx={{ justifyContent: 'flex-start', p:0, height: 'auto', '& .MuiChip-label': {p:'4px 8px'} }}
-            />
-          {event.time && (
-            <Chip 
-              icon={<AccessTimeIcon fontSize="small"/>} 
-              label={formatTime(event.time)} 
-              size="small" 
-              variant="outlined" 
-              sx={{ justifyContent: 'flex-start', p:0, height: 'auto', '& .MuiChip-label': {p:'4px 8px'} }}
-            />
-          )}
+    <Card variant="outlined" sx={{ boxShadow: 0, borderRadius: 3, p: 0, minWidth: 0, maxWidth: 420, width: '100%', bgcolor: 'background.paper', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <CardContent sx={{ p: 2, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+          <EventIcon color="primary" sx={{ fontSize: 22, opacity: 0.7 }} />
+          <Typography variant="subtitle1" fontWeight={500} noWrap title={event.title} sx={{ flexGrow: 1, minWidth: 0, color: 'text.primary' }}>{event.title}</Typography>
+        </Stack>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ color: 'text.secondary', fontSize: 14, mb: 0.5 }}>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <AccessTimeIcon sx={{ fontSize: 18, opacity: 0.6 }} />
+            <Typography variant="body2" sx={{ fontSize: 14 }}>{event.time ? formatTime(event.time) : renderDateDisplay()}</Typography>
+          </Stack>
           {event.location && (
-            <Chip 
-              icon={<LocationOnIcon fontSize="small"/>} 
-              label={event.location} 
-              size="small" 
-              variant="outlined" 
-              title={event.location}
-              sx={{ justifyContent: 'flex-start', p:0, height: 'auto', '& .MuiChip-label': {p:'4px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'} }}
-            />
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+              <LocationOnIcon sx={{ fontSize: 18, opacity: 0.6 }} />
+              <Typography variant="body2" sx={{ fontSize: 14, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: 120 }}>{event.location}</Typography>
+            </Stack>
           )}
         </Stack>
-        {event.sourceUrl && linkStatus !== 'idle' && (
-          <CardActions sx={{ pt: 1.5, px:0, pb:0 }}>
-             <Tooltip title={buttonProps.title} placement="top">
-                <span> {/* Span needed for Tooltip on disabled button */}
-                <Button
-                    component={Link}
-                    href={event.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    {...buttonProps}
-                >
-                    {buttonProps.children}
-                </Button>
-                </span>
-            </Tooltip>
-          </CardActions>
-        )}
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: 13, mb: 0.5 }}>{renderDateDisplay()}</Typography>
       </CardContent>
+      {event.sourceUrl && linkStatus !== 'idle' && (
+        <CardActions sx={{ px: 2, pb: 1.5, pt: 0, justifyContent: 'flex-end' }}>
+          <Tooltip title={buttonProps.title} placement="top">
+            <span>
+              <IconButton
+                component={Link}
+                href={event.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="small"
+                color={buttonProps.color}
+                disabled={buttonProps.disabled}
+                sx={{ borderRadius: 2, p: 0.75 }}
+              >
+                {buttonProps.startIcon}
+              </IconButton>
+            </span>
+          </Tooltip>
+        </CardActions>
+      )}
     </Card>
   );
 };
