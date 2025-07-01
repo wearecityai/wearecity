@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Box, Drawer, IconButton, Typography, Button, List, ListItem, ListItemButton, 
@@ -56,10 +55,6 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
           sx={{
             minWidth: 0,
             mr: isMenuOpen ? 1 : 0,
-            transition: theme.transitions.create(['margin-right'], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
           }}
         >
           <MenuIcon />
@@ -231,25 +226,13 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
           width: isMenuOpen ? drawerWidth : collapsedDrawerWidth,
           boxSizing: 'border-box',
           borderRight: isMobile ? 'none' : `1px solid ${theme.palette.divider}`,
-          transition: theme.transitions.create(['width', 'margin'], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-          }),
           boxShadow: isMobile ? theme.shadows[3] : 'none',
           overflowX: 'hidden',
         },
         '& .MuiListItemIcon-root': {
-          transition: theme.transitions.create(['margin-right', 'min-width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
         },
         '& .MuiListItemText-root': {
           opacity: isMenuOpen ? 1 : 0,
-          transition: theme.transitions.create('opacity', {
-            easing: theme.transitions.easing.sharp,
-            duration: isMenuOpen ? theme.transitions.duration.enteringScreen : 0,
-          }),
         }
       }}
       ModalProps={{ keepMounted: true }}

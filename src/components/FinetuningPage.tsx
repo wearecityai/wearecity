@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Box, Container, Typography, TextField, Button, Switch, FormControlLabel, FormGroup, Grid, Paper, Stack,
-    IconButton, Chip, Select, MenuItem, InputLabel, FormControl, Alert, FormHelperText, Tooltip
+    IconButton, Chip, Select, MenuItem, InputLabel, FormControl, Alert, FormHelperText, Tooltip, useTheme, useMediaQuery
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear'; // Replaces XCircleIcon
@@ -10,6 +9,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile'; // Replaces UploadI
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { CustomChatConfig, RestrictedCityInfo, SupportedLanguage, UploadedProcedureDocument } from '../types';
 import {
@@ -48,6 +48,8 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sedeElectronicaUrl, setSedeElectronicaUrl] = useState<string>('');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     setAssistantName(currentConfig.assistantName || DEFAULT_CHAT_CONFIG.assistantName);
@@ -144,9 +146,13 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
-      <Paper square elevation={1} sx={{ p: 2, borderBottom: 1, borderColor: 'divider', position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper' }}>
-        <Typography variant="h5" component="h1" fontWeight="medium">Personalizar Asistente</Typography>
-        <Typography variant="body2" color="text.secondary">Ajustes para la sesión actual.</Typography>
+      <Paper square elevation={0} sx={{ p: 2, position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box>
+          <Typography variant="h5" component="h1" fontWeight="medium">Personalizar Asistente</Typography>
+        </Box>
+        <IconButton aria-label="Cerrar" onClick={onCancel} size="large" sx={{ ml: 2 }}>
+          <CloseIcon />
+        </IconButton>
       </Paper>
       <Container maxWidth="md" sx={{ flexGrow: 1, overflowY: 'auto', py: 3 }}>
         <Stack spacing={3}>
@@ -299,7 +305,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
           <Tooltip title="Restablecer a los valores por defecto del Asistente">
             <Button variant="outlined" color="warning" onClick={handleResetToAppDefaults} startIcon={<RestartAltIcon />}>Restablecer</Button>
           </Tooltip>
-          <Button variant="contained" color="primary" onClick={handleSave} startIcon={<SaveIcon />}>Guardar y Volver</Button>
+          <Button variant="contained" color="primary" onClick={() => { handleSave(); if (isMobile) onCancel(); }} startIcon={<SaveIcon />}>Guardar</Button>
         </Stack>
       </Paper>
     </Box>

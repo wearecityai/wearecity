@@ -1,10 +1,15 @@
-
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import ErrorBoundary from './ErrorBoundary';
 import AppDrawer from './AppDrawer';
 import MainContent from './MainContent';
 import AdminRoute from './AdminRoute';
+import UserMenu from './UserMenu';
+import UserButton from './auth/UserButton';
+import MenuIcon from '@mui/icons-material/Menu';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { IconButton } from '@mui/material';
+import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
 
 interface User {
   id: string;
@@ -88,60 +93,197 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   handleSaveCustomization,
   googleMapsScriptLoaded
 }) => {
-  // Show error boundary if needed
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchorEl(event.currentTarget);
+  };
+  const handleUserMenuClose = () => {
+    setUserMenuAnchorEl(null);
+  };
+
+  const drawerWidth = 260;
+  const collapsedDrawerWidth = 72;
+
+  // Header siempre visible y fijo
+  const header = (
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: isMenuOpen ? drawerWidth : collapsedDrawerWidth,
+        width: `calc(100% - ${isMenuOpen ? drawerWidth : collapsedDrawerWidth}px)` ,
+        zIndex: (theme) => theme.zIndex.appBar || 1300,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        p: 2,
+        borderBottom: 1,
+        borderColor: 'divider',
+        minHeight: '64px',
+        bgcolor: 'background.paper',
+      }}
+    >
+      {/* <IconButton
+        color="inherit"
+        aria-label="open drawer"
+        onClick={handleMenuToggle}
+        edge="start"
+        sx={{ mr: 2, ...(isMobile && isMenuOpen && { display: 'none' }) }}
+      >
+        <MenuIcon />
+      </IconButton> */}
+      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+        {chatTitles && typeof selectedChatIndex === 'number' && chatTitles[selectedChatIndex]}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {user ? (
+          <UserButton />
+        ) : (
+          <>
+            <IconButton
+              color="inherit"
+              aria-label="user account"
+              onClick={handleUserMenuOpen}
+              id="user-avatar-button"
+            >
+              <AccountCircleIcon />
+            </IconButton>
+            <UserMenu
+              anchorEl={userMenuAnchorEl}
+              open={Boolean(userMenuAnchorEl)}
+              onClose={handleUserMenuClose}
+              currentThemeMode={currentThemeMode}
+              onToggleTheme={toggleTheme}
+              onOpenSettings={handleOpenSettings}
+              isAuthenticated={!!user}
+              onLogin={onLogin}
+            />
+          </>
+        )}
+      </Box>
+    </Box>
+  );
+
   if (!isGeminiReady && appError) {
     return <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError} />;
   }
 
-  if (currentView === 'finetuning') {
+  // MOBILE: panel admin ocupa toda la pantalla
+  if (isMobile && currentView === 'finetuning') {
     return (
-      <AdminRoute
-        user={user}
-        profile={profile}
-        chatConfig={chatConfig}
-        handleSaveCustomization={handleSaveCustomization}
-        onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
-        googleMapsScriptLoaded={googleMapsScriptLoaded}
-        setCurrentView={setCurrentView}
-        setIsMenuOpen={setIsMenuOpen}
-      />
+      <>
+        {header}
+        <AdminRoute
+          user={user}
+          profile={profile}
+          chatConfig={chatConfig}
+          handleSaveCustomization={handleSaveCustomization}
+          onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+          googleMapsScriptLoaded={googleMapsScriptLoaded}
+          setCurrentView={setCurrentView}
+          setIsMenuOpen={setIsMenuOpen}
+        />
+      </>
     );
   }
 
-  return (
-    <Box sx={{ display: 'flex', height: '100vh', maxHeight: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
-      <AppDrawer
-        isMenuOpen={isMenuOpen}
-        onMenuToggle={handleMenuToggle}
-        onNewChat={handleNewChat}
-        onOpenFinetuning={handleOpenFinetuningWithAuth}
-        chatTitles={chatTitles}
-        selectedChatIndex={selectedChatIndex}
-        onSelectChat={handleSelectChat}
-        chatConfig={chatConfig}
-        userLocation={userLocation}
-        geolocationStatus={geolocationStatus}
-      />
+  // DESKTOP: panel admin y chat lado a lado
+  if (currentView === 'finetuning') {
+    return (
+      <Box sx={{ height: '100vh', maxHeight: '100vh', overflow: 'hidden', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+        {header}
+        <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: '64px' }}>
+          {/* Side menu siempre visible */}
+          <AppDrawer
+            isMenuOpen={isMenuOpen}
+            onMenuToggle={handleMenuToggle}
+            onNewChat={handleNewChat}
+            onOpenFinetuning={handleOpenFinetuningWithAuth}
+            chatTitles={chatTitles}
+            selectedChatIndex={selectedChatIndex}
+            onSelectChat={handleSelectChat}
+            chatConfig={chatConfig}
+            userLocation={userLocation}
+            geolocationStatus={geolocationStatus}
+          />
+          {/* Paneles redimensionables: admin y chat */}
+          <ResizablePanelGroup direction="horizontal" style={{ flex: 1 }}>
+            <ResizablePanel minSize={50} defaultSize={70} style={{ borderRight: '1px solid', borderColor: theme.palette.divider }}>
+              <AdminRoute
+                user={user}
+                profile={profile}
+                chatConfig={chatConfig}
+                handleSaveCustomization={handleSaveCustomization}
+                onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+                googleMapsScriptLoaded={googleMapsScriptLoaded}
+                setCurrentView={setCurrentView}
+                setIsMenuOpen={setIsMenuOpen}
+              />
+            </ResizablePanel>
+            <ResizablePanel minSize={50} defaultSize={30}>
+              <MainContent
+                theme={theme}
+                isMobile={isMobile}
+                isMenuOpen={isMenuOpen}
+                handleMenuToggle={handleMenuToggle}
+                currentThemeMode={currentThemeMode}
+                toggleTheme={toggleTheme}
+                handleOpenSettings={handleOpenSettings}
+                user={user}
+                onLogin={onLogin}
+                messages={messages}
+                isLoading={isLoading}
+                appError={appError}
+                chatConfig={chatConfig}
+                handleSendMessage={handleSendMessage}
+                handleDownloadPdf={handleDownloadPdf}
+                handleSeeMoreEvents={handleSeeMoreEvents}
+                handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </Box>
+      </Box>
+    );
+  }
 
-      <MainContent
-        theme={theme}
-        isMobile={isMobile}
-        isMenuOpen={isMenuOpen}
-        handleMenuToggle={handleMenuToggle}
-        currentThemeMode={currentThemeMode}
-        toggleTheme={toggleTheme}
-        handleOpenSettings={handleOpenSettings}
-        user={user}
-        onLogin={onLogin}
-        messages={messages}
-        isLoading={isLoading}
-        appError={appError}
-        chatConfig={chatConfig}
-        handleSendMessage={handleSendMessage}
-        handleDownloadPdf={handleDownloadPdf}
-        handleSeeMoreEvents={handleSeeMoreEvents}
-        handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
-      />
+  // Vista normal: header, side menu y chat
+  return (
+    <Box sx={{ height: '100vh', maxHeight: '100vh', overflow: 'hidden', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+      {header}
+      <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: '64px' }}>
+        <AppDrawer
+          isMenuOpen={isMenuOpen}
+          onMenuToggle={handleMenuToggle}
+          onNewChat={handleNewChat}
+          onOpenFinetuning={handleOpenFinetuningWithAuth}
+          chatTitles={chatTitles}
+          selectedChatIndex={selectedChatIndex}
+          onSelectChat={handleSelectChat}
+          chatConfig={chatConfig}
+          userLocation={userLocation}
+          geolocationStatus={geolocationStatus}
+        />
+        <MainContent
+          theme={theme}
+          isMobile={isMobile}
+          isMenuOpen={isMenuOpen}
+          handleMenuToggle={handleMenuToggle}
+          currentThemeMode={currentThemeMode}
+          toggleTheme={toggleTheme}
+          handleOpenSettings={handleOpenSettings}
+          user={user}
+          onLogin={onLogin}
+          messages={messages}
+          isLoading={isLoading}
+          appError={appError}
+          chatConfig={chatConfig}
+          handleSendMessage={handleSendMessage}
+          handleDownloadPdf={handleDownloadPdf}
+          handleSeeMoreEvents={handleSeeMoreEvents}
+          handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+        />
+      </Box>
     </Box>
   );
 };

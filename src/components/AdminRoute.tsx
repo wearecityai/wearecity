@@ -1,4 +1,3 @@
-
 import React from 'react';
 import FinetuningPage from './FinetuningPage';
 
@@ -21,7 +20,7 @@ interface AdminRouteProps {
   user?: User | null;
   profile?: Profile | null;
   chatConfig: any;
-  handleSaveCustomization: (newConfig: any) => void;
+  handleSaveCustomization: (newConfig: any, userId: string) => void;
   onCancel: () => void;
   googleMapsScriptLoaded: boolean;
   setCurrentView: React.Dispatch<React.SetStateAction<'chat' | 'finetuning'>>;
@@ -48,7 +47,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
   return (
     <FinetuningPage
       currentConfig={chatConfig}
-      onSave={handleSaveCustomization}
+      onSave={(config) => user ? handleSaveCustomization(config, user.id) : undefined}
       onCancel={onCancel}
       googleMapsScriptLoaded={googleMapsScriptLoaded}
       apiKeyForMaps=""

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Box, IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -81,60 +80,6 @@ const MainContent: React.FC<MainContentProps> = ({
         }),
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          p: 1,
-          borderBottom: 1,
-          borderColor: 'divider',
-          minHeight: '64px',
-          bgcolor: 'background.paper',
-        }}
-      >
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          onClick={handleMenuToggle}
-          edge="start"
-          sx={{ 
-            mr: 2,
-            ...(isMobile && isMenuOpen && { display: 'none' }),
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {user ? (
-            <UserButton />
-          ) : (
-            <>
-              <IconButton
-                color="inherit"
-                aria-label="user account"
-                onClick={handleUserMenuOpen}
-                id="user-avatar-button"
-              >
-                <AccountCircleIcon />
-              </IconButton>
-              <UserMenu
-                anchorEl={userMenuAnchorEl}
-                open={Boolean(userMenuAnchorEl)}
-                onClose={handleUserMenuClose}
-                currentThemeMode={currentThemeMode}
-                onToggleTheme={toggleTheme}
-                onOpenSettings={handleOpenSettings}
-                isAuthenticated={!!user}
-                onLogin={onLogin}
-              />
-            </>
-          )}
-        </Box>
-      </Box>
-
       {/* Chat Content */}
       <ChatContainer
         messages={messages}

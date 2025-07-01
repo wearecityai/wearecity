@@ -7,6 +7,8 @@ import {
   MAPS_API_KEY_INVALID_ERROR_MESSAGE,
   API_KEY_ERROR_MESSAGE
 } from '../constants';
+import { supabase } from '@/integrations/supabase/client';
+import type { TablesInsert } from '@/integrations/supabase/types';
 
 interface UseAppHandlersProps {
   chatConfig: CustomChatConfig;
@@ -32,7 +34,7 @@ export const useAppHandlers = ({
   appError,
   setAppError,
   clearMessages
-}: UseAppHandlersProps) => {
+}: UseAppHandlersProps & { userId?: string }) => {
 
   const handleNewChat = useCallback((newChatTitle: string = DEFAULT_CHAT_TITLE) => {
     clearMessages();
@@ -52,7 +54,7 @@ export const useAppHandlers = ({
     });
   }, [setChatConfig, clearMessages]);
 
-  const handleSaveCustomization = useCallback(async (newConfig: CustomChatConfig) => {
+  const handleSaveCustomization = useCallback(async (newConfig: CustomChatConfig, userId?: string) => {
     const configToSave: CustomChatConfig = { ...DEFAULT_CHAT_CONFIG, ...newConfig };
     configToSave.assistantName = newConfig.assistantName.trim() || DEFAULT_CHAT_CONFIG.assistantName;
     configToSave.systemInstruction = typeof newConfig.systemInstruction === 'string' ? newConfig.systemInstruction.trim() : DEFAULT_CHAT_CONFIG.systemInstruction;
@@ -69,6 +71,37 @@ export const useAppHandlers = ({
     setIsMenuOpen(false);
     if (appError && !appError.includes("API_KEY") && !appError.toLowerCase().includes("google maps") && !appError.toLowerCase().includes("offline") && !appError.toLowerCase().includes("network") && appError !== MAPS_API_KEY_INVALID_ERROR_MESSAGE) {
       setAppError(null);
+    }
+
+    // Guardar en Supabase
+    if (userId) {
+      try {
+        const configRow: TablesInsert<'assistant_config'> = {
+          user_id: userId!,
+          assistant_name: configToSave.assistantName,
+          system_instruction: configToSave.systemInstruction,
+          recommended_prompts: configToSave.recommendedPrompts ?? null,
+          service_tags: configToSave.serviceTags ?? null,
+          enable_google_search: configToSave.enableGoogleSearch,
+          allow_map_display: configToSave.allowMapDisplay,
+          allow_geolocation: configToSave.allowGeolocation,
+          restricted_city: configToSave.restrictedCity ? JSON.stringify(configToSave.restrictedCity) : null,
+          current_language_code: configToSave.currentLanguageCode,
+          procedure_source_urls: configToSave.procedureSourceUrls ?? null,
+          uploaded_procedure_documents: configToSave.uploadedProcedureDocuments ? JSON.stringify(configToSave.uploadedProcedureDocuments) : null,
+          sede_electronica_url: configToSave.sedeElectronicaUrl || null,
+          is_active: true,
+          config_name: 'default',
+        };
+        const { error } = await supabase
+          .from('assistant_config')
+          .upsert([configRow], { onConflict: 'user_id' });
+        if (error) {
+          console.error('Error guardando configuración en Supabase:', error);
+        }
+      } catch (err) {
+        console.error('Error inesperado guardando configuración en Supabase:', err);
+      }
     }
   }, [setChatConfig, setCurrentView, clearMessages, setIsMenuOpen, appError, setAppError]);
 
