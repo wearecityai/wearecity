@@ -10,6 +10,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { IconButton } from '@mui/material';
 import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
+import { useConversations } from '../hooks/useConversations';
 
 interface User {
   id: string;
@@ -40,7 +41,6 @@ interface AppLayoutProps {
   handleMenuToggle: () => void;
   handleNewChat: () => void;
   handleOpenFinetuningWithAuth: () => void;
-  chatTitles: string[];
   selectedChatIndex: number;
   handleSelectChat: (index: number) => void;
   chatConfig: any;
@@ -60,39 +60,45 @@ interface AppLayoutProps {
   googleMapsScriptLoaded: boolean;
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({
-  isGeminiReady,
-  appError,
-  currentView,
-  setCurrentView,
-  setIsMenuOpen,
-  user,
-  profile,
-  theme,
-  isMobile,
-  isMenuOpen,
-  handleMenuToggle,
-  handleNewChat,
-  handleOpenFinetuningWithAuth,
-  chatTitles,
-  selectedChatIndex,
-  handleSelectChat,
-  chatConfig,
-  userLocation,
-  geolocationStatus,
-  currentThemeMode,
-  toggleTheme,
-  handleOpenSettings,
-  onLogin,
-  messages,
-  isLoading,
-  handleSendMessage,
-  handleDownloadPdf,
-  handleSeeMoreEvents,
-  handleSetCurrentLanguageCode,
-  handleSaveCustomization,
-  googleMapsScriptLoaded
-}) => {
+const AppLayout: React.FC<AppLayoutProps> = (props) => {
+  const {
+    isGeminiReady,
+    appError,
+    currentView,
+    setCurrentView,
+    setIsMenuOpen,
+    user,
+    profile,
+    theme,
+    isMobile,
+    isMenuOpen,
+    handleMenuToggle,
+    handleNewChat,
+    handleOpenFinetuningWithAuth,
+    selectedChatIndex,
+    handleSelectChat,
+    chatConfig,
+    userLocation,
+    geolocationStatus,
+    currentThemeMode,
+    toggleTheme,
+    handleOpenSettings,
+    onLogin,
+    messages,
+    isLoading,
+    handleSendMessage,
+    handleDownloadPdf,
+    handleSeeMoreEvents,
+    handleSetCurrentLanguageCode,
+    handleSaveCustomization,
+    googleMapsScriptLoaded
+  } = props;
+
+  // PRIMERA LÍNEA: conversations, chatIds, chatTitles
+  const { conversations = [], deleteConversation } = useConversations ? useConversations() : { conversations: [], deleteConversation: () => {} };
+  const chatIds = conversations.map(c => c.id);
+  const chatTitles = conversations.map(c => c.title);
+
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchorEl(event.currentTarget);
@@ -133,7 +139,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <MenuIcon />
       </IconButton> */}
       <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden' }}>
-        {chatTitles && typeof selectedChatIndex === 'number' && chatTitles[selectedChatIndex]}
+        {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : ''}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {user ? (
@@ -200,8 +206,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             onNewChat={handleNewChat}
             onOpenFinetuning={handleOpenFinetuningWithAuth}
             chatTitles={chatTitles}
+            chatIds={chatIds}
             selectedChatIndex={selectedChatIndex}
             onSelectChat={handleSelectChat}
+            onDeleteChat={deleteConversation}
             chatConfig={chatConfig}
             userLocation={userLocation}
             geolocationStatus={geolocationStatus}
@@ -258,8 +266,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onNewChat={handleNewChat}
           onOpenFinetuning={handleOpenFinetuningWithAuth}
           chatTitles={chatTitles}
+          chatIds={chatIds}
           selectedChatIndex={selectedChatIndex}
           onSelectChat={handleSelectChat}
+          onDeleteChat={deleteConversation}
           chatConfig={chatConfig}
           userLocation={userLocation}
           geolocationStatus={geolocationStatus}

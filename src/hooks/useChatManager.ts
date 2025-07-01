@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Chat as GeminiChat } from '@google/genai';
 import { ChatMessage, MessageRole, CustomChatConfig } from '../types';
@@ -83,7 +82,13 @@ export const useChatManager = (
         conversationId = newConversation.id;
       }
     }
-    
+
+    // Verifica que hay conversación y usuario antes de guardar
+    if (!conversationId) {
+      onError('No se pudo crear o recuperar la conversación.');
+      return;
+    }
+
     const userMessage: ChatMessage = { 
       id: crypto.randomUUID(), 
       role: MessageRole.User, 
@@ -91,8 +96,14 @@ export const useChatManager = (
       timestamp: new Date() 
     };
     
-    // Agregar mensaje del usuario
-    await addMessage(userMessage);
+    // Agregar mensaje del usuario y verificar error
+    try {
+      await addMessage(userMessage);
+    } catch (e) {
+      console.error('Error guardando mensaje del usuario:', e);
+      onError('No se pudo guardar tu mensaje. Intenta de nuevo.');
+      return;
+    }
     setIsLoading(true);
     
     const aiClientTempId = crypto.randomUUID();
@@ -136,7 +147,12 @@ export const useChatManager = (
           };
           
           setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
-          await addMessage(finalAiMessage);
+          try {
+            await addMessage(finalAiMessage);
+          } catch (e) {
+            console.error('Error guardando mensaje de la IA:', e);
+            onError('No se pudo guardar la respuesta de la IA.');
+          }
           setIsLoading(false);
         },
         async (apiError) => {
@@ -151,7 +167,12 @@ export const useChatManager = (
           };
           
           setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
-          await addMessage(errorAiMessage);
+          try {
+            await addMessage(errorAiMessage);
+          } catch (e) {
+            console.error('Error guardando mensaje de error de la IA:', e);
+            onError('No se pudo guardar el mensaje de error de la IA.');
+          }
           
           if (friendlyApiError === API_KEY_ERROR_MESSAGE) { 
             onError(API_KEY_ERROR_MESSAGE); 
@@ -174,7 +195,12 @@ export const useChatManager = (
         };
         
         setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
-        await addMessage(errorAiMessage);
+        try {
+          await addMessage(errorAiMessage);
+        } catch (err) {
+          console.error('Error guardando mensaje de error de la IA:', err);
+          onError('No se pudo guardar el mensaje de error de la IA.');
+        }
         onError(errorMsg);
         if (errorMsg === API_KEY_ERROR_MESSAGE) onGeminiReadyChange(false);
         setIsLoading(false);

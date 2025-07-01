@@ -10,6 +10,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import TuneIcon from '@mui/icons-material/Tune';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { CustomChatConfig } from '../types';
 
 interface UserLocation {
@@ -23,8 +24,10 @@ interface AppDrawerProps {
   onNewChat: (title?: string) => void;
   onOpenFinetuning: () => void;
   chatTitles: string[];
+  chatIds: string[];
   selectedChatIndex: number;
   onSelectChat: (index: number) => void;
+  onDeleteChat: (conversationId: string) => void;
   chatConfig: CustomChatConfig;
   userLocation: UserLocation | null;
   geolocationStatus: 'idle' | 'pending' | 'success' | 'error';
@@ -36,8 +39,10 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   onNewChat,
   onOpenFinetuning,
   chatTitles,
+  chatIds,
   selectedChatIndex,
   onSelectChat,
+  onDeleteChat,
   chatConfig,
   userLocation,
   geolocationStatus
@@ -110,21 +115,44 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
           RECIENTE
         </Typography>
         {isMenuOpen && chatTitles.map((title, index) => (
-          <ListItemButton
-            key={index}
-            selected={index === selectedChatIndex}
-            title={!isMenuOpen ? title : undefined}
-            onClick={() => {
-                onSelectChat(index);
-                if (isMobile) onMenuToggle();
-            }}
-            sx={{
-              justifyContent: !isMenuOpen ? 'center' : 'flex-start',
-              px: !isMenuOpen ? 2 : 3,
-            }}
-          >
-            <ListItemText primary={title} primaryTypographyProps={{fontSize: '0.875rem', noWrap: true, textOverflow: 'ellipsis'}} />
-          </ListItemButton>
+          <Box key={index} sx={{ position: 'relative', display: 'flex', alignItems: 'center', '&:hover .delete-chat-btn': { opacity: 1 } }}>
+            <ListItemButton
+              selected={index === selectedChatIndex}
+              title={!isMenuOpen ? title : undefined}
+              onClick={() => {
+                  onSelectChat(index);
+                  if (isMobile) onMenuToggle();
+              }}
+              sx={{
+                justifyContent: !isMenuOpen ? 'center' : 'flex-start',
+                px: !isMenuOpen ? 2 : 3,
+                pr: 5 // espacio para el icono
+              }}
+            >
+              <ListItemText primary={title} primaryTypographyProps={{fontSize: '0.875rem', noWrap: true, textOverflow: 'ellipsis'}} />
+            </ListItemButton>
+            <IconButton
+              className="delete-chat-btn"
+              size="small"
+              aria-label="Eliminar chat"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDeleteChat(chatIds[index]);
+              }}
+              sx={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                opacity: 0,
+                transition: 'opacity 0.2s',
+                color: 'error.main',
+                zIndex: 2
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
         ))}
          {isMenuOpen && <ListItemButton 
            onClick={() => console.log("Mostrar más clicked")}
