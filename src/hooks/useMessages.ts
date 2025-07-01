@@ -2,12 +2,40 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { ChatMessage } from '../types';
+import { ChatMessage, MessageRole } from '../types';
 
 export const useMessages = (conversationId: string | null) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Helper function to convert database role to MessageRole
+  const convertToMessageRole = (role: string): MessageRole => {
+    return role === 'user' ? MessageRole.User : MessageRole.Model;
+  };
+
+  // Helper function to safely serialize metadata for database storage
+  const serializeMetadata = (message: ChatMessage) => {
+    const { id, role, content, timestamp, ...metadata } = message;
+    
+    // Convert complex types to simple objects for JSON storage
+    const serializedMetadata: any = {};
+    
+    Object.keys(metadata).forEach(key => {
+      const value = (metadata as any)[key];
+      if (value !== undefined) {
+        // Convert complex objects to JSON-serializable format
+        serializedMetadata[key] = value;
+      }
+    });
+    
+    return Object.keys(serializedMetadata).length > 0 ? serializedMetadata : null;
+  };
+
+  // Helper function to deserialize metadata from database
+  const deserializeMetadata = (metadata: any) => {
+    return metadata && typeof metadata === 'object' ? metadata : {};
+  };
 
   // Cargar mensajes de una conversación
   const loadMessages = async () => {
@@ -27,14 +55,17 @@ export const useMessages = (conversationId: string | null) => {
       if (error) throw error;
       
       // Convertir mensajes de la base de datos al formato ChatMessage
-      const chatMessages: ChatMessage[] = (data || []).map(msg => ({
-        id: msg.id,
-        role: msg.role as 'user' | 'model',
-        content: msg.content,
-        timestamp: new Date(msg.created_at || ''),
-        // Agregar metadata si existe
-        ...(msg.metadata && typeof msg.metadata === 'object' ? msg.metadata : {})
-      }));
+      const chatMessages: ChatMessage[] = (data || []).map(msg => {
+        const deserializedMetadata = deserializeMetadata(msg.metadata);
+        
+        return {
+          id: msg.id,
+          role: convertToMessageRole(msg.role),
+          content: msg.content,
+          timestamp: new Date(msg.created_at || ''),
+          ...deserializedMetadata
+        };
+      });
       
       setMessages(chatMessages);
     } catch (error) {
@@ -50,19 +81,18 @@ export const useMessages = (conversationId: string | null) => {
     if (!user || !conversationId) return;
 
     try {
-      // Preparar metadata excluyendo campos base
-      const { id, role, content, timestamp, ...metadata } = message;
+      const serializedMetadata = serializeMetadata(message);
       
       const { error } = await supabase
         .from('messages')
-        .insert([{
+        .insert({
           id: message.id,
           conversation_id: conversationId,
-          role: message.role,
+          role: message.role === MessageRole.User ? 'user' : 'model',
           content: message.content,
-          metadata: Object.keys(metadata).length > 0 ? metadata : null,
+          metadata: serializedMetadata,
           created_at: message.timestamp.toISOString()
-        }]);
+        });
 
       if (error) throw error;
     } catch (error) {
@@ -92,13 +122,13 @@ export const useMessages = (conversationId: string | null) => {
         const message = messages.find(m => m.id === messageId);
         if (message) {
           const updatedMessage = { ...message, ...updates };
-          const { id, role, content, timestamp, ...metadata } = updatedMessage;
+          const serializedMetadata = serializeMetadata(updatedMessage);
           
           await supabase
             .from('messages')
             .update({
               content: updatedMessage.content,
-              metadata: Object.keys(metadata).length > 0 ? metadata : null
+              metadata: serializedMetadata
             })
             .eq('id', messageId);
         }

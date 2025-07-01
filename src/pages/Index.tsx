@@ -24,6 +24,7 @@ const Index = () => {
     setIsMenuOpen,
     chatConfig,
     setChatConfig,
+    saveConfig,
     userLocation,
     geolocationStatus,
     googleMapsScriptLoaded,
@@ -33,7 +34,11 @@ const Index = () => {
     handleSeeMoreEvents,
     clearMessages,
     currentThemeMode,
-    toggleTheme
+    toggleTheme,
+    handleNewChat,
+    conversations,
+    currentConversationId,
+    setCurrentConversationId
   } = useAppState();
 
   const handleLogin = () => {
@@ -73,6 +78,7 @@ const Index = () => {
       setIsMenuOpen={setIsMenuOpen}
       chatConfig={chatConfig}
       setChatConfig={setChatConfig}
+      saveConfig={saveConfig}
       userLocation={userLocation}
       geolocationStatus={geolocationStatus}
       googleMapsScriptLoaded={googleMapsScriptLoaded}
@@ -83,6 +89,10 @@ const Index = () => {
       clearMessages={clearMessages}
       setAppError={setAppError}
       setIsGeminiReady={setIsGeminiReady}
+      handleNewChat={handleNewChat}
+      conversations={conversations}
+      currentConversationId={currentConversationId}
+      setCurrentConversationId={setCurrentConversationId}
     />
   );
 };
