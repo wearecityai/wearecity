@@ -70,10 +70,12 @@ export const useAssistantConfig = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw error;
+      if (error) {
+        console.error('Error loading assistant config:', error);
+        setConfig(DEFAULT_CHAT_CONFIG);
+        return;
       }
 
       if (data) {
@@ -116,6 +118,8 @@ export const useAssistantConfig = () => {
     }
 
     try {
+      console.log('Saving config to Supabase for user:', user.id);
+      
       const configRow = {
         user_id: user.id,
         assistant_name: newConfig.assistantName,
@@ -134,11 +138,22 @@ export const useAssistantConfig = () => {
         config_name: 'default',
       };
 
-      const { error } = await supabase
+      // Use upsert with the correct conflict resolution based on the unique index
+      const { data, error } = await supabase
         .from('assistant_config')
-        .upsert(configRow, { onConflict: 'user_id' });
+        .upsert(configRow, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving assistant config:', error);
+        return false;
+      }
+      
+      console.log('Config saved successfully:', data);
       return true;
     } catch (error) {
       console.error('Error saving assistant config:', error);
@@ -147,7 +162,9 @@ export const useAssistantConfig = () => {
   };
 
   useEffect(() => {
-    loadConfig();
+    if (user) {
+      loadConfig();
+    }
   }, [user, profile]);
 
   return {

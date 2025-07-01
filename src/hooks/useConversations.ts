@@ -18,8 +18,13 @@ export const useConversations = () => {
 
   // Cargar conversaciones del usuario
   const loadConversations = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, clearing conversations');
+      setConversations([]);
+      return;
+    }
     
+    console.log('Loading conversations for user:', user.id);
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -28,7 +33,12 @@ export const useConversations = () => {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading conversations:', error);
+        return;
+      }
+
+      console.log('Loaded conversations:', data);
       setConversations(data || []);
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -39,8 +49,12 @@ export const useConversations = () => {
 
   // Crear nueva conversación
   const createConversation = async (title: string = 'Nueva conversación') => {
-    if (!user) return null;
+    if (!user) {
+      console.log('No user found, cannot create conversation');
+      return null;
+    }
 
+    console.log('Creating conversation for user:', user.id, 'with title:', title);
     try {
       const { data, error } = await supabase
         .from('conversations')
@@ -51,8 +65,12 @@ export const useConversations = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating conversation:', error);
+        return null;
+      }
       
+      console.log('Created conversation:', data);
       setConversations(prev => [data, ...prev]);
       setCurrentConversationId(data.id);
       return data;
@@ -66,6 +84,7 @@ export const useConversations = () => {
   const updateConversationTitle = async (conversationId: string, title: string) => {
     if (!user) return;
 
+    console.log('Updating conversation title:', conversationId, title);
     try {
       const { error } = await supabase
         .from('conversations')
@@ -73,7 +92,10 @@ export const useConversations = () => {
         .eq('id', conversationId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating conversation title:', error);
+        return;
+      }
 
       setConversations(prev => 
         prev.map(conv => 
@@ -91,6 +113,7 @@ export const useConversations = () => {
   const deleteConversation = async (conversationId: string) => {
     if (!user) return;
 
+    console.log('Deleting conversation:', conversationId);
     try {
       const { error } = await supabase
         .from('conversations')
@@ -98,7 +121,10 @@ export const useConversations = () => {
         .eq('id', conversationId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting conversation:', error);
+        return;
+      }
 
       setConversations(prev => prev.filter(conv => conv.id !== conversationId));
       if (currentConversationId === conversationId) {

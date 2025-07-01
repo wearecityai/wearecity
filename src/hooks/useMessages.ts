@@ -40,10 +40,12 @@ export const useMessages = (conversationId: string | null) => {
   // Cargar mensajes de una conversación
   const loadMessages = async () => {
     if (!user || !conversationId) {
+      console.log('No user or conversationId, clearing messages');
       setMessages([]);
       return;
     }
     
+    console.log('Loading messages for conversation:', conversationId);
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -52,7 +54,13 @@ export const useMessages = (conversationId: string | null) => {
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading messages:', error);
+        setMessages([]);
+        return;
+      }
+      
+      console.log('Loaded messages:', data?.length || 0);
       
       // Convertir mensajes de la base de datos al formato ChatMessage
       const chatMessages: ChatMessage[] = (data || []).map(msg => {
@@ -78,12 +86,16 @@ export const useMessages = (conversationId: string | null) => {
 
   // Guardar mensaje en la base de datos
   const saveMessage = async (message: ChatMessage) => {
-    if (!user || !conversationId) return;
+    if (!user || !conversationId) {
+      console.log('No user or conversationId, cannot save message');
+      return;
+    }
 
+    console.log('Saving message:', message.id, 'to conversation:', conversationId);
     try {
       const serializedMetadata = serializeMetadata(message);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           id: message.id,
@@ -92,9 +104,16 @@ export const useMessages = (conversationId: string | null) => {
           content: message.content,
           metadata: serializedMetadata,
           created_at: message.timestamp.toISOString()
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving message:', error);
+        return;
+      }
+      
+      console.log('Message saved successfully:', data);
     } catch (error) {
       console.error('Error saving message:', error);
     }
@@ -102,12 +121,14 @@ export const useMessages = (conversationId: string | null) => {
 
   // Agregar mensaje localmente y guardarlo
   const addMessage = async (message: ChatMessage) => {
+    console.log('Adding message:', message.id);
     setMessages(prev => [...prev, message]);
     await saveMessage(message);
   };
 
   // Actualizar mensaje existente
   const updateMessage = async (messageId: string, updates: Partial<ChatMessage>) => {
+    console.log('Updating message:', messageId);
     setMessages(prev => 
       prev.map(msg => 
         msg.id === messageId 
@@ -124,13 +145,17 @@ export const useMessages = (conversationId: string | null) => {
           const updatedMessage = { ...message, ...updates };
           const serializedMetadata = serializeMetadata(updatedMessage);
           
-          await supabase
+          const { error } = await supabase
             .from('messages')
             .update({
               content: updatedMessage.content,
               metadata: serializedMetadata
             })
             .eq('id', messageId);
+            
+          if (error) {
+            console.error('Error updating message in database:', error);
+          }
         }
       } catch (error) {
         console.error('Error updating message:', error);
@@ -140,6 +165,7 @@ export const useMessages = (conversationId: string | null) => {
 
   // Limpiar mensajes
   const clearMessages = () => {
+    console.log('Clearing messages');
     setMessages([]);
   };
 
