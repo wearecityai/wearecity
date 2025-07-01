@@ -74,7 +74,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
         variant="contained"
         startIcon={<EditOutlinedIcon />}
         onClick={() => onNewChat("Nuevo chat")}
-        title={!isMenuOpen ? "Nueva conversación" : undefined}
+        title={!isMenuOpen ? "Nuevo chat" : undefined}
         sx={{
           m: '12px 16px',
           bgcolor: theme.palette.mode === 'dark' ? '#2e2f32' :'#e0e0e0',
@@ -96,20 +96,20 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
           }
         }}
       >
-        {isMenuOpen && "Nueva conversación"}
+        {isMenuOpen && "Nuevo chat"}
       </Button>
-       <List sx={{ flexGrow: 1, px:1 }}>
-         <ListItemButton 
-            onClick={() => console.log("Descubrir ciudades clicked")}
-            title={!isMenuOpen ? "Descubrir ciudades" : undefined}
-            sx={{
-              justifyContent: !isMenuOpen ? 'center' : 'flex-start',
-              px: !isMenuOpen ? 2 : 3,
-            }}
-          >
-             <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><LocationCityIcon /></ListItemIcon>
-            {isMenuOpen && <ListItemText primary="Descubrir ciudades" primaryTypographyProps={{fontSize: '0.875rem'}} />}
-          </ListItemButton>
+      <List sx={{ flexGrow: 1, px:1 }}>
+        <ListItemButton 
+          onClick={() => console.log("Descubrir ciudades clicked")}
+          title={!isMenuOpen ? "Descubrir ciudades" : undefined}
+          sx={{
+            justifyContent: !isMenuOpen ? 'center' : 'flex-start',
+            px: !isMenuOpen ? 2 : 3,
+          }}
+        >
+           <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><LocationCityIcon /></ListItemIcon>
+          {isMenuOpen && <ListItemText primary="Descubrir ciudades" primaryTypographyProps={{fontSize: '0.875rem'}} />}
+        </ListItemButton>
 
         <Typography variant="caption" sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 500, display: isMenuOpen ? 'block' : 'none' }}>
           RECIENTE

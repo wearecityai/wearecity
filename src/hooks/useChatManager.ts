@@ -53,16 +53,26 @@ export const useChatManager = (
     handleSeeMoreEvents,
     handleClearMessages,
     handleNewChat,
-    createUserMessage
+    createUserMessage,
+    handleCreateConversationWithAutoTitle,
+    handleUpdateConversationTitle
   } = useChatActions();
 
   const handleSendMessage = async (inputText: string) => {
     // Create conversation if it doesn't exist
     let conversationId = currentConversationId;
+    let shouldUpdateTitle = false;
+
     if (!conversationId) {
-      const newConversation = await createConversation('Nueva conversación');
+      const newConversation = await handleCreateConversationWithAutoTitle(inputText);
       if (newConversation) {
         conversationId = newConversation.id;
+      }
+    } else {
+      // If it's the first real message in an existing conversation (not just "Nueva conversación")
+      const currentConversation = conversations.find(c => c.id === conversationId);
+      if (currentConversation && currentConversation.title === 'Nueva conversación' && messages.length <= 1) {
+        shouldUpdateTitle = true;
       }
     }
 
@@ -70,6 +80,11 @@ export const useChatManager = (
     if (!conversationId) {
       onError('No se pudo crear o recuperar la conversación.');
       return;
+    }
+
+    // Update title if needed
+    if (shouldUpdateTitle) {
+      await handleUpdateConversationTitle(conversationId, inputText);
     }
 
     const userMessage = createUserMessage(inputText);

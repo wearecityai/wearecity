@@ -48,7 +48,7 @@ export const useConversations = () => {
   };
 
   // Crear nueva conversación
-  const createConversation = async (title: string = 'Nueva conversación') => {
+  const createConversation = async (title: string = 'Consulta general') => {
     if (!user) {
       console.log('No user found, cannot create conversation');
       return null;
