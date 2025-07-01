@@ -37,6 +37,15 @@ export const useAssistantConfig = () => {
     return fallback;
   };
 
+  // Helper function to serialize objects for JSON storage
+  const serializeForJson = (obj: any) => {
+    if (obj === null || obj === undefined) return null;
+    if (typeof obj === 'object') {
+      return JSON.parse(JSON.stringify(obj));
+    }
+    return obj;
+  };
+
   // Cargar configuración desde Supabase
   const loadConfig = async () => {
     if (!user || profile?.role !== 'administrativo') {
@@ -111,15 +120,15 @@ export const useAssistantConfig = () => {
         user_id: user.id,
         assistant_name: newConfig.assistantName,
         system_instruction: newConfig.systemInstruction,
-        recommended_prompts: newConfig.recommendedPrompts,
-        service_tags: newConfig.serviceTags,
+        recommended_prompts: serializeForJson(newConfig.recommendedPrompts),
+        service_tags: serializeForJson(newConfig.serviceTags),
         enable_google_search: newConfig.enableGoogleSearch,
         allow_map_display: newConfig.allowMapDisplay,
         allow_geolocation: newConfig.allowGeolocation,
         current_language_code: newConfig.currentLanguageCode,
-        procedure_source_urls: newConfig.procedureSourceUrls,
-        uploaded_procedure_documents: newConfig.uploadedProcedureDocuments,
-        restricted_city: newConfig.restrictedCity,
+        procedure_source_urls: serializeForJson(newConfig.procedureSourceUrls),
+        uploaded_procedure_documents: serializeForJson(newConfig.uploadedProcedureDocuments),
+        restricted_city: serializeForJson(newConfig.restrictedCity),
         sede_electronica_url: newConfig.sedeElectronicaUrl,
         is_active: true,
         config_name: 'default',
