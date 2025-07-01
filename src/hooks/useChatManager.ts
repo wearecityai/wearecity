@@ -1,12 +1,14 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Chat as GeminiChat } from '@google/genai';
-import { CustomChatConfig } from '../types';
+import { ChatMessage, MessageRole, CustomChatConfig } from '../types';
+import { initChatSession, sendMessageToGeminiStream } from '../services/geminiService';
+import { API_KEY_ERROR_MESSAGE } from '../constants';
+import { useSystemInstructionBuilder } from './useSystemInstructionBuilder';
+import { useMessageParser } from './useMessageParser';
+import { useErrorHandler } from './useErrorHandler';
 import { useMessages } from './useMessages';
 import { useConversations } from './useConversations';
-import { useMessageHandling } from './useMessageHandling';
-import { useChatInitialization } from './useChatInitialization';
-import { useChatActions } from './useChatActions';
 
 interface UserLocation {
   latitude: number;
@@ -23,6 +25,10 @@ export const useChatManager = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const geminiChatSessionRef = useRef<GeminiChat | null>(null);
 
+  const { buildFullSystemInstruction } = useSystemInstructionBuilder();
+  const { parseAIResponse, handleSeeMoreEvents: parseHandleSeeMoreEvents, clearEventTracking } = useMessageParser();
+  const { getFriendlyError } = useErrorHandler();
+  
   // Usar hooks de conversaciones y mensajes
   const { 
     conversations, 
@@ -39,38 +45,156 @@ export const useChatManager = (
     setMessages 
   } = useMessages(currentConversationId);
 
-  // Usar hooks especializados
-  const { initializeChatAndGreet } = useChatInitialization(
-    isGeminiReady,
-    onError,
-    onGeminiReadyChange,
-    geminiChatSessionRef
-  );
-
-  const { handleSendMessage, handleSeeMoreEvents } = useMessageHandling(
-    chatConfig,
-    isGeminiReady,
-    onError,
-    onGeminiReadyChange,
-    geminiChatSessionRef,
-    addMessage,
-    setMessages,
-    createConversation,
-    currentConversationId
-  );
-
-  const { handleClearMessages, handleNewChat } = useChatActions(
-    clearMessages,
-    createConversation
-  );
-
-  // Wrapper para manejar el estado de loading
-  const handleSendMessageWithLoading = async (inputText: string) => {
-    setIsLoading(true);
+  const initializeChatAndGreet = useCallback(async (
+    configToUse: CustomChatConfig,
+    location: UserLocation | null,
+    currentMessages: ChatMessage[]
+  ) => {
+    if (!isGeminiReady) {
+      onError(API_KEY_ERROR_MESSAGE);
+      return;
+    }
     try {
-      await handleSendMessage(inputText);
-    } finally {
-      setIsLoading(false);
+      const fullSystemInstruction = buildFullSystemInstruction(configToUse, location);
+      geminiChatSessionRef.current = initChatSession(fullSystemInstruction, configToUse.enableGoogleSearch);
+
+      if (currentMessages.length === 0) {
+          // No automatic greeting for Gemini clone UI, empty state is handled by MessageList/App
+      }
+    } catch (e: any) {
+      console.error("Gemini Initialization error:", e);
+      const errorMessage = getFriendlyError(e, "Error al inicializar el chat con Gemini.");
+      onError(errorMessage);
+      if (errorMessage === API_KEY_ERROR_MESSAGE) onGeminiReadyChange(false);
+    }
+  }, [isGeminiReady, buildFullSystemInstruction, onError, onGeminiReadyChange, getFriendlyError]);
+
+  const handleSendMessage = async (inputText: string) => {
+    if (!geminiChatSessionRef.current || isLoading || !isGeminiReady) {
+        if (!isGeminiReady) onError(API_KEY_ERROR_MESSAGE);
+        return;
+    }
+
+    // Crear conversación si no existe
+    let conversationId = currentConversationId;
+    if (!conversationId) {
+      const newConversation = await createConversation('Nueva conversación');
+      if (newConversation) {
+        conversationId = newConversation.id;
+      }
+    }
+    
+    const userMessage: ChatMessage = { 
+      id: crypto.randomUUID(), 
+      role: MessageRole.User, 
+      content: inputText, 
+      timestamp: new Date() 
+    };
+    
+    // Agregar mensaje del usuario
+    await addMessage(userMessage);
+    setIsLoading(true);
+    
+    const aiClientTempId = crypto.randomUUID();
+    const tempAiMessage: ChatMessage = { 
+      id: aiClientTempId, 
+      role: MessageRole.Model, 
+      content: '', 
+      timestamp: new Date(), 
+      isTyping: true 
+    };
+    
+    setMessages(prev => [...prev, tempAiMessage]);
+    
+    let currentAiContent = '';
+
+    try {
+      await sendMessageToGeminiStream(
+        geminiChatSessionRef.current, inputText,
+        (chunkText) => {
+          currentAiContent += chunkText;
+          setMessages(prev => prev.map(msg => 
+            msg.id === aiClientTempId ? { ...msg, content: currentAiContent, isTyping: true } : msg
+          ));
+        },
+        async (finalResponse) => {
+          const parsedResponse = parseAIResponse(currentAiContent, finalResponse, chatConfig, inputText);
+
+          const finalAiMessage: ChatMessage = {
+            id: crypto.randomUUID(), 
+            role: MessageRole.Model, 
+            content: parsedResponse.processedContent, 
+            timestamp: new Date(),
+            groundingMetadata: parsedResponse.finalGroundingMetadata, 
+            mapQuery: parsedResponse.mapQueryFromAI,
+            events: parsedResponse.eventsForThisMessage.length > 0 ? parsedResponse.eventsForThisMessage : undefined,
+            placeCards: parsedResponse.placeCardsForMessage.length > 0 ? parsedResponse.placeCardsForMessage : undefined,
+            downloadablePdfInfo: parsedResponse.downloadablePdfInfoForMessage, 
+            telematicProcedureLink: parsedResponse.telematicLinkForMessage,
+            showSeeMoreButton: parsedResponse.showSeeMoreButtonForThisMessage, 
+            originalUserQueryForEvents: parsedResponse.storedUserQueryForEvents,
+          };
+          
+          setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
+          await addMessage(finalAiMessage);
+          setIsLoading(false);
+        },
+        async (apiError) => {
+          console.error("API Error:", apiError);
+          const friendlyApiError = getFriendlyError(apiError, `Error: ${apiError.message}`);
+          const errorAiMessage: ChatMessage = { 
+            id: crypto.randomUUID(), 
+            role: MessageRole.Model, 
+            content: '', 
+            timestamp: new Date(), 
+            error: friendlyApiError 
+          };
+          
+          setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
+          await addMessage(errorAiMessage);
+          
+          if (friendlyApiError === API_KEY_ERROR_MESSAGE) { 
+            onError(API_KEY_ERROR_MESSAGE); 
+            onGeminiReadyChange(false); 
+          } else {
+            onError(friendlyApiError);
+          }
+          setIsLoading(false);
+        }
+      );
+    } catch (e: any) {
+        console.error("Error sending message:", e);
+        const errorMsg = getFriendlyError(e, "Error al enviar mensaje.");
+        const errorAiMessage: ChatMessage = { 
+          id: crypto.randomUUID(), 
+          role: MessageRole.Model, 
+          content: '', 
+          timestamp: new Date(), 
+          error: errorMsg 
+        };
+        
+        setMessages(prev => prev.filter(msg => msg.id !== aiClientTempId));
+        await addMessage(errorAiMessage);
+        onError(errorMsg);
+        if (errorMsg === API_KEY_ERROR_MESSAGE) onGeminiReadyChange(false);
+        setIsLoading(false);
+    }
+  };
+
+  const handleSeeMoreEvents = (originalUserQuery?: string) => {
+    parseHandleSeeMoreEvents(originalUserQuery, handleSendMessage);
+  };
+
+  const handleClearMessages = () => {
+    clearMessages();
+    clearEventTracking();
+  };
+
+  const handleNewChat = async () => {
+    const newConversation = await createConversation();
+    if (newConversation) {
+      clearMessages();
+      clearEventTracking();
     }
   };
 
@@ -85,7 +209,7 @@ export const useChatManager = (
   return {
     messages,
     isLoading,
-    handleSendMessage: handleSendMessageWithLoading,
+    handleSendMessage,
     handleSeeMoreEvents,
     clearMessages: handleClearMessages,
     setMessages,
