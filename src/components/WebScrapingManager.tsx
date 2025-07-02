@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useWebScraping } from '@/hooks/useWebScraping';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
   Globe, 
@@ -21,7 +22,8 @@ import {
   Edit, 
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 
 interface WebsiteFormData {
@@ -35,6 +37,7 @@ interface WebsiteFormData {
 
 const WebScrapingManager = () => {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const {
     websites,
     isLoading,
@@ -50,7 +53,7 @@ const WebScrapingManager = () => {
     name: '',
     base_url: '',
     description: '',
-    max_pages: 50,
+    max_pages: 25, // Reduced default
     allowed_domains: '',
     scraping_frequency_hours: 24
   });
@@ -60,6 +63,28 @@ const WebScrapingManager = () => {
       loadWebsites();
     }
   }, [user, profile]);
+
+  // Auto-refresh websites every 60 seconds when scraping might be in progress
+  useEffect(() => {
+    if (!websites.length) return;
+    
+    const hasRecentActivity = websites.some(w => {
+      if (!w.updated_at) return false;
+      const updatedAt = new Date(w.updated_at);
+      const now = new Date();
+      const diffMinutes = (now.getTime() - updatedAt.getTime()) / (1000 * 60);
+      return diffMinutes < 10; // Consider recent if updated in last 10 minutes
+    });
+
+    if (hasRecentActivity) {
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing websites...');
+        loadWebsites();
+      }, 60000); // Refresh every 60 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [websites]);
 
   // Check if user has admin access
   if (!user || !profile || profile.role !== 'administrativo') {
@@ -82,7 +107,7 @@ const WebScrapingManager = () => {
       name: formData.name,
       base_url: formData.base_url,
       description: formData.description || undefined,
-      max_pages: formData.max_pages,
+      max_pages: Math.min(formData.max_pages, 50), // Cap at 50 pages
       allowed_domains: formData.allowed_domains 
         ? formData.allowed_domains.split(',').map(d => d.trim()).filter(d => d)
         : [],
@@ -92,12 +117,17 @@ const WebScrapingManager = () => {
     const result = await createWebsite(websiteData);
     
     if (result) {
+      toast({
+        title: "Sitio web creado",
+        description: `"${result.name}" ha sido agregado correctamente.`,
+      });
+      
       setIsDialogOpen(false);
       setFormData({
         name: '',
         base_url: '',
         description: '',
-        max_pages: 50,
+        max_pages: 25,
         allowed_domains: '',
         scraping_frequency_hours: 24
       });
@@ -106,13 +136,26 @@ const WebScrapingManager = () => {
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`¿Estás seguro de que quieres eliminar "${name}"?`)) {
-      await deleteWebsite(id);
+      const success = await deleteWebsite(id);
+      if (success) {
+        toast({
+          title: "Sitio web eliminado",
+          description: `"${name}" ha sido eliminado correctamente.`,
+        });
+      }
     }
   };
 
   const handleStartScraping = async (id: string, name: string) => {
-    if (confirm(`¿Iniciar scraping de "${name}"? Esto puede tardar varios minutos.`)) {
-      await startScraping(id);
+    if (confirm(`¿Iniciar scraping de "${name}"? El proceso se ejecutará en segundo plano.`)) {
+      const result = await startScraping(id);
+      if (result) {
+        toast({
+          title: "Scraping iniciado",
+          description: result.message || `El scraping de "${name}" se está ejecutando en segundo plano.`,
+          duration: 5000,
+        });
+      }
     }
   };
 
@@ -134,6 +177,14 @@ const WebScrapingManager = () => {
     const now = new Date();
     const hoursSinceLastScrape = (now.getTime() - lastScraped.getTime()) / (1000 * 60 * 60);
     
+    // Check if recently updated (might be currently scraping)
+    const lastUpdated = new Date(website.updated_at);
+    const minutesSinceUpdate = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
+    
+    if (minutesSinceUpdate < 10 && !website.last_scraped_at) {
+      return <Badge variant="secondary">Procesando...</Badge>;
+    }
+    
     if (hoursSinceLastScrape > website.scraping_frequency_hours * 2) {
       return <Badge variant="destructive">Atrasado</Badge>;
     } else if (hoursSinceLastScrape > website.scraping_frequency_hours) {
@@ -149,103 +200,118 @@ const WebScrapingManager = () => {
         <div>
           <h2 className="text-2xl font-bold">Gestión de Scraping Web</h2>
           <p className="text-muted-foreground">
-            Configura sitios web para extraer información municipal
+            Configura sitios web para extraer información municipal automáticamente en segundo plano
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Sitio
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Agregar Sitio Web</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Nombre del sitio</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ej: Ayuntamiento de Madrid"
-                  required
-                />
-              </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadWebsites}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
 
-              <div>
-                <Label htmlFor="base_url">URL base</Label>
-                <Input
-                  id="base_url"
-                  type="url"
-                  value={formData.base_url}
-                  onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                  placeholder="https://ejemplo.es"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Descripción (opcional)</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Información sobre el sitio web"
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo Sitio
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Agregar Sitio Web</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="max_pages">Máx. páginas</Label>
+                  <Label htmlFor="name">Nombre del sitio</Label>
                   <Input
-                    id="max_pages"
-                    type="number"
-                    min="1"
-                    max="500"
-                    value={formData.max_pages}
-                    onChange={(e) => setFormData({ ...formData, max_pages: parseInt(e.target.value) || 50 })}
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Ej: Ayuntamiento de Madrid"
+                    required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="frequency">Frecuencia (horas)</Label>
+                  <Label htmlFor="base_url">URL base</Label>
                   <Input
-                    id="frequency"
-                    type="number"
-                    min="1"
-                    max="168"
-                    value={formData.scraping_frequency_hours}
-                    onChange={(e) => setFormData({ ...formData, scraping_frequency_hours: parseInt(e.target.value) || 24 })}
+                    id="base_url"
+                    type="url"
+                    value={formData.base_url}
+                    onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
+                    placeholder="https://ejemplo.es"
+                    required
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="domains">Dominios permitidos (separados por comas)</Label>
-                <Input
-                  id="domains"
-                  value={formData.allowed_domains}
-                  onChange={(e) => setFormData({ ...formData, allowed_domains: e.target.value })}
-                  placeholder="ejemplo.es, subdomain.ejemplo.es"
-                />
-              </div>
+                <div>
+                  <Label htmlFor="description">Descripción (opcional)</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Información sobre el sitio web"
+                    rows={3}
+                  />
+                </div>
 
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Creando...' : 'Crear Sitio'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="max_pages">Máx. páginas</Label>
+                    <Input
+                      id="max_pages"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={formData.max_pages}
+                      onChange={(e) => setFormData({ ...formData, max_pages: parseInt(e.target.value) || 25 })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recomendado: 10-25 páginas
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="frequency">Frecuencia (horas)</Label>
+                    <Input
+                      id="frequency"
+                      type="number"
+                      min="1"
+                      max="168"
+                      value={formData.scraping_frequency_hours}
+                      onChange={(e) => setFormData({ ...formData, scraping_frequency_hours: parseInt(e.target.value) || 24 })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="domains">Dominios permitidos (separados por comas)</Label>
+                  <Input
+                    id="domains"
+                    value={formData.allowed_domains}
+                    onChange={(e) => setFormData({ ...formData, allowed_domains: e.target.value })}
+                    placeholder="ejemplo.es, subdomain.ejemplo.es"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Creando...' : 'Crear Sitio'}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {error && (

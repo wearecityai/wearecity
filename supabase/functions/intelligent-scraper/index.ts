@@ -25,8 +25,6 @@ serve(async (req) => {
   console.log(`=== INTELLIGENT SCRAPER EDGE FUNCTION START ===`)
   console.log(`Timestamp: ${new Date().toISOString()}`)
   console.log(`Method: ${req.method}`)
-  console.log(`URL: ${req.url}`)
-  console.log(`Headers:`, Object.fromEntries(req.headers.entries()))
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -40,9 +38,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
     console.log('Environment check:', {
-      supabaseUrl: supabaseUrl ? `Set (${supabaseUrl.substring(0, 30)}...)` : 'MISSING',
-      supabaseKey: supabaseKey ? `Set (${supabaseKey.substring(0, 20)}...)` : 'MISSING',
-      hasAllKeys: !!(supabaseUrl && supabaseKey)
+      supabaseUrl: supabaseUrl ? `Set` : 'MISSING',
+      supabaseKey: supabaseKey ? `Set` : 'MISSING'
     })
 
     if (!supabaseUrl || !supabaseKey) {
@@ -54,25 +51,20 @@ serve(async (req) => {
       throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`)
     }
 
-    // Parse request body with better error handling
+    // Parse request body
     let requestBody
     try {
       const rawBody = await req.text()
-      console.log('Raw request body:', rawBody)
+      console.log('Raw request body received')
       
       if (!rawBody || rawBody.trim() === '') {
         throw new Error('Request body is empty')
       }
       
       requestBody = JSON.parse(rawBody)
-      console.log('Parsed request body:', JSON.stringify(requestBody, null, 2))
+      console.log('Request parsed successfully')
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError)
-      console.error('Parse error details:', {
-        name: parseError.name,
-        message: parseError.message,
-        stack: parseError.stack
-      })
       throw new Error(`Invalid JSON in request body: ${parseError.message}`)
     }
 
@@ -85,22 +77,15 @@ serve(async (req) => {
 
     console.log(`Processing action: ${action} for website: ${websiteId}`)
 
-    // Create Supabase client with error handling
-    let supabase
-    try {
-      supabase = createClient(supabaseUrl, supabaseKey)
-      console.log('Supabase client created successfully')
-    } catch (clientError) {
-      console.error('Failed to create Supabase client:', clientError)
-      throw new Error(`Failed to initialize database connection: ${clientError.message}`)
-    }
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    console.log('Supabase client created successfully')
 
     if (action === 'scrape') {
       console.log(`=== STARTING SCRAPING PROCESS ===`)
       console.log(`Website ID: ${websiteId}`)
-      console.log(`Process start time: ${new Date().toISOString()}`)
 
-      // Get website configuration with better error handling
+      // Get website configuration
       console.log('Fetching website configuration from database...')
       const { data: website, error: websiteError } = await supabase
         .from('scraped_websites')
@@ -110,12 +95,6 @@ serve(async (req) => {
 
       if (websiteError) {
         console.error('Database error fetching website:', websiteError)
-        console.error('Error details:', {
-          code: websiteError.code,
-          message: websiteError.message,
-          details: websiteError.details,
-          hint: websiteError.hint
-        })
         throw new Error(`Website not found in database: ${websiteError.message}`)
       }
 
@@ -124,12 +103,7 @@ serve(async (req) => {
         throw new Error(`Website with ID ${websiteId} not found`)
       }
 
-      console.log(`Website configuration loaded:`)
-      console.log(`- Name: ${website.name}`)
-      console.log(`- URL: ${website.base_url}`)
-      console.log(`- Max pages: ${website.max_pages}`)
-      console.log(`- Allowed domains: ${JSON.stringify(website.allowed_domains)}`)
-      console.log(`- Is active: ${website.is_active}`)
+      console.log(`Website configuration loaded: ${website.name}`)
 
       if (!website.is_active) {
         console.warn('Website is marked as inactive')
@@ -141,198 +115,48 @@ serve(async (req) => {
         new URL(website.base_url)
         console.log('Website URL validated successfully')
       } catch (urlError) {
-        console.error('Invalid website URL:', website.base_url, urlError)
+        console.error('Invalid website URL:', website.base_url)
         throw new Error(`Invalid website URL: ${website.base_url}`)
       }
 
-      // Start scraping process with timeout
-      console.log('=== STARTING WEB SCRAPING ===')
-      const scrapingStartTime = Date.now()
+      // IMMEDIATE RESPONSE: Start background scraping and return immediately
+      console.log('=== STARTING BACKGROUND SCRAPING ===')
       
-      let scrapedPages: ScrapedPage[] = []
-      try {
-        scrapedPages = await scrapeWebsite({
+      // Use EdgeRuntime.waitUntil to run scraping in background
+      const backgroundScrapingPromise = performBackgroundScraping(
+        supabase,
+        {
           websiteId: website.id,
           baseUrl: website.base_url,
-          maxPages: Math.min(website.max_pages || 50, 100), // Cap at 100 pages
+          maxPages: Math.min(website.max_pages || 25, 50), // Reduced max pages
           allowedDomains: website.allowed_domains || []
-        })
-        
-        const scrapingDuration = Date.now() - scrapingStartTime
-        console.log(`=== SCRAPING COMPLETED ===`)
-        console.log(`Duration: ${scrapingDuration}ms`)
-        console.log(`Pages found: ${scrapedPages.length}`)
-      } catch (scrapingError) {
-        console.error('Scraping failed:', scrapingError)
-        throw new Error(`Scraping failed: ${scrapingError.message}`)
-      }
-
-      // Save scraped pages to database
-      console.log('=== SAVING TO DATABASE ===')
-      let savedPagesCount = 0
-      let savedDocumentsCount = 0
-      let processingErrors: string[] = []
-
-      for (const [index, page] of scrapedPages.entries()) {
-        try {
-          console.log(`Processing page ${index + 1}/${scrapedPages.length}: ${page.url}`)
-
-          // Validate page data
-          if (!page.url || !page.title || !page.content) {
-            console.warn(`Skipping invalid page data:`, {
-              hasUrl: !!page.url,
-              hasTitle: !!page.title,
-              hasContent: !!page.content,
-              contentLength: page.content?.length || 0
-            })
-            continue
-          }
-
-          // Calculate content hash for deduplication
-          const contentHash = await crypto.subtle.digest(
-            'SHA-256',
-            new TextEncoder().encode(page.content || '')
-          )
-          const hashArray = Array.from(new Uint8Array(contentHash))
-          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-
-          console.log(`Content hash: ${hashHex.substring(0, 16)}...`)
-
-          // Check if page already exists with same content
-          const { data: existingPage, error: checkError } = await supabase
-            .from('scraped_pages')
-            .select('id')
-            .eq('website_id', websiteId)
-            .eq('url', page.url)
-            .eq('content_hash', hashHex)
-            .maybeSingle()
-
-          if (checkError) {
-            console.error(`Error checking existing page: ${checkError.message}`)
-            processingErrors.push(`Check error for ${page.url}: ${checkError.message}`)
-            continue
-          }
-
-          if (existingPage) {
-            console.log(`Page already exists with same content: ${page.url}`)
-            continue
-          }
-
-          // Insert or update page
-          console.log(`Saving page: ${page.title}`)
-          const { data: savedPage, error: pageError } = await supabase
-            .from('scraped_pages')
-            .upsert({
-              website_id: websiteId,
-              url: page.url,
-              title: page.title,
-              content: page.content,
-              content_hash: hashHex,
-              page_type: page.page_type,
-              status_code: page.status_code,
-              last_scraped_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: 'website_id,url'
-            })
-            .select()
-            .single()
-
-          if (pageError) {
-            console.error(`Error saving page ${page.url}:`, pageError)
-            processingErrors.push(`Save error for ${page.url}: ${pageError.message}`)
-            continue
-          }
-
-          savedPagesCount++
-          console.log(`✓ Page saved successfully: ${page.url}`)
-
-          // Extract and save documents from the page
-          try {
-            const documents = extractDocuments(page.content, page.url)
-            console.log(`Found ${documents.length} documents in page`)
-            
-            for (const doc of documents) {
-              try {
-                console.log(`Saving document: ${doc.filename}`)
-                const { error: docError } = await supabase
-                  .from('scraped_documents')
-                  .upsert({
-                    page_id: savedPage.id,
-                    filename: doc.filename,
-                    file_url: doc.url,
-                    file_type: doc.type,
-                    download_status: 'pending'
-                  }, {
-                    onConflict: 'page_id,file_url'
-                  })
-
-                if (!docError) {
-                  savedDocumentsCount++
-                  console.log(`✓ Document saved: ${doc.filename}`)
-                } else {
-                  console.error(`Error saving document ${doc.filename}:`, docError)
-                  processingErrors.push(`Document save error: ${docError.message}`)
-                }
-              } catch (docError) {
-                console.error(`Exception saving document ${doc.filename}:`, docError)
-                processingErrors.push(`Document exception: ${docError.message}`)
-              }
-            }
-          } catch (docExtractionError) {
-            console.error(`Error extracting documents from ${page.url}:`, docExtractionError)
-            processingErrors.push(`Document extraction error: ${docExtractionError.message}`)
-          }
-        } catch (pageError) {
-          console.error(`Error processing page ${page.url}:`, pageError)
-          processingErrors.push(`Page processing error: ${pageError.message}`)
         }
-      }
+      )
 
-      // Update website's last_scraped_at timestamp
-      console.log('Updating website last_scraped_at timestamp...')
-      const { error: updateError } = await supabase
+      // Start background task
+      EdgeRuntime.waitUntil(backgroundScrapingPromise)
+
+      // Update website status to "scraping in progress"
+      await supabase
         .from('scraped_websites')
         .update({ 
-          last_scraped_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', websiteId)
 
-      if (updateError) {
-        console.error('Error updating website timestamp:', updateError)
-        processingErrors.push(`Timestamp update error: ${updateError.message}`)
-      } else {
-        console.log('✓ Website timestamp updated successfully')
-      }
-
-      console.log(`=== FINAL RESULTS ===`)
-      console.log(`Pages saved: ${savedPagesCount}`)
-      console.log(`Documents found: ${savedDocumentsCount}`)
-      console.log(`Total pages processed: ${scrapedPages.length}`)
-      console.log(`Processing errors: ${processingErrors.length}`)
-      
-      if (processingErrors.length > 0) {
-        console.log('Processing errors details:', processingErrors)
-      }
-
-      const resultStats = {
-        pages_scraped: savedPagesCount,
-        documents_found: savedDocumentsCount,
-        total_pages_found: scrapedPages.length,
-        processing_errors: processingErrors.length
-      }
-
+      // Return immediate success response
+      console.log('=== RETURNING IMMEDIATE SUCCESS RESPONSE ===')
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Scraping completed successfully. Saved ${savedPagesCount} pages and found ${savedDocumentsCount} documents.`,
-          stats: resultStats,
-          errors: processingErrors.length > 0 ? processingErrors : undefined
+          message: `Scraping iniciado en segundo plano para "${website.name}". Los resultados se guardarán automáticamente.`,
+          status: 'background_processing',
+          websiteId: websiteId,
+          estimatedTime: '2-5 minutos'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
+          status: 202, // Accepted - processing in background
         }
       )
     }
@@ -351,22 +175,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('=== EDGE FUNCTION ERROR ===')
-    console.error('Error timestamp:', new Date().toISOString())
-    console.error('Error type:', typeof error)
-    console.error('Error instanceof Error:', error instanceof Error)
     console.error('Error details:', error)
-    
-    if (error instanceof Error) {
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
-      console.error('Error name:', error.name)
-    }
     
     return new Response(
       JSON.stringify({ 
         success: false,
         error: error instanceof Error ? error.message : 'Internal server error',
-        details: error instanceof Error ? error.stack : String(error),
         timestamp: new Date().toISOString()
       }),
       {
@@ -377,129 +191,250 @@ serve(async (req) => {
   }
 })
 
-async function scrapeWebsite(job: ScrapingJob): Promise<ScrapedPage[]> {
+// Background scraping function that runs without blocking the response
+async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promise<void> {
+  const startTime = Date.now()
+  console.log(`=== BACKGROUND SCRAPING STARTED ===`)
+  console.log(`Website ID: ${job.websiteId}`)
+  console.log(`Base URL: ${job.baseUrl}`)
+  console.log(`Max pages: ${job.maxPages}`)
+
+  try {
+    // Perform the actual scraping
+    const scrapedPages = await scrapeWebsiteOptimized(job)
+    const scrapingDuration = Date.now() - startTime
+    
+    console.log(`=== SCRAPING COMPLETED ===`)
+    console.log(`Duration: ${scrapingDuration}ms`)
+    console.log(`Pages found: ${scrapedPages.length}`)
+
+    // Save scraped pages to database
+    console.log('=== SAVING TO DATABASE ===')
+    let savedPagesCount = 0
+    let savedDocumentsCount = 0
+    let processingErrors: string[] = []
+
+    // Process pages in smaller batches to avoid memory issues
+    const BATCH_SIZE = 3
+    for (let i = 0; i < scrapedPages.length; i += BATCH_SIZE) {
+      const batch = scrapedPages.slice(i, i + BATCH_SIZE)
+      
+      for (const page of batch) {
+        try {
+          console.log(`Processing page: ${page.url}`)
+
+          // Skip invalid pages
+          if (!page.url || !page.title || !page.content || page.content.length < 100) {
+            console.warn(`Skipping invalid page: ${page.url}`)
+            continue
+          }
+
+          // Calculate content hash for deduplication
+          const contentHash = await crypto.subtle.digest(
+            'SHA-256',
+            new TextEncoder().encode(page.content)
+          )
+          const hashArray = Array.from(new Uint8Array(contentHash))
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
+          // Check if page already exists with same content
+          const { data: existingPage } = await supabase
+            .from('scraped_pages')
+            .select('id')
+            .eq('website_id', job.websiteId)
+            .eq('url', page.url)
+            .eq('content_hash', hashHex)
+            .maybeSingle()
+
+          if (existingPage) {
+            console.log(`Page already exists with same content: ${page.url}`)
+            continue
+          }
+
+          // Insert or update page
+          const { data: savedPage, error: pageError } = await supabase
+            .from('scraped_pages')
+            .upsert({
+              website_id: job.websiteId,
+              url: page.url,
+              title: page.title.substring(0, 500), // Limit title length
+              content: page.content.substring(0, 50000), // Limit content length
+              content_hash: hashHex,
+              page_type: page.page_type,
+              status_code: page.status_code,
+              last_scraped_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'website_id,url'
+            })
+            .select()
+            .single()
+
+          if (pageError) {
+            console.error(`Error saving page ${page.url}:`, pageError)
+            processingErrors.push(`Save error for ${page.url}: ${pageError.message}`)
+            continue
+          }
+
+          savedPagesCount++
+          console.log(`✓ Page saved: ${page.url}`)
+
+          // Extract and save documents
+          const documents = extractDocuments(page.content, page.url)
+          for (const doc of documents.slice(0, 5)) { // Limit documents per page
+            try {
+              const { error: docError } = await supabase
+                .from('scraped_documents')
+                .upsert({
+                  page_id: savedPage.id,
+                  filename: doc.filename.substring(0, 255),
+                  file_url: doc.url,
+                  file_type: doc.type,
+                  download_status: 'pending'
+                }, {
+                  onConflict: 'page_id,file_url'
+                })
+
+              if (!docError) {
+                savedDocumentsCount++
+              }
+            } catch (docError) {
+              console.error(`Error saving document:`, docError)
+            }
+          }
+
+        } catch (pageError) {
+          console.error(`Error processing page ${page.url}:`, pageError)
+          processingErrors.push(`Page processing error: ${pageError.message}`)
+        }
+      }
+
+      // Small delay between batches
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    // Update website's last_scraped_at timestamp
+    await supabase
+      .from('scraped_websites')
+      .update({ 
+        last_scraped_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', job.websiteId)
+
+    console.log(`=== BACKGROUND SCRAPING COMPLETED ===`)
+    console.log(`Pages saved: ${savedPagesCount}`)
+    console.log(`Documents found: ${savedDocumentsCount}`)
+    console.log(`Total duration: ${Date.now() - startTime}ms`)
+
+  } catch (error) {
+    console.error('=== BACKGROUND SCRAPING FAILED ===')
+    console.error('Error:', error)
+    
+    // Mark website as having an error (you could add an error_message column)
+    try {
+      await supabase
+        .from('scraped_websites')
+        .update({ 
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', job.websiteId)
+    } catch (updateError) {
+      console.error('Failed to update website after error:', updateError)
+    }
+  }
+}
+
+// Optimized scraping function with better performance
+async function scrapeWebsiteOptimized(job: ScrapingJob): Promise<ScrapedPage[]> {
   const pages: ScrapedPage[] = []
   const visitedUrls = new Set<string>()
   const urlsToVisit = [job.baseUrl]
+  const MAX_CONCURRENT_REQUESTS = 2 // Reduced concurrent requests
+  const REQUEST_TIMEOUT = 15000 // Reduced timeout to 15 seconds
 
-  console.log(`=== STARTING WEBSITE SCRAPING ===`)
+  console.log(`=== STARTING OPTIMIZED SCRAPING ===`)
   console.log(`Base URL: ${job.baseUrl}`)
   console.log(`Max pages: ${job.maxPages}`)
-  console.log(`Allowed domains: ${JSON.stringify(job.allowedDomains)}`)
 
-  // Add timeout for individual page requests
-  const fetchWithTimeout = async (url: string, timeout = 30000) => {
+  // Fetch with timeout and better error handling
+  const fetchWithTimeout = async (url: string): Promise<Response | null> => {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => {
-      console.log(`Timeout reached for ${url}`)
-      controller.abort()
-    }, timeout)
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
     
     try {
-      console.log(`Fetching URL: ${url}`)
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Municipal-Assistant-Bot/1.0 (+https://lovable.dev)',
+          'User-Agent': 'Municipal-Assistant-Bot/1.0',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
-          'Accept-Encoding': 'gzip, deflate',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1'
+          'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5',
+          'Connection': 'keep-alive'
         },
         signal: controller.signal
       })
       clearTimeout(timeoutId)
-      console.log(`Response: ${response.status} ${response.statusText} (${url})`)
       return response
     } catch (error) {
       clearTimeout(timeoutId)
       console.error(`Fetch error for ${url}:`, error.message)
-      throw error
+      return null
     }
   }
 
+  // Process URLs in smaller batches
   while (urlsToVisit.length > 0 && pages.length < job.maxPages) {
-    const currentUrl = urlsToVisit.shift()!
-    
-    if (visitedUrls.has(currentUrl)) {
-      console.log(`Skipping already visited URL: ${currentUrl}`)
-      continue
-    }
+    const currentBatch = urlsToVisit.splice(0, MAX_CONCURRENT_REQUESTS)
+    const batchPromises = currentBatch.map(async (url) => {
+      if (visitedUrls.has(url)) return null
+      visitedUrls.add(url)
 
-    visitedUrls.add(currentUrl)
-
-    try {
-      console.log(`Processing URL ${visitedUrls.size}/${Math.min(job.maxPages, urlsToVisit.length + visitedUrls.size)}: ${currentUrl}`)
-      
-      const response = await fetchWithTimeout(currentUrl, 30000)
-
-      if (!response.ok) {
-        console.log(`HTTP error ${response.status} for ${currentUrl}: ${response.statusText}`)
-        continue
-      }
+      const response = await fetchWithTimeout(url)
+      if (!response || !response.ok) return null
 
       const contentType = response.headers.get('content-type') || ''
-      if (!contentType.includes('text/html')) {
-        console.log(`Skipping non-HTML content: ${currentUrl} (${contentType})`)
-        continue
-      }
+      if (!contentType.includes('text/html')) return null
 
       const html = await response.text()
-      console.log(`HTML received: ${html.length} characters`)
-      
-      if (html.length < 100) {
-        console.log(`Skipping page with minimal content: ${currentUrl}`)
-        continue
-      }
+      if (html.length < 200) return null
 
       const cleanedContent = extractTextContent(html)
       const title = extractTitle(html)
 
-      console.log(`Extracted: title="${title}", content=${cleanedContent.length} chars`)
+      if (cleanedContent.length < 100) return null
 
-      // Only save pages with meaningful content
-      if (cleanedContent.length > 100) {
-        pages.push({
-          url: currentUrl,
-          title: title,
-          content: cleanedContent,
-          status_code: response.status,
-          page_type: 'html'
-        })
-
-        console.log(`✓ Added page ${pages.length}: ${title}`)
-      } else {
-        console.log(`✗ Skipped page (content too short): ${title}`)
+      // Extract new URLs for next batch (limited)
+      if (pages.length < job.maxPages - 5) {
+        const newUrls = extractLinks(html, url, job.baseUrl, job.allowedDomains)
+        const urlsToAdd = newUrls.slice(0, 3).filter(newUrl => 
+          !visitedUrls.has(newUrl) && !urlsToVisit.includes(newUrl)
+        )
+        urlsToVisit.push(...urlsToAdd)
       }
 
-      // Extract new URLs to visit (limit to prevent infinite loops)
-      if (pages.length < job.maxPages) {
-        const newUrls = extractLinks(html, currentUrl, job.baseUrl, job.allowedDomains)
-        const urlsToAdd = newUrls.slice(0, 5) // Limit new URLs per page
-        
-        console.log(`Found ${newUrls.length} links, adding ${urlsToAdd.length}`)
-        
-        for (const newUrl of urlsToAdd) {
-          if (!visitedUrls.has(newUrl) && !urlsToVisit.includes(newUrl)) {
-            urlsToVisit.push(newUrl)
-            console.log(`  → Queued: ${newUrl}`)
-          }
-        }
+      return {
+        url,
+        title,
+        content: cleanedContent,
+        status_code: response.status,
+        page_type: 'html'
       }
+    })
 
-      // Add delay to be respectful to the server
-      await new Promise(resolve => setTimeout(resolve, 2000))
+    const batchResults = await Promise.all(batchPromises)
+    const validPages = batchResults.filter(page => page !== null) as ScrapedPage[]
+    pages.push(...validPages)
 
-    } catch (error) {
-      console.error(`Error scraping ${currentUrl}:`, error.message)
-      // Continue with next URL instead of failing completely
+    console.log(`Batch completed. Total pages: ${pages.length}, Remaining URLs: ${urlsToVisit.length}`)
+
+    // Respectful delay between batches
+    if (urlsToVisit.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
   }
 
   console.log(`=== SCRAPING SUMMARY ===`)
   console.log(`Total URLs visited: ${visitedUrls.size}`)
   console.log(`Pages with content: ${pages.length}`)
-  console.log(`URLs remaining in queue: ${urlsToVisit.length}`)
 
   return pages
 }

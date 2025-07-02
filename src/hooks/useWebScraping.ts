@@ -79,7 +79,7 @@ export const useWebScraping = () => {
           name: websiteData.name,
           base_url: websiteData.base_url,
           description: websiteData.description,
-          max_pages: websiteData.max_pages || 100,
+          max_pages: websiteData.max_pages || 25, // Reduced default
           allowed_domains: websiteData.allowed_domains || [],
           scraping_frequency_hours: websiteData.scraping_frequency_hours || 24,
           is_active: true
@@ -181,7 +181,6 @@ export const useWebScraping = () => {
       console.log('=== STARTING SCRAPING PROCESS ===');
       console.log('Website ID:', websiteId);
       console.log('User ID:', user.id);
-      console.log('Current time:', new Date().toISOString());
 
       // Check if user is authenticated and get current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -197,56 +196,22 @@ export const useWebScraping = () => {
       }
 
       console.log('Making request to intelligent-scraper edge function...');
-      console.log('Request payload:', {
-        websiteId: websiteId,
-        action: 'scrape'
-      });
 
-      // Set a timeout for the edge function call
-      const TIMEOUT_MS = 120000; // 2 minutes
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La función tardó demasiado en responder')), TIMEOUT_MS)
-      );
-
-      const functionPromise = supabase.functions.invoke('intelligent-scraper', {
+      // The edge function now returns immediately with 202 status
+      const { data, error } = await supabase.functions.invoke('intelligent-scraper', {
         body: {
           websiteId: websiteId,
           action: 'scrape'
         }
       });
 
-      console.log('Waiting for edge function response (timeout: 2 minutes)...');
-      
-      const { data, error } = await Promise.race([
-        functionPromise,
-        timeoutPromise
-      ]) as any;
-
       console.log('=== EDGE FUNCTION RESPONSE ===');
       console.log('Response data:', data);
       console.log('Response error:', error);
 
       if (error) {
-        console.error('Edge function error details:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack,
-          context: error.context,
-          code: error.code,
-          details: error.details
-        });
-        
-        // Try to provide more specific error messages
-        let errorMessage = 'Error del servidor';
-        if (error.message) {
-          errorMessage += `: ${error.message}`;
-        } else if (error.code) {
-          errorMessage += `: Código ${error.code}`;
-        } else {
-          errorMessage += ': Error desconocido';
-        }
-        
-        throw new Error(errorMessage);
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Error del servidor');
       }
 
       if (!data) {
@@ -254,51 +219,36 @@ export const useWebScraping = () => {
         throw new Error('No se recibió respuesta del servidor');
       }
 
-      console.log('Edge function response type:', typeof data);
-      console.log('Edge function response keys:', Object.keys(data));
-
-      if (data.success === false) {
-        console.error('Edge function returned failure:', data);
-        const errorMsg = data.error || data.message || 'El scraping falló sin detalles específicos';
-        throw new Error(errorMsg);
+      console.log('=== SCRAPING REQUEST SUCCESSFUL ===');
+      
+      // The scraping is now running in the background
+      // We should show a success message and refresh the data periodically
+      if (data.status === 'background_processing') {
+        console.log('Scraping started in background:', data.message);
+        
+        // Start polling for updates every 30 seconds
+        const pollForUpdates = async () => {
+          setTimeout(async () => {
+            console.log('Polling for website updates...');
+            await loadWebsites();
+          }, 30000);
+        };
+        
+        pollForUpdates();
       }
-
-      if (!data.success) {
-        console.warn('Edge function response does not have success=true:', data);
-        // Don't throw error if we have some data, just log the warning
-      }
-
-      console.log('=== SCRAPING COMPLETED SUCCESSFULLY ===');
-      if (data.stats) {
-        console.log('Scraping stats:', data.stats);
-      }
-      if (data.message) {
-        console.log('Scraping message:', data.message);
-      }
-
-      // Always reload websites to get updated data
-      console.log('Reloading websites to refresh data...');
-      await loadWebsites();
 
       return data;
     } catch (err) {
       console.error('=== SCRAPING FAILED ===');
-      console.error('Error type:', typeof err);
-      console.error('Error instanceof Error:', err instanceof Error);
-      console.error('Full error object:', err);
+      console.error('Error details:', err);
       
       if (err instanceof Error) {
-        console.error('Error message:', err.message);
-        console.error('Error stack:', err.stack);
-        console.error('Error name:', err.name);
         setError(err.message);
       } else {
-        console.error('Non-Error object thrown:', JSON.stringify(err, null, 2));
         setError('Error inesperado al iniciar el scraping');
       }
       return null;
     } finally {
-      console.log('=== SCRAPING PROCESS ENDED ===');
       setIsLoading(false);
     }
   };
