@@ -1,17 +1,22 @@
 
 import { PlaceCardInfo } from '../../types';
-import {
-  PLACE_CARD_START_MARKER,
-  PLACE_CARD_END_MARKER,
-} from '../../constants';
 
-export const usePlaceCardParser = () => {
+interface SystemMarkers {
+  PLACE_CARD_START_MARKER: string;
+  PLACE_CARD_END_MARKER: string;
+}
+
+export const usePlaceCardParser = (markers?: SystemMarkers) => {
   const parsePlaceCards = (content: string) => {
     const placeCardsForMessage: PlaceCardInfo[] = [];
 
+    // Use markers from parameters or fallback values
+    const PLACE_START = markers?.PLACE_CARD_START_MARKER || '[PLACE_CARD_START]';
+    const PLACE_END = markers?.PLACE_CARD_END_MARKER || '[PLACE_CARD_END]';
+
     // Parse place cards
     const tempContentForProcessing = content;
-    const placeCardRegex = new RegExp(`${PLACE_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${PLACE_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    const placeCardRegex = new RegExp(`${PLACE_START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${PLACE_END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let match;
     while ((match = placeCardRegex.exec(tempContentForProcessing)) !== null) {
       let jsonStrToParse = match[1].replace(/\[CITE:\s*\d+\][%]?$/, "").trim();

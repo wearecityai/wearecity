@@ -2,14 +2,14 @@ import React from 'react';
 import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
 import { ChatSession } from '../../services/geminiService';
-import { useContentParser } from '../parsers/useContentParser';
+import { useMessageParser } from '../useMessageParser';
 
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
   onError: (error: string) => void,
   onGeminiReadyChange: (ready: boolean) => void
 ) => {
-  const { parseContent } = useContentParser();
+  const { parseAIResponse, isLoaded } = useMessageParser();
   const lastProcessedMessageRef = useRef<string | null>(null);
 
   const processMessage = useCallback(async (
@@ -41,6 +41,12 @@ export const useMessageHandler = (
     if (!isGeminiReady) {
       console.error('Gemini not ready');
       onError('El asistente no está listo. Por favor, espera un momento.');
+      return;
+    }
+
+    if (!isLoaded) {
+      console.log('System markers not loaded yet, waiting...');
+      onError('Cargando configuración del sistema. Por favor, espera un momento.');
       return;
     }
 
@@ -124,32 +130,23 @@ export const useMessageHandler = (
         throw new Error('Streaming failed or returned empty response');
       }
 
-      // Parse content based on configuration
-      let finalModelMessage: ChatMessage;
-      if (chatConfig.allowMapDisplay) {
-        const parsed = parseContent(responseText, chatConfig);
-        finalModelMessage = {
-          id: crypto.randomUUID(),
-          role: MessageRole.Model,
-          content: parsed.processedContent,
-          timestamp: new Date(),
-          mapQuery: parsed.mapQueryFromAI,
-          downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
-          telematicProcedureLink: parsed.telematicLinkForMessage,
-          isTyping: false
-        };
-      } else {
-        const parsed = parseContent(responseText, chatConfig);
-        finalModelMessage = {
-          id: crypto.randomUUID(),
-          role: MessageRole.Model,
-          content: parsed.processedContent,
-          timestamp: new Date(),
-          downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
-          telematicProcedureLink: parsed.telematicLinkForMessage,
-          isTyping: false
-        };
-      }
+      // Parse AI response with full capabilities
+      const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
+      const finalModelMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: MessageRole.Model,
+        content: parsed.processedContent,
+        timestamp: new Date(),
+        mapQuery: parsed.mapQueryFromAI,
+        events: parsed.eventsForThisMessage,
+        placeCards: parsed.placeCardsForMessage,
+        downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
+        telematicProcedureLink: parsed.telematicLinkForMessage,
+        showSeeMoreButton: parsed.showSeeMoreButtonForThisMessage,
+        originalUserQueryForEvents: parsed.storedUserQueryForEvents,
+        groundingMetadata: parsed.finalGroundingMetadata,
+        isTyping: false
+      };
 
       // Guarda el mensaje de modelo en la base de datos
       await addMessage(finalModelMessage, targetConversationId);
@@ -217,7 +214,7 @@ export const useMessageHandler = (
       // Always reset the last processed message reference to allow retry
       lastProcessedMessageRef.current = null;
     }
-  }, [parseContent, onError, onGeminiReadyChange]);
+  }, [parseAIResponse, isLoaded, onError, onGeminiReadyChange]);
 
   return {
     processMessage
