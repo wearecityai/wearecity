@@ -3,14 +3,22 @@ import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
 import { ChatSession } from '../../services/geminiService';
 import { useContentParser } from '../parsers/useContentParser';
+import { useSystemInstructionBuilder } from '../useSystemInstructionBuilder';
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+}
 
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
+  userLocation: UserLocation | null,
   onError: (error: string) => void,
   onGeminiReadyChange: (ready: boolean) => void
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const { parseContent } = useContentParser();
+  const { buildSystemInstruction } = useSystemInstructionBuilder(chatConfig, userLocation);
   const lastProcessedMessageRef = useRef<string | null>(null);
 
   const processMessage = useCallback(async (
@@ -50,6 +58,15 @@ export const useMessageHandler = (
       // Add user message to the specific conversation
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
+
+      // Build enhanced system instruction with scraped content
+      console.log('Building enhanced system instruction with search...');
+      const enhancedInstruction = await buildSystemInstruction(inputText);
+      
+      // Update chat session with enhanced instruction
+      if (chatSession.updateSystemInstruction) {
+        chatSession.updateSystemInstruction(enhancedInstruction);
+      }
 
       // Create a loading message immediately to show the indicator
       const loadingMessage: ChatMessage = {
@@ -160,7 +177,7 @@ export const useMessageHandler = (
       setIsLoading(false);
       lastProcessedMessageRef.current = null;
     }
-  }, [parseContent, onError, onGeminiReadyChange]);
+  }, [parseContent, buildSystemInstruction, onError, onGeminiReadyChange]);
 
   return {
     isLoading,
