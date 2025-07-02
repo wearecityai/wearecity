@@ -4,6 +4,7 @@ import { CustomChatConfig } from '../../types';
 import { initChatSession, ChatSession } from '../../services/geminiService';
 import { API_KEY_ERROR_MESSAGE } from '../../constants';
 import { useErrorHandler } from '../useErrorHandler';
+import { useSystemInstructionBuilder } from '../useSystemInstructionBuilder';
 
 interface UserLocation {
   latitude: number;
@@ -17,6 +18,7 @@ export const useChatSession = (
 ) => {
   const geminiChatSessionRef = useRef<ChatSession | null>(null);
   const { getFriendlyError } = useErrorHandler();
+  const { buildFullSystemInstruction, isLoaded } = useSystemInstructionBuilder();
   const initializationAttempts = useRef(0);
   const maxInitAttempts = 3;
 
@@ -38,12 +40,21 @@ export const useChatSession = (
       return;
     }
 
+    if (!isLoaded) {
+      console.log('System instructions not loaded yet, waiting...');
+      return;
+    }
+
     try {
       initializationAttempts.current++;
       
-      // Initialize chat session with enhanced validation
+      // Build system instruction from database
+      const systemInstruction = buildFullSystemInstruction(configToUse, location);
+      console.log('Built system instruction:', systemInstruction ? 'Present' : 'Empty');
+      
+      // Initialize chat session with system instruction from database
       const chatSession = initChatSession(
-        undefined, // No custom instruction needed - edge function handles everything
+        systemInstruction,
         configToUse.enableGoogleSearch,
         configToUse.allowMapDisplay
       );
@@ -87,7 +98,7 @@ export const useChatSession = (
       onError(errorMessage);
       if (errorMessage === API_KEY_ERROR_MESSAGE) onGeminiReadyChange(false);
     }
-  }, [isGeminiReady, onError, onGeminiReadyChange, getFriendlyError]);
+  }, [isGeminiReady, onError, onGeminiReadyChange, getFriendlyError, buildFullSystemInstruction, isLoaded]);
 
   const resetChatSession = useCallback(() => {
     console.log('Resetting chat session');
