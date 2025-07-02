@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { ChatMessage, MessageRole } from '../types';
+import { ChatMessage } from '../types';
 import { loadMessagesFromDb, saveMessageToDb, updateMessageInDb } from './messages/messageDatabase';
 import { convertDbMessageToChatMessage } from './messages/messageConverters';
 import { useMessageRealtime } from './messages/useMessageRealtime';
@@ -26,10 +26,9 @@ export const useMessages = (conversationId: string | null) => {
       // Convert database messages to ChatMessage format
       const chatMessages: ChatMessage[] = data.map(msg => convertDbMessageToChatMessage(msg));
       
-      // Clean up any orphaned messages that were converted (they have default recovery content)
+      // Clean up any orphaned messages that were converted to errors
       const orphanedMessages = chatMessages.filter(msg => 
-        msg.content === 'Lo siento, hubo un problema generando esta respuesta. Por favor, intenta de nuevo.' &&
-        msg.role === MessageRole.Model
+        msg.error === 'Mensaje huérfano detectado y corregido'
       );
       
       if (orphanedMessages.length > 0) {
@@ -39,7 +38,8 @@ export const useMessages = (conversationId: string | null) => {
           try {
             await updateMessageInDb(orphanedMsg.id, {
               content: orphanedMsg.content,
-              isTyping: false
+              isTyping: false,
+              error: orphanedMsg.error
             });
           } catch (updateError) {
             console.error('Failed to update orphaned message:', updateError);
