@@ -24,7 +24,8 @@ export const useChatManager = (
     conversations, 
     currentConversationId, 
     setCurrentConversationId,
-    createConversation 
+    createConversation,
+    updateConversationTitle
   } = useConversations();
   
   const { 
@@ -54,40 +55,40 @@ export const useChatManager = (
     handleClearMessages,
     handleNewChat,
     createUserMessage,
-    handleCreateConversationWithAutoTitle,
-    handleUpdateConversationTitle
+    generateConversationTitle
   } = useChatActions();
 
   const handleSendMessage = async (inputText: string) => {
     try {
-      // Create conversation if it doesn't exist
-      let conversationId = currentConversationId;
-      let shouldUpdateTitle = false;
+      // Determine the conversation ID to use
+      let targetConversationId = currentConversationId;
+      let isNewConversation = false;
 
-      if (!conversationId) {
+      // If no current conversation exists, create one synchronously
+      if (!targetConversationId) {
         console.log('Creating new conversation for message:', inputText);
-        const newConversation = await handleCreateConversationWithAutoTitle(inputText);
+        const generatedTitle = await generateConversationTitle(inputText);
+        const newConversation = await createConversation(generatedTitle);
+        
         if (!newConversation) {
           onError('No se pudo crear la conversación.');
           return;
         }
-        conversationId = newConversation.id;
-        // Immediately update the current conversation ID and wait for state to update
-        setCurrentConversationId(conversationId);
-        console.log('New conversation created and set as current:', conversationId);
+        
+        targetConversationId = newConversation.id;
+        isNewConversation = true;
+        console.log('New conversation created:', targetConversationId);
       } else {
-        // If it's the first real message in an existing conversation (not just "Nueva conversación")
-        const currentConversation = conversations.find(c => c.id === conversationId);
+        // Check if we need to update the title for an existing conversation
+        const currentConversation = conversations.find(c => c.id === targetConversationId);
         if (currentConversation && currentConversation.title === 'Nueva conversación' && messages.length <= 1) {
-          shouldUpdateTitle = true;
+          console.log('Updating conversation title for existing conversation:', targetConversationId);
+          const generatedTitle = await generateConversationTitle(inputText);
+          await updateConversationTitle(targetConversationId, generatedTitle);
         }
       }
 
-      // Update title if needed
-      if (shouldUpdateTitle) {
-        await handleUpdateConversationTitle(conversationId, inputText);
-      }
-
+      // Create user message
       const userMessage = createUserMessage(inputText);
       
       // Process the message with the specific conversation ID
@@ -99,8 +100,15 @@ export const useChatManager = (
         saveMessageOnly,
         setMessages,
         isGeminiReady,
-        conversationId // Pass the conversation ID explicitly
+        targetConversationId // Pass the conversation ID explicitly
       );
+
+      // Update the current conversation ID only after successful message processing
+      if (isNewConversation) {
+        console.log('Setting current conversation ID after successful message processing:', targetConversationId);
+        setCurrentConversationId(targetConversationId);
+      }
+
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
       onError('Error al enviar el mensaje. Intenta de nuevo.');

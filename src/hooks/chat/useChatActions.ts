@@ -4,7 +4,7 @@ import { useConversations } from '../useConversations';
 
 export const useChatActions = () => {
   const { handleSeeMoreEvents: parseHandleSeeMoreEvents, clearEventTracking } = useMessageParser();
-  const { createConversation, updateConversationTitle } = useConversations();
+  const { createConversation } = useConversations();
 
   const generateConversationTitle = async (userMessage: string): Promise<string> => {
     try {
@@ -72,27 +72,11 @@ export const useChatActions = () => {
     };
   };
 
-  const handleCreateConversationWithAutoTitle = async (userMessage: string) => {
-    console.log('Creating conversation with auto title for message:', userMessage);
-    const generatedTitle = await generateConversationTitle(userMessage);
-    const newConversation = await createConversation(generatedTitle);
-    console.log('Conversation created with title:', generatedTitle, 'ID:', newConversation?.id);
-    return newConversation;
-  };
-
-  const handleUpdateConversationTitle = async (conversationId: string, userMessage: string) => {
-    console.log('Updating conversation title for ID:', conversationId);
-    const generatedTitle = await generateConversationTitle(userMessage);
-    await updateConversationTitle(conversationId, generatedTitle);
-  };
-
   return {
     handleSeeMoreEvents,
     handleClearMessages,
     handleNewChat,
     createUserMessage,
-    generateConversationTitle,
-    handleCreateConversationWithAutoTitle,
-    handleUpdateConversationTitle
+    generateConversationTitle
   };
 };

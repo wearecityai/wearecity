@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -93,9 +92,14 @@ export const useMessages = (conversationId: string | null) => {
   const saveMessageOnly = async (message: ChatMessage, targetConversationId?: string) => {
     const conversationIdToUse = targetConversationId || conversationId;
     
-    if (!user || !conversationIdToUse) {
-      console.log('No user or conversationId, cannot save message. User:', !!user, 'ConversationId:', conversationIdToUse);
-      throw new Error('No user or conversation ID available');
+    if (!user) {
+      console.log('No user available, cannot save message. User:', !!user);
+      throw new Error('No user available');
+    }
+
+    if (!conversationIdToUse) {
+      console.log('No conversationId available, cannot save message. ConversationId:', conversationIdToUse);
+      throw new Error('No conversation ID available');
     }
 
     console.log('Saving message to database only:', message.id, 'to conversation:', conversationIdToUse, 'with role:', message.role);
@@ -140,12 +144,13 @@ export const useMessages = (conversationId: string | null) => {
     const conversationIdToUse = targetConversationId || conversationId;
     console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role, 'to conversation:', conversationIdToUse);
     
+    // Save to database first
+    await saveMessageOnly(message, conversationIdToUse);
+    
     // Only add to local state if it belongs to the current conversation
     if (conversationIdToUse === conversationId) {
       setMessages(prev => [...prev, message]);
     }
-    
-    await saveMessageOnly(message, conversationIdToUse);
   };
 
   // Update existing message
@@ -201,7 +206,7 @@ export const useMessages = (conversationId: string | null) => {
     messages,
     isLoading,
     addMessage,
-    saveMessageOnly, // New function for saving without adding to local state
+    saveMessageOnly,
     updateMessage,
     clearMessages,
     setMessages,
