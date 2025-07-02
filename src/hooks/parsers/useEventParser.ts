@@ -1,4 +1,3 @@
-
 import { useRef } from 'react';
 import { EventInfo } from '../../types';
 import {
@@ -25,6 +24,7 @@ export const useEventParser = () => {
   const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
   const parseEvents = (content: string, inputText: string) => {
+    console.log('[parseEvents] Contenido recibido:', content);
     const rawParsedEventsFromAI: EventInfo[] = [];
     let storedUserQueryForEvents: string | undefined = undefined;
 
@@ -38,7 +38,7 @@ export const useEventParser = () => {
         const eventData = JSON.parse(jsonStrToParse);
         if (eventData.title && eventData.date) rawParsedEventsFromAI.push({ ...eventData });
       } catch (e) { 
-        console.error("Failed to parse event JSON:", jsonStrToParse, e); 
+        console.error('[parseEvents] Error al parsear JSON de evento:', jsonStrToParse, e); 
       }
     }
 
