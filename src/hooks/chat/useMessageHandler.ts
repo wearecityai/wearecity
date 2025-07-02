@@ -22,7 +22,7 @@ export const useMessageHandler = (
     setMessages: (messages: ChatMessage[]) => void,
     isGeminiReady: boolean,
     targetConversationId: string,
-    currentMessages: ChatMessage[] // Add current messages as parameter
+    getCurrentMessages: () => ChatMessage[] // Changed to a function to get fresh state
   ) => {
     // Prevent duplicate processing
     if (lastProcessedMessageRef.current === userMessage.id) {
@@ -78,7 +78,8 @@ export const useMessageHandler = (
               isTyping: false // Stop showing the typing indicator once we get content
             };
             
-            // Update the message in the conversation using current messages
+            // Get fresh messages and update
+            const currentMessages = getCurrentMessages();
             const updatedMessages = currentMessages.map(msg => 
               msg.id === loadingMessage.id ? updatedMessage : msg
             );
@@ -118,7 +119,8 @@ export const useMessageHandler = (
         };
       }
 
-      // Update the final message in the conversation using current messages
+      // Update the final message in the conversation using fresh messages
+      const currentMessages = getCurrentMessages();
       const finalMessages = currentMessages.map(msg => 
         msg.id === loadingMessage.id ? parsedMessage : msg
       );

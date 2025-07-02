@@ -115,7 +115,7 @@ export const useChatManager = (
         setMessages,
         isGeminiReady,
         targetConversationId,
-        messages // Pass current messages
+        () => messages // Pass a function that returns current messages
       );
 
       // Step 4: Update the current conversation ID if we created a new one
