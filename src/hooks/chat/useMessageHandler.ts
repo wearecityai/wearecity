@@ -41,6 +41,7 @@ export const useMessageHandler = (
     if (!isGeminiReady || !chatSession) {
       console.error('Gemini not ready or chat session not available');
       onError('El asistente no está listo. Por favor, espera un momento.');
+      lastProcessedMessageRef.current = null;
       return;
     }
 
@@ -60,7 +61,7 @@ export const useMessageHandler = (
         isTyping: true
       };
 
-      // Add the loading message and also add it to local state immediately
+      // Add the loading message - it will be added to local state immediately in addMessage
       console.log('Adding loading message:', loadingMessage.id);
       await addMessage(loadingMessage, targetConversationId);
 
@@ -154,7 +155,7 @@ export const useMessageHandler = (
         onGeminiReadyChange(false);
         onError('Error de configuración de API. Verifica tu clave de API de Google.');
       } else {
-        onError('Error al procesar el mensaje. Intenta de nuevo.');
+        onError(error instanceof Error ? error.message : 'Error al procesar el mensaje. Intenta de nuevo.');
       }
     } finally {
       setIsLoading(false);

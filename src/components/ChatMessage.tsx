@@ -94,12 +94,23 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
         );
       }
       if (part.match(/^~.*?~$/)) return <s key={index}>{part.substring(1, part.length - 1)}</s>;
-      return part.split('\n').map((line, i, arr) => (
-        <React.Fragment key={`${index}-${i}`}>
-          {line}
-          {i < arr.length - 1 && <br />}
+      
+      // Fixed Fragment handling for line breaks
+      const lines = part.split('\n');
+      if (lines.length === 1) {
+        return lines[0];
+      }
+      
+      return (
+        <React.Fragment key={index}>
+          {lines.map((line, lineIndex) => (
+            <React.Fragment key={`${index}-${lineIndex}`}>
+              {line}
+              {lineIndex < lines.length - 1 && <br />}
+            </React.Fragment>
+          ))}
         </React.Fragment>
-      ));
+      );
     });
   };
 
