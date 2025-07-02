@@ -21,15 +21,14 @@ export const convertDbMessageToChatMessage = (dbMessage: any): ChatMessage => {
     deserializedMetadata.isTyping === true
   );
   
-  // Convert orphaned loading messages to error messages
+  // Convert orphaned loading messages to a friendly message without error state
   if (isOrphanedLoadingMessage) {
-    console.log('Detected orphaned loading message, converting to error:', dbMessage.id);
+    console.log('Detected orphaned loading message, converting to friendly message:', dbMessage.id);
     return {
       id: dbMessage.id,
       role: convertToMessageRole(dbMessage.role),
-      content: 'Lo siento, hubo un problema generando esta respuesta.',
+      content: 'Lo siento, hubo un problema generando esta respuesta. Por favor, intenta de nuevo.',
       timestamp: new Date(dbMessage.created_at || ''),
-      error: 'Mensaje huérfano detectado y corregido',
       isTyping: false
     };
   }
