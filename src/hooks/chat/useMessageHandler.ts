@@ -1,7 +1,7 @@
 
 import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
-import { GenerativeModel } from '@google/genai';
+import { Chat } from '@google/genai';
 import { useContentParser } from '../parsers/useContentParser';
 
 export const useMessageHandler = (
@@ -10,11 +10,11 @@ export const useMessageHandler = (
   onGeminiReadyChange: (ready: boolean) => void
 ) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { parseContent, parseContentWithPlaces } = useContentParser();
+  const { parseContent } = useContentParser();
   const lastProcessedMessageRef = useRef<string | null>(null);
 
   const processMessage = useCallback(async (
-    chatSession: GenerativeModel | null,
+    chatSession: Chat | null,
     inputText: string,
     userMessage: ChatMessage,
     addMessage: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
@@ -64,9 +64,23 @@ export const useMessageHandler = (
       // Parse content based on configuration
       let parsedMessage = aiMessage;
       if (chatConfig.allowMapDisplay) {
-        parsedMessage = await parseContentWithPlaces(aiMessage, chatConfig);
+        // Parse the content and apply the results to the message
+        const parsed = parseContent(responseText, chatConfig);
+        parsedMessage = {
+          ...aiMessage,
+          content: parsed.processedContent,
+          mapQueryFromAI: parsed.mapQueryFromAI,
+          downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
+          telematicProcedureLink: parsed.telematicLinkForMessage
+        };
       } else {
-        parsedMessage = parseContent(aiMessage, chatConfig);
+        const parsed = parseContent(responseText, chatConfig);
+        parsedMessage = {
+          ...aiMessage,
+          content: parsed.processedContent,
+          downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
+          telematicProcedureLink: parsed.telematicLinkForMessage
+        };
       }
 
       // Add AI message to the specific conversation
@@ -105,7 +119,7 @@ export const useMessageHandler = (
       setIsLoading(false);
       lastProcessedMessageRef.current = null;
     }
-  }, [parseContent, parseContentWithPlaces, onError, onGeminiReadyChange]);
+  }, [parseContent, onError, onGeminiReadyChange]);
 
   return {
     isLoading,
