@@ -21,7 +21,8 @@ export const useMessageHandler = (
     saveMessageOnly: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     setMessages: (messages: ChatMessage[]) => void,
     isGeminiReady: boolean,
-    targetConversationId: string
+    targetConversationId: string,
+    currentMessages: ChatMessage[] // Add current messages as parameter
   ) => {
     // Prevent duplicate processing
     if (lastProcessedMessageRef.current === userMessage.id) {
@@ -77,12 +78,11 @@ export const useMessageHandler = (
               isTyping: false // Stop showing the typing indicator once we get content
             };
             
-            // Update the message in the conversation
-            setMessages(prevMessages => 
-              prevMessages.map(msg => 
-                msg.id === loadingMessage.id ? updatedMessage : msg
-              )
+            // Update the message in the conversation using current messages
+            const updatedMessages = currentMessages.map(msg => 
+              msg.id === loadingMessage.id ? updatedMessage : msg
             );
+            setMessages(updatedMessages);
             isFirstChunk = false;
           }
         },
@@ -118,12 +118,11 @@ export const useMessageHandler = (
         };
       }
 
-      // Update the final message in the conversation
-      setMessages(prevMessages => 
-        prevMessages.map(msg => 
-          msg.id === loadingMessage.id ? parsedMessage : msg
-        )
+      // Update the final message in the conversation using current messages
+      const finalMessages = currentMessages.map(msg => 
+        msg.id === loadingMessage.id ? parsedMessage : msg
       );
+      setMessages(finalMessages);
       
       console.log('Message processing completed successfully');
 
