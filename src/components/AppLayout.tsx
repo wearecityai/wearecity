@@ -11,7 +11,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { IconButton } from '@mui/material';
 import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
-import { useConversations } from '../hooks/useConversations';
 
 interface User {
   id: string;
@@ -60,6 +59,8 @@ interface AppLayoutProps {
   handleSetCurrentLanguageCode: (langCode: string) => void;
   handleSaveCustomization: (newConfig: any) => void;
   googleMapsScriptLoaded: boolean;
+  conversations: Array<{ id: string; title: string }>;
+  deleteConversation: (conversationId: string) => Promise<void>;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = (props) => {
@@ -93,11 +94,12 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     handleSeeMoreEvents,
     handleSetCurrentLanguageCode,
     handleSaveCustomization,
-    googleMapsScriptLoaded
+    googleMapsScriptLoaded,
+    conversations,
+    deleteConversation
   } = props;
 
-  // PRIMERA LÍNEA: conversations, chatIds, chatTitles
-  const { conversations = [], deleteConversation } = useConversations ? useConversations() : { conversations: [], deleteConversation: () => {} };
+  // Use conversation data from props instead of duplicating the hook
   const chatIds = conversations.map(c => c.id);
   const chatTitles = conversations.map(c => c.title);
 
@@ -131,15 +133,6 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         bgcolor: 'background.paper',
       }}
     >
-      {/* <IconButton
-        color="inherit"
-        aria-label="open drawer"
-        onClick={handleMenuToggle}
-        edge="start"
-        sx={{ mr: 2, ...(isMobile && isMenuOpen && { display: 'none' }) }}
-      >
-        <MenuIcon />
-      </IconButton> */}
       <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden' }}>
         {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : ''}
       </Typography>

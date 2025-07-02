@@ -53,6 +53,7 @@ interface AppContainerProps {
   conversations: Array<{ id: string; title: string }>;
   currentConversationId: string | null;
   setCurrentConversationId: (id: string | null) => void;
+  deleteConversation: (conversationId: string) => Promise<void>;
 }
 
 const AppContainer: React.FC<AppContainerProps> = ({ 
@@ -88,7 +89,8 @@ const AppContainer: React.FC<AppContainerProps> = ({
   handleNewChat,
   conversations,
   currentConversationId,
-  setCurrentConversationId
+  setCurrentConversationId,
+  deleteConversation
 }) => {
   const {
     handleNewChat: handleNewChatClick,
@@ -163,6 +165,8 @@ const AppContainer: React.FC<AppContainerProps> = ({
       handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
       handleSaveCustomization={handleSaveCustomization}
       googleMapsScriptLoaded={googleMapsScriptLoaded}
+      conversations={conversations}
+      deleteConversation={deleteConversation}
     />
   );
 };

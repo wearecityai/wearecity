@@ -38,7 +38,8 @@ const Index = () => {
     handleNewChat,
     conversations,
     currentConversationId,
-    setCurrentConversationId
+    setCurrentConversationId,
+    deleteConversation
   } = useAppState();
 
   const handleLogin = () => {
@@ -93,6 +94,7 @@ const Index = () => {
       conversations={conversations}
       currentConversationId={currentConversationId}
       setCurrentConversationId={setCurrentConversationId}
+      deleteConversation={deleteConversation}
     />
   );
 };

@@ -6,6 +6,7 @@ import { useApiInitialization } from './useApiInitialization';
 import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
 import { useAssistantConfig } from './useAssistantConfig';
+import { useConversations } from './useConversations';
 
 export const useAppState = () => {
   const theme = useTheme();
@@ -34,6 +35,17 @@ export const useAppState = () => {
     setAppError
   );
 
+  // Use conversations hook directly here
+  const { 
+    conversations, 
+    currentConversationId, 
+    setCurrentConversationId,
+    createConversation,
+    updateConversationTitle,
+    deleteConversation,
+    loadConversations
+  } = useConversations();
+
   const { 
     messages, 
     isLoading, 
@@ -41,16 +53,21 @@ export const useAppState = () => {
     handleSeeMoreEvents, 
     clearMessages, 
     setMessages,
-    handleNewChat,
-    conversations,
-    currentConversationId,
-    setCurrentConversationId
+    handleNewChat
   } = useChatManager(
     chatConfig,
     userLocation,
     isGeminiReady,
     setAppError,
-    setIsGeminiReady
+    setIsGeminiReady,
+    // Pass conversation functions to useChatManager
+    {
+      conversations,
+      currentConversationId,
+      setCurrentConversationId,
+      createConversation,
+      updateConversationTitle
+    }
   );
 
   // Handle menu overflow effect
@@ -78,6 +95,17 @@ export const useAppState = () => {
       }
     });
   }, [messages, googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, setMessages]);
+
+  // Update selectedChatIndex when currentConversationId changes
+  useEffect(() => {
+    if (currentConversationId) {
+      const index = conversations.findIndex(c => c.id === currentConversationId);
+      if (index !== -1 && index !== selectedChatIndex) {
+        console.log('Updating selectedChatIndex to:', index, 'for conversation:', currentConversationId);
+        setSelectedChatIndex(index);
+      }
+    }
+  }, [currentConversationId, conversations, selectedChatIndex]);
 
   return {
     theme,
@@ -111,6 +139,7 @@ export const useAppState = () => {
     handleNewChat,
     conversations,
     currentConversationId,
-    setCurrentConversationId
+    setCurrentConversationId,
+    deleteConversation
   };
 };

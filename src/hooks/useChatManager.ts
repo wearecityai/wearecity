@@ -2,7 +2,6 @@
 import { useEffect } from 'react';
 import { CustomChatConfig } from '../types';
 import { useMessages } from './useMessages';
-import { useConversations } from './useConversations';
 import { useChatSession } from './chat/useChatSession';
 import { useMessageHandler } from './chat/useMessageHandler';
 import { useChatActions } from './chat/useChatActions';
@@ -12,21 +11,30 @@ interface UserLocation {
   longitude: number;
 }
 
+interface ConversationFunctions {
+  conversations: Array<{ id: string; title: string }>;
+  currentConversationId: string | null;
+  setCurrentConversationId: (id: string | null) => void;
+  createConversation: (title: string) => Promise<{ id: string; title: string } | null>;
+  updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
+}
+
 export const useChatManager = (
   chatConfig: CustomChatConfig,
   userLocation: UserLocation | null,
   isGeminiReady: boolean,
   onError: (error: string) => void,
-  onGeminiReadyChange: (ready: boolean) => void
+  onGeminiReadyChange: (ready: boolean) => void,
+  conversationFunctions: ConversationFunctions
 ) => {
-  // Use hooks for conversations and messages
+  // Destructure conversation functions from parameters
   const { 
     conversations, 
     currentConversationId, 
     setCurrentConversationId,
     createConversation,
     updateConversationTitle
-  } = useConversations();
+  } = conversationFunctions;
   
   const { 
     messages, 
@@ -141,9 +149,6 @@ export const useChatManager = (
     handleSeeMoreEvents,
     clearMessages: () => handleClearMessages(clearMessages),
     setMessages,
-    handleNewChat: handleNewChatWrapper,
-    conversations,
-    currentConversationId,
-    setCurrentConversationId
+    handleNewChat: handleNewChatWrapper
   };
 };
