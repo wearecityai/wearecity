@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions,
-  Chip, Stack, IconButton, Grid, FormHelperText
+  Chip, Stack, IconButton, FormHelperText
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -192,32 +192,32 @@ const WebScrapingSection: React.FC = () => {
                   />
                 </Box>
 
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={6} sm={3}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                  <Box sx={{ minWidth: '120px' }}>
                     <Typography variant="caption" display="block">
                       Máx. páginas
                     </Typography>
                     <Typography variant="body2">
                       {website.max_pages}
                     </Typography>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
+                  </Box>
+                  <Box sx={{ minWidth: '120px' }}>
                     <Typography variant="caption" display="block">
                       Frecuencia
                     </Typography>
                     <Typography variant="body2">
                       {website.scraping_frequency_hours}h
                     </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
+                  </Box>
+                  <Box sx={{ minWidth: '160px' }}>
                     <Typography variant="caption" display="block">
                       Último scraping
                     </Typography>
                     <Typography variant="body2">
                       {formatDate(website.last_scraped_at)}
                     </Typography>
-                  </Grid>
-                </Grid>
+                  </Box>
+                </Box>
 
                 <Stack direction="row" spacing={1}>
                   <Button
@@ -277,28 +277,24 @@ const WebScrapingSection: React.FC = () => {
               placeholder="Información sobre el sitio web"
             />
 
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Máx. páginas"
-                  type="number"
-                  inputProps={{ min: 1, max: 500 }}
-                  value={formData.max_pages}
-                  onChange={(e) => setFormData({ ...formData, max_pages: parseInt(e.target.value) || 50 })}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Frecuencia (horas)"
-                  type="number"
-                  inputProps={{ min: 1, max: 168 }}
-                  value={formData.scraping_frequency_hours}
-                  onChange={(e) => setFormData({ ...formData, scraping_frequency_hours: parseInt(e.target.value) || 24 })}
-                />
-              </Grid>
-            </Grid>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                fullWidth
+                label="Máx. páginas"
+                type="number"
+                inputProps={{ min: 1, max: 500 }}
+                value={formData.max_pages}
+                onChange={(e) => setFormData({ ...formData, max_pages: parseInt(e.target.value) || 50 })}
+              />
+              <TextField
+                fullWidth
+                label="Frecuencia (horas)"
+                type="number"
+                inputProps={{ min: 1, max: 168 }}
+                value={formData.scraping_frequency_hours}
+                onChange={(e) => setFormData({ ...formData, scraping_frequency_hours: parseInt(e.target.value) || 24 })}
+              />
+            </Box>
 
             <TextField
               fullWidth
