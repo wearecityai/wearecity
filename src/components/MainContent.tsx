@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Box, IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -78,7 +79,7 @@ const MainContent: React.FC<MainContentProps> = ({
         ...(isMobile && isMenuOpen && {
           marginLeft: 0,
         }),
-        paddingTop: '64px',
+        // Remove the paddingTop from here since it's applied at the parent level
       }}
     >
       {/* Chat Content - This will start right after the header */}

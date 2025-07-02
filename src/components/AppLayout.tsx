@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ErrorBoundary from './ErrorBoundary';
@@ -126,6 +127,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         alignItems: 'center',
         justifyContent: 'space-between',
         p: 2,
+        borderBottom: 1,
+        borderColor: 'divider',
         minHeight: '64px',
         bgcolor: 'background.paper',
       }}
