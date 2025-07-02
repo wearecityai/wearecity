@@ -46,15 +46,45 @@ export const useMessageHandler = (
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
 
+      // Create a loading message immediately to show the indicator
+      const loadingMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: MessageRole.Model,
+        content: '',
+        timestamp: new Date(),
+        isTyping: true
+      };
+
+      // Add the loading message
+      console.log('Adding loading message to conversation:', targetConversationId);
+      await addMessage(loadingMessage, targetConversationId);
+
       // Generate AI response using the new streaming method
       console.log('Generating AI response...');
       let responseText = '';
+      let isFirstChunk = true;
       
       await chatSession.sendMessageStream(
         inputText,
         (chunk: string, isFirst: boolean) => {
           responseText += chunk;
-          // Could add real-time updates here if needed
+          
+          // Update the loading message with partial content on first chunk
+          if (isFirstChunk) {
+            const updatedMessage: ChatMessage = {
+              ...loadingMessage,
+              content: responseText,
+              isTyping: false // Stop showing the typing indicator once we get content
+            };
+            
+            // Update the message in the conversation
+            setMessages(prevMessages => 
+              prevMessages.map(msg => 
+                msg.id === loadingMessage.id ? updatedMessage : msg
+              )
+            );
+            isFirstChunk = false;
+          }
         },
         () => {
           console.log('AI response generated, length:', responseText.length);
@@ -64,39 +94,36 @@ export const useMessageHandler = (
         }
       );
 
-      // Create AI message
-      const aiMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: MessageRole.Model,
-        content: responseText,
-        timestamp: new Date()
-      };
-
       // Parse content based on configuration
-      let parsedMessage = aiMessage;
+      let parsedMessage: ChatMessage;
       if (chatConfig.allowMapDisplay) {
         // Parse the content and apply the results to the message
         const parsed = parseContent(responseText, chatConfig);
         parsedMessage = {
-          ...aiMessage,
+          ...loadingMessage,
           content: parsed.processedContent,
           mapQuery: parsed.mapQueryFromAI,
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
-          telematicProcedureLink: parsed.telematicLinkForMessage
+          telematicProcedureLink: parsed.telematicLinkForMessage,
+          isTyping: false
         };
       } else {
         const parsed = parseContent(responseText, chatConfig);
         parsedMessage = {
-          ...aiMessage,
+          ...loadingMessage,
           content: parsed.processedContent,
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
-          telematicProcedureLink: parsed.telematicLinkForMessage
+          telematicProcedureLink: parsed.telematicLinkForMessage,
+          isTyping: false
         };
       }
 
-      // Add AI message to the specific conversation
-      console.log('Adding AI message to conversation:', targetConversationId);
-      await addMessage(parsedMessage, targetConversationId);
+      // Update the final message in the conversation
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === loadingMessage.id ? parsedMessage : msg
+        )
+      );
       
       console.log('Message processing completed successfully');
 

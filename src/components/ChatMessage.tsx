@@ -28,6 +28,20 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const timestamp = new Date(message.timestamp);
   const theme = useTheme();
 
+  // Dynamic loading messages
+  const getLoadingMessage = () => {
+    const loadingStates = [
+      "Analizando la consulta...",
+      "Buscando información relevante...",
+      "Verificando datos locales...",
+      "Preparando la respuesta...",
+      "Consultando fuentes oficiales..."
+    ];
+    const now = Date.now();
+    const index = Math.floor((now / 2000) % loadingStates.length);
+    return loadingStates[index];
+  };
+
   const linkifyAndMarkdown = (text: string): React.ReactNode[] => {
     const parts = text.split(/(\[.*?\]\(.*?\)|`.*?`|\*\*.*?\*\*|\*.*?\*|```[\s\S]*?```|~.*?~|https?:\/\/\S+)/g);
     return parts.map((part, index) => {
@@ -138,35 +152,28 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             }}
             >
             {message.isTyping ? (
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 250 }}>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 280, py: 1 }}>
                     <CircularProgress 
                         size={20} 
-                        thickness={6}
+                        thickness={4}
                         sx={{ 
                             color: theme.palette.primary.main,
-                            animationDuration: '1s'
+                            animationDuration: '1.2s'
                         }} 
                     />
                     <Typography 
                         variant="body2" 
                         sx={{ 
                             color: 'text.secondary',
-                            animation: 'fadeInOut 6s infinite',
+                            fontWeight: 500,
+                            animation: 'fadeInOut 3s infinite',
                             '@keyframes fadeInOut': {
-                                '0%, 100%': { opacity: 0.7 },
-                                '16%, 84%': { opacity: 1 },
+                                '0%, 100%': { opacity: 0.6 },
+                                '50%': { opacity: 1 },
                             }
                         }}
                     >
-                        {(() => {
-                            const loadingStates = [
-                                "Analizando la consulta...",
-                                "Buscando información relevante...",
-                                "Preparando la respuesta...",
-                                "Verificando datos locales..."
-                            ];
-                            return loadingStates[Math.floor((Date.now() / 2000) % loadingStates.length)];
-                        })()}
+                        {getLoadingMessage()}
                     </Typography>
                 </Stack>
             ) : message.error ? (
