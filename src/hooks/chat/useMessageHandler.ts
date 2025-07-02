@@ -1,3 +1,4 @@
+import React from 'react';
 import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
 import { ChatSession } from '../../services/geminiService';
@@ -18,7 +19,7 @@ export const useMessageHandler = (
     addMessage: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     saveMessageOnly: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     updateMessage: (messageId: string, updates: Partial<ChatMessage>) => Promise<void>,
-    setMessages: (messages: ChatMessage[]) => void,
+    setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
     isGeminiReady: boolean,
     targetConversationId: string,
     getCurrentMessages: () => ChatMessage[]

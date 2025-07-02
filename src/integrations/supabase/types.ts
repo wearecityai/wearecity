@@ -164,11 +164,50 @@ export type Database = {
         }
         Relationships: []
       }
+      system_instructions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          instruction_key: string
+          instruction_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          instruction_key: string
+          instruction_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          instruction_key?: string
+          instruction_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_all_system_instructions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          instruction_key: string
+          instruction_value: string
+          description: string
+        }[]
+      }
+      get_system_instruction: {
+        Args: { instruction_key_param: string }
+        Returns: string
+      }
       search_scraped_content: {
         Args: {
           search_query: string
