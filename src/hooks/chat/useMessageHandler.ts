@@ -46,19 +46,19 @@ export const useMessageHandler = (
 
     setIsLoading(true);
     
+    // Create a loading message immediately to show the indicator
+    const loadingMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: MessageRole.Model,
+      content: '',
+      timestamp: new Date(),
+      isTyping: true
+    };
+    
     try {
       // Add user message to the specific conversation
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
-
-      // Create a loading message immediately to show the indicator
-      const loadingMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: MessageRole.Model,
-        content: '',
-        timestamp: new Date(),
-        isTyping: true
-      };
 
       // Add the loading message and also add it to local state immediately
       console.log('Adding loading message:', loadingMessage.id);
@@ -68,6 +68,7 @@ export const useMessageHandler = (
       console.log('Starting streaming response generation...');
       let responseText = '';
       let isFirstChunk = true;
+      let hasStreamingError = false;
       
       await chatSession.sendMessageStream(
         inputText,
@@ -95,13 +96,26 @@ export const useMessageHandler = (
           }
         },
         () => {
-          console.log('Streaming completed. Final response length:', responseText.length);
+          console.log('Streaming completed successfully. Final response length:', responseText.length);
+          
+          // Validate that we have meaningful content
+          if (responseText.trim().length === 0) {
+            console.error('Streaming completed but no content received');
+            hasStreamingError = true;
+            throw new Error('No content received from AI response');
+          }
         },
         (error: Error) => {
-          console.error('Streaming error:', error);
+          console.error('Streaming error occurred:', error);
+          hasStreamingError = true;
           throw error;
         }
       );
+      
+      // Additional validation after streaming
+      if (hasStreamingError || responseText.trim().length === 0) {
+        throw new Error('Streaming failed or returned empty response');
+      }
 
       // Parse content based on configuration
       let finalUpdates: Partial<ChatMessage>;
@@ -133,28 +147,52 @@ export const useMessageHandler = (
     } catch (error) {
       console.error('=== Error processing message ===', error);
       
-      // Create error message
-      const errorMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: MessageRole.Model,
-        content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
-        timestamp: new Date(),
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      };
-
+      // Clean up loading message if it exists
       try {
-        // Add error message to the specific conversation
-        await addMessage(errorMessage, targetConversationId);
-      } catch (saveError) {
-        console.error('Error saving error message:', saveError);
-        onError('Error al procesar el mensaje y guardar la respuesta de error.');
+        // First try to update the loading message to show an error state
+        if (loadingMessage) {
+          await updateMessage(loadingMessage.id, {
+            content: 'Error al procesar la respuesta. Inténtalo de nuevo.',
+            isTyping: false,
+            error: error instanceof Error ? error.message : 'Error desconocido'
+          });
+        }
+      } catch (updateError) {
+        console.error('Error updating loading message with error state:', updateError);
+        
+        // If updating fails, create a new error message
+        const errorMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: MessageRole.Model,
+          content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+          timestamp: new Date(),
+          error: error instanceof Error ? error.message : 'Error desconocido'
+        };
+
+        try {
+          await addMessage(errorMessage, targetConversationId);
+        } catch (saveError) {
+          console.error('Error saving error message:', saveError);
+          onError('Error al procesar el mensaje y guardar la respuesta de error.');
+        }
       }
       
-      if (error instanceof Error && error.message.includes('API key')) {
-        onGeminiReadyChange(false);
-        onError('Error de configuración de API. Verifica tu clave de API de Google.');
+      // Provide user-friendly error messages
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          onGeminiReadyChange(false);
+          onError('Error de configuración de API. Verifica tu clave de API de Google.');
+        } else if (error.message.includes('timeout')) {
+          onError('La respuesta tardó demasiado. Por favor, intenta de nuevo.');
+        } else if (error.message.includes('No content received') || error.message.includes('empty response')) {
+          onError('No se recibió respuesta del asistente. Por favor, intenta de nuevo.');
+        } else if (error.message.includes('HTTP error')) {
+          onError('Error de conexión con el servidor. Verifica tu conexión e intenta de nuevo.');
+        } else {
+          onError('Error al procesar el mensaje. Intenta de nuevo.');
+        }
       } else {
-        onError('Error al procesar el mensaje. Intenta de nuevo.');
+        onError('Error desconocido al procesar el mensaje. Intenta de nuevo.');
       }
     } finally {
       setIsLoading(false);

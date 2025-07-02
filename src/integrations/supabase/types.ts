@@ -169,7 +169,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_scraped_content: {
+        Args: {
+          search_query: string
+          user_id_param: string
+          limit_param?: number
+        }
+        Returns: {
+          id: string
+          title: string
+          content: string
+          url: string
+          website_name: string
+          content_type: string
+          rank: number
+        }[]
+      }
     }
     Enums: {
       user_role: "ciudadano" | "administrativo"

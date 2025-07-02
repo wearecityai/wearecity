@@ -72,9 +72,14 @@ export const initChatSession = (
     message: string,
     onChunk: (chunk: string, isFirst: boolean) => void,
     onEnd: () => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    retryCount: number = 0
   ): Promise<void> => {
+    const maxRetries = 2;
     messages.push({ role: 'user', content: message });
+
+    console.log(`=== Starting sendMessageStream (attempt ${retryCount + 1}/${maxRetries + 1}) ===`);
+    console.log('Message:', message.substring(0, 100));
 
     try {
       // Get the current session to use the auth token
@@ -84,6 +89,7 @@ export const initChatSession = (
         throw new Error('User not authenticated');
       }
 
+      console.log('Making request to gemini-proxy...');
       const response = await fetch(`https://irghpvvoparqettcnpnh.supabase.co/functions/v1/gemini-proxy`, {
         method: 'POST',
         headers: {
@@ -102,55 +108,137 @@ export const initChatSession = (
       if (!response.ok) {
         const errorText = await response.text();
         console.error('HTTP error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error('No response body');
+        throw new Error('No response body reader available');
       }
 
       let isFirstChunk = true;
       let responseText = '';
+      let hasReceivedData = false;
+      let streamTimeout: NodeJS.Timeout;
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      console.log('Starting to read stream...');
 
-          const chunk = new TextDecoder().decode(value);
-          const lines = chunk.split('\n');
+      // Set a timeout for the entire streaming process
+      const streamPromise = new Promise<void>((resolve, reject) => {
+        streamTimeout = setTimeout(() => {
+          console.error('Stream timeout after 30 seconds');
+          reject(new Error('Stream timeout'));
+        }, 30000);
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const jsonStr = line.substring(6);
-                if (jsonStr.trim() === '[DONE]') continue;
-                
-                const data = JSON.parse(jsonStr);
-                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                  const text = data.candidates[0].content.parts[0].text;
-                  if (text) {
-                    responseText += text;
-                    onChunk(text, isFirstChunk);
-                    isFirstChunk = false;
+        const readStream = async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                console.log('Stream completed, done=true');
+                break;
+              }
+
+              hasReceivedData = true;
+              const chunk = new TextDecoder().decode(value);
+              console.log('Received chunk length:', chunk.length);
+              
+              const lines = chunk.split('\n');
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const jsonStr = line.substring(6).trim();
+                    if (jsonStr === '[DONE]') {
+                      console.log('Received [DONE] marker');
+                      continue;
+                    }
+                    
+                    if (jsonStr === '') continue; // Skip empty data lines
+                    
+                    const data = JSON.parse(jsonStr);
+                    console.log('Parsed data:', data);
+                    
+                    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                      const text = data.candidates[0].content.parts[0].text;
+                      if (text) {
+                        console.log('Received text chunk:', text.substring(0, 50));
+                        responseText += text;
+                        onChunk(text, isFirstChunk);
+                        isFirstChunk = false;
+                        
+                        // Reset timeout on each successful chunk
+                        clearTimeout(streamTimeout);
+                        streamTimeout = setTimeout(() => {
+                          console.error('Stream timeout after receiving data');
+                          reject(new Error('Stream timeout'));
+                        }, 30000);
+                      }
+                    } else if (data.error) {
+                      console.error('Gemini API error in stream:', data.error);
+                      throw new Error(`Gemini API error: ${JSON.stringify(data.error)}`);
+                    }
+                  } catch (parseError) {
+                    console.warn('Failed to parse SSE data:', parseError, 'Line:', line);
                   }
                 }
-              } catch (parseError) {
-                console.warn('Failed to parse SSE data:', parseError);
               }
             }
+            
+            clearTimeout(streamTimeout);
+            resolve();
+          } catch (error) {
+            clearTimeout(streamTimeout);
+            reject(error);
+          } finally {
+            try {
+              reader.releaseLock();
+            } catch (e) {
+              console.warn('Error releasing reader lock:', e);
+            }
           }
-        }
+        };
 
-        messages.push({ role: 'model', content: responseText });
-        onEnd();
-      } finally {
-        reader.releaseLock();
+        readStream();
+      });
+
+      await streamPromise;
+
+      // Validate that we received meaningful content
+      if (!hasReceivedData || responseText.trim().length === 0) {
+        throw new Error('No valid response data received from stream');
       }
+
+      console.log('Stream completed successfully. Response length:', responseText.length);
+      messages.push({ role: 'model', content: responseText });
+      onEnd();
+
     } catch (error) {
-      console.error('Error in sendMessageStream:', error);
-      onError(error instanceof Error ? error : new Error('Unknown error'));
+      console.error(`Error in sendMessageStream (attempt ${retryCount + 1}):`, error);
+      
+      // Remove the user message we added at the start if this was the final attempt
+      if (retryCount >= maxRetries) {
+        messages.pop();
+      }
+      
+      // Retry logic
+      if (retryCount < maxRetries && 
+          (error instanceof Error && 
+           (error.message.includes('timeout') || 
+            error.message.includes('HTTP error') || 
+            error.message.includes('No valid response data')))) {
+        
+        console.log(`Retrying request (${retryCount + 1}/${maxRetries})...`);
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        
+        // Remove the message we added so we don't duplicate it
+        messages.pop();
+        
+        return sendMessageStream(message, onChunk, onEnd, onError, retryCount + 1);
+      }
+      
+      onError(error instanceof Error ? error : new Error('Unknown streaming error'));
     }
   };
 
