@@ -78,10 +78,10 @@ export const initChatSession = (
     messages.push({ role: 'user', content: message });
 
     try {
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/gemini-proxy`, {
+      const response = await fetch(`https://irghpvvoparqettcnpnh.supabase.co/functions/v1/gemini-proxy`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZ2hwdnZvcGFycWV0dGNucG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NjI5NjYsImV4cCI6MjA2NjMzODk2Nn0.ElxlmmVG5gcqCwPtTQvGhF1WyDwFG6xaMqktgQY9Hvo`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
