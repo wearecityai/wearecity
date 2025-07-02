@@ -14,6 +14,26 @@ export const convertToDatabaseRole = (role: MessageRole): string => {
 export const convertDbMessageToChatMessage = (dbMessage: any): ChatMessage => {
   const deserializedMetadata = deserializeMetadata(dbMessage.metadata);
   
+  // Detect orphaned loading messages (empty content + isTyping true)
+  const isOrphanedLoadingMessage = (
+    dbMessage.role === 'model' && 
+    (!dbMessage.content || dbMessage.content.trim() === '') && 
+    deserializedMetadata.isTyping === true
+  );
+  
+  // Convert orphaned loading messages to error messages
+  if (isOrphanedLoadingMessage) {
+    console.log('Detected orphaned loading message, converting to error:', dbMessage.id);
+    return {
+      id: dbMessage.id,
+      role: convertToMessageRole(dbMessage.role),
+      content: 'Lo siento, hubo un problema generando esta respuesta.',
+      timestamp: new Date(dbMessage.created_at || ''),
+      error: 'Mensaje huérfano detectado y corregido',
+      isTyping: false
+    };
+  }
+  
   return {
     id: dbMessage.id,
     role: convertToMessageRole(dbMessage.role),

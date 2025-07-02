@@ -82,7 +82,15 @@ export const useMessageHandler = (
       let isFirstChunk = true;
       let hasStreamingError = false;
       
-      await chatSession.sendMessageStream(
+      // Set up timeout for the entire message processing
+      const PROCESSING_TIMEOUT = 90000; // 90 seconds
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Message processing timeout'));
+        }, PROCESSING_TIMEOUT);
+      });
+      
+      const streamingPromise = chatSession.sendMessageStream(
         inputText,
         (chunk: string, isFirst: boolean) => {
           console.log('Received chunk, length:', chunk.length, 'isFirst:', isFirst);
@@ -123,6 +131,9 @@ export const useMessageHandler = (
           throw error;
         }
       );
+      
+      // Race between streaming and timeout
+      await Promise.race([streamingPromise, timeoutPromise]);
       
       // Additional validation after streaming
       if (hasStreamingError || responseText.trim().length === 0) {
@@ -198,7 +209,7 @@ export const useMessageHandler = (
         if (error.message.includes('API key')) {
           onGeminiReadyChange(false);
           onError('Error de configuración de API. Verifica tu clave de API de Google.');
-        } else if (error.message.includes('timeout')) {
+        } else if (error.message.includes('timeout') || error.message.includes('Message processing timeout')) {
           onError('La respuesta tardó demasiado. Por favor, intenta de nuevo.');
         } else if (error.message.includes('No content received') || error.message.includes('empty response')) {
           onError('No se recibió respuesta del asistente. Por favor, intenta de nuevo.');
@@ -210,6 +221,9 @@ export const useMessageHandler = (
       } else {
         onError('Error desconocido al procesar el mensaje. Intenta de nuevo.');
       }
+    } finally {
+      // Always reset the last processed message reference to allow retry
+      lastProcessedMessageRef.current = null;
     }
   }, [parseContent, onError, onGeminiReadyChange]);
 

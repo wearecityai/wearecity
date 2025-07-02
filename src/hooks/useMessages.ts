@@ -26,6 +26,27 @@ export const useMessages = (conversationId: string | null) => {
       // Convert database messages to ChatMessage format
       const chatMessages: ChatMessage[] = data.map(msg => convertDbMessageToChatMessage(msg));
       
+      // Clean up any orphaned messages that were converted to errors
+      const orphanedMessages = chatMessages.filter(msg => 
+        msg.error === 'Mensaje huérfano detectado y corregido'
+      );
+      
+      if (orphanedMessages.length > 0) {
+        console.log('Cleaning up orphaned messages in database:', orphanedMessages.map(m => m.id));
+        // Update orphaned messages in database to fix their state
+        for (const orphanedMsg of orphanedMessages) {
+          try {
+            await updateMessageInDb(orphanedMsg.id, {
+              content: orphanedMsg.content,
+              isTyping: false,
+              error: orphanedMsg.error
+            });
+          } catch (updateError) {
+            console.error('Failed to update orphaned message:', updateError);
+          }
+        }
+      }
+      
       setMessages(chatMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
