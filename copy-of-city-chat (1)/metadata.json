@@ -1,0 +1,9 @@
+{
+  "name": "Copy of City Chat",
+  "description": "Asistente de IA especializado en información y servicios para ciudades.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ],
+  "prompt": ""
+}

@@ -1,4 +1,3 @@
-
 import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
 import { ChatSession } from '../../services/geminiService';
@@ -72,9 +71,8 @@ export const useMessageHandler = (
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
 
-      // Add the loading message and also add it to local state immediately
-      console.log('Adding loading message:', loadingMessage.id);
-      await addMessage(loadingMessage, targetConversationId);
+      // Add the loading message SOLO en el estado local (no en la base de datos)
+      setMessages(prev => [...prev, loadingMessage]);
 
       // Generate AI response using streaming
       console.log('Starting streaming response generation...');
@@ -95,25 +93,10 @@ export const useMessageHandler = (
         (chunk: string, isFirst: boolean) => {
           console.log('Received chunk, length:', chunk.length, 'isFirst:', isFirst);
           responseText += chunk;
-          
-          // Update the loading message with partial content using updateMessage
-          if (isFirstChunk) {
-            console.log('First chunk received, updating loading message');
-            updateMessage(loadingMessage.id, {
-              content: responseText,
-              isTyping: false
-            }).catch(error => {
-              console.error('Error updating message during streaming:', error);
-            });
-            isFirstChunk = false;
-          } else {
-            // Continue updating with accumulated response
-            updateMessage(loadingMessage.id, {
-              content: responseText
-            }).catch(error => {
-              console.error('Error updating message during streaming:', error);
-            });
-          }
+          // Actualiza el mensaje de loading en el estado local para mostrar el texto parcial
+          setMessages(prev => prev.map(msg =>
+            msg.id === loadingMessage.id ? { ...msg, content: responseText } : msg
+          ));
         },
         () => {
           console.log('Streaming completed successfully. Final response length:', responseText.length);
@@ -141,11 +124,14 @@ export const useMessageHandler = (
       }
 
       // Parse content based on configuration
-      let finalUpdates: Partial<ChatMessage>;
+      let finalModelMessage: ChatMessage;
       if (chatConfig.allowMapDisplay) {
         const parsed = parseContent(responseText, chatConfig);
-        finalUpdates = {
+        finalModelMessage = {
+          id: crypto.randomUUID(),
+          role: MessageRole.Model,
           content: parsed.processedContent,
+          timestamp: new Date(),
           mapQuery: parsed.mapQueryFromAI,
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
           telematicProcedureLink: parsed.telematicLinkForMessage,
@@ -153,18 +139,23 @@ export const useMessageHandler = (
         };
       } else {
         const parsed = parseContent(responseText, chatConfig);
-        finalUpdates = {
+        finalModelMessage = {
+          id: crypto.randomUUID(),
+          role: MessageRole.Model,
           content: parsed.processedContent,
+          timestamp: new Date(),
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
           telematicProcedureLink: parsed.telematicLinkForMessage,
           isTyping: false
         };
       }
 
-      // Apply final updates to the message
-      console.log('Applying final updates to message:', loadingMessage.id);
-      await updateMessage(loadingMessage.id, finalUpdates);
-      
+      // Guarda el mensaje de modelo en la base de datos
+      await addMessage(finalModelMessage, targetConversationId);
+
+      // Elimina el mensaje de loading del estado local
+      setMessages(prev => prev.filter(msg => msg.id !== loadingMessage.id));
+
       console.log('=== Message processing completed successfully ===');
 
     } catch (error) {
