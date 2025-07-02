@@ -48,6 +48,9 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sedeElectronicaUrl, setSedeElectronicaUrl] = useState<string>('');
+  const [profileImageUrl, setProfileImageUrl] = useState<string>('');
+  const profileImageInputRef = useRef<HTMLInputElement>(null);
+  const [profileImageError, setProfileImageError] = useState<string | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -64,6 +67,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
     setUploadedProcedureDocuments(currentConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
     setSedeElectronicaUrl(currentConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
     setMunicipalityInputName(currentConfig.restrictedCity?.name || '');
+    setProfileImageUrl(currentConfig.profileImageUrl || '');
   }, [currentConfig]);
 
   const handleAddPrompt = () => {
@@ -116,6 +120,37 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   };
   const handleRemoveProcedureDocument = (name: string) => setUploadedProcedureDocuments(uploadedProcedureDocuments.filter(doc => doc.procedureName !== name));
 
+  const handleProfileImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setProfileImageError(null);
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      if (file.type.startsWith('image/')) {
+        if (file.size > 2 * 1024 * 1024) { // 2MB limit
+          setProfileImageError("Imagen demasiado grande (máx 2MB).");
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          setProfileImageUrl(reader.result as string);
+        };
+        reader.onerror = () => {
+          setProfileImageError("Error al leer la imagen.");
+        };
+      } else {
+        setProfileImageError("Selecciona un archivo de imagen válido.");
+      }
+    }
+  };
+
+  const handleRemoveProfileImage = () => {
+    setProfileImageUrl('');
+    if (profileImageInputRef.current) {
+      profileImageInputRef.current.value = '';
+    }
+  };
+
   const handleSave = () => {
     const finalRestrictedCity: RestrictedCityInfo | null = municipalityInputName.trim() ? { name: municipalityInputName.trim() } : null;
     onSave({
@@ -124,6 +159,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
       enableGoogleSearch, allowMapDisplay, allowGeolocation, restrictedCity: finalRestrictedCity,
       currentLanguageCode, procedureSourceUrls, uploadedProcedureDocuments,
       sedeElectronicaUrl: sedeElectronicaUrl.trim() || undefined,
+      profileImageUrl: profileImageUrl.trim() || undefined,
     });
   };
 
@@ -141,7 +177,8 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
     setUploadedProcedureDocuments([...DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments]);
     setCurrentPdfFile(null); setCurrentProcedureNameToUpload(''); setPdfUploadError(null);
     setSedeElectronicaUrl(DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    setProfileImageUrl(DEFAULT_CHAT_CONFIG.profileImageUrl || '');
+    if (profileImageInputRef.current) profileImageInputRef.current.value = "";
   };
 
   return (
@@ -164,6 +201,66 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
                 onChange={(e) => setAssistantName(e.target.value)} placeholder={DEFAULT_ASSISTANT_NAME}
                 variant="outlined"
               />
+              
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Foto de Perfil del Chat</Typography>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  {profileImageUrl && (
+                    <Box sx={{ position: 'relative' }}>
+                      <img 
+                        src={profileImageUrl} 
+                        alt="Profile preview" 
+                        style={{ 
+                          width: 64, 
+                          height: 64, 
+                          borderRadius: '50%', 
+                          objectFit: 'cover',
+                          border: `2px solid ${theme.palette.divider}`
+                        }} 
+                      />
+                      <IconButton
+                        onClick={handleRemoveProfileImage}
+                        sx={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          bgcolor: 'error.main',
+                          color: 'white',
+                          width: 24,
+                          height: 24,
+                          '&:hover': { bgcolor: 'error.dark' }
+                        }}
+                        size="small"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                  <Button
+                    component="label"
+                    variant="outlined"
+                    startIcon={<UploadFileIcon />}
+                  >
+                    {profileImageUrl ? 'Cambiar Imagen' : 'Subir Imagen'}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      ref={profileImageInputRef}
+                      onChange={handleProfileImageChange}
+                    />
+                  </Button>
+                </Stack>
+                {profileImageError && (
+                  <Alert severity="error" variant="standard" sx={{ py: 0.5, mt: 1 }}>
+                    {profileImageError}
+                  </Alert>
+                )}
+                <FormHelperText sx={{ mt: 1 }}>
+                  Imagen que aparecerá en el mensaje de bienvenida. Formatos: JPG, PNG, GIF. Máximo 2MB.
+                </FormHelperText>
+              </Box>
+
               <FormControl fullWidth variant="outlined">
                 <InputLabel id="language-select-label">Idioma</InputLabel>
                 <Select

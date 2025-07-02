@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Alert, AlertTitle, Typography, Stack, useTheme } from '@mui/material';
+import { Box, Alert, AlertTitle, Typography, Stack, useTheme, Avatar } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SyncProblemIcon from '@mui/icons-material/SyncProblem';
@@ -64,7 +64,20 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
       {messages.length === 0 && !isLoading && (
         <Box sx={{flexGrow: 1, display: 'flex', flexDirection:'column', alignItems: 'center', justifyContent: 'center', p:3, textAlign: 'center'}}>
-          <AutoAwesomeIcon sx={{fontSize: 48, color: 'primary.main', mb:2}}/>
+          {chatConfig.profileImageUrl ? (
+            <Avatar 
+              src={chatConfig.profileImageUrl} 
+              sx={{ 
+                width: 64, 
+                height: 64, 
+                mb: 2,
+                border: 2,
+                borderColor: 'primary.main'
+              }}
+            />
+          ) : (
+            <AutoAwesomeIcon sx={{fontSize: 48, color: 'primary.main', mb:2}}/>
+          )}
           <Typography variant="h5" sx={{mb:1}}>
             ¡Hola! ¿Cómo puedo ayudarte hoy
             {chatConfig.restrictedCity ? ` desde ${chatConfig.restrictedCity.name}` : ''}?

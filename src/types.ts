@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 export enum MessageRole {
   User = 'user',
   Model = 'model',
@@ -108,11 +99,12 @@ export interface CustomChatConfig {
   enableGoogleSearch: boolean;
   allowMapDisplay: boolean;
   allowGeolocation: boolean;
-  restrictedCity: RestrictedCityInfo | null;
-  currentLanguageCode: string; 
+  currentLanguageCode?: string;
   procedureSourceUrls: string[];
   uploadedProcedureDocuments: UploadedProcedureDocument[];
+  restrictedCity: RestrictedCityInfo | null;
   sedeElectronicaUrl?: string; // URL for the City Council's Electronic Office
+  profileImageUrl?: string; // Nueva propiedad para la foto de perfil
 }
 
 // Google Maps API Type Declarations
