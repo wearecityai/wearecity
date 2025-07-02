@@ -1,4 +1,5 @@
 
+
 import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
 import { Chat } from '@google/genai';
@@ -46,10 +47,10 @@ export const useMessageHandler = (
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
 
-      // Generate AI response
+      // Generate AI response - fix the sendMessage call
       console.log('Generating AI response...');
-      const result = await chatSession.sendMessage(inputText);
-      const responseText = result.response.text();
+      const result = await chatSession.sendMessage({ message: inputText });
+      const responseText = result.text(); // Fix: use text() method directly
       
       console.log('AI response generated, length:', responseText.length);
 
@@ -69,7 +70,7 @@ export const useMessageHandler = (
         parsedMessage = {
           ...aiMessage,
           content: parsed.processedContent,
-          mapQueryFromAI: parsed.mapQueryFromAI,
+          mapQuery: parsed.mapQueryFromAI, // Fix: use mapQuery instead of mapQueryFromAI
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
           telematicProcedureLink: parsed.telematicLinkForMessage
         };
@@ -126,3 +127,4 @@ export const useMessageHandler = (
     processMessage
   };
 };
+
