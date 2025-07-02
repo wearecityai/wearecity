@@ -34,6 +34,9 @@ export const useEventParser = (markers?: SystemMarkers) => {
     const EVENT_END = markers?.EVENT_CARD_END_MARKER || '[EVENT_CARD_END]';
     const MAX_EVENTS = markers?.MAX_INITIAL_EVENTS || 6;
 
+    console.log('🎪 parseEvents - Using markers:', { EVENT_START, EVENT_END, MAX_EVENTS });
+    console.log('🔍 parseEvents - Searching in content:', content.includes(EVENT_START) ? 'FOUND START MARKER' : 'NO START MARKER');
+
     // Parse events
     const eventRegex = new RegExp(`${EVENT_START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let match;

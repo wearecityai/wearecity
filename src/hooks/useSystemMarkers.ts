@@ -44,7 +44,7 @@ export const useSystemMarkers = () => {
         });
         
         // Update markers with values from database or keep fallbacks
-        setMarkers({
+        const newMarkers = {
           SHOW_MAP_MARKER_START: markersMap['SHOW_MAP_MARKER_START'] || '[SHOW_MAP:',
           SHOW_MAP_MARKER_END: markersMap['SHOW_MAP_MARKER_END'] || ']',
           EVENT_CARD_START_MARKER: markersMap['EVENT_CARD_START_MARKER'] || '[EVENT_CARD_START]',
@@ -54,7 +54,12 @@ export const useSystemMarkers = () => {
           TECA_LINK_BUTTON_START_MARKER: markersMap['TECA_LINK_BUTTON_START_MARKER'] || '[TECA_LINK_BUTTON_START]',
           TECA_LINK_BUTTON_END_MARKER: markersMap['TECA_LINK_BUTTON_END_MARKER'] || '[TECA_LINK_BUTTON_END]',
           MAX_INITIAL_EVENTS: parseInt(markersMap['MAX_INITIAL_EVENTS'] || '6'),
-        });
+        };
+        
+        console.log('🔧 System markers loaded from database:', newMarkers);
+        console.log('📊 Raw database data:', data);
+        
+        setMarkers(newMarkers);
         
         setIsLoaded(true);
       } catch (error) {

@@ -8,6 +8,8 @@ import { API_KEY_ERROR_MESSAGE } from '../constants';
 export const useMessageParser = () => {
   const { markers, isLoaded } = useSystemMarkers();
   
+  console.log('🎯 useMessageParser - isLoaded:', isLoaded, 'markers:', markers);
+  
   const { parseEvents, handleSeeMoreEvents: eventHandleSeeMoreEvents, clearEventTracking } = useEventParser({
     EVENT_CARD_START_MARKER: markers.EVENT_CARD_START_MARKER,
     EVENT_CARD_END_MARKER: markers.EVENT_CARD_END_MARKER,
@@ -27,8 +29,13 @@ export const useMessageParser = () => {
   });
 
   const parseAIResponse = (content: string, finalResponse: any, chatConfig: any, inputText: string) => {
+    console.log('🔍 parseAIResponse called with content length:', content.length);
+    console.log('📋 Raw content preview:', content.substring(0, 200) + '...');
+    console.log('⚡ isLoaded:', isLoaded, 'markers:', markers);
+    
     // Don't parse if markers aren't loaded yet
     if (!isLoaded) {
+      console.log('⏳ Markers not loaded yet, returning basic response');
       return {
         processedContent: content,
         finalGroundingMetadata: undefined,
@@ -56,11 +63,17 @@ export const useMessageParser = () => {
 
     // Parse events and remove event markers from content
     const { eventsForThisMessage, showSeeMoreButtonForThisMessage, storedUserQueryForEvents } = parseEvents(content, inputText);
+    console.log('🎪 Events parsed:', eventsForThisMessage.length, 'events found');
+    console.log('🔗 Event markers being used:', markers.EVENT_CARD_START_MARKER, markers.EVENT_CARD_END_MARKER);
+    
     const eventRegex = new RegExp(`${markers.EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${markers.EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     processedContent = processedContent.replace(eventRegex, "").trim();
 
     // Parse place cards and remove place card markers from content
     const { placeCardsForMessage } = parsePlaceCards(processedContent);
+    console.log('🏢 Place cards parsed:', placeCardsForMessage.length, 'place cards found');
+    console.log('🔗 Place markers being used:', markers.PLACE_CARD_START_MARKER, markers.PLACE_CARD_END_MARKER);
+    
     const placeCardRegex = new RegExp(`${markers.PLACE_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${markers.PLACE_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     processedContent = processedContent.replace(placeCardRegex, "").trim();
 
@@ -71,6 +84,13 @@ export const useMessageParser = () => {
       downloadablePdfInfoForMessage, 
       telematicLinkForMessage 
     } = parseContent(processedContent, chatConfig);
+    
+    console.log('🗺️ Final parsing results:', {
+      finalContentLength: finalProcessedContent.length,
+      hasMapQuery: !!mapQueryFromAI,
+      hasEvents: eventsForThisMessage.length > 0,
+      hasPlaceCards: placeCardsForMessage.length > 0
+    });
 
     return {
       processedContent: finalProcessedContent,
