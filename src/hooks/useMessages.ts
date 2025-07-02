@@ -1,46 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { ChatMessage, MessageRole } from '../types';
+import { ChatMessage } from '../types';
+import { loadMessagesFromDb, saveMessageToDb, updateMessageInDb } from './messages/messageDatabase';
+import { convertDbMessageToChatMessage } from './messages/messageConverters';
+import { useMessageRealtime } from './messages/useMessageRealtime';
 
 export const useMessages = (conversationId: string | null) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Helper function to convert database role to MessageRole
-  const convertToMessageRole = (role: string): MessageRole => {
-    return role === 'user' ? MessageRole.User : MessageRole.Model;
-  };
-
-  // Helper function to convert MessageRole to database role
-  const convertToDatabaseRole = (role: MessageRole): string => {
-    return role === MessageRole.User ? 'user' : 'model';
-  };
-
-  // Helper function to safely serialize metadata for database storage
-  const serializeMetadata = (message: ChatMessage) => {
-    const { id, role, content, timestamp, ...metadata } = message;
-    
-    // Convert complex types to simple objects for JSON storage
-    const serializedMetadata: any = {};
-    
-    Object.keys(metadata).forEach(key => {
-      const value = (metadata as any)[key];
-      if (value !== undefined) {
-        // Convert complex objects to JSON-serializable format
-        serializedMetadata[key] = value;
-      }
-    });
-    
-    return Object.keys(serializedMetadata).length > 0 ? serializedMetadata : null;
-  };
-
-  // Helper function to deserialize metadata from database
-  const deserializeMetadata = (metadata: any) => {
-    return metadata && typeof metadata === 'object' ? metadata : {};
-  };
 
   // Load messages from a conversation
   const loadMessages = async () => {
@@ -50,35 +19,12 @@ export const useMessages = (conversationId: string | null) => {
       return;
     }
     
-    console.log('Loading messages for conversation:', conversationId);
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error loading messages:', error);
-        setMessages([]);
-        return;
-      }
-      
-      console.log('Loaded messages:', data?.length || 0, 'for conversation:', conversationId);
+      const data = await loadMessagesFromDb(conversationId);
       
       // Convert database messages to ChatMessage format
-      const chatMessages: ChatMessage[] = (data || []).map(msg => {
-        const deserializedMetadata = deserializeMetadata(msg.metadata);
-        
-        return {
-          id: msg.id,
-          role: convertToMessageRole(msg.role),
-          content: msg.content,
-          timestamp: new Date(msg.created_at || ''),
-          ...deserializedMetadata
-        };
-      });
+      const chatMessages: ChatMessage[] = data.map(msg => convertDbMessageToChatMessage(msg));
       
       setMessages(chatMessages);
     } catch (error) {
@@ -93,46 +39,13 @@ export const useMessages = (conversationId: string | null) => {
   const saveMessageOnly = async (message: ChatMessage, targetConversationId?: string) => {
     const conversationIdToUse = targetConversationId || conversationId;
     
-    if (!user) {
-      console.log('No user available, cannot save message. User:', !!user);
-      throw new Error('No user available');
+    if (!user || !conversationIdToUse) {
+      const errorMsg = !user ? 'No user available' : 'No conversation ID available';
+      console.log(errorMsg);
+      throw new Error(errorMsg);
     }
 
-    if (!conversationIdToUse) {
-      console.log('No conversationId available, cannot save message. ConversationId:', conversationIdToUse);
-      throw new Error('No conversation ID available');
-    }
-
-    console.log('Saving message to database only:', message.id, 'to conversation:', conversationIdToUse, 'with role:', message.role);
-    try {
-      const serializedMetadata = serializeMetadata(message);
-      const databaseRole = convertToDatabaseRole(message.role);
-      
-      console.log('Database role for message:', databaseRole);
-      
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          id: message.id,
-          conversation_id: conversationIdToUse,
-          role: databaseRole,
-          content: message.content,
-          metadata: serializedMetadata,
-          created_at: message.timestamp.toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error saving message:', error);
-        throw error;
-      }
-      
-      console.log('Message saved successfully to database:', data);
-    } catch (error) {
-      console.error('Error saving message:', error);
-      throw error;
-    }
+    await saveMessageToDb(message, conversationIdToUse, user.id);
   };
 
   // Add message locally and save it to a specific conversation
@@ -182,21 +95,7 @@ export const useMessages = (conversationId: string | null) => {
         const message = messages.find(m => m.id === messageId);
         if (message) {
           const updatedMessage = { ...message, ...updates };
-          const serializedMetadata = serializeMetadata(updatedMessage);
-          
-          const { error } = await supabase
-            .from('messages')
-            .update({
-              content: updatedMessage.content,
-              metadata: serializedMetadata
-            })
-            .eq('id', messageId);
-            
-          if (error) {
-            console.error('Error updating message in database:', error);
-          } else {
-            console.log('Message updated successfully in database:', messageId);
-          }
+          await updateMessageInDb(messageId, updatedMessage);
         }
       } catch (error) {
         console.error('Error updating message:', error);
@@ -210,7 +109,10 @@ export const useMessages = (conversationId: string | null) => {
     setMessages([]);
   };
 
-  // React to conversation ID changes and set up realtime subscription
+  // Set up realtime subscription
+  useMessageRealtime(conversationId, user, setMessages);
+
+  // React to conversation ID changes
   useEffect(() => {
     console.log('useMessages: conversationId changed to:', conversationId);
     
@@ -222,67 +124,6 @@ export const useMessages = (conversationId: string | null) => {
 
     // Load initial messages
     loadMessages();
-
-    // Set up realtime subscription for messages in this conversation
-    const channel = supabase
-      .channel(`messages-${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          console.log('Realtime message change:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            const newMessage = payload.new;
-            const deserializedMetadata = deserializeMetadata(newMessage.metadata);
-            
-            const chatMessage: ChatMessage = {
-              id: newMessage.id,
-              role: convertToMessageRole(newMessage.role),
-              content: newMessage.content,
-              timestamp: new Date(newMessage.created_at || ''),
-              ...deserializedMetadata
-            };
-            
-            setMessages(prev => {
-              // Avoid duplicates - check if message already exists
-              if (prev.find(m => m.id === chatMessage.id)) return prev;
-              return [...prev, chatMessage];
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedMessage = payload.new;
-            const deserializedMetadata = deserializeMetadata(updatedMessage.metadata);
-            
-            const chatMessage: ChatMessage = {
-              id: updatedMessage.id,
-              role: convertToMessageRole(updatedMessage.role),
-              content: updatedMessage.content,
-              timestamp: new Date(updatedMessage.created_at || ''),
-              ...deserializedMetadata
-            };
-            
-            setMessages(prev => 
-              prev.map(msg => 
-                msg.id === chatMessage.id ? chatMessage : msg
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old.id;
-            setMessages(prev => prev.filter(msg => msg.id !== deletedId));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Unsubscribing from messages realtime for conversation:', conversationId);
-      supabase.removeChannel(channel);
-    };
   }, [conversationId, user]);
 
   return {
