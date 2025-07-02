@@ -4,14 +4,8 @@ import { useCallback, useRef, useState } from 'react';
 import { ChatSession } from '../../services/geminiService';
 import { useContentParser } from '../parsers/useContentParser';
 
-interface UserLocation {
-  latitude: number;
-  longitude: number;
-}
-
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
-  userLocation: UserLocation | null,
   onError: (error: string) => void,
   onGeminiReadyChange: (ready: boolean) => void
 ) => {
@@ -56,9 +50,6 @@ export const useMessageHandler = (
       // Add user message to the specific conversation
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
-
-      // Note: System instruction enhancement is now handled by the edge function
-      // The edge function will automatically search scraped content and build enhanced instructions
 
       // Create a loading message immediately to show the indicator
       const loadingMessage: ChatMessage = {

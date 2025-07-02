@@ -51,11 +51,11 @@ export const useChatManager = (
     initializeChatSession
   } = useChatSession(isGeminiReady, onError, onGeminiReadyChange);
 
-  // Message processing - now passing userLocation as the second parameter
+  // Message processing
   const {
     isLoading,
     processMessage
-  } = useMessageHandler(chatConfig, userLocation, onError, onGeminiReadyChange);
+  } = useMessageHandler(chatConfig, onError, onGeminiReadyChange);
 
   // Chat actions
   const {

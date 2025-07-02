@@ -76,9 +76,6 @@ issuer = ""
 [functions.gemini-proxy]
 verify_jwt = true
 
-[functions.intelligent-scraper]
-verify_jwt = true
-
 [edge_runtime]
 enabled = true
 policy = "per_worker"

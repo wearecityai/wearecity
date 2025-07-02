@@ -19,7 +19,7 @@ import {
   SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE_CODE,
 } from '../constants';
-import WebScrapingSection from './WebScrapingSection';
+
 
 interface FinetuningPageProps {
   currentConfig: CustomChatConfig;
@@ -393,10 +393,6 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
               )}
               <FormHelperText sx={{textAlign:'center', fontStyle:'italic'}}>Límite de 5MB por PDF. Los PDFs se guardan en el navegador.</FormHelperText>
             </Stack>
-          </Paper>
-
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <WebScrapingSection />
           </Paper>
         </Stack>
       </Container>
