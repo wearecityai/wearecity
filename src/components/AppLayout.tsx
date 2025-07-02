@@ -127,11 +127,11 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         justifyContent: 'space-between',
         p: 2,
         minHeight: '64px',
-        bgcolor: '#000000',
-        color: '#ffffff',
+        bgcolor: 'background.default',
+        color: 'text.primary',
       }}
     >
-      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: '#ffffff' }}>
+      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
         {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : ''}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -144,7 +144,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
               aria-label="user account"
               onClick={handleUserMenuOpen}
               id="user-avatar-button"
-              sx={{ color: '#ffffff' }}
+              sx={{ color: 'text.primary' }}
             >
               <AccountCircleIcon />
             </IconButton>
