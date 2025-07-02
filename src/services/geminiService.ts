@@ -77,49 +77,80 @@ export const initChatSession = (
     messages.push({ role: 'user', content: message });
 
     try {
-      console.log('Starting streaming request to gemini-proxy...');
+      // Get the current session to use the auth token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // Use supabase.functions.invoke for streaming
-      const { data, error } = await supabase.functions.invoke('gemini-proxy', {
-        body: {
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await fetch(`https://irghpvvoparqettcnpnh.supabase.co/functions/v1/gemini-proxy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           messages: messages,
           systemInstruction: customSystemInstruction,
           enableGoogleSearch,
           allowMapDisplay,
           stream: true
-        }
+        })
       });
 
-      if (error) {
-        console.error('Error calling gemini-proxy for streaming:', error);
-        throw new Error(`Failed to get streaming response from AI: ${error.message}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HTTP error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // For streaming responses, the data should contain the streamed text
-      if (typeof data === 'string') {
-        console.log('Received streaming response, length:', data.length);
-        let responseText = data;
-        messages.push({ role: 'model', content: responseText });
-        
-        // Call onChunk with the complete response
-        onChunk(responseText, true);
-        onEnd();
-      } else if (data && data.candidates && data.candidates[0] && data.candidates[0].content) {
-        // Handle non-streaming response format
-        const responseText = data.candidates[0].content.parts[0].text;
-        console.log('Received non-streaming response, length:', responseText.length);
-        messages.push({ role: 'model', content: responseText });
-        
-        onChunk(responseText, true);
-        onEnd();
-      } else {
-        console.error('Invalid response format from streaming API:', data);
-        throw new Error('Invalid response format from AI');
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
       }
 
+      let isFirstChunk = true;
+      let responseText = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = new TextDecoder().decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.substring(6);
+                if (jsonStr.trim() === '[DONE]') continue;
+                
+                const data = JSON.parse(jsonStr);
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                  const text = data.candidates[0].content.parts[0].text;
+                  if (text) {
+                    responseText += text;
+                    onChunk(text, isFirstChunk);
+                    isFirstChunk = false;
+                  }
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse SSE data:', parseError);
+              }
+            }
+          }
+        }
+
+        messages.push({ role: 'model', content: responseText });
+        onEnd();
+      } finally {
+        reader.releaseLock();
+      }
     } catch (error) {
       console.error('Error in sendMessageStream:', error);
-      onError(error instanceof Error ? error : new Error('Unknown streaming error'));
+      onError(error instanceof Error ? error : new Error('Unknown error'));
     }
   };
 

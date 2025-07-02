@@ -152,10 +152,11 @@ serve(async (req) => {
     }
 
     console.log('Calling Gemini API with system instruction length:', systemInstruction.length)
-    console.log('Stream mode:', stream)
 
-    // Call Gemini API - simplified approach for now (no streaming)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`
+    // Call Gemini API
+    const geminiUrl = stream ? 
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent?alt=sse&key=${geminiApiKey}` :
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`
 
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
@@ -171,27 +172,26 @@ serve(async (req) => {
       throw new Error(`Gemini API error: ${geminiResponse.status}`)
     }
 
-    const data = await geminiResponse.json()
-    console.log('Gemini API response received successfully')
-
-    // For streaming requests, return the text content directly for simplicity
-    if (stream && data.candidates && data.candidates[0] && data.candidates[0].content) {
-      const responseText = data.candidates[0].content.parts[0].text
-      return new Response(responseText, {
+    if (stream) {
+      // For streaming responses, pass through the stream
+      return new Response(geminiResponse.body, {
         headers: {
           ...corsHeaders,
           'Content-Type': 'text/plain',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      })
+    } else {
+      // For non-streaming responses, return JSON
+      const data = await geminiResponse.json()
+      return new Response(JSON.stringify(data), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
         },
       })
     }
-
-    // For non-streaming responses, return JSON
-    return new Response(JSON.stringify(data), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    })
 
   } catch (error) {
     console.error('Error in gemini-proxy function:', error)
