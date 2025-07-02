@@ -72,7 +72,6 @@ export const useChatManager = (
     console.log('Current conversation ID at start:', currentConversationId);
 
     let targetConversationId = currentConversationId;
-    let conversationWasCreated = false;
 
     try {
       // Step 1: Determine or create the target conversation
@@ -88,8 +87,12 @@ export const useChatManager = (
         }
         
         targetConversationId = newConversation.id;
-        conversationWasCreated = true;
         console.log('Created new conversation:', targetConversationId, 'with title:', generatedTitle);
+        
+        // Set the current conversation ID immediately after creation
+        // This ensures all subsequent operations use the correct conversation ID
+        console.log('Setting current conversation ID to newly created:', targetConversationId);
+        setCurrentConversationId(targetConversationId);
       } else {
         // Update title if this is the first real message in an existing conversation
         const currentConversation = conversations.find(c => c.id === targetConversationId);
@@ -102,17 +105,11 @@ export const useChatManager = (
 
       console.log('Target conversation ID determined:', targetConversationId);
 
-      // Step 2: Update the current conversation ID BEFORE processing to ensure stability
-      if (conversationWasCreated) {
-        console.log('Setting current conversation ID to newly created:', targetConversationId);
-        setCurrentConversationId(targetConversationId);
-      }
-
-      // Step 3: Create user message
+      // Step 2: Create user message
       const userMessage = createUserMessage(inputText);
       console.log('Created user message:', userMessage.id);
 
-      // Step 4: Process the message with the stable conversation ID
+      // Step 3: Process the message with the stable conversation ID
       console.log('Processing message for conversation:', targetConversationId);
       await processMessage(
         geminiChatSessionRef.current,
@@ -120,7 +117,7 @@ export const useChatManager = (
         userMessage,
         addMessage,
         saveMessageOnly,
-        updateMessage, // Pass updateMessage for real-time updates
+        updateMessage,
         setMessages,
         isGeminiReady,
         targetConversationId,

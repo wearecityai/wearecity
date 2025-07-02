@@ -140,16 +140,17 @@ export const useMessages = (conversationId: string | null) => {
     const conversationIdToUse = targetConversationId || conversationId;
     console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role, 'to conversation:', conversationIdToUse);
     
-    // Save to database first
-    await saveMessageOnly(message, conversationIdToUse);
-    
-    // Add to local state if it belongs to the current conversation
+    // Add to local state immediately if it belongs to the current conversation
+    // This ensures updateMessage will work during streaming
     if (conversationIdToUse === conversationId) {
-      console.log('Adding message to local state:', message.id);
+      console.log('Adding message to local state immediately:', message.id);
       setMessages(prev => [...prev, message]);
     } else {
       console.log('Message belongs to different conversation, not adding to local state');
     }
+    
+    // Save to database
+    await saveMessageOnly(message, conversationIdToUse);
   };
 
   // Update existing message both locally and in database
@@ -157,13 +158,19 @@ export const useMessages = (conversationId: string | null) => {
     console.log('Updating message:', messageId, 'with updates:', Object.keys(updates));
     
     // Update local state immediately for responsiveness
-    setMessages(prev => 
-      prev.map(msg => 
+    setMessages(prev => {
+      const messageExists = prev.some(msg => msg.id === messageId);
+      if (!messageExists) {
+        console.warn('Message not found in local state for update:', messageId);
+        return prev;
+      }
+      
+      return prev.map(msg => 
         msg.id === messageId 
           ? { ...msg, ...updates }
           : msg
-      )
-    );
+      );
+    });
 
     // Also update in database if necessary
     if (user && conversationId) {

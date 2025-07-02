@@ -60,7 +60,7 @@ export const useMessageHandler = (
         isTyping: true
       };
 
-      // Add the loading message
+      // Add the loading message and also add it to local state immediately
       console.log('Adding loading message:', loadingMessage.id);
       await addMessage(loadingMessage, targetConversationId);
 
