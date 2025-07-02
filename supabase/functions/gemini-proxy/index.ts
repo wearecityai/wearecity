@@ -121,13 +121,19 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json() as ChatRequest
-    const { messages, stream = false } = requestBody
+    const { messages, systemInstruction: frontendSystemInstruction, stream = false } = requestBody
+
+    // Use the system instruction from the frontend if provided, otherwise use the built one
+    const finalSystemInstruction = frontendSystemInstruction || systemInstruction
 
     // Get Gemini API key from Supabase secrets
     const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
     if (!geminiApiKey) {
       throw new Error('Gemini API key not configured')
     }
+
+    console.log('Using system instruction from:', frontendSystemInstruction ? 'frontend' : 'edge function')
+    console.log('Final system instruction length:', finalSystemInstruction.length)
 
     // Build the request for Gemini API
     const geminiRequestBody = {
@@ -136,7 +142,7 @@ serve(async (req) => {
         parts: [{ text: msg.content }]
       })),
       systemInstruction: {
-        parts: [{ text: systemInstruction }]
+        parts: [{ text: finalSystemInstruction }]
       },
       generationConfig: {
         temperature: 0.7,
@@ -151,7 +157,7 @@ serve(async (req) => {
       geminiRequestBody.tools = [{ googleSearch: {} }]
     }
 
-    console.log('Calling Gemini API with system instruction length:', systemInstruction.length)
+    console.log('Calling Gemini API with final system instruction length:', finalSystemInstruction.length)
 
     // Call Gemini API
     const geminiUrl = stream ? 
