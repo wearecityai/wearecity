@@ -14,6 +14,7 @@ export type Database = {
           allow_geolocation: boolean | null
           allow_map_display: boolean | null
           assistant_name: string | null
+          base_system_instruction: string | null
           config_name: string
           created_at: string | null
           current_language_code: string | null
@@ -34,6 +35,7 @@ export type Database = {
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
+          base_system_instruction?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null
@@ -54,6 +56,7 @@ export type Database = {
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
+          base_system_instruction?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null

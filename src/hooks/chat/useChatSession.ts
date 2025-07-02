@@ -27,10 +27,9 @@ export const useChatSession = (
       return;
     }
     try {
-      // The system instruction building is now handled by the edge function
-      // We just pass the custom instruction from config
+      // Initialize chat session - the system instruction building is now handled by the edge function
       geminiChatSessionRef.current = initChatSession(
-        configToUse.systemInstruction, 
+        undefined, // No custom instruction needed - edge function handles everything
         configToUse.enableGoogleSearch,
         configToUse.allowMapDisplay
       );

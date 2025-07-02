@@ -60,25 +60,17 @@ serve(async (req) => {
       throw new Error('Failed to fetch configuration')
     }
 
-    // Build system instruction from configuration
+    // Build comprehensive system instruction from configuration
     let systemInstruction = ''
     
     if (configData) {
-      // Use base system instruction from database if available
-      if (configData.base_system_instruction) {
-        systemInstruction = configData.base_system_instruction
-      }
-      
-      // Add custom system instruction if provided
-      if (configData.system_instruction) {
-        systemInstruction = systemInstruction ? 
-          `${systemInstruction}\n\n${configData.system_instruction}` : 
-          configData.system_instruction
-      }
+      // Start with base system instruction
+      let baseInstruction = configData.base_system_instruction || 
+        'Eres un asistente especializado en información sobre ciudades españolas y sus trámites administrativos. Proporciona información precisa, actualizada y útil sobre procedimientos municipales, servicios públicos y cualquier consulta relacionada con la administración local. Sé claro, conciso y siempre útil en tus respuestas.'
       
       // Add language instruction
       const languageCode = configData.current_language_code || 'es'
-      systemInstruction = `Responde siempre en ${languageCode === 'es' ? 'español' : 'inglés'}.\n\n${systemInstruction}`
+      systemInstruction = `Responde siempre en ${languageCode === 'es' ? 'español' : 'inglés'}.\n\n${baseInstruction}`
       
       // Add city restrictions if configured
       if (configData.restricted_city) {
@@ -97,6 +89,35 @@ serve(async (req) => {
           systemInstruction += `\n\nEspecialización: ${serviceTags.join(", ")}.`
         }
       }
+      
+      // Add procedure URLs if configured
+      if (configData.procedure_source_urls) {
+        const procedureUrls = Array.isArray(configData.procedure_source_urls) ? 
+          configData.procedure_source_urls : JSON.parse(configData.procedure_source_urls)
+        if (procedureUrls.length > 0) {
+          const urlListString = procedureUrls.map(url => `- ${url}`).join("\n")
+          systemInstruction += `\n\nFuentes de información de trámites:\n${urlListString}`
+          systemInstruction += `\n\nSi proporcionas información sobre trámites, menciona que pueden encontrar más detalles en las fuentes oficiales listadas.`
+        }
+      }
+      
+      // Add sede electrónica URL if configured
+      if (configData.sede_electronica_url) {
+        systemInstruction += `\n\nPara trámites electrónicos, puedes dirigir a los usuarios a: ${configData.sede_electronica_url}`
+      }
+      
+      // Add map display instructions if enabled
+      if (configData.allow_map_display) {
+        systemInstruction += `\n\nSi es relevante para la consulta, puedes mostrar mapas usando el formato: [MOSTRAR_MAPA: descripción del lugar]`
+      }
+      
+      // Add user's custom system instruction if provided
+      if (configData.system_instruction) {
+        systemInstruction += `\n\n${configData.system_instruction}`
+      }
+    } else {
+      // Default system instruction if no config found
+      systemInstruction = 'Eres un asistente especializado en información sobre ciudades españolas y sus trámites administrativos. Proporciona información precisa, actualizada y útil sobre procedimientos municipales, servicios públicos y cualquier consulta relacionada con la administración local. Sé claro, conciso y siempre útil en tus respuestas.'
     }
 
     const requestBody = await req.json() as ChatRequest
@@ -114,9 +135,9 @@ serve(async (req) => {
         role: msg.role,
         parts: [{ text: msg.content }]
       })),
-      systemInstruction: systemInstruction ? {
+      systemInstruction: {
         parts: [{ text: systemInstruction }]
-      } : undefined,
+      },
       generationConfig: {
         temperature: 0.7,
         topK: 40,
