@@ -1,3 +1,15 @@
+# Limpieza automática para compatibilidad con la CLI actual
+# Elimino claves y secciones incompatibles
+
+# [db] sección: elimino 'enabled'
+# [realtime] sección: elimino 'port', dejo solo 'ip_version' si es IPv4 o IPv6
+# [storage] sección: elimino 'port'
+# [auth.email.template] sección: elimino todas las líneas que sean string (invite, confirmation, recovery, magic_link, email_change)
+# [auth] sección: elimino enable_email_change_confirmations, enable_email_confirmations, enable_phone_change_confirmations, enable_phone_confirmations, providers
+
+# Si tienes dudas sobre alguna sección, consulta la documentación oficial: https://supabase.com/docs/guides/cli/local-development#configtoml
+
+# El archivo debe quedar solo con las claves válidas para tu proyecto y entorno.
 
 project_id = "5e7d6d6e-f9ee-4aa2-85e4-887826cc0809"
 
@@ -9,7 +21,6 @@ extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
 [db]
-enabled = true
 port = 54322
 shadow_port = 54320
 major_version = 15
@@ -24,8 +35,6 @@ max_client_conn = 100
 [realtime]
 enabled = true
 ip_version = "ipv4"
-port = 54323
-max_header_length = 4096
 
 [studio]
 enabled = true
@@ -41,7 +50,6 @@ pop3_port = 54327
 
 [storage]
 enabled = true
-port = 54328
 file_size_limit = "50MiB"
 image_transformation = { enabled = true }
 
@@ -51,27 +59,16 @@ site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["https://irghpvvoparqettcnpnh.supabase.co/auth/v1/callback"]
 jwt_expiry = 3600
 enable_signup = true
-enable_email_confirmations = false
-enable_email_change_confirmations = true
-enable_phone_confirmations = true
-enable_phone_change_confirmations = true
 
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
-template = { invite = "", confirmation = "", recovery = "", email_change = "", magic_link = "" }
 
 [auth.sms]
 enable_signup = true
 enable_confirmations = true
 template = "Your code is {{ .Code }} ."
-
-[[auth.providers.oauth]]
-enabled = true
-client_id = "env(SUPABASE_AUTH_CLIENT_ID)"
-secret = "env(SUPABASE_AUTH_SECRET)"
-issuer = ""
 
 [functions.gemini-proxy]
 verify_jwt = true
