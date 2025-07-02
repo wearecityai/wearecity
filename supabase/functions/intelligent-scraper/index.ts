@@ -22,13 +22,15 @@ interface ScrapedPage {
 }
 
 serve(async (req) => {
-  console.log(`=== INTELLIGENT SCRAPER EDGE FUNCTION START ===`)
+  const requestId = crypto.randomUUID().substring(0, 8)
+  console.log(`=== INTELLIGENT SCRAPER EDGE FUNCTION START [${requestId}] ===`)
   console.log(`Timestamp: ${new Date().toISOString()}`)
   console.log(`Method: ${req.method}`)
+  console.log(`User-Agent: ${req.headers.get('user-agent') || 'Unknown'}`)
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request')
+    console.log(`[${requestId}] Handling CORS preflight request`)
     return new Response(null, { headers: corsHeaders })
   }
 
@@ -38,10 +40,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const scrapingBeeApiKey = Deno.env.get('SCRAPINGBEE_API_KEY')
     
-    console.log('Environment check:', {
-      supabaseUrl: supabaseUrl ? `Set` : 'MISSING',
-      supabaseKey: supabaseKey ? `Set` : 'MISSING',
-      scrapingBeeApiKey: scrapingBeeApiKey ? `Set` : 'MISSING'
+    console.log(`[${requestId}] Environment check:`, {
+      supabaseUrl: supabaseUrl ? `Set (${supabaseUrl.substring(0, 20)}...)` : 'MISSING',
+      supabaseKey: supabaseKey ? `Set (${supabaseKey.length} chars)` : 'MISSING',
+      scrapingBeeApiKey: scrapingBeeApiKey ? `Set (${scrapingBeeApiKey.length} chars)` : 'MISSING'
     })
 
     if (!supabaseUrl || !supabaseKey) {
@@ -49,13 +51,38 @@ serve(async (req) => {
       if (!supabaseUrl) missingVars.push('SUPABASE_URL')
       if (!supabaseKey) missingVars.push('SUPABASE_SERVICE_ROLE_KEY')
       
-      console.error('Missing environment variables:', missingVars)
+      console.error(`[${requestId}] Missing environment variables:`, missingVars)
       throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`)
     }
 
     if (!scrapingBeeApiKey) {
-      console.error('ScrapingBee API key is missing')
+      console.error(`[${requestId}] ScrapingBee API key is missing`)
       throw new Error('ScrapingBee API key is required. Please configure SCRAPINGBEE_API_KEY in your Supabase secrets.')
+    }
+
+    // Test ScrapingBee API key validity
+    try {
+      console.log(`[${requestId}] Testing ScrapingBee API key...`)
+      const testUrl = new URL('https://app.scrapingbee.com/api/v1/')
+      testUrl.searchParams.append('api_key', scrapingBeeApiKey)
+      testUrl.searchParams.append('url', 'https://httpbin.org/json')
+      
+      const testResponse = await fetch(testUrl.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      })
+      
+      if (!testResponse.ok) {
+        console.error(`[${requestId}] ScrapingBee API test failed:`, testResponse.status, testResponse.statusText)
+        if (testResponse.status === 401) {
+          throw new Error('Invalid ScrapingBee API key')
+        }
+        throw new Error(`ScrapingBee API test failed: ${testResponse.status}`)
+      }
+      console.log(`[${requestId}] ScrapingBee API key is valid`)
+    } catch (apiTestError) {
+      console.error(`[${requestId}] ScrapingBee API key test error:`, apiTestError)
+      throw new Error(`ScrapingBee API key validation failed: ${apiTestError.message}`)
     }
 
     // Parse request body
@@ -202,24 +229,55 @@ serve(async (req) => {
 // Background scraping function using ScrapingBee
 async function performBackgroundScraping(supabase: any, apiKey: string, job: ScrapingJob): Promise<void> {
   const startTime = Date.now()
-  console.log(`=== BACKGROUND SCRAPING STARTED ===`)
+  const jobId = crypto.randomUUID().substring(0, 8)
+  console.log(`=== BACKGROUND SCRAPING STARTED [${jobId}] ===`)
   console.log(`Website ID: ${job.websiteId}`)
   console.log(`Base URL: ${job.baseUrl}`)
   console.log(`Max pages: ${job.maxPages}`)
+  console.log(`Allowed domains: ${job.allowedDomains.join(', ') || 'All'}`)
 
   try {
-    // Perform the actual scraping using ScrapingBee
-    const scrapedPages = await scrapeWebsiteWithScrapingBee(apiKey, job)
+    // Test database connection first
+    console.log(`[${jobId}] Testing database connection...`)
+    const { data: testData, error: testError } = await supabase
+      .from('scraped_websites')
+      .select('id, name')
+      .eq('id', job.websiteId)
+      .single()
+
+    if (testError) {
+      console.error(`[${jobId}] Database connection test failed:`, testError)
+      throw new Error(`Database connection failed: ${testError.message}`)
+    }
+    console.log(`[${jobId}] Database connection successful. Website: "${testData.name}"`)
+
+    // Perform the actual scraping using ScrapingBee with retry logic
+    console.log(`[${jobId}] Starting ScrapingBee scraping...`)
+    const scrapedPages = await scrapeWebsiteWithScrapingBeeRetry(apiKey, job, jobId)
     const scrapingDuration = Date.now() - startTime
     
-    console.log(`=== SCRAPING COMPLETED ===`)
+    console.log(`=== SCRAPING COMPLETED [${jobId}] ===`)
     console.log(`Duration: ${scrapingDuration}ms`)
     console.log(`Pages found: ${scrapedPages.length}`)
 
+    if (scrapedPages.length === 0) {
+      console.warn(`[${jobId}] No pages were scraped! This might indicate an issue.`)
+      // Still try to update the website timestamp
+      await supabase
+        .from('scraped_websites')
+        .update({ 
+          last_scraped_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', job.websiteId)
+      return
+    }
+
     // Save scraped pages to database
-    console.log('=== SAVING TO DATABASE ===')
+    console.log(`=== SAVING TO DATABASE [${jobId}] ===`)
     let savedPagesCount = 0
     let savedDocumentsCount = 0
+    let errorCount = 0
 
     // Process pages in smaller batches to avoid memory issues
     const BATCH_SIZE = 3
@@ -228,67 +286,94 @@ async function performBackgroundScraping(supabase: any, apiKey: string, job: Scr
       
       for (const page of batch) {
         try {
-          console.log(`Processing page: ${page.url}`)
+          console.log(`[${jobId}] Processing page ${savedPagesCount + 1}/${scrapedPages.length}: ${page.url}`)
 
-          // Skip invalid pages
-          if (!page.url || !page.title || !page.content || page.content.length < 100) {
-            console.warn(`Skipping invalid page: ${page.url}`)
+          // Simplified validation - more lenient
+          if (!page.url || !page.url.startsWith('http')) {
+            console.warn(`[${jobId}] Skipping invalid URL: ${page.url}`)
+            errorCount++
             continue
           }
+
+          if (!page.content || page.content.trim().length < 50) {
+            console.warn(`[${jobId}] Skipping page with minimal content: ${page.url}`)
+            errorCount++
+            continue
+          }
+
+          // Clean and prepare data
+          const cleanTitle = (page.title || 'Sin título').trim().substring(0, 500)
+          const cleanContent = page.content.trim().substring(0, 50000)
 
           // Calculate content hash for deduplication
           const contentHash = await crypto.subtle.digest(
             'SHA-256',
-            new TextEncoder().encode(page.content)
+            new TextEncoder().encode(cleanContent)
           )
           const hashArray = Array.from(new Uint8Array(contentHash))
           const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
-          // Check if page already exists with same content
-          const { data: existingPage } = await supabase
-            .from('scraped_pages')
-            .select('id')
-            .eq('website_id', job.websiteId)
-            .eq('url', page.url)
-            .eq('content_hash', hashHex)
-            .maybeSingle()
+          console.log(`[${jobId}] Saving page to database: ${page.url}`)
 
-          if (existingPage) {
-            console.log(`Page already exists with same content: ${page.url}`)
-            continue
+          // Insert or update page with detailed error handling
+          const pageData = {
+            website_id: job.websiteId,
+            url: page.url,
+            title: cleanTitle,
+            content: cleanContent,
+            content_hash: hashHex,
+            page_type: page.page_type || 'html',
+            status_code: page.status_code || 200,
+            last_scraped_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }
 
-          // Insert or update page
+          console.log(`[${jobId}] Page data prepared:`, {
+            url: pageData.url,
+            title_length: pageData.title.length,
+            content_length: pageData.content.length,
+            website_id: pageData.website_id
+          })
+
           const { data: savedPage, error: pageError } = await supabase
             .from('scraped_pages')
-            .upsert({
-              website_id: job.websiteId,
-              url: page.url,
-              title: page.title.substring(0, 500),
-              content: page.content.substring(0, 50000),
-              content_hash: hashHex,
-              page_type: page.page_type,
-              status_code: page.status_code,
-              last_scraped_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, {
+            .upsert(pageData, {
               onConflict: 'website_id,url'
             })
             .select()
             .single()
 
           if (pageError) {
-            console.error(`Error saving page ${page.url}:`, pageError)
+            console.error(`[${jobId}] ERROR saving page ${page.url}:`, {
+              error: pageError,
+              pageData: {
+                url: pageData.url,
+                title: pageData.title,
+                contentLength: pageData.content.length,
+                websiteId: pageData.website_id
+              }
+            })
+            errorCount++
+            continue
+          }
+
+          if (!savedPage) {
+            console.error(`[${jobId}] No page returned after upsert: ${page.url}`)
+            errorCount++
             continue
           }
 
           savedPagesCount++
-          console.log(`✓ Page saved: ${page.url}`)
+          console.log(`[${jobId}] ✓ Page saved successfully: ${page.url} (ID: ${savedPage.id})`)
 
           // Extract and save documents
           const documents = extractDocuments(page.content, page.url)
+          console.log(`[${jobId}] Found ${documents.length} documents on page: ${page.url}`)
+          
           for (const doc of documents.slice(0, 5)) {
             try {
+              console.log(`[${jobId}] Saving document: ${doc.filename} (${doc.url})`)
+              
               const { error: docError } = await supabase
                 .from('scraped_documents')
                 .upsert({
@@ -301,16 +386,20 @@ async function performBackgroundScraping(supabase: any, apiKey: string, job: Scr
                   onConflict: 'page_id,file_url'
                 })
 
-              if (!docError) {
+              if (docError) {
+                console.error(`[${jobId}] Error saving document: ${doc.filename}:`, docError)
+              } else {
                 savedDocumentsCount++
+                console.log(`[${jobId}] ✓ Document saved: ${doc.filename}`)
               }
             } catch (docError) {
-              console.error(`Error saving document:`, docError)
+              console.error(`[${jobId}] Exception saving document ${doc.filename}:`, docError)
             }
           }
 
         } catch (pageError) {
-          console.error(`Error processing page ${page.url}:`, pageError)
+          console.error(`[${jobId}] Exception processing page ${page.url}:`, pageError)
+          errorCount++
         }
       }
 
@@ -327,13 +416,15 @@ async function performBackgroundScraping(supabase: any, apiKey: string, job: Scr
       })
       .eq('id', job.websiteId)
 
-    console.log(`=== BACKGROUND SCRAPING COMPLETED ===`)
-    console.log(`Pages saved: ${savedPagesCount}`)
+    console.log(`=== BACKGROUND SCRAPING COMPLETED [${jobId}] ===`)
+    console.log(`Pages saved: ${savedPagesCount}/${scrapedPages.length}`)
     console.log(`Documents found: ${savedDocumentsCount}`)
+    console.log(`Errors encountered: ${errorCount}`)
     console.log(`Total duration: ${Date.now() - startTime}ms`)
+    console.log(`Success rate: ${Math.round((savedPagesCount / scrapedPages.length) * 100)}%`)
 
   } catch (error) {
-    console.error('=== BACKGROUND SCRAPE FAILED ===')
+    console.error(`=== BACKGROUND SCRAPE FAILED [${jobId}] ===`)
     console.error('Error:', error)
     
     // Mark website as having an error
@@ -350,13 +441,49 @@ async function performBackgroundScraping(supabase: any, apiKey: string, job: Scr
   }
 }
 
+// Retry wrapper for ScrapingBee scraping
+async function scrapeWebsiteWithScrapingBeeRetry(apiKey: string, job: ScrapingJob, jobId: string): Promise<ScrapedPage[]> {
+  const maxRetries = 2
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[${jobId}] Scraping attempt ${attempt}/${maxRetries}`)
+      const result = await scrapeWebsiteWithScrapingBee(apiKey, job, jobId)
+      
+      if (result.length > 0) {
+        console.log(`[${jobId}] Scraping successful on attempt ${attempt}`)
+        return result
+      } else if (attempt < maxRetries) {
+        console.warn(`[${jobId}] No pages found on attempt ${attempt}, retrying...`)
+        await new Promise(resolve => setTimeout(resolve, 5000)) // Wait 5 seconds before retry
+      }
+    } catch (error) {
+      lastError = error as Error
+      console.error(`[${jobId}] Scraping attempt ${attempt} failed:`, error)
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 3000 // Exponential backoff: 6s, 12s
+        console.log(`[${jobId}] Retrying in ${delay/1000} seconds...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  if (lastError) {
+    throw new Error(`Scraping failed after ${maxRetries} attempts. Last error: ${lastError.message}`)
+  }
+  
+  return [] // No pages found after all retries
+}
+
 // ScrapingBee implementation
-async function scrapeWebsiteWithScrapingBee(apiKey: string, job: ScrapingJob): Promise<ScrapedPage[]> {
+async function scrapeWebsiteWithScrapingBee(apiKey: string, job: ScrapingJob, jobId: string): Promise<ScrapedPage[]> {
   const pages: ScrapedPage[] = []
   const visitedUrls = new Set<string>()
   const urlsToVisit = [job.baseUrl]
 
-  console.log(`=== STARTING SCRAPINGBEE SCRAPING ===`)
+  console.log(`=== STARTING SCRAPINGBEE SCRAPING [${jobId}] ===`)
   console.log(`Base URL: ${job.baseUrl}`)
   console.log(`Max pages: ${job.maxPages}`)
 
@@ -367,7 +494,7 @@ async function scrapeWebsiteWithScrapingBee(apiKey: string, job: ScrapingJob): P
     visitedUrls.add(currentUrl)
 
     try {
-      console.log(`Scraping: ${currentUrl}`)
+      console.log(`[${jobId}] Scraping page ${pages.length + 1}/${job.maxPages}: ${currentUrl}`)
       
       // ScrapingBee API call
       const scrapingBeeUrl = new URL('https://app.scrapingbee.com/api/v1/')
