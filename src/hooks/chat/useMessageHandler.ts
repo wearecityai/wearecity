@@ -30,6 +30,7 @@ export const useMessageHandler = (
     try {
       await addMessage(userMessage, targetConversationId);
       const responseText = await fetchChatIA(inputText, { allowMapDisplay: chatConfig.allowMapDisplay });
+      console.log('[useMessageHandler] Respuesta de la IA:', responseText);
       // Parsea la respuesta para extraer eventos, placeCards, etc.
       const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
       console.log('[useMessageHandler] Eventos parseados:', parsed.eventsForThisMessage);
