@@ -29,7 +29,9 @@ export const useEventParser = () => {
     let storedUserQueryForEvents: string | undefined = undefined;
 
     // Parse events
-    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    // Acepta [EVENT_CARD_END] o [/EVENT_CARD_START] como cierre
+    const eventEndMarkers = `${EVENT_CARD_END_MARKER}|[/EVENT_CARD_START]`;
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}([\\s\\S]*?)(${eventEndMarkers.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')})`, 'g');
     let match;
     let tempContentForProcessing = content;
     while ((match = eventRegex.exec(tempContentForProcessing)) !== null) {
