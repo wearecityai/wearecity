@@ -1,14 +1,13 @@
 
 import { useRef } from 'react';
 import { EventInfo } from '../../types';
+import {
+  EVENT_CARD_START_MARKER,
+  EVENT_CARD_END_MARKER,
+  MAX_INITIAL_EVENTS,
+} from '../../constants';
 
-interface SystemMarkers {
-  EVENT_CARD_START_MARKER: string;
-  EVENT_CARD_END_MARKER: string;
-  MAX_INITIAL_EVENTS: number;
-}
-
-export const useEventParser = (markers?: SystemMarkers) => {
+export const useEventParser = () => {
   const displayedEventUniqueKeys = useRef(new Set<string>());
   const lastUserQueryThatLedToEvents = useRef<string | null>(null);
 
@@ -29,16 +28,8 @@ export const useEventParser = (markers?: SystemMarkers) => {
     const rawParsedEventsFromAI: EventInfo[] = [];
     let storedUserQueryForEvents: string | undefined = undefined;
 
-    // Use markers from parameters or fallback values
-    const EVENT_START = markers?.EVENT_CARD_START_MARKER || '[EVENT_CARD_START]';
-    const EVENT_END = markers?.EVENT_CARD_END_MARKER || '[EVENT_CARD_END]';
-    const MAX_EVENTS = markers?.MAX_INITIAL_EVENTS || 6;
-
-    console.log('🎪 parseEvents - Using markers:', { EVENT_START, EVENT_END, MAX_EVENTS });
-    console.log('🔍 parseEvents - Searching in content:', content.includes(EVENT_START) ? 'FOUND START MARKER' : 'NO START MARKER');
-
     // Parse events
-    const eventRegex = new RegExp(`${EVENT_START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let match;
     let tempContentForProcessing = content;
     while ((match = eventRegex.exec(tempContentForProcessing)) !== null) {
@@ -117,8 +108,8 @@ export const useEventParser = (markers?: SystemMarkers) => {
       }
     }
 
-    const eventsForThisMessage = eventsForThisMessageCandidate.slice(0, MAX_EVENTS);
-    const showSeeMoreButtonForThisMessage = eventsForThisMessageCandidate.length > MAX_EVENTS;
+    const eventsForThisMessage = eventsForThisMessageCandidate.slice(0, MAX_INITIAL_EVENTS);
+    const showSeeMoreButtonForThisMessage = eventsForThisMessageCandidate.length > MAX_INITIAL_EVENTS;
     
     if (eventsForThisMessage.length > 0) { 
       lastUserQueryThatLedToEvents.current = inputText; 

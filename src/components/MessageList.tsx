@@ -1,8 +1,7 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { ChatMessage as ChatMessageType } from '../types';
-import ChatMessage from './ChatMessage';
+import ChatMessage from './ChatMessage'; // Ensured relative path
 
 interface MessageListProps {
   messages: ChatMessageType[];
@@ -12,13 +11,7 @@ interface MessageListProps {
   onSeeMoreEvents: (originalUserQuery: string) => void;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ 
-  messages, 
-  isLoading, 
-  onDownloadPdf, 
-  configuredSedeElectronicaUrl, 
-  onSeeMoreEvents 
-}) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -29,8 +22,20 @@ const MessageList: React.FC<MessageListProps> = ({
     scrollToBottom();
   }, [messages]);
 
+  // Loading state for the initial assistant load is handled by App.tsx now for Gemini UI
+  // if (isLoading && messages.length === 0) {
+  //   return (
+  //     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1, p: 2 }}>
+  //       <CircularProgress />
+  //       <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary' }}>
+  //         Cargando asistente...
+  //       </Typography>
+  //     </Box>
+  //   );
+  // }
+  
   return (
-    <Box sx={{ flexGrow: 1, overflowY: 'auto', py: 2, bgcolor: 'transparent' }}>
+    <Box sx={{ flexGrow: 1, overflowY: 'auto', py:2, bgcolor: 'transparent' }}> {/* Sin padding lateral, barra de scroll al borde */}
       {messages.map((msg) => (
         <ChatMessage
           key={msg.id}

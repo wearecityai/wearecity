@@ -1,33 +1,26 @@
 
 import { ChatMessage } from '../../types';
+import {
+  SHOW_MAP_MARKER_START,
+  SHOW_MAP_MARKER_END,
+  TECA_LINK_BUTTON_START_MARKER,
+  TECA_LINK_BUTTON_END_MARKER,
+} from '../../constants';
 
-interface SystemMarkers {
-  SHOW_MAP_MARKER_START: string;
-  SHOW_MAP_MARKER_END: string;
-  TECA_LINK_BUTTON_START_MARKER: string;
-  TECA_LINK_BUTTON_END_MARKER: string;
-}
-
-export const useContentParser = (markers?: SystemMarkers) => {
+export const useContentParser = () => {
   const parseContent = (content: string, chatConfig: any) => {
     let processedContent = content;
     let mapQueryFromAI: string | undefined = undefined;
     let downloadablePdfInfoForMessage: ChatMessage['downloadablePdfInfo'] = undefined;
     let telematicLinkForMessage: ChatMessage['telematicProcedureLink'] = undefined;
 
-    // Use markers from parameters or fallback values
-    const MAP_START = markers?.SHOW_MAP_MARKER_START || '[SHOW_MAP:';
-    const MAP_END = markers?.SHOW_MAP_MARKER_END || ']';
-    const TECA_START = markers?.TECA_LINK_BUTTON_START_MARKER || '[TECA_LINK_BUTTON_START]';
-    const TECA_END = markers?.TECA_LINK_BUTTON_END_MARKER || '[TECA_LINK_BUTTON_END]';
-
     // Parse map query
-    if (chatConfig.allowMapDisplay && processedContent.includes(MAP_START)) {
-      const startIndex = processedContent.indexOf(MAP_START); 
-      const endIndex = processedContent.indexOf(MAP_END, startIndex);
+    if (chatConfig.allowMapDisplay && processedContent.includes(SHOW_MAP_MARKER_START)) {
+      const startIndex = processedContent.indexOf(SHOW_MAP_MARKER_START); 
+      const endIndex = processedContent.indexOf(SHOW_MAP_MARKER_END, startIndex);
       if (startIndex !== -1 && endIndex !== -1) {
-          mapQueryFromAI = processedContent.substring(startIndex + MAP_START.length, endIndex).trim();
-          processedContent = (processedContent.substring(0, startIndex) + processedContent.substring(endIndex + MAP_END.length)).trim();
+          mapQueryFromAI = processedContent.substring(startIndex + SHOW_MAP_MARKER_START.length, endIndex).trim();
+          processedContent = (processedContent.substring(0, startIndex) + processedContent.substring(endIndex + SHOW_MAP_MARKER_END.length)).trim();
       }
     }
 
@@ -46,7 +39,7 @@ export const useContentParser = (markers?: SystemMarkers) => {
     }
 
     // Parse TECA links
-    const tecaLinkRegex = new RegExp(`${TECA_START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${TECA_END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    const tecaLinkRegex = new RegExp(`${TECA_LINK_BUTTON_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${TECA_LINK_BUTTON_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let tempContentForProcessing = processedContent;
     let tecaMatch;
     while ((tecaMatch = tecaLinkRegex.exec(tempContentForProcessing)) !== null) {

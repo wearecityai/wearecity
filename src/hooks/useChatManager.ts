@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { CustomChatConfig } from '../types';
 import { useMessages } from './useMessages';
 import { useChatSession } from './chat/useChatSession';
@@ -48,13 +48,12 @@ export const useChatManager = (
   // Chat session management
   const {
     geminiChatSessionRef,
-    initializeChatSession,
-    resetChatSession,
-    validateChatSession
+    initializeChatSession
   } = useChatSession(isGeminiReady, onError, onGeminiReadyChange);
 
   // Message processing
   const {
+    isLoading,
     processMessage
   } = useMessageHandler(chatConfig, onError, onGeminiReadyChange);
 
@@ -67,31 +66,16 @@ export const useChatManager = (
     generateConversationTitle
   } = useChatActions();
 
-  const [isLoading, setIsLoading] = React.useState(false);
-
   const handleSendMessage = async (inputText: string) => {
-    console.log('=== Enhanced handleSendMessage ===');
-    console.log('Input text:', inputText);
-    console.log('Current conversation ID at start:', currentConversationId);
-    console.log('Gemini ready:', isGeminiReady);
-
-    // Enhanced session validation
-    if (!validateChatSession()) {
-      console.warn('Chat session invalid, attempting to reinitialize...');
-      resetChatSession();
-      await initializeChatSession(chatConfig, userLocation);
-      
-      if (!validateChatSession()) {
-        onError('Error de sesión del asistente. Por favor, recarga la página.');
-        return;
-      }
-    }
-
-    setIsLoading(true);
-    let targetConversationId = currentConversationId;
-
     try {
+      console.log('=== Starting handleSendMessage ===');
+      console.log('Input text:', inputText);
+      console.log('Current conversation ID:', currentConversationId);
+
       // Step 1: Determine or create the target conversation
+      let targetConversationId = currentConversationId;
+      let conversationWasCreated = false;
+
       if (!targetConversationId) {
         console.log('No current conversation, creating new one...');
         const generatedTitle = await generateConversationTitle(inputText);
@@ -104,12 +88,8 @@ export const useChatManager = (
         }
         
         targetConversationId = newConversation.id;
+        conversationWasCreated = true;
         console.log('Created new conversation:', targetConversationId, 'with title:', generatedTitle);
-        
-        // Set the current conversation ID immediately after creation
-        // This ensures all subsequent operations use the correct conversation ID
-        console.log('Setting current conversation ID to newly created:', targetConversationId);
-        setCurrentConversationId(targetConversationId);
       } else {
         // Update title if this is the first real message in an existing conversation
         const currentConversation = conversations.find(c => c.id === targetConversationId);
@@ -120,13 +100,11 @@ export const useChatManager = (
         }
       }
 
-      console.log('Target conversation ID determined:', targetConversationId);
-
       // Step 2: Create user message
       const userMessage = createUserMessage(inputText);
       console.log('Created user message:', userMessage.id);
 
-      // Step 3: Process the message with the stable conversation ID
+      // Step 3: Process the message with the specific conversation ID
       console.log('Processing message for conversation:', targetConversationId);
       await processMessage(
         geminiChatSessionRef.current,
@@ -134,35 +112,32 @@ export const useChatManager = (
         userMessage,
         addMessage,
         saveMessageOnly,
-        updateMessage,
         setMessages,
         isGeminiReady,
-        targetConversationId,
-        () => {
-          console.log('getCurrentMessages called, returning messages length:', messages.length);
-          return messages;
-        }
+        targetConversationId // Pass the conversation ID explicitly
       );
+
+      // Step 4: Update the current conversation ID if we created a new one
+      if (conversationWasCreated) {
+        console.log('Setting current conversation ID to newly created:', targetConversationId);
+        setCurrentConversationId(targetConversationId);
+      }
 
       console.log('=== handleSendMessage completed successfully ===');
 
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
       onError('Error al enviar el mensaje. Intenta de nuevo.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleNewChatWrapper = async () => {
-    console.log('handleNewChatWrapper called');
     await handleNewChat(clearMessages, setCurrentConversationId);
   };
 
   // Initialize chat when ready
   useEffect(() => {
     if (isGeminiReady) {
-      console.log('Initializing chat session - isGeminiReady:', isGeminiReady);
       initializeChatSession(chatConfig, userLocation);
     }
   }, [isGeminiReady, chatConfig, userLocation, initializeChatSession]);

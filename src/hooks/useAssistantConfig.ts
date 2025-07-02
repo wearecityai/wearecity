@@ -93,7 +93,7 @@ export const useAssistantConfig = () => {
           uploadedProcedureDocuments: safeParseJsonObject(data.uploaded_procedure_documents, DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments),
           restrictedCity: safeParseJsonObject(data.restricted_city, DEFAULT_CHAT_CONFIG.restrictedCity),
           sedeElectronicaUrl: data.sede_electronica_url || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl,
-          profileImageUrl: (data as any).profile_image_url || DEFAULT_CHAT_CONFIG.profileImageUrl,
+          profileImageUrl: (data as any).profile_image_url || DEFAULT_CHAT_CONFIG.profileImageUrl, // Safe access with fallback
         };
         setConfig(loadedConfig);
       } else {
@@ -135,10 +135,9 @@ export const useAssistantConfig = () => {
         uploaded_procedure_documents: serializeForJson(newConfig.uploadedProcedureDocuments),
         restricted_city: serializeForJson(newConfig.restrictedCity),
         sede_electronica_url: newConfig.sedeElectronicaUrl,
-        profile_image_url: newConfig.profileImageUrl,
+        profile_image_url: newConfig.profileImageUrl, // This will be added to the database schema later
         is_active: true,
         config_name: 'default',
-        // Note: base_system_instruction is handled by the system and not directly editable by users
       };
 
       // First, check if a record exists for this user
