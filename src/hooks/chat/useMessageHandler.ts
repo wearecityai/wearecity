@@ -41,10 +41,23 @@ export const useMessageHandler = (
 
     setIsLoading(true);
     
+    // Create loading message immediately
+    const loadingMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: MessageRole.Model,
+      content: '',
+      timestamp: new Date(),
+      isTyping: true
+    };
+    
     try {
       // Add user message to the specific conversation
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
+
+      // Add loading message to show typing indicator
+      console.log('Adding loading message to conversation:', targetConversationId);
+      await addMessage(loadingMessage, targetConversationId);
 
       // Generate AI response using the new streaming method
       console.log('Generating AI response...');
@@ -66,10 +79,11 @@ export const useMessageHandler = (
 
       // Create AI message
       const aiMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: loadingMessage.id, // Use the same ID to replace the loading message
         role: MessageRole.Model,
         content: responseText,
-        timestamp: new Date()
+        timestamp: new Date(),
+        isTyping: false // Make sure typing is false
       };
 
       // Parse content based on configuration
@@ -94,8 +108,8 @@ export const useMessageHandler = (
         };
       }
 
-      // Add AI message to the specific conversation
-      console.log('Adding AI message to conversation:', targetConversationId);
+      // Update the loading message with the actual response
+      console.log('Updating loading message with AI response in conversation:', targetConversationId);
       await addMessage(parsedMessage, targetConversationId);
       
       console.log('Message processing completed successfully');
@@ -103,17 +117,18 @@ export const useMessageHandler = (
     } catch (error) {
       console.error('Error processing message:', error);
       
-      // Create error message
+      // Create error message with the same ID to replace loading message
       const errorMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: loadingMessage.id,
         role: MessageRole.Model,
         content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
         timestamp: new Date(),
-        error: error instanceof Error ? error.message : 'Error desconocido'
+        error: error instanceof Error ? error.message : 'Error desconocido',
+        isTyping: false
       };
 
       try {
-        // Add error message to the specific conversation
+        // Replace loading message with error message
         await addMessage(errorMessage, targetConversationId);
       } catch (saveError) {
         console.error('Error saving error message:', saveError);
