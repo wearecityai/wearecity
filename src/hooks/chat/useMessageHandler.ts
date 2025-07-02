@@ -9,7 +9,6 @@ export const useMessageHandler = (
   onError: (error: string) => void,
   onGeminiReadyChange: (ready: boolean) => void
 ) => {
-  const [isLoading, setIsLoading] = useState(false);
   const { parseContent } = useContentParser();
   const lastProcessedMessageRef = useRef<string | null>(null);
 
@@ -57,7 +56,7 @@ export const useMessageHandler = (
       return;
     }
 
-    setIsLoading(true);
+    
     
     // Create a loading message immediately to show the indicator
     const loadingMessage: ChatMessage = {
@@ -211,14 +210,10 @@ export const useMessageHandler = (
       } else {
         onError('Error desconocido al procesar el mensaje. Intenta de nuevo.');
       }
-    } finally {
-      setIsLoading(false);
-      lastProcessedMessageRef.current = null;
     }
   }, [parseContent, onError, onGeminiReadyChange]);
 
   return {
-    isLoading,
     processMessage
   };
 };

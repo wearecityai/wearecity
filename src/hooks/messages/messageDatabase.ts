@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage } from '../../types';
+import { ChatMessage, MessageRole } from '../../types';
 import { convertToDatabaseRole } from './messageConverters';
 import { serializeMetadata } from './messageSerializers';
 
@@ -72,11 +72,28 @@ export const updateMessageInDb = async (
   messageId: string,
   updates: Partial<ChatMessage>
 ) => {
-  const serializedMetadata = updates.content ? serializeMetadata(updates as ChatMessage) : null;
+  console.log('Updating message in DB:', messageId, 'with content length:', updates.content?.length || 0);
   
   const updateData: any = {};
-  if (updates.content) updateData.content = updates.content;
-  if (serializedMetadata !== null) updateData.metadata = serializedMetadata;
+  if (updates.content !== undefined) updateData.content = updates.content;
+  
+  // Handle metadata updates properly
+  if (Object.keys(updates).some(key => !['content'].includes(key))) {
+    const { content, ...metadata } = updates;
+    const serializedMetadata = serializeMetadata({
+      id: messageId,
+      role: metadata.role || MessageRole.Model,
+      content: content || '',
+      timestamp: new Date(),
+      ...metadata
+    } as ChatMessage);
+    
+    if (serializedMetadata) {
+      updateData.metadata = serializedMetadata;
+    }
+  }
+  
+  console.log('DB update data:', updateData);
   
   const { error } = await supabase
     .from('messages')

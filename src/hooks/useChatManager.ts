@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { CustomChatConfig } from '../types';
 import { useMessages } from './useMessages';
 import { useChatSession } from './chat/useChatSession';
@@ -55,7 +55,6 @@ export const useChatManager = (
 
   // Message processing
   const {
-    isLoading,
     processMessage
   } = useMessageHandler(chatConfig, onError, onGeminiReadyChange);
 
@@ -67,6 +66,8 @@ export const useChatManager = (
     createUserMessage,
     generateConversationTitle
   } = useChatActions();
+
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const handleSendMessage = async (inputText: string) => {
     console.log('=== Enhanced handleSendMessage ===');
@@ -86,6 +87,7 @@ export const useChatManager = (
       }
     }
 
+    setIsLoading(true);
     let targetConversationId = currentConversationId;
 
     try {
@@ -147,6 +149,8 @@ export const useChatManager = (
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
       onError('Error al enviar el mensaje. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
