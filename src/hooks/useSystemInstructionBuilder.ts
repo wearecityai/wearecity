@@ -3,10 +3,6 @@ import { useCallback, useState, useEffect } from 'react';
 import { CustomChatConfig } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  PROCEDURE_URLS_PREAMBLE_TEXT_TEMPLATE,
-  PROCEDURE_URLS_GUIDANCE_TEXT_TEMPLATE,
-  UPLOADED_DOCUMENTS_CONTEXT_CLAUSE,
-  UPLOADED_PDF_PROCEDURE_INSTRUCTION_TEMPLATE,
   DEFAULT_LANGUAGE_CODE,
 } from '../constants';
 
@@ -70,19 +66,28 @@ export const useSystemInstructionBuilder = () => {
     let procedureUrlsGuidanceText = "";
     if (config.procedureSourceUrls && config.procedureSourceUrls.length > 0) {
         const urlListString = config.procedureSourceUrls.map(url => `- ${url}`).join("\n");
-        procedureUrlsPreambleText = PROCEDURE_URLS_PREAMBLE_TEXT_TEMPLATE.replace('{procedureUrlList}', urlListString);
-        procedureUrlsGuidanceText = PROCEDURE_URLS_GUIDANCE_TEXT_TEMPLATE;
+        const preambleTemplate = systemInstructions['PROCEDURE_URLS_PREAMBLE_TEXT_TEMPLATE'];
+        if (preambleTemplate) {
+          procedureUrlsPreambleText = preambleTemplate.replace('{procedureUrlList}', urlListString);
+        }
+        procedureUrlsGuidanceText = systemInstructions['PROCEDURE_URLS_GUIDANCE_TEXT_TEMPLATE'] || '';
     }
     
     let uploadedDocsListString = "No hay documentos PDF de trámites disponibles.";
     if (config.uploadedProcedureDocuments && config.uploadedProcedureDocuments.length > 0) {
         uploadedDocsListString = "Documentos PDF de trámites disponibles:\n" +
             config.uploadedProcedureDocuments.map(doc => `- Trámite: \"${doc.procedureName}\", Archivo: \"${doc.fileName}\"`).join("\n");
-        systemInstructionParts.push(UPLOADED_PDF_PROCEDURE_INSTRUCTION_TEMPLATE);
+        const pdfInstructionTemplate = systemInstructions['UPLOADED_PDF_PROCEDURE_INSTRUCTION_TEMPLATE'];
+        if (pdfInstructionTemplate) {
+          systemInstructionParts.push(pdfInstructionTemplate);
+        }
     }
     
-    const finalUploadedDocsContext = UPLOADED_DOCUMENTS_CONTEXT_CLAUSE.replace('{uploadedDocumentsListPlaceholder}', uploadedDocsListString);
-    systemInstructionParts.push(finalUploadedDocsContext);
+    const uploadedDocsContextTemplate = systemInstructions['UPLOADED_DOCUMENTS_CONTEXT_CLAUSE'];
+    if (uploadedDocsContextTemplate) {
+      const finalUploadedDocsContext = uploadedDocsContextTemplate.replace('{uploadedDocumentsListPlaceholder}', uploadedDocsListString);
+      systemInstructionParts.push(finalUploadedDocsContext);
+    }
     
     // Usar instrucciones de trámites desde la base de datos
     const cityProceduresInstruction = systemInstructions['CITY_PROCEDURES_SYSTEM_INSTRUCTION_CLAUSE'];
