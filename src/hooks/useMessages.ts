@@ -140,16 +140,20 @@ export const useMessages = (conversationId: string | null) => {
     const conversationIdToUse = targetConversationId || conversationId;
     console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role, 'to conversation:', conversationIdToUse);
     
-    // Add to local state immediately if it belongs to the current conversation
-    // This ensures updateMessage will work during streaming
+    // Add to local state immediately only if it belongs to the current conversation
+    // This is needed for streaming updates before the message is saved to DB
     if (conversationIdToUse === conversationId) {
-      console.log('Adding message to local state immediately:', message.id);
-      setMessages(prev => [...prev, message]);
+      console.log('Adding message to local state immediately for streaming:', message.id);
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.find(m => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
     } else {
       console.log('Message belongs to different conversation, not adding to local state');
     }
     
-    // Save to database
+    // Save to database - realtime will sync it back for other users/sessions
     await saveMessageOnly(message, conversationIdToUse);
   };
 
@@ -206,15 +210,79 @@ export const useMessages = (conversationId: string | null) => {
     setMessages([]);
   };
 
-  // React to conversation ID changes
+  // React to conversation ID changes and set up realtime subscription
   useEffect(() => {
     console.log('useMessages: conversationId changed to:', conversationId);
-    if (conversationId) {
-      loadMessages();
-    } else {
-      console.log('ConversationId is null, clearing messages');
+    
+    if (!conversationId || !user) {
+      console.log('ConversationId is null or no user, clearing messages');
       setMessages([]);
+      return;
     }
+
+    // Load initial messages
+    loadMessages();
+
+    // Set up realtime subscription for messages in this conversation
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          console.log('Realtime message change:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new;
+            const deserializedMetadata = deserializeMetadata(newMessage.metadata);
+            
+            const chatMessage: ChatMessage = {
+              id: newMessage.id,
+              role: convertToMessageRole(newMessage.role),
+              content: newMessage.content,
+              timestamp: new Date(newMessage.created_at || ''),
+              ...deserializedMetadata
+            };
+            
+            setMessages(prev => {
+              // Avoid duplicates - check if message already exists
+              if (prev.find(m => m.id === chatMessage.id)) return prev;
+              return [...prev, chatMessage];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMessage = payload.new;
+            const deserializedMetadata = deserializeMetadata(updatedMessage.metadata);
+            
+            const chatMessage: ChatMessage = {
+              id: updatedMessage.id,
+              role: convertToMessageRole(updatedMessage.role),
+              content: updatedMessage.content,
+              timestamp: new Date(updatedMessage.created_at || ''),
+              ...deserializedMetadata
+            };
+            
+            setMessages(prev => 
+              prev.map(msg => 
+                msg.id === chatMessage.id ? chatMessage : msg
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setMessages(prev => prev.filter(msg => msg.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Unsubscribing from messages realtime for conversation:', conversationId);
+      supabase.removeChannel(channel);
+    };
   }, [conversationId, user]);
 
   return {

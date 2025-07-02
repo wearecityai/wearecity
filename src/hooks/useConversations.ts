@@ -140,14 +140,61 @@ export const useConversations = () => {
     }
   };
 
+  // Realtime subscription for conversations
   useEffect(() => {
-    if (user) {
-      loadConversations();
-    } else {
+    if (!user) {
       setConversations([]);
       setCurrentConversationId(null);
+      return;
     }
-  }, [user]);
+
+    // Load initial conversations
+    loadConversations();
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('conversations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Realtime conversation change:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newConversation = payload.new as Conversation;
+            setConversations(prev => {
+              // Avoid duplicates
+              if (prev.find(c => c.id === newConversation.id)) return prev;
+              return [newConversation, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedConversation = payload.new as Conversation;
+            setConversations(prev => 
+              prev.map(conv => 
+                conv.id === updatedConversation.id ? updatedConversation : conv
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setConversations(prev => prev.filter(conv => conv.id !== deletedId));
+            if (currentConversationId === deletedId) {
+              setCurrentConversationId(null);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Unsubscribing from conversations realtime');
+      supabase.removeChannel(channel);
+    };
+  }, [user, currentConversationId]);
 
   return {
     conversations,
