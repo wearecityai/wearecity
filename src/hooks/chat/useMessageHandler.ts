@@ -1,203 +1,111 @@
 
-import { useState } from 'react';
-import { ChatMessage, MessageRole, CustomChatConfig } from '../../types';
-import { sendMessageToGeminiStream } from '../../services/geminiService';
-import { API_KEY_ERROR_MESSAGE } from '../../constants';
-import { useMessageParser } from '../useMessageParser';
-import { useErrorHandler } from '../useErrorHandler';
+import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
+import { useCallback, useRef, useState } from 'react';
+import { GenerativeModel } from '@google/genai';
+import { useContentParser } from '../parsers/useContentParser';
 
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
   onError: (error: string) => void,
   onGeminiReadyChange: (ready: boolean) => void
 ) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { parseAIResponse } = useMessageParser();
-  const { getFriendlyError } = useErrorHandler();
+  const [isLoading, setIsLoading] = useState(false);
+  const { parseContent, parseContentWithPlaces } = useContentParser();
+  const lastProcessedMessageRef = useRef<string | null>(null);
 
-  const processMessage = async (
-    geminiChatSession: any,
+  const processMessage = useCallback(async (
+    chatSession: GenerativeModel | null,
     inputText: string,
     userMessage: ChatMessage,
     addMessage: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     saveMessageOnly: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
-    setMessages: (updater: (prev: ChatMessage[]) => ChatMessage[]) => void,
+    setMessages: (messages: ChatMessage[]) => void,
     isGeminiReady: boolean,
-    conversationId?: string
+    targetConversationId: string // Make this required
   ) => {
-    if (!geminiChatSession || isLoading || !isGeminiReady) {
-      if (!isGeminiReady) onError(API_KEY_ERROR_MESSAGE);
+    // Prevent duplicate processing
+    if (lastProcessedMessageRef.current === userMessage.id) {
+      console.log('Message already being processed, skipping:', userMessage.id);
       return;
     }
-
-    if (!conversationId) {
-      onError('No se pudo determinar la conversación para guardar el mensaje.');
-      return;
-    }
-
-    // Add user message to local state and save to database with specific conversation ID
-    console.log('Creating user message:', userMessage.id, 'for conversation:', conversationId);
-    try {
-      await addMessage(userMessage, conversationId);
-      console.log('User message added and saved successfully to conversation:', conversationId);
-    } catch (e) {
-      console.error('Error saving user message:', e);
-      onError('No se pudo guardar tu mensaje. Intenta de nuevo.');
+    
+    lastProcessedMessageRef.current = userMessage.id;
+    
+    console.log('Processing message:', userMessage.id, 'for conversation:', targetConversationId);
+    
+    if (!isGeminiReady || !chatSession) {
+      console.error('Gemini not ready or chat session not available');
+      onError('El asistente no está listo. Por favor, espera un momento.');
       return;
     }
 
     setIsLoading(true);
     
-    // Create temporary AI message for UI display
-    const aiTempId = crypto.randomUUID();
-    const tempAiMessage: ChatMessage = { 
-      id: aiTempId, 
-      role: MessageRole.Model, 
-      content: '', 
-      timestamp: new Date(), 
-      isTyping: true 
-    };
-    
-    console.log('Adding temporary AI message to UI:', aiTempId);
-    setMessages(prev => [...prev, tempAiMessage]);
-    
-    let accumulatedContent = '';
-
     try {
-      await sendMessageToGeminiStream(
-        geminiChatSession, 
-        inputText,
-        // Streaming callback
-        (chunkText) => {
-          accumulatedContent += chunkText;
-          setMessages(prev => prev.map(msg => 
-            msg.id === aiTempId 
-              ? { ...msg, content: accumulatedContent, isTyping: true } 
-              : msg
-          ));
-        },
-        // Complete callback
-        async (finalResponse) => {
-          console.log('AI finished responding, processing final response for conversation:', conversationId);
-          
-          const parsedResponse = parseAIResponse(accumulatedContent, finalResponse, chatConfig, inputText);
+      // Add user message to the specific conversation
+      console.log('Adding user message to conversation:', targetConversationId);
+      await addMessage(userMessage, targetConversationId);
 
-          const finalAiMessage: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: MessageRole.Model, 
-            content: parsedResponse.processedContent, 
-            timestamp: new Date(),
-            groundingMetadata: parsedResponse.finalGroundingMetadata, 
-            mapQuery: parsedResponse.mapQueryFromAI,
-            events: parsedResponse.eventsForThisMessage.length > 0 ? parsedResponse.eventsForThisMessage : undefined,
-            placeCards: parsedResponse.placeCardsForMessage.length > 0 ? parsedResponse.placeCardsForMessage : undefined,
-            downloadablePdfInfo: parsedResponse.downloadablePdfInfoForMessage, 
-            telematicProcedureLink: parsedResponse.telematicLinkForMessage,
-            showSeeMoreButton: parsedResponse.showSeeMoreButtonForThisMessage, 
-            originalUserQueryForEvents: parsedResponse.storedUserQueryForEvents,
-          };
-          
-          console.log('Saving final AI response to database only:', finalAiMessage.id, 'for conversation:', conversationId);
-          
-          try {
-            await saveMessageOnly(finalAiMessage, conversationId);
-            console.log('AI response saved successfully to database for conversation:', conversationId);
-            
-            setMessages(prev => 
-              prev.map(msg => 
-                msg.id === aiTempId ? finalAiMessage : msg
-              )
-            );
-            
-          } catch (e) {
-            console.error('Error saving AI response:', e);
-            
-            setMessages(prev => prev.map(msg => 
-              msg.id === aiTempId 
-                ? { 
-                    ...finalAiMessage, 
-                    id: aiTempId,
-                    error: 'No se pudo guardar la respuesta' 
-                  }
-                : msg
-            ));
-            
-            onError('No se pudo guardar la respuesta de la IA.');
-          }
-          
-          setIsLoading(false);
-        },
-        // Error callback
-        async (apiError) => {
-          console.error("Gemini API error:", apiError);
-          const friendlyApiError = getFriendlyError(apiError, `Error: ${apiError.message}`);
-          
-          const errorAiMessage: ChatMessage = { 
-            id: crypto.randomUUID(), 
-            role: MessageRole.Model, 
-            content: '', 
-            timestamp: new Date(), 
-            error: friendlyApiError 
-          };
-          
-          console.log('Saving AI error message to database only for conversation:', conversationId);
-          try {
-            await saveMessageOnly(errorAiMessage, conversationId);
-            
-            setMessages(prev => prev.map(msg => 
-              msg.id === aiTempId ? errorAiMessage : msg
-            ));
-            
-          } catch (e) {
-            console.error('Error saving error message:', e);
-            
-            setMessages(prev => prev.map(msg => 
-              msg.id === aiTempId 
-                ? { ...errorAiMessage, id: aiTempId }
-                : msg
-            ));
-          }
-          
-          if (friendlyApiError === API_KEY_ERROR_MESSAGE) { 
-            onError(API_KEY_ERROR_MESSAGE); 
-            onGeminiReadyChange(false); 
-          } else {
-            onError(friendlyApiError);
-          }
-          setIsLoading(false);
-        }
-      );
-    } catch (e: any) {
-      console.error("General error sending message:", e);
-      const errorMsg = getFriendlyError(e, "Error al enviar mensaje.");
+      // Generate AI response
+      console.log('Generating AI response...');
+      const result = await chatSession.sendMessage(inputText);
+      const responseText = result.response.text();
       
-      const errorAiMessage: ChatMessage = { 
-        id: crypto.randomUUID(), 
-        role: MessageRole.Model, 
-        content: '', 
-        timestamp: new Date(), 
-        error: errorMsg 
+      console.log('AI response generated, length:', responseText.length);
+
+      // Create AI message
+      const aiMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: MessageRole.Model,
+        content: responseText,
+        timestamp: new Date()
       };
+
+      // Parse content based on configuration
+      let parsedMessage = aiMessage;
+      if (chatConfig.allowMapDisplay) {
+        parsedMessage = await parseContentWithPlaces(aiMessage, chatConfig);
+      } else {
+        parsedMessage = parseContent(aiMessage, chatConfig);
+      }
+
+      // Add AI message to the specific conversation
+      console.log('Adding AI message to conversation:', targetConversationId);
+      await addMessage(parsedMessage, targetConversationId);
       
+      console.log('Message processing completed successfully');
+
+    } catch (error) {
+      console.error('Error processing message:', error);
+      
+      // Create error message
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: MessageRole.Model,
+        content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+        timestamp: new Date(),
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      };
+
       try {
-        await saveMessageOnly(errorAiMessage, conversationId);
-        setMessages(prev => prev.map(msg => 
-          msg.id === aiTempId ? errorAiMessage : msg
-        ));
-      } catch (err) {
-        console.error('Error saving error message:', err);
-        setMessages(prev => prev.map(msg => 
-          msg.id === aiTempId 
-            ? { ...errorAiMessage, id: aiTempId }
-            : msg
-        ));
+        // Add error message to the specific conversation
+        await addMessage(errorMessage, targetConversationId);
+      } catch (saveError) {
+        console.error('Error saving error message:', saveError);
+        onError('Error al procesar el mensaje y guardar la respuesta de error.');
       }
       
-      onError(errorMsg);
-      if (errorMsg === API_KEY_ERROR_MESSAGE) onGeminiReadyChange(false);
+      if (error instanceof Error && error.message.includes('API key')) {
+        onGeminiReadyChange(false);
+        onError('Error de configuración de API. Verifica tu clave de API de Google.');
+      } else {
+        onError('Error al procesar el mensaje. Intenta de nuevo.');
+      }
+    } finally {
       setIsLoading(false);
+      lastProcessedMessageRef.current = null;
     }
-  };
+  }, [parseContent, parseContentWithPlaces, onError, onGeminiReadyChange]);
 
   return {
     isLoading,

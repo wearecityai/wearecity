@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -147,8 +148,10 @@ export const useMessages = (conversationId: string | null) => {
     // Save to database first
     await saveMessageOnly(message, conversationIdToUse);
     
-    // Only add to local state if it belongs to the current conversation
-    if (conversationIdToUse === conversationId) {
+    // Add to local state immediately if it belongs to the current conversation
+    // OR if the target conversation is about to become the current conversation
+    if (conversationIdToUse === conversationId || !conversationId) {
+      console.log('Adding message to local state:', message.id);
       setMessages(prev => [...prev, message]);
     }
   };
