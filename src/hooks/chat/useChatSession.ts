@@ -27,12 +27,19 @@ export const useChatSession = (
       return;
     }
     try {
-      // Initialize chat session - the system instruction building is now handled by the edge function
+      console.log('Initializing chat session with config:', {
+        enableGoogleSearch: configToUse.enableGoogleSearch,
+        allowMapDisplay: configToUse.allowMapDisplay
+      });
+      
+      // Initialize chat session - the edge function handles system instruction building
       geminiChatSessionRef.current = initChatSession(
         undefined, // No custom instruction needed - edge function handles everything
         configToUse.enableGoogleSearch,
         configToUse.allowMapDisplay
       );
+      
+      console.log('Chat session initialized successfully');
     } catch (e: any) {
       console.error("Gemini Initialization error:", e);
       const errorMessage = getFriendlyError(e, "Error al inicializar el chat con Gemini.");

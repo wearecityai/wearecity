@@ -21,7 +21,6 @@ export interface ChatSession {
  * Initializes the Gemini service (now using edge function proxy)
  */
 export const initializeGeminiService = (): boolean => {
-  // No longer need to initialize with API key since it's handled by edge function
   console.log("Gemini service initialized (using edge function proxy).");
   return true;
 };
@@ -78,10 +77,17 @@ export const initChatSession = (
     messages.push({ role: 'user', content: message });
 
     try {
+      // Get the current session to use the auth token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
       const response = await fetch(`https://irghpvvoparqettcnpnh.supabase.co/functions/v1/gemini-proxy`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZ2hwdnZvcGFycWV0dGNucG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NjI5NjYsImV4cCI6MjA2NjMzODk2Nn0.ElxlmmVG5gcqCwPtTQvGhF1WyDwFG6xaMqktgQY9Hvo`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -94,6 +100,8 @@ export const initChatSession = (
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HTTP error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
