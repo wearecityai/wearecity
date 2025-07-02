@@ -93,9 +93,6 @@ export const useChatManager = (
         // This ensures all subsequent operations use the correct conversation ID
         console.log('Setting current conversation ID to newly created:', targetConversationId);
         setCurrentConversationId(targetConversationId);
-        
-        // Give React a moment to update the state before proceeding
-        await new Promise(resolve => setTimeout(resolve, 50));
       } else {
         // Update title if this is the first real message in an existing conversation
         const currentConversation = conversations.find(c => c.id === targetConversationId);
@@ -134,7 +131,7 @@ export const useChatManager = (
 
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
-      onError(error instanceof Error ? error.message : 'Error al enviar el mensaje. Intenta de nuevo.');
+      onError('Error al enviar el mensaje. Intenta de nuevo.');
     }
   };
 
