@@ -44,8 +44,15 @@ export const useSystemInstructionBuilder = () => {
 
   const buildFullSystemInstruction = useCallback((config: CustomChatConfig, location: UserLocation | null): string => {
     if (!isLoaded) {
+      console.log('⚠️ System instructions not loaded yet, returning empty string');
       return ''; // Retornar cadena vacía si aún no se han cargado las instrucciones
     }
+
+    console.log('🏗️ Building system instruction with config:', {
+      allowMapDisplay: config.allowMapDisplay,
+      hasEventInstruction: !!systemInstructions['EVENT_CARD_SYSTEM_INSTRUCTION'],
+      hasPlaceInstruction: !!systemInstructions['PLACE_CARD_SYSTEM_INSTRUCTION']
+    });
 
     let systemInstructionParts: string[] = [];
     
@@ -130,12 +137,15 @@ export const useSystemInstructionBuilder = () => {
     
     // Instrucciones de mapa, eventos y lugares desde la base de datos
     if (config.allowMapDisplay && systemInstructions['SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION']) {
+      console.log('➕ Adding map instruction');
       systemInstructionParts.push(systemInstructions['SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION']);
     }
     if (systemInstructions['EVENT_CARD_SYSTEM_INSTRUCTION']) {
+      console.log('🎪 Adding event card instruction');
       systemInstructionParts.push(systemInstructions['EVENT_CARD_SYSTEM_INSTRUCTION']);
     }
     if (systemInstructions['PLACE_CARD_SYSTEM_INSTRUCTION']) {
+      console.log('🏢 Adding place card instruction');
       systemInstructionParts.push(systemInstructions['PLACE_CARD_SYSTEM_INSTRUCTION']);
     }
     
@@ -143,6 +153,10 @@ export const useSystemInstructionBuilder = () => {
     if (!fullInstruction && !config.enableGoogleSearch && !config.allowMapDisplay) {
         fullInstruction = systemInstructions['INITIAL_SYSTEM_INSTRUCTION'] || '';
     }
+    
+    console.log('✅ Final system instruction built, length:', fullInstruction.length);
+    console.log('📋 System instruction parts:', systemInstructionParts.length);
+    
     return fullInstruction.trim() || systemInstructions['INITIAL_SYSTEM_INSTRUCTION'] || '';
   }, [systemInstructions, isLoaded]);
 
