@@ -1,3 +1,4 @@
+
 import { useRef } from 'react';
 import { EventInfo } from '../../types';
 import {
@@ -24,14 +25,11 @@ export const useEventParser = () => {
   const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
   const parseEvents = (content: string, inputText: string) => {
-    console.log('[parseEvents] Contenido recibido:', content);
     const rawParsedEventsFromAI: EventInfo[] = [];
     let storedUserQueryForEvents: string | undefined = undefined;
 
     // Parse events
-    // Acepta [EVENT_CARD_END] o [/EVENT_CARD_START] como cierre
-    const eventEndMarkers = `${EVENT_CARD_END_MARKER}|[/EVENT_CARD_START]`;
-    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}([\\s\\S]*?)(${eventEndMarkers.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')})`, 'g');
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let match;
     let tempContentForProcessing = content;
     while ((match = eventRegex.exec(tempContentForProcessing)) !== null) {
@@ -40,7 +38,7 @@ export const useEventParser = () => {
         const eventData = JSON.parse(jsonStrToParse);
         if (eventData.title && eventData.date) rawParsedEventsFromAI.push({ ...eventData });
       } catch (e) { 
-        console.error('[parseEvents] Error al parsear JSON de evento:', jsonStrToParse, e); 
+        console.error("Failed to parse event JSON:", jsonStrToParse, e); 
       }
     }
 

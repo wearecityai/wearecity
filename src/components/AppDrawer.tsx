@@ -154,7 +154,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
             </IconButton>
           </Box>
         ))}
-         {isMenuOpen && chatTitles.length > 5 && <ListItemButton 
+         {isMenuOpen && <ListItemButton 
            onClick={() => console.log("Mostrar más clicked")}
            title={!isMenuOpen ? "Mostrar más" : undefined}
            sx={{

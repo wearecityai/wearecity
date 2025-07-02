@@ -30,15 +30,17 @@ export const useMessageHandler = (
     try {
       await addMessage(userMessage, targetConversationId);
       const responseText = await fetchChatIA(inputText, { allowMapDisplay: chatConfig.allowMapDisplay });
-      console.log('[useMessageHandler] Respuesta de la IA:', responseText);
-      // Parsea la respuesta para extraer eventos, placeCards, etc.
-      const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
-      console.log('[useMessageHandler] Eventos parseados:', parsed.eventsForThisMessage);
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: MessageRole.Model,
+        content: responseText,
+        timestamp: new Date()
+      };
+      // Parsea la respuesta como antes
+      const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
+      const parsedMessage: ChatMessage = {
+        ...aiMessage,
         content: parsed.processedContent,
-        timestamp: new Date(),
         events: parsed.eventsForThisMessage,
         placeCards: parsed.placeCardsForMessage,
         mapQuery: parsed.mapQueryFromAI,
@@ -48,7 +50,7 @@ export const useMessageHandler = (
         originalUserQueryForEvents: parsed.storedUserQueryForEvents,
         groundingMetadata: parsed.finalGroundingMetadata,
       };
-      await addMessage(aiMessage, targetConversationId);
+      await addMessage(parsedMessage, targetConversationId);
     } catch (error) {
       console.error('Error en fetchChatIA:', error);
       const errorMessage: ChatMessage = {
