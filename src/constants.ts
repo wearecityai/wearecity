@@ -1,3 +1,4 @@
+
 import { CustomChatConfig, SupportedLanguage } from './types';
 
 export const GEMINI_MODEL_NAME = 'gemini-2.5-flash-preview-04-17';
@@ -213,7 +214,7 @@ export const LANGUAGE_PROMPT_CLAUSE: string = "Por favor, interactúa y responde
 
 export const DEFAULT_CHAT_CONFIG: CustomChatConfig = {
   assistantName: DEFAULT_ASSISTANT_NAME,
-  systemInstruction: DEFAULT_SYSTEM_INSTRUCTION,
+  systemInstruction: INITIAL_SYSTEM_INSTRUCTION,
   recommendedPrompts: DEFAULT_RECOMMENDED_PROMPTS,
   serviceTags: DEFAULT_SERVICE_TAGS,
   enableGoogleSearch: true,
