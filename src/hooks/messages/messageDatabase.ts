@@ -81,23 +81,31 @@ export const updateMessageInDb = async (
     updateData.content = updates.content;
   }
   
-  // Handle metadata updates - only serialize actual metadata fields
+  // Get current message metadata first to merge properly
+  const { data: currentMessage } = await supabase
+    .from('messages')
+    .select('metadata')
+    .eq('id', messageId)
+    .single();
+  
+  // Handle metadata updates - merge with existing metadata
   const metadataFields = Object.keys(updates).filter(key => 
     !['content', 'id', 'role', 'timestamp'].includes(key)
   );
   
   if (metadataFields.length > 0) {
-    // Only include the fields that are actually being updated
-    const metadataOnly: any = {};
+    // Start with existing metadata or empty object
+    const existingMetadata = (currentMessage?.metadata as any) || {};
+    
+    // Merge in the new updates
+    const updatedMetadata = { ...existingMetadata };
     metadataFields.forEach(key => {
       if (updates[key as keyof ChatMessage] !== undefined) {
-        metadataOnly[key] = updates[key as keyof ChatMessage];
+        updatedMetadata[key] = updates[key as keyof ChatMessage];
       }
     });
     
-    if (Object.keys(metadataOnly).length > 0) {
-      updateData.metadata = metadataOnly;
-    }
+    updateData.metadata = updatedMetadata;
   }
   
   console.log('DB update data:', updateData);
