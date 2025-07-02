@@ -22,42 +22,84 @@ interface ScrapedPage {
 }
 
 serve(async (req) => {
+  console.log(`Request received: ${req.method} ${req.url}`)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request')
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    // Verify environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    console.log('Environment check:', {
+      supabaseUrl: supabaseUrl ? 'Set' : 'Missing',
+      supabaseKey: supabaseKey ? 'Set' : 'Missing'
+    })
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing required environment variables')
+    }
+
     // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { websiteId, action = 'scrape' } = await req.json()
+    const requestBody = await req.json()
+    console.log('Request body received:', requestBody)
+
+    const { websiteId, action = 'scrape' } = requestBody
+
+    if (!websiteId) {
+      throw new Error('websiteId is required')
+    }
 
     if (action === 'scrape') {
       console.log(`Starting scraping for website: ${websiteId}`)
 
-      // Get website configuration
-      const { data: website, error: websiteError } = await supabase
+      // Get website configuration with timeout
+      const websitePromise = supabase
         .from('scraped_websites')
         .select('*')
         .eq('id', websiteId)
         .single()
 
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 10000)
+      )
+
+      const { data: website, error: websiteError } = await Promise.race([
+        websitePromise,
+        timeoutPromise
+      ]) as any
+
       if (websiteError || !website) {
-        throw new Error(`Website not found: ${websiteError?.message}`)
+        console.error('Website fetch error:', websiteError)
+        throw new Error(`Website not found: ${websiteError?.message || 'Unknown error'}`)
       }
 
       console.log(`Scraping website: ${website.name} - ${website.base_url}`)
 
-      // Start scraping process
-      const scrapedPages = await scrapeWebsite({
+      // Start scraping process with timeout
+      const scrapingPromise = scrapeWebsite({
         websiteId: website.id,
         baseUrl: website.base_url,
-        maxPages: website.max_pages || 100,
+        maxPages: Math.min(website.max_pages || 50, 100), // Limit to 100 pages max
         allowedDomains: website.allowed_domains || []
       })
+
+      const scrapingTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Scraping timeout after 5 minutes')), 300000)
+      )
+
+      const scrapedPages = await Promise.race([
+        scrapingPromise,
+        scrapingTimeoutPromise
+      ]) as ScrapedPage[]
+
+      console.log(`Scraping completed, processing ${scrapedPages.length} pages`)
 
       // Save scraped pages to database
       let savedPagesCount = 0
@@ -144,13 +186,17 @@ serve(async (req) => {
       }
 
       // Update website's last_scraped_at timestamp
-      await supabase
+      const { error: updateError } = await supabase
         .from('scraped_websites')
         .update({ 
           last_scraped_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', websiteId)
+
+      if (updateError) {
+        console.error('Error updating website timestamp:', updateError)
+      }
 
       console.log(`Scraping completed: ${savedPagesCount} pages, ${savedDocumentsCount} documents`)
 
@@ -160,7 +206,8 @@ serve(async (req) => {
           message: `Scraping completed successfully`,
           stats: {
             pages_scraped: savedPagesCount,
-            documents_found: savedDocumentsCount
+            documents_found: savedDocumentsCount,
+            total_pages_found: scrapedPages.length
           }
         }),
         {
@@ -183,7 +230,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 
-        details: error.message 
+        details: error.message,
+        timestamp: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -200,6 +248,26 @@ async function scrapeWebsite(job: ScrapingJob): Promise<ScrapedPage[]> {
 
   console.log(`Starting to scrape ${job.baseUrl} with max ${job.maxPages} pages`)
 
+  // Add timeout for individual page requests
+  const fetchWithTimeout = async (url: string, timeout = 10000) => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Municipal-Assistant-Bot/1.0 (+https://lovable.dev)'
+        },
+        signal: controller.signal
+      })
+      clearTimeout(timeoutId)
+      return response
+    } catch (error) {
+      clearTimeout(timeoutId)
+      throw error
+    }
+  }
+
   while (urlsToVisit.length > 0 && pages.length < job.maxPages) {
     const currentUrl = urlsToVisit.shift()!
     
@@ -212,14 +280,16 @@ async function scrapeWebsite(job: ScrapingJob): Promise<ScrapedPage[]> {
     try {
       console.log(`Scraping: ${currentUrl}`)
       
-      const response = await fetch(currentUrl, {
-        headers: {
-          'User-Agent': 'Municipal-Assistant-Bot/1.0'
-        }
-      })
+      const response = await fetchWithTimeout(currentUrl, 15000)
 
       if (!response.ok) {
         console.log(`Failed to fetch ${currentUrl}: ${response.status}`)
+        continue
+      }
+
+      const contentType = response.headers.get('content-type') || ''
+      if (!contentType.includes('text/html')) {
+        console.log(`Skipping non-HTML content: ${currentUrl}`)
         continue
       }
 
@@ -240,19 +310,24 @@ async function scrapeWebsite(job: ScrapingJob): Promise<ScrapedPage[]> {
         console.log(`Added page: ${title} (${cleanedContent.length} chars)`)
       }
 
-      // Extract new URLs to visit
-      const newUrls = extractLinks(html, currentUrl, job.baseUrl, job.allowedDomains)
-      for (const newUrl of newUrls) {
-        if (!visitedUrls.has(newUrl) && !urlsToVisit.includes(newUrl)) {
-          urlsToVisit.push(newUrl)
+      // Extract new URLs to visit (limit to prevent infinite loops)
+      if (pages.length < job.maxPages) {
+        const newUrls = extractLinks(html, currentUrl, job.baseUrl, job.allowedDomains)
+        const urlsToAdd = newUrls.slice(0, 10) // Limit new URLs per page
+        
+        for (const newUrl of urlsToAdd) {
+          if (!visitedUrls.has(newUrl) && !urlsToVisit.includes(newUrl)) {
+            urlsToVisit.push(newUrl)
+          }
         }
       }
 
-      // Add small delay to be respectful
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Add delay to be respectful
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
     } catch (error) {
       console.error(`Error scraping ${currentUrl}:`, error)
+      // Continue with next URL instead of failing completely
     }
   }
 

@@ -155,16 +155,41 @@ export const useWebScraping = () => {
     try {
       console.log('Starting scraping for website:', websiteId);
 
-      const { data, error } = await supabase.functions.invoke('intelligent-scraper', {
+      // Add timeout to the function call
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('La operación ha tardado demasiado tiempo')), 300000)
+      );
+
+      const scrapingPromise = supabase.functions.invoke('intelligent-scraper', {
         body: {
           websiteId: websiteId,
           action: 'scrape'
         }
       });
 
-      if (error) throw error;
+      const { data, error } = await Promise.race([scrapingPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Scraping function error:', error);
+        
+        // Provide more specific error messages
+        if (error.message?.includes('Failed to fetch')) {
+          throw new Error('No se puede conectar con el servicio de scraping. Verifica tu conexión a internet.');
+        } else if (error.message?.includes('timeout')) {
+          throw new Error('La operación ha tardado demasiado tiempo. Intenta con un sitio web más pequeño.');
+        } else {
+          throw new Error(`Error en el scraping: ${error.message}`);
+        }
+      }
 
       console.log('Scraping result:', data);
+
+      // Show success message with stats if available
+      if (data?.stats) {
+        const stats = data.stats;
+        const message = `Scraping completado: ${stats.pages_scraped} páginas guardadas, ${stats.documents_found} documentos encontrados`;
+        console.log(message);
+      }
 
       // Reload websites to get updated last_scraped_at
       await loadWebsites();
@@ -172,7 +197,13 @@ export const useWebScraping = () => {
       return data;
     } catch (err) {
       console.error('Error starting scraping:', err);
-      setError('Error al iniciar el scraping');
+      
+      // Set user-friendly error message
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error inesperado al iniciar el scraping. Intenta de nuevo.');
+      }
       return null;
     } finally {
       setIsLoading(false);
