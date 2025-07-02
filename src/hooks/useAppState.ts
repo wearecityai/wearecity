@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTheme, useMediaQuery } from '@mui/material';
+import { useThemeContext } from '../theme/ThemeProvider';
 import { useGeolocation } from './useGeolocation';
 import { useApiInitialization } from './useApiInitialization';
 import { useGoogleMaps } from './useGoogleMaps';
@@ -12,15 +13,12 @@ export const useAppState = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Theme state management
-  const [currentThemeMode, setCurrentThemeMode] = useState<'light' | 'dark'>('light');
+  // Use theme context instead of local state
+  const { currentThemeMode, toggleTheme } = useThemeContext();
+  
   const [currentView, setCurrentView] = useState<'chat' | 'finetuning'>('chat');
   const [selectedChatIndex, setSelectedChatIndex] = useState<number>(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
-  const toggleTheme = () => {
-    setCurrentThemeMode(prev => prev === 'light' ? 'dark' : 'light');
-  };
 
   const { isGeminiReady, setIsGeminiReady, appError, setAppError } = useApiInitialization();
   

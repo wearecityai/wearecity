@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ErrorBoundary from './ErrorBoundary';
@@ -128,9 +129,11 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         p: 2,
         minHeight: '64px',
         bgcolor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}
     >
-      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
         {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : ''}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -143,6 +146,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
               aria-label="user account"
               onClick={handleUserMenuOpen}
               id="user-avatar-button"
+              sx={{ color: 'text.primary' }}
             >
               <AccountCircleIcon />
             </IconButton>
