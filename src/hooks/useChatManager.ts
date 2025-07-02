@@ -48,7 +48,9 @@ export const useChatManager = (
   // Chat session management
   const {
     geminiChatSessionRef,
-    initializeChatSession
+    initializeChatSession,
+    resetChatSession,
+    validateChatSession
   } = useChatSession(isGeminiReady, onError, onGeminiReadyChange);
 
   // Message processing
@@ -67,9 +69,22 @@ export const useChatManager = (
   } = useChatActions();
 
   const handleSendMessage = async (inputText: string) => {
-    console.log('=== Starting handleSendMessage ===');
+    console.log('=== Enhanced handleSendMessage ===');
     console.log('Input text:', inputText);
     console.log('Current conversation ID at start:', currentConversationId);
+    console.log('Gemini ready:', isGeminiReady);
+
+    // Enhanced session validation
+    if (!validateChatSession()) {
+      console.warn('Chat session invalid, attempting to reinitialize...');
+      resetChatSession();
+      await initializeChatSession(chatConfig, userLocation);
+      
+      if (!validateChatSession()) {
+        onError('Error de sesión del asistente. Por favor, recarga la página.');
+        return;
+      }
+    }
 
     let targetConversationId = currentConversationId;
 

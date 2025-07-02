@@ -38,9 +38,22 @@ export const useMessageHandler = (
     console.log('Target conversation ID:', targetConversationId);
     console.log('Gemini ready:', isGeminiReady);
     
-    if (!isGeminiReady || !chatSession) {
-      console.error('Gemini not ready or chat session not available');
+    // Enhanced validation
+    if (!isGeminiReady) {
+      console.error('Gemini not ready');
       onError('El asistente no está listo. Por favor, espera un momento.');
+      return;
+    }
+
+    if (!chatSession) {
+      console.error('Chat session not available');
+      onError('Sesión de chat no disponible. Por favor, recarga la página.');
+      return;
+    }
+
+    if (typeof chatSession.sendMessageStream !== 'function') {
+      console.error('Chat session missing sendMessageStream method');
+      onError('Error en la sesión de chat. Por favor, recarga la página.');
       return;
     }
 
@@ -147,33 +160,37 @@ export const useMessageHandler = (
     } catch (error) {
       console.error('=== Error processing message ===', error);
       
-      // Clean up loading message if it exists
+      // Enhanced error handling and cleanup
       try {
-        // First try to update the loading message to show an error state
+        console.log('Cleaning up loading message after error:', loadingMessage?.id);
+        
+        // Always try to update the loading message to show error state
         if (loadingMessage) {
           await updateMessage(loadingMessage.id, {
             content: 'Error al procesar la respuesta. Inténtalo de nuevo.',
             isTyping: false,
             error: error instanceof Error ? error.message : 'Error desconocido'
           });
+          console.log('Successfully updated loading message with error state');
         }
       } catch (updateError) {
-        console.error('Error updating loading message with error state:', updateError);
+        console.error('Failed to update loading message with error state:', updateError);
         
-        // If updating fails, create a new error message
-        const errorMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: MessageRole.Model,
-          content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
-          timestamp: new Date(),
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        };
-
+        // If updating fails, try to remove loading message and create new error message
         try {
+          const errorMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: MessageRole.Model,
+            content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+            timestamp: new Date(),
+            error: error instanceof Error ? error.message : 'Error desconocido'
+          };
+
           await addMessage(errorMessage, targetConversationId);
+          console.log('Created new error message as fallback');
         } catch (saveError) {
-          console.error('Error saving error message:', saveError);
-          onError('Error al procesar el mensaje y guardar la respuesta de error.');
+          console.error('Critical: Failed to save error message:', saveError);
+          onError('Error crítico al procesar el mensaje. Por favor, recarga la página.');
         }
       }
       

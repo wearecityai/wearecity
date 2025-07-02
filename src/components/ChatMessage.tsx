@@ -95,10 +95,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       }
       if (part.match(/^~.*?~$/)) return <s key={index}>{part.substring(1, part.length - 1)}</s>;
       return part.split('\n').map((line, i, arr) => (
-        <React.Fragment key={`${index}-${i}`}>
+        <span key={`${index}-${i}`}>
           {line}
           {i < arr.length - 1 && <br />}
-        </React.Fragment>
+        </span>
       ));
     });
   };

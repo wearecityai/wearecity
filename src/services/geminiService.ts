@@ -75,11 +75,12 @@ export const initChatSession = (
     onError: (error: Error) => void,
     retryCount: number = 0
   ): Promise<void> => {
-    const maxRetries = 2;
+    const maxRetries = 3; // Increased retry count
     messages.push({ role: 'user', content: message });
 
     console.log(`=== Starting sendMessageStream (attempt ${retryCount + 1}/${maxRetries + 1}) ===`);
     console.log('Message:', message.substring(0, 100));
+    console.log('Current session messages count:', messages.length);
 
     try {
       // Get the current session to use the auth token
@@ -123,12 +124,13 @@ export const initChatSession = (
 
       console.log('Starting to read stream...');
 
-      // Set a timeout for the entire streaming process
+      // Set a timeout for the entire streaming process with exponential backoff
+      const timeoutDuration = 30000 + (retryCount * 10000); // Increase timeout on retries
       const streamPromise = new Promise<void>((resolve, reject) => {
         streamTimeout = setTimeout(() => {
-          console.error('Stream timeout after 30 seconds');
+          console.error(`Stream timeout after ${timeoutDuration}ms (attempt ${retryCount + 1})`);
           reject(new Error('Stream timeout'));
-        }, 30000);
+        }, timeoutDuration);
 
         const readStream = async () => {
           try {
