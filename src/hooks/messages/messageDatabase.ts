@@ -72,24 +72,31 @@ export const updateMessageInDb = async (
   messageId: string,
   updates: Partial<ChatMessage>
 ) => {
-  console.log('Updating message in DB:', messageId, 'with content length:', updates.content?.length || 0);
+  console.log('Updating message in DB:', messageId, 'with updates:', Object.keys(updates));
   
   const updateData: any = {};
-  if (updates.content !== undefined) updateData.content = updates.content;
   
-  // Handle metadata updates properly
-  if (Object.keys(updates).some(key => !['content'].includes(key))) {
-    const { content, ...metadata } = updates;
-    const serializedMetadata = serializeMetadata({
-      id: messageId,
-      role: metadata.role || MessageRole.Model,
-      content: content || '',
-      timestamp: new Date(),
-      ...metadata
-    } as ChatMessage);
+  // Handle content updates
+  if (updates.content !== undefined) {
+    updateData.content = updates.content;
+  }
+  
+  // Handle metadata updates - only serialize actual metadata fields
+  const metadataFields = Object.keys(updates).filter(key => 
+    !['content', 'id', 'role', 'timestamp'].includes(key)
+  );
+  
+  if (metadataFields.length > 0) {
+    // Only include the fields that are actually being updated
+    const metadataOnly: any = {};
+    metadataFields.forEach(key => {
+      if (updates[key as keyof ChatMessage] !== undefined) {
+        metadataOnly[key] = updates[key as keyof ChatMessage];
+      }
+    });
     
-    if (serializedMetadata) {
-      updateData.metadata = serializedMetadata;
+    if (Object.keys(metadataOnly).length > 0) {
+      updateData.metadata = metadataOnly;
     }
   }
   
