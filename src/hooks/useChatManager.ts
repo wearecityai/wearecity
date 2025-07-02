@@ -67,15 +67,15 @@ export const useChatManager = (
   } = useChatActions();
 
   const handleSendMessage = async (inputText: string) => {
+    console.log('=== Starting handleSendMessage ===');
+    console.log('Input text:', inputText);
+    console.log('Current conversation ID at start:', currentConversationId);
+
+    let targetConversationId = currentConversationId;
+    let conversationWasCreated = false;
+
     try {
-      console.log('=== Starting handleSendMessage ===');
-      console.log('Input text:', inputText);
-      console.log('Current conversation ID:', currentConversationId);
-
       // Step 1: Determine or create the target conversation
-      let targetConversationId = currentConversationId;
-      let conversationWasCreated = false;
-
       if (!targetConversationId) {
         console.log('No current conversation, creating new one...');
         const generatedTitle = await generateConversationTitle(inputText);
@@ -100,11 +100,19 @@ export const useChatManager = (
         }
       }
 
-      // Step 2: Create user message
+      console.log('Target conversation ID determined:', targetConversationId);
+
+      // Step 2: Update the current conversation ID BEFORE processing to ensure stability
+      if (conversationWasCreated) {
+        console.log('Setting current conversation ID to newly created:', targetConversationId);
+        setCurrentConversationId(targetConversationId);
+      }
+
+      // Step 3: Create user message
       const userMessage = createUserMessage(inputText);
       console.log('Created user message:', userMessage.id);
 
-      // Step 3: Process the message with the specific conversation ID
+      // Step 4: Process the message with the stable conversation ID
       console.log('Processing message for conversation:', targetConversationId);
       await processMessage(
         geminiChatSessionRef.current,
@@ -112,17 +120,15 @@ export const useChatManager = (
         userMessage,
         addMessage,
         saveMessageOnly,
+        updateMessage, // Pass updateMessage for real-time updates
         setMessages,
         isGeminiReady,
         targetConversationId,
-        () => messages // Pass a function that returns current messages
+        () => {
+          console.log('getCurrentMessages called, returning messages length:', messages.length);
+          return messages;
+        }
       );
-
-      // Step 4: Update the current conversation ID if we created a new one
-      if (conversationWasCreated) {
-        console.log('Setting current conversation ID to newly created:', targetConversationId);
-        setCurrentConversationId(targetConversationId);
-      }
 
       console.log('=== handleSendMessage completed successfully ===');
 
@@ -133,12 +139,14 @@ export const useChatManager = (
   };
 
   const handleNewChatWrapper = async () => {
+    console.log('handleNewChatWrapper called');
     await handleNewChat(clearMessages, setCurrentConversationId);
   };
 
   // Initialize chat when ready
   useEffect(() => {
     if (isGeminiReady) {
+      console.log('Initializing chat session - isGeminiReady:', isGeminiReady);
       initializeChatSession(chatConfig, userLocation);
     }
   }, [isGeminiReady, chatConfig, userLocation, initializeChatSession]);

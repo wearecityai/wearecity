@@ -19,10 +19,11 @@ export const useMessageHandler = (
     userMessage: ChatMessage,
     addMessage: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     saveMessageOnly: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
+    updateMessage: (messageId: string, updates: Partial<ChatMessage>) => Promise<void>,
     setMessages: (messages: ChatMessage[]) => void,
     isGeminiReady: boolean,
     targetConversationId: string,
-    getCurrentMessages: () => ChatMessage[] // Changed to a function to get fresh state
+    getCurrentMessages: () => ChatMessage[]
   ) => {
     // Prevent duplicate processing
     if (lastProcessedMessageRef.current === userMessage.id) {
@@ -32,7 +33,10 @@ export const useMessageHandler = (
     
     lastProcessedMessageRef.current = userMessage.id;
     
-    console.log('Processing message:', userMessage.id, 'for conversation:', targetConversationId);
+    console.log('=== Processing message ===');
+    console.log('Message ID:', userMessage.id);
+    console.log('Target conversation ID:', targetConversationId);
+    console.log('Gemini ready:', isGeminiReady);
     
     if (!isGeminiReady || !chatSession) {
       console.error('Gemini not ready or chat session not available');
@@ -57,51 +61,53 @@ export const useMessageHandler = (
       };
 
       // Add the loading message
-      console.log('Adding loading message to conversation:', targetConversationId);
+      console.log('Adding loading message:', loadingMessage.id);
       await addMessage(loadingMessage, targetConversationId);
 
-      // Generate AI response using the new streaming method
-      console.log('Generating AI response...');
+      // Generate AI response using streaming
+      console.log('Starting streaming response generation...');
       let responseText = '';
       let isFirstChunk = true;
       
       await chatSession.sendMessageStream(
         inputText,
         (chunk: string, isFirst: boolean) => {
+          console.log('Received chunk, length:', chunk.length, 'isFirst:', isFirst);
           responseText += chunk;
           
-          // Update the loading message with partial content on first chunk
+          // Update the loading message with partial content using updateMessage
           if (isFirstChunk) {
-            const updatedMessage: ChatMessage = {
-              ...loadingMessage,
+            console.log('First chunk received, updating loading message');
+            updateMessage(loadingMessage.id, {
               content: responseText,
-              isTyping: false // Stop showing the typing indicator once we get content
-            };
-            
-            // Get fresh messages and update
-            const currentMessages = getCurrentMessages();
-            const updatedMessages = currentMessages.map(msg => 
-              msg.id === loadingMessage.id ? updatedMessage : msg
-            );
-            setMessages(updatedMessages);
+              isTyping: false
+            }).catch(error => {
+              console.error('Error updating message during streaming:', error);
+            });
             isFirstChunk = false;
+          } else {
+            // Continue updating with accumulated response
+            updateMessage(loadingMessage.id, {
+              content: responseText
+            }).catch(error => {
+              console.error('Error updating message during streaming:', error);
+            });
           }
         },
         () => {
-          console.log('AI response generated, length:', responseText.length);
+          console.log('Streaming completed. Final response length:', responseText.length);
         },
         (error: Error) => {
+          console.error('Streaming error:', error);
           throw error;
         }
       );
 
       // Parse content based on configuration
-      let parsedMessage: ChatMessage;
+      let finalUpdates: Partial<ChatMessage>;
       if (chatConfig.allowMapDisplay) {
-        // Parse the content and apply the results to the message
         const parsed = parseContent(responseText, chatConfig);
-        parsedMessage = {
-          ...loadingMessage,
+        finalUpdates = {
           content: parsed.processedContent,
           mapQuery: parsed.mapQueryFromAI,
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
@@ -110,8 +116,7 @@ export const useMessageHandler = (
         };
       } else {
         const parsed = parseContent(responseText, chatConfig);
-        parsedMessage = {
-          ...loadingMessage,
+        finalUpdates = {
           content: parsed.processedContent,
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
           telematicProcedureLink: parsed.telematicLinkForMessage,
@@ -119,17 +124,14 @@ export const useMessageHandler = (
         };
       }
 
-      // Update the final message in the conversation using fresh messages
-      const currentMessages = getCurrentMessages();
-      const finalMessages = currentMessages.map(msg => 
-        msg.id === loadingMessage.id ? parsedMessage : msg
-      );
-      setMessages(finalMessages);
+      // Apply final updates to the message
+      console.log('Applying final updates to message:', loadingMessage.id);
+      await updateMessage(loadingMessage.id, finalUpdates);
       
-      console.log('Message processing completed successfully');
+      console.log('=== Message processing completed successfully ===');
 
     } catch (error) {
-      console.error('Error processing message:', error);
+      console.error('=== Error processing message ===', error);
       
       // Create error message
       const errorMessage: ChatMessage = {

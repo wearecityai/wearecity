@@ -135,11 +135,6 @@ export const useMessages = (conversationId: string | null) => {
     }
   };
 
-  // Save message to database (legacy function for compatibility)
-  const saveMessage = async (message: ChatMessage) => {
-    await saveMessageOnly(message);
-  };
-
   // Add message locally and save it to a specific conversation
   const addMessage = async (message: ChatMessage, targetConversationId?: string) => {
     const conversationIdToUse = targetConversationId || conversationId;
@@ -148,17 +143,20 @@ export const useMessages = (conversationId: string | null) => {
     // Save to database first
     await saveMessageOnly(message, conversationIdToUse);
     
-    // Add to local state immediately if it belongs to the current conversation
-    // OR if the target conversation is about to become the current conversation
-    if (conversationIdToUse === conversationId || !conversationId) {
+    // Add to local state if it belongs to the current conversation
+    if (conversationIdToUse === conversationId) {
       console.log('Adding message to local state:', message.id);
       setMessages(prev => [...prev, message]);
+    } else {
+      console.log('Message belongs to different conversation, not adding to local state');
     }
   };
 
-  // Update existing message
+  // Update existing message both locally and in database
   const updateMessage = async (messageId: string, updates: Partial<ChatMessage>) => {
-    console.log('Updating message:', messageId);
+    console.log('Updating message:', messageId, 'with updates:', Object.keys(updates));
+    
+    // Update local state immediately for responsiveness
     setMessages(prev => 
       prev.map(msg => 
         msg.id === messageId 
@@ -185,6 +183,8 @@ export const useMessages = (conversationId: string | null) => {
             
           if (error) {
             console.error('Error updating message in database:', error);
+          } else {
+            console.log('Message updated successfully in database:', messageId);
           }
         }
       } catch (error) {
@@ -202,7 +202,12 @@ export const useMessages = (conversationId: string | null) => {
   // React to conversation ID changes
   useEffect(() => {
     console.log('useMessages: conversationId changed to:', conversationId);
-    loadMessages();
+    if (conversationId) {
+      loadMessages();
+    } else {
+      console.log('ConversationId is null, clearing messages');
+      setMessages([]);
+    }
   }, [conversationId, user]);
 
   return {
