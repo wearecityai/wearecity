@@ -1,5 +1,4 @@
 
-
 import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
 import { Chat } from '@google/genai';
@@ -50,7 +49,7 @@ export const useMessageHandler = (
       // Generate AI response - fix the sendMessage call
       console.log('Generating AI response...');
       const result = await chatSession.sendMessage({ message: inputText });
-      const responseText = result.text(); // Fix: use text() method directly
+      const responseText = result.text; // Fix: use text property without parentheses
       
       console.log('AI response generated, length:', responseText.length);
 
@@ -127,4 +126,3 @@ export const useMessageHandler = (
     processMessage
   };
 };
-
