@@ -36,10 +36,12 @@ serve(async (req) => {
     // Verify environment variables first
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const scrapingBeeApiKey = Deno.env.get('SCRAPINGBEE_API_KEY')
     
     console.log('Environment check:', {
       supabaseUrl: supabaseUrl ? `Set` : 'MISSING',
-      supabaseKey: supabaseKey ? `Set` : 'MISSING'
+      supabaseKey: supabaseKey ? `Set` : 'MISSING',
+      scrapingBeeApiKey: scrapingBeeApiKey ? `Set` : 'MISSING'
     })
 
     if (!supabaseUrl || !supabaseKey) {
@@ -49,6 +51,11 @@ serve(async (req) => {
       
       console.error('Missing environment variables:', missingVars)
       throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`)
+    }
+
+    if (!scrapingBeeApiKey) {
+      console.error('ScrapingBee API key is missing')
+      throw new Error('ScrapingBee API key is required. Please configure SCRAPINGBEE_API_KEY in your Supabase secrets.')
     }
 
     // Parse request body
@@ -125,10 +132,11 @@ serve(async (req) => {
       // Use EdgeRuntime.waitUntil to run scraping in background
       const backgroundScrapingPromise = performBackgroundScraping(
         supabase,
+        scrapingBeeApiKey,
         {
           websiteId: website.id,
           baseUrl: website.base_url,
-          maxPages: Math.min(website.max_pages || 25, 50), // Reduced max pages
+          maxPages: Math.min(website.max_pages || 25, 50),
           allowedDomains: website.allowed_domains || []
         }
       )
@@ -156,7 +164,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 202, // Accepted - processing in background
+          status: 202,
         }
       )
     }
@@ -191,8 +199,8 @@ serve(async (req) => {
   }
 })
 
-// Background scraping function that runs without blocking the response
-async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promise<void> {
+// Background scraping function using ScrapingBee
+async function performBackgroundScraping(supabase: any, apiKey: string, job: ScrapingJob): Promise<void> {
   const startTime = Date.now()
   console.log(`=== BACKGROUND SCRAPING STARTED ===`)
   console.log(`Website ID: ${job.websiteId}`)
@@ -200,8 +208,8 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
   console.log(`Max pages: ${job.maxPages}`)
 
   try {
-    // Perform the actual scraping
-    const scrapedPages = await scrapeWebsiteOptimized(job)
+    // Perform the actual scraping using ScrapingBee
+    const scrapedPages = await scrapeWebsiteWithScrapingBee(apiKey, job)
     const scrapingDuration = Date.now() - startTime
     
     console.log(`=== SCRAPING COMPLETED ===`)
@@ -212,7 +220,6 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
     console.log('=== SAVING TO DATABASE ===')
     let savedPagesCount = 0
     let savedDocumentsCount = 0
-    let processingErrors: string[] = []
 
     // Process pages in smaller batches to avoid memory issues
     const BATCH_SIZE = 3
@@ -257,8 +264,8 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
             .upsert({
               website_id: job.websiteId,
               url: page.url,
-              title: page.title.substring(0, 500), // Limit title length
-              content: page.content.substring(0, 50000), // Limit content length
+              title: page.title.substring(0, 500),
+              content: page.content.substring(0, 50000),
               content_hash: hashHex,
               page_type: page.page_type,
               status_code: page.status_code,
@@ -272,7 +279,6 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
 
           if (pageError) {
             console.error(`Error saving page ${page.url}:`, pageError)
-            processingErrors.push(`Save error for ${page.url}: ${pageError.message}`)
             continue
           }
 
@@ -281,7 +287,7 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
 
           // Extract and save documents
           const documents = extractDocuments(page.content, page.url)
-          for (const doc of documents.slice(0, 5)) { // Limit documents per page
+          for (const doc of documents.slice(0, 5)) {
             try {
               const { error: docError } = await supabase
                 .from('scraped_documents')
@@ -305,7 +311,6 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
 
         } catch (pageError) {
           console.error(`Error processing page ${page.url}:`, pageError)
-          processingErrors.push(`Page processing error: ${pageError.message}`)
         }
       }
 
@@ -328,10 +333,10 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
     console.log(`Total duration: ${Date.now() - startTime}ms`)
 
   } catch (error) {
-    console.error('=== BACKGROUND SCRAPING FAILED ===')
+    console.error('=== BACKGROUND SCRAPE FAILED ===')
     console.error('Error:', error)
     
-    // Mark website as having an error (you could add an error_message column)
+    // Mark website as having an error
     try {
       await supabase
         .from('scraped_websites')
@@ -345,100 +350,95 @@ async function performBackgroundScraping(supabase: any, job: ScrapingJob): Promi
   }
 }
 
-// Optimized scraping function with better performance
-async function scrapeWebsiteOptimized(job: ScrapingJob): Promise<ScrapedPage[]> {
+// ScrapingBee implementation
+async function scrapeWebsiteWithScrapingBee(apiKey: string, job: ScrapingJob): Promise<ScrapedPage[]> {
   const pages: ScrapedPage[] = []
   const visitedUrls = new Set<string>()
   const urlsToVisit = [job.baseUrl]
-  const MAX_CONCURRENT_REQUESTS = 2 // Reduced concurrent requests
-  const REQUEST_TIMEOUT = 15000 // Reduced timeout to 15 seconds
 
-  console.log(`=== STARTING OPTIMIZED SCRAPING ===`)
+  console.log(`=== STARTING SCRAPINGBEE SCRAPING ===`)
   console.log(`Base URL: ${job.baseUrl}`)
   console.log(`Max pages: ${job.maxPages}`)
 
-  // Fetch with timeout and better error handling
-  const fetchWithTimeout = async (url: string): Promise<Response | null> => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
-    
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Municipal-Assistant-Bot/1.0',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5',
-          'Connection': 'keep-alive'
-        },
-        signal: controller.signal
-      })
-      clearTimeout(timeoutId)
-      return response
-    } catch (error) {
-      clearTimeout(timeoutId)
-      console.error(`Fetch error for ${url}:`, error.message)
-      return null
-    }
-  }
-
-  // Process URLs in smaller batches
   while (urlsToVisit.length > 0 && pages.length < job.maxPages) {
-    const currentBatch = urlsToVisit.splice(0, MAX_CONCURRENT_REQUESTS)
-    const batchPromises = currentBatch.map(async (url) => {
-      if (visitedUrls.has(url)) return null
-      visitedUrls.add(url)
+    const currentUrl = urlsToVisit.shift()!
+    
+    if (visitedUrls.has(currentUrl)) continue
+    visitedUrls.add(currentUrl)
 
-      const response = await fetchWithTimeout(url)
-      if (!response || !response.ok) return null
+    try {
+      console.log(`Scraping: ${currentUrl}`)
+      
+      // ScrapingBee API call
+      const scrapingBeeUrl = new URL('https://app.scrapingbee.com/api/v1/')
+      scrapingBeeUrl.searchParams.append('api_key', apiKey)
+      scrapingBeeUrl.searchParams.append('url', currentUrl)
+      scrapingBeeUrl.searchParams.append('render_js', 'true') // Enable JavaScript rendering
+      scrapingBeeUrl.searchParams.append('premium_proxy', 'true') // Better success rate
+      scrapingBeeUrl.searchParams.append('country_code', 'es') // Spanish proxies
 
-      const contentType = response.headers.get('content-type') || ''
-      if (!contentType.includes('text/html')) return null
+      const response = await fetch(scrapingBeeUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        }
+      })
+
+      if (!response.ok) {
+        console.error(`ScrapingBee error for ${currentUrl}: ${response.status}`)
+        continue
+      }
 
       const html = await response.text()
-      if (html.length < 200) return null
+      
+      if (html.length < 200) {
+        console.warn(`Page too short: ${currentUrl}`)
+        continue
+      }
 
       const cleanedContent = extractTextContent(html)
       const title = extractTitle(html)
 
-      if (cleanedContent.length < 100) return null
+      if (cleanedContent.length < 100) {
+        console.warn(`Content too short: ${currentUrl}`)
+        continue
+      }
 
-      // Extract new URLs for next batch (limited)
+      pages.push({
+        url: currentUrl,
+        title,
+        content: cleanedContent,
+        status_code: response.status,
+        page_type: 'html'
+      })
+
+      console.log(`✓ Scraped successfully: ${currentUrl}`)
+
+      // Extract new URLs for next iteration (limited to avoid infinite loops)
       if (pages.length < job.maxPages - 5) {
-        const newUrls = extractLinks(html, url, job.baseUrl, job.allowedDomains)
+        const newUrls = extractLinks(html, currentUrl, job.baseUrl, job.allowedDomains)
         const urlsToAdd = newUrls.slice(0, 3).filter(newUrl => 
           !visitedUrls.has(newUrl) && !urlsToVisit.includes(newUrl)
         )
         urlsToVisit.push(...urlsToAdd)
       }
 
-      return {
-        url,
-        title,
-        content: cleanedContent,
-        status_code: response.status,
-        page_type: 'html'
-      }
-    })
+      // Respectful delay between requests
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
-    const batchResults = await Promise.all(batchPromises)
-    const validPages = batchResults.filter(page => page !== null) as ScrapedPage[]
-    pages.push(...validPages)
-
-    console.log(`Batch completed. Total pages: ${pages.length}, Remaining URLs: ${urlsToVisit.length}`)
-
-    // Respectful delay between batches
-    if (urlsToVisit.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
+    } catch (error) {
+      console.error(`Error scraping ${currentUrl}:`, error)
     }
   }
 
-  console.log(`=== SCRAPING SUMMARY ===`)
+  console.log(`=== SCRAPINGBEE SCRAPING SUMMARY ===`)
   console.log(`Total URLs visited: ${visitedUrls.size}`)
   console.log(`Pages with content: ${pages.length}`)
 
   return pages
 }
 
+// Helper functions remain the same
 function extractTextContent(html: string): string {
   // Remove script and style elements
   let content = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -460,7 +460,7 @@ function extractTextContent(html: string): string {
            line.length > 20
   })
   
-  return cleanLines.join('\n').substring(0, 10000) // Limit content size
+  return cleanLines.join('\n').substring(0, 10000)
 }
 
 function extractTitle(html: string): string {
@@ -486,12 +486,10 @@ function extractLinks(html: string, currentUrl: string, baseUrl: string, allowed
     try {
       let url = match[1]
       
-      // Skip non-http links
       if (url.startsWith('#') || url.startsWith('mailto:') || url.startsWith('tel:')) {
         continue
       }
       
-      // Convert relative URLs to absolute
       if (url.startsWith('/')) {
         const baseUrlObj = new URL(baseUrl)
         url = `${baseUrlObj.protocol}//${baseUrlObj.host}${url}`
@@ -501,7 +499,6 @@ function extractLinks(html: string, currentUrl: string, baseUrl: string, allowed
       
       const urlObj = new URL(url)
       
-      // Check if domain is allowed
       const isAllowedDomain = allowedDomains.length === 0 || 
         allowedDomains.some(domain => urlObj.hostname.includes(domain)) ||
         urlObj.hostname === new URL(baseUrl).hostname
@@ -514,15 +511,13 @@ function extractLinks(html: string, currentUrl: string, baseUrl: string, allowed
     }
   }
   
-  return [...new Set(links)] // Remove duplicates
+  return [...new Set(links)]
 }
 
 function extractDocuments(html: string, pageUrl: string): Array<{filename: string, url: string, type: string}> {
   const documents: Array<{filename: string, url: string, type: string}> = []
   
-  // Common document extensions
   const docExtensions = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|rtf)$/i
-  
   const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi
   
   let match
