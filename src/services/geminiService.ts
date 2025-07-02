@@ -1,115 +1,165 @@
-import { GoogleGenAI, Chat, GenerateContentResponse, Tool } from "@google/genai";
-import { 
-  GEMINI_MODEL_NAME, 
-  INITIAL_SYSTEM_INSTRUCTION, 
-  API_KEY_ERROR_MESSAGE, // This constant can still be used for generic error messages
-  SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION
-} from '../constants';
 
-// Hardcoded API key
-const HARDCODED_API_KEY = "AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g";
+import { supabase } from '@/integrations/supabase/client';
 
-let ai: GoogleGenAI | null = null;
+export interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
+}
+
+export interface ChatSession {
+  messages: ChatMessage[];
+  sendMessage: (message: string) => Promise<string>;
+  sendMessageStream: (
+    message: string,
+    onChunk: (chunk: string, isFirst: boolean) => void,
+    onEnd: () => void,
+    onError: (error: Error) => void
+  ) => Promise<void>;
+}
 
 /**
- * Initializes the GoogleGenAI service with the hardcoded API key.
- * @returns True if initialization was successful, false otherwise.
+ * Initializes the Gemini service (now using edge function proxy)
  */
 export const initializeGeminiService = (): boolean => {
-  try {
-    ai = new GoogleGenAI({ apiKey: HARDCODED_API_KEY });
-    console.log("Servicio Gemini inicializado exitosamente.");
-    return true;
-  } catch (error) {
-    console.error("Error al inicializar Gemini con la clave API:", error);
-    ai = null;
-    return false;
-  }
+  // No longer need to initialize with API key since it's handled by edge function
+  console.log("Gemini service initialized (using edge function proxy).");
+  return true;
 };
 
 /**
- * Gets the initialized GoogleGenAI instance.
- * Throws an error if the service has not been initialized.
- * @returns The GoogleGenAI instance.
+ * Creates a new chat session
  */
-const getInternalAiInstance = (): GoogleGenAI => {
-  if (!ai) {
-    // This error should ideally be prevented by App.tsx ensuring initializeGeminiService was called and successful.
-    throw new Error("El servicio Gemini no está inicializado. Por favor, configura la API Key primero.");
-  }
-  return ai;
-};
-
 export const initChatSession = (
   customSystemInstruction?: string, 
   enableGoogleSearch?: boolean,
   allowMapDisplay?: boolean
-): Chat => {
-  const currentAi = getInternalAiInstance(); // Uses the initialized instance
-  const tools: Tool[] = [];
-  if (enableGoogleSearch) {
-    tools.push({ googleSearch: {} });
-  }
+): ChatSession => {
+  const messages: ChatMessage[] = [];
 
-  let systemInstructionParts: string[] = [];
-  if (customSystemInstruction && customSystemInstruction.trim() !== "") {
-    systemInstructionParts.push(customSystemInstruction.trim());
-  }
-  
-  if (allowMapDisplay) {
-    systemInstructionParts.push(SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION);
-  }
+  const sendMessage = async (message: string): Promise<string> => {
+    messages.push({ role: 'user', content: message });
 
-  let finalSystemInstruction: string | undefined = systemInstructionParts.join("\n\n").trim();
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-proxy', {
+        body: {
+          messages: messages,
+          systemInstruction: customSystemInstruction,
+          enableGoogleSearch,
+          allowMapDisplay,
+          stream: false
+        }
+      });
 
-  if (!finalSystemInstruction && !enableGoogleSearch && !allowMapDisplay) { 
-      finalSystemInstruction = INITIAL_SYSTEM_INSTRUCTION;
-  }
-  if (finalSystemInstruction === "") finalSystemInstruction = undefined;
+      if (error) {
+        console.error('Error calling gemini-proxy:', error);
+        throw new Error('Failed to get response from AI');
+      }
 
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error('Invalid response format from AI');
+      }
 
-  return currentAi.chats.create({
-    model: GEMINI_MODEL_NAME,
-    config: {
-      ...(finalSystemInstruction ? { systemInstruction: finalSystemInstruction } : {}),
-      ...(tools.length > 0 ? { tools } : {}),
-    },
-  });
+      const responseText = data.candidates[0].content.parts[0].text;
+      messages.push({ role: 'model', content: responseText });
+      
+      return responseText;
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
+      throw error;
+    }
+  };
+
+  const sendMessageStream = async (
+    message: string,
+    onChunk: (chunk: string, isFirst: boolean) => void,
+    onEnd: () => void,
+    onError: (error: Error) => void
+  ): Promise<void> => {
+    messages.push({ role: 'user', content: message });
+
+    try {
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/gemini-proxy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: messages,
+          systemInstruction: customSystemInstruction,
+          enableGoogleSearch,
+          allowMapDisplay,
+          stream: true
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let isFirstChunk = true;
+      let responseText = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = new TextDecoder().decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.substring(6);
+                if (jsonStr.trim() === '[DONE]') continue;
+                
+                const data = JSON.parse(jsonStr);
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                  const text = data.candidates[0].content.parts[0].text;
+                  if (text) {
+                    responseText += text;
+                    onChunk(text, isFirstChunk);
+                    isFirstChunk = false;
+                  }
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse SSE data:', parseError);
+              }
+            }
+          }
+        }
+
+        messages.push({ role: 'model', content: responseText });
+        onEnd();
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (error) {
+      console.error('Error in sendMessageStream:', error);
+      onError(error instanceof Error ? error : new Error('Unknown error'));
+    }
+  };
+
+  return {
+    messages,
+    sendMessage,
+    sendMessageStream
+  };
 };
 
+// Legacy function for backward compatibility
 export const sendMessageToGeminiStream = async (
-  chat: Chat,
+  chat: ChatSession,
   message: string,
   onChunk: (chunkText: string, isFirstChunk: boolean) => void,
-  onEnd: (finalResponse?: GenerateContentResponse) => void,
+  onEnd: (finalResponse?: any) => void,
   onError: (error: Error) => void
 ): Promise<void> => {
-  // getInternalAiInstance() is implicitly called by initChatSession,
-  // so if chat object exists, AI service should be initialized.
-  try {
-    const stream = await chat.sendMessageStream({ message });
-    
-    let isFirstChunkForThisStream = true;
-    let lastChunk: GenerateContentResponse | undefined = undefined;
-
-    for await (const chunk of stream) {
-      lastChunk = chunk; 
-      const text = chunk.text; 
-      if (typeof text === 'string') {
-        onChunk(text, isFirstChunkForThisStream);
-        if (isFirstChunkForThisStream) {
-          isFirstChunkForThisStream = false;
-        }
-      }
-    }
-    onEnd(lastChunk);
-
-  } catch (error) {
-    console.error("Error sending message to Gemini:", error);
-    if (error instanceof Error) {
-      onError(error);
-    } else {
-      onError(new Error('An unknown error occurred with Gemini API'));
-    }
-  }
+  await chat.sendMessageStream(message, onChunk, onEnd, onError);
 };

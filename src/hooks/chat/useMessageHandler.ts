@@ -1,7 +1,7 @@
 
 import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
-import { Chat } from '@google/genai';
+import { ChatSession } from '../../services/geminiService';
 import { useContentParser } from '../parsers/useContentParser';
 
 export const useMessageHandler = (
@@ -14,14 +14,14 @@ export const useMessageHandler = (
   const lastProcessedMessageRef = useRef<string | null>(null);
 
   const processMessage = useCallback(async (
-    chatSession: Chat | null,
+    chatSession: ChatSession | null,
     inputText: string,
     userMessage: ChatMessage,
     addMessage: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     saveMessageOnly: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     setMessages: (messages: ChatMessage[]) => void,
     isGeminiReady: boolean,
-    targetConversationId: string // Make this required
+    targetConversationId: string
   ) => {
     // Prevent duplicate processing
     if (lastProcessedMessageRef.current === userMessage.id) {
@@ -46,12 +46,23 @@ export const useMessageHandler = (
       console.log('Adding user message to conversation:', targetConversationId);
       await addMessage(userMessage, targetConversationId);
 
-      // Generate AI response - fix the sendMessage call
+      // Generate AI response using the new streaming method
       console.log('Generating AI response...');
-      const result = await chatSession.sendMessage({ message: inputText });
-      const responseText = result.text; // Fix: use text property without parentheses
+      let responseText = '';
       
-      console.log('AI response generated, length:', responseText.length);
+      await chatSession.sendMessageStream(
+        inputText,
+        (chunk: string, isFirst: boolean) => {
+          responseText += chunk;
+          // Could add real-time updates here if needed
+        },
+        () => {
+          console.log('AI response generated, length:', responseText.length);
+        },
+        (error: Error) => {
+          throw error;
+        }
+      );
 
       // Create AI message
       const aiMessage: ChatMessage = {
@@ -69,7 +80,7 @@ export const useMessageHandler = (
         parsedMessage = {
           ...aiMessage,
           content: parsed.processedContent,
-          mapQuery: parsed.mapQueryFromAI, // Fix: use mapQuery instead of mapQueryFromAI
+          mapQuery: parsed.mapQueryFromAI,
           downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
           telematicProcedureLink: parsed.telematicLinkForMessage
         };

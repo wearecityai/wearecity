@@ -1,10 +1,8 @@
 
 import { useRef, useCallback } from 'react';
-import { Chat as GeminiChat } from '@google/genai';
 import { CustomChatConfig } from '../../types';
-import { initChatSession } from '../../services/geminiService';
+import { initChatSession, ChatSession } from '../../services/geminiService';
 import { API_KEY_ERROR_MESSAGE } from '../../constants';
-import { useSystemInstructionBuilder } from '../useSystemInstructionBuilder';
 import { useErrorHandler } from '../useErrorHandler';
 
 interface UserLocation {
@@ -17,8 +15,7 @@ export const useChatSession = (
   onError: (error: string) => void,
   onGeminiReadyChange: (ready: boolean) => void
 ) => {
-  const geminiChatSessionRef = useRef<GeminiChat | null>(null);
-  const { buildFullSystemInstruction } = useSystemInstructionBuilder();
+  const geminiChatSessionRef = useRef<ChatSession | null>(null);
   const { getFriendlyError } = useErrorHandler();
 
   const initializeChatSession = useCallback(async (
@@ -30,15 +27,20 @@ export const useChatSession = (
       return;
     }
     try {
-      const fullSystemInstruction = buildFullSystemInstruction(configToUse, location);
-      geminiChatSessionRef.current = initChatSession(fullSystemInstruction, configToUse.enableGoogleSearch);
+      // The system instruction building is now handled by the edge function
+      // We just pass the custom instruction from config
+      geminiChatSessionRef.current = initChatSession(
+        configToUse.systemInstruction, 
+        configToUse.enableGoogleSearch,
+        configToUse.allowMapDisplay
+      );
     } catch (e: any) {
       console.error("Gemini Initialization error:", e);
       const errorMessage = getFriendlyError(e, "Error al inicializar el chat con Gemini.");
       onError(errorMessage);
       if (errorMessage === API_KEY_ERROR_MESSAGE) onGeminiReadyChange(false);
     }
-  }, [isGeminiReady, buildFullSystemInstruction, onError, onGeminiReadyChange, getFriendlyError]);
+  }, [isGeminiReady, onError, onGeminiReadyChange, getFriendlyError]);
 
   return {
     geminiChatSessionRef,
