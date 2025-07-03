@@ -76,13 +76,19 @@ async function callGeminiAPI(systemInstruction, userMessage) {
       { role: "user", parts: [{ text: `${systemInstruction}\n\n${userMessage}` }] }
     ]
   };
+  console.log("Prompt enviado a Gemini:", JSON.stringify(body));
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body)
   });
-  if (!res.ok) throw new Error("Error en Gemini API");
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("Error en Gemini API:", errorText);
+    throw new Error("Error en Gemini API");
+  }
   const data = await res.json();
+  console.log("Respuesta cruda de Gemini:", JSON.stringify(data));
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
@@ -152,6 +158,7 @@ serve(async (req) => {
   }
 
   if (!responseText) {
+    console.error("Gemini no devolvió texto. Prompt:", finalSystemInstruction, "Mensaje:", userMessage);
     responseText = "Lo siento, no pude generar una respuesta en este momento.";
   }
 
