@@ -92,9 +92,15 @@ serve(async (req) => {
   if (method === "POST") {
     try {
       body = await req.json();
+      console.log("Body recibido:", body);
     } catch (e) {
       return new Response(JSON.stringify({ error: "Invalid or empty JSON body" }), { status: 400 });
     }
+  }
+
+  // Validar que userMessage existe
+  if (!body.userMessage) {
+    return new Response(JSON.stringify({ error: "Missing userMessage in request body" }), { status: 400 });
   }
 
   const { userMessage, customSystemInstruction, allowMapDisplay, enableGoogleSearch } = body;
@@ -125,14 +131,16 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Petición no permitida." }), { status: 403 });
   }
 
+  let responseText = undefined;
   try {
-    const responseText = await callGeminiAPI(finalSystemInstruction, userMessage);
-    return new Response(JSON.stringify({ response: responseText }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    responseText = await callGeminiAPI(finalSystemInstruction, userMessage);
   } catch (e) {
+    console.error("Error al llamar a Gemini:", e);
     return new Response(JSON.stringify({ error: "Error al llamar a Gemini" }), { status: 500 });
   }
+
+  console.log("Respuesta enviada:", responseText);
+  return new Response(JSON.stringify({ response: responseText }), { headers: { "Content-Type": "application/json" } });
 });
 
 /* To invoke locally:
