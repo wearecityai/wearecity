@@ -86,26 +86,38 @@ async function callGeminiAPI(systemInstruction, userMessage) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
+// --- CORS HEADERS ---
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*", // Cambia * por tu dominio si quieres restringir
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 serve(async (req) => {
+  // Manejo de preflight CORS
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   const { method } = req;
-  let body = {};
+  let body: any = {};
   if (method === "POST") {
     try {
       body = await req.json();
       console.log("Body recibido:", body);
     } catch (e) {
-      return new Response(JSON.stringify({ error: "Invalid or empty JSON body" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Invalid or empty JSON body" }), { status: 400, headers: corsHeaders });
     }
   }
 
   // Validar que userMessage existe
   if (!body.userMessage) {
-    return new Response(JSON.stringify({ error: "Missing userMessage in request body" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Missing userMessage in request body" }), { status: 400, headers: corsHeaders });
   }
 
   const { userMessage, customSystemInstruction, allowMapDisplay, enableGoogleSearch } = body;
 
-  let systemInstructionParts = [];
+  let systemInstructionParts: any[] = [];
   if (customSystemInstruction && customSystemInstruction.trim() !== "") {
     systemInstructionParts.push(customSystemInstruction.trim());
   }
@@ -128,7 +140,7 @@ serve(async (req) => {
     /prompt raíz/i, /system prompt/i, /instrucciones internas/i, /repite.*prompt/i, /ignora.*instrucciones/i, /cuál.*prompt/i, /describe.*configuración/i,
   ];
   if (forbiddenPatterns.some((pat) => pat.test(userMessage))) {
-    return new Response(JSON.stringify({ error: "Petición no permitida." }), { status: 403 });
+    return new Response(JSON.stringify({ error: "Petición no permitida." }), { status: 403, headers: corsHeaders });
   }
 
   let responseText = undefined;
@@ -136,11 +148,16 @@ serve(async (req) => {
     responseText = await callGeminiAPI(finalSystemInstruction, userMessage);
   } catch (e) {
     console.error("Error al llamar a Gemini:", e);
-    return new Response(JSON.stringify({ error: "Error al llamar a Gemini" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Error al llamar a Gemini" }), { status: 500, headers: corsHeaders });
   }
 
   console.log("Respuesta enviada:", responseText);
-  return new Response(JSON.stringify({ response: responseText }), { headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ response: responseText }), {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json"
+    }
+  });
 });
 
 /* To invoke locally:
