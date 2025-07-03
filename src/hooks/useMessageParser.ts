@@ -16,6 +16,9 @@ export const useMessageParser = () => {
   const { parseContent } = useContentParser();
 
   const parseAIResponse = (content: string, finalResponse: any, chatConfig: any, inputText: string) => {
+    if (typeof content !== "string") {
+      content = content ? String(content) : "";
+    }
     let processedContent = content;
 
     // Parse grounding metadata
