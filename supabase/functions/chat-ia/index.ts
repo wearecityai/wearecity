@@ -151,6 +151,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Error al llamar a Gemini" }), { status: 500, headers: corsHeaders });
   }
 
+  if (!responseText) {
+    responseText = "Lo siento, no pude generar una respuesta en este momento.";
+  }
+
   console.log("Respuesta enviada:", responseText);
   return new Response(JSON.stringify({ response: responseText }), {
     headers: {
