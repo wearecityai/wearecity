@@ -201,7 +201,14 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
   // DESKTOP: panel admin y chat lado a lado
   if (currentView === 'finetuning') {
     return (
-      <Box sx={{ height: '100vh', maxHeight: '100vh', overflow: 'hidden', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ 
+        height: { xs: '100dvh', sm: '100vh' }, 
+        maxHeight: { xs: '100dvh', sm: '100vh' }, 
+        overflow: 'hidden', 
+        bgcolor: 'background.default', 
+        display: 'flex', 
+        flexDirection: 'column' 
+      }}>
         {header}
         <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: '64px' }}>
           {/* Side menu siempre visible */}
@@ -262,7 +269,14 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
 
   // Vista normal: header, side menu y chat
   return (
-    <Box sx={{ height: '100vh', maxHeight: '100vh', overflow: 'hidden', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      height: { xs: '100dvh', sm: '100vh' }, 
+      maxHeight: { xs: '100dvh', sm: '100vh' }, 
+      overflow: 'hidden', 
+      bgcolor: 'background.default', 
+      display: 'flex', 
+      flexDirection: 'column' 
+    }}>
       {header}
       <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: '64px' }}>
         <AppDrawer

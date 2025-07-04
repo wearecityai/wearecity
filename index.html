@@ -2,17 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <title>City Chat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
+    /* CSS Custom Properties for dynamic viewport */
+    :root {
+      --vh: 1vh;
+    }
+    
     body {
       font-family: 'Roboto', sans-serif;
       margin: 0;
       padding: 0;
+      /* Prevent overscroll bounce on iOS */
+      overscroll-behavior: none;
+      /* Ensure full viewport usage */
+      width: 100vw;
+      min-height: 100vh;
+      min-height: 100dvh;
     }
+    
+    /* Prevent zoom on input focus on iOS */
+    input, textarea, select {
+      font-size: 16px;
+    }
+    
     /* Simple scrollbar styling for webkit browsers */
     ::-webkit-scrollbar {
       width: 8px;

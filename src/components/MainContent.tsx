@@ -69,8 +69,8 @@ const MainContent: React.FC<MainContentProps> = ({
         flexGrow: 1,
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
-        maxHeight: '100vh',
+        height: { xs: '100dvh', sm: '100vh' },
+        maxHeight: { xs: '100dvh', sm: '100vh' },
         overflow: 'hidden',
         bgcolor: 'background.default',
         ...(isMobile && isMenuOpen && {
@@ -85,7 +85,10 @@ const MainContent: React.FC<MainContentProps> = ({
           flexGrow: 1,
           overflowY: 'auto',
           height: '100%',
-          paddingBottom: '120px', // Space for the fixed chat input
+          paddingBottom: { 
+            xs: 'calc(120px + env(safe-area-inset-bottom, 0px))', 
+            sm: '120px' 
+          }, // Space for the fixed chat input + safe area
         }}
       >
         {/* Contenedor interno con padding para el contenido */}
@@ -118,7 +121,7 @@ const MainContent: React.FC<MainContentProps> = ({
       <Box
         sx={{
           position: 'fixed',
-          bottom: 0,
+          bottom: { xs: 'env(safe-area-inset-bottom, 0px)', sm: 0 },
           left: isMobile ? 0 : (isMenuOpen ? 260 : 72), // Same logic as header
           right: 0,
           bgcolor: 'background.default',
