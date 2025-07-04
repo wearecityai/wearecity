@@ -49,7 +49,7 @@ export const useChatManager = (
   const {
     geminiChatSessionRef,
     initializeChatSession
-  } = useChatSession(isGeminiReady, onError, onGeminiReadyChange);
+  } = useChatSession();
 
   // Message processing
   const {
@@ -138,9 +138,9 @@ export const useChatManager = (
   // Initialize chat when ready
   useEffect(() => {
     if (isGeminiReady) {
-      initializeChatSession(chatConfig, userLocation);
+      initializeChatSession();
     }
-  }, [isGeminiReady, chatConfig, userLocation, initializeChatSession]);
+  }, [isGeminiReady, initializeChatSession]);
 
   return {
     messages,
