@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardMedia, CardContent, CardActions, Typography, Button, Box, Chip, Rating, CircularProgress, Alert, Stack, Link, Tooltip } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -8,11 +7,44 @@ import NearMeIcon from '@mui/icons-material/NearMe'; // For distance
 
 import { PlaceCardInfo } from '../types';
 
+const GOOGLE_PLACES_UIKIT_URL = "https://www.gstatic.com/maps/embed/place_component/v1/place_component.js";
+
+function loadPlacesUiKit() {
+  if (!document.getElementById('google-places-uikit')) {
+    const script = document.createElement('script');
+    script.id = 'google-places-uikit';
+    script.src = GOOGLE_PLACES_UIKIT_URL;
+    script.async = true;
+    document.body.appendChild(script);
+  }
+}
+
 interface PlaceCardProps {
   place: PlaceCardInfo;
 }
 
+// Declarar el Web Component para TypeScript/JSX
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'gmpx-place-overview': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { 'place-id': string, language?: string };
+    }
+  }
+}
+
 const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    loadPlacesUiKit();
+    // Set the API key globally for the Web Component
+    if (apiKey && (window as any).gmpxApiKey !== apiKey) {
+      (window as any).gmpxApiKey = apiKey;
+    }
+  }, [apiKey]);
+
   if (place.isLoadingDetails) {
     return (
       <Card variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2 }}>
@@ -37,101 +69,48 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
     );
   }
 
-  return (
-    <Card variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2, display: 'flex', flexDirection: 'column' }}>
-      {place.photoUrl && (
-        <CardMedia
-          component="img"
-          height="160"
-          image={place.photoUrl}
-          alt={`Foto de ${place.name}`}
-          sx={{ objectFit: 'cover' }}
-        />
-      )}
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h6" component="h3" fontWeight="medium" noWrap title={place.name} gutterBottom>
-          {place.name}
-        </Typography>
-
-        {typeof place.rating === 'number' && (
-          <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
-            <Rating name="read-only" value={place.rating} precision={0.1} readOnly size="small" />
-            <Typography variant="body2" color="text.secondary">
-              ({place.rating.toFixed(1)})
+  if (!place.placeId) {
+    // Si no hay placeId pero hay searchQuery, mostrar una tarjeta básica con enlace a Google Maps
+    if (place.searchQuery) {
+      const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(place.searchQuery)}`;
+      return (
+        <Card variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2 }}>
+          <CardContent>
+            <Typography variant="h6" component="h3" gutterBottom>
+              {place.name}
             </Typography>
-            {place.userRatingsTotal !== undefined && (
-              <Typography variant="caption" color="text.secondary">
-                {place.userRatingsTotal} reseñas
-              </Typography>
-            )}
-          </Stack>
-        )}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Información detallada no disponible
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<LocationOnIcon />}
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              fullWidth
+            >
+              Ver en Google Maps
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    // Si no hay ni placeId ni searchQuery
+    return (
+      <Alert severity="warning" variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2 }}>
+        <Typography variant="subtitle2" component="h3" fontWeight="medium">{place.name}</Typography>
+        <Typography variant="body2">No se pudo obtener información detallada de este lugar.</Typography>
+      </Alert>
+    );
+  }
 
-        <Stack spacing={0.5}>
-            {place.address && (
-            <Chip 
-                icon={<LocationOnIcon fontSize="small"/>} 
-                label={place.address} 
-                size="small" 
-                variant="outlined" 
-                title={place.address}
-                sx={{ justifyContent: 'flex-start', p:0, height: 'auto', '& .MuiChip-label': {p:'4px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal', textAlign: 'left'} }}
-            />
-            )}
-            {place.distance && (
-            <Chip 
-                icon={<NearMeIcon fontSize="small"/>} 
-                label={place.distance} 
-                size="small" 
-                variant="outlined"
-                sx={{ justifyContent: 'flex-start', p:0, height: 'auto', '& .MuiChip-label': {p:'4px 8px'} }}
-            />
-            )}
-        </Stack>
-      </CardContent>
-      <CardActions sx={{ px: 2, pb: 2, pt:0, justifyContent: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
-        {place.mapsUrl && (
-            <Tooltip title="Ver en Google Maps">
-                <Button
-                    component={Link}
-                    href={place.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    size="small"
-                    variant="outlined"
-                    startIcon={<OpenInNewIcon />}
-                    sx={{ borderRadius: '16px', textTransform: 'none' }}
-                >
-                    Mapa
-                </Button>
-            </Tooltip>
-        )}
-        {place.website && (
-            <Tooltip title="Visitar sitio web">
-                <Button
-                    component={Link}
-                    href={place.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    size="small"
-                    variant="outlined"
-                    startIcon={<LanguageIcon />}
-                    sx={{ borderRadius: '16px', textTransform: 'none' }}
-                >
-                    Web
-                </Button>
-            </Tooltip>
-        )}
-      </CardActions>
-      {place.photoAttributions && place.photoAttributions.length > 0 && (
-        <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ px: 2, pb: 1, fontSize: '0.6rem', textAlign: 'right' }}
-            dangerouslySetInnerHTML={{ __html: place.photoAttributions.join(', ') }}
-        />
-      )}
-    </Card>
+  return (
+    <div ref={ref} style={{ width: '100%', maxWidth: 400, margin: '0 auto' }}>
+      {/* Web Component oficial de Google Places */}
+      <gmpx-place-overview place-id={place.placeId} language="es"></gmpx-place-overview>
+    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
@@ -7,6 +6,7 @@ import Index from '@/pages/Index';
 import AuthPage from '@/components/auth/AuthPage';
 import ProfilePage from '@/components/auth/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
+import { GeolocationDebug } from './components/GeolocationDebug';
 
 const App = () => {
   return (
@@ -20,6 +20,7 @@ const App = () => {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <GeolocationDebug />
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

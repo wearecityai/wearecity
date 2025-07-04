@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Drawer, IconButton, Typography, Button, List, ListItem, ListItemButton, 
   ListItemIcon, ListItemText, CircularProgress, useTheme, useMediaQuery, Divider
@@ -16,6 +16,8 @@ import { CustomChatConfig } from '../types';
 interface UserLocation {
   latitude: number;
   longitude: number;
+  accuracy?: number;
+  timestamp?: number;
 }
 
 interface AppDrawerProps {
@@ -48,12 +50,120 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   geolocationStatus
 }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [locationInfo, setLocationInfo] = useState<{
+    city: string;
+    address: string;
+    loading: boolean;
+  }>({
+    city: '',
+    address: '',
+    loading: false
+  });
+
+  // Función para obtener información de ubicación desde coordenadas
+  const getLocationInfo = async (lat: number, lng: number) => {
+    setLocationInfo(prev => ({ ...prev, loading: true }));
+    
+    try {
+      // Usar la edge function para geocodificación inversa
+      const response = await fetch("https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userMessage: "geocode", // Mensaje dummy requerido
+          userId: null,
+          userLocation: { lat, lng },
+          geocodeOnly: true
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error en la respuesta del servidor');
+      }
+      
+      const data = await response.json();
+      
+      // Usar la información devuelta por la edge function
+      setLocationInfo({
+        city: data.city || `Ubicación ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        address: data.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        loading: false
+      });
+      
+    } catch (error) {
+      console.error('Error obteniendo información de ubicación:', error);
+      setLocationInfo({
+        city: 'Ubicación actual',
+        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        loading: false
+      });
+    }
+  };
+
+  // Actualizar información de ubicación cuando cambien las coordenadas
+  useEffect(() => {
+    if (userLocation && geolocationStatus === 'success') {
+      getLocationInfo(userLocation.latitude, userLocation.longitude);
+    } else if (!userLocation) {
+      setLocationInfo({
+        city: '',
+        address: '',
+        loading: false
+      });
+    }
+  }, [userLocation, geolocationStatus]);
+
   const drawerWidth = 260;
-  const collapsedDrawerWidth = 72;
+  const collapsedDrawerWidth = 56;
+
+  const refreshLocation = () => {
+    if (chatConfig.allowGeolocation && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          getLocationInfo(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.error('Error obteniendo ubicación:', error);
+          setLocationInfo({
+            city: 'Error de ubicación',
+            address: 'No se pudo obtener la ubicación',
+            loading: false
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    }
+  };
+
+  const getDisplayCity = () => {
+    if (chatConfig.restrictedCity?.name) {
+      return chatConfig.restrictedCity.name;
+    }
+    if (locationInfo.city) {
+      return locationInfo.city;
+    }
+    if (userLocation) {
+      return "Ubicación actual";
+    }
+    return "Ubicación desconocida";
+  };
+
+  const getDisplayAddress = () => {
+    if (chatConfig.restrictedCity?.formattedAddress) {
+      return chatConfig.restrictedCity.formattedAddress;
+    }
+    if (locationInfo.address) {
+      return locationInfo.address;
+    }
+    if (geolocationStatus === 'success' && userLocation) {
+      return `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`;
+    }
+    return "Dirección no disponible";
+  };
 
   const drawerContent = (
-    <Box sx={{ width: isMenuOpen ? drawerWidth : collapsedDrawerWidth, height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', pt: 1 }} role="presentation">
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', px: 2, mb: 1 }}>
         <IconButton
           onClick={onMenuToggle}
@@ -71,7 +181,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
         )}
       </Box>
       <Button
-        variant="contained"
+        variant="outlined"
         startIcon={<EditOutlinedIcon />}
         onClick={() => onNewChat("Nuevo chat")}
         title={!isMenuOpen ? "Nuevo chat" : undefined}
@@ -193,7 +303,8 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
             {isMenuOpen && <ListItemText primary="Configurar chat" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
         </ListItemButton>
         <Divider sx={{my:1, display: isMenuOpen ? 'block' : 'none'}}/>
-        {/* Location Section - Always visible, text hidden when collapsed */}
+        
+        {/* Location Section - Mejorada */}
         <ListItem
             sx={{
                 display: 'flex',
@@ -204,7 +315,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                 px: !isMenuOpen ? 2 : 3,
                 cursor: 'default',
             }}
-            title={!isMenuOpen ? (chatConfig.restrictedCity?.name || (userLocation ? "Ubicación actual" : "Ubicación desconocida")) : undefined}
+            title={!isMenuOpen ? getDisplayCity() : undefined}
         >
             <ListItemIcon 
                 sx={{ 
@@ -220,21 +331,44 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
             </ListItemIcon>
             {isMenuOpen && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexGrow: 1 }}>
-                     <Typography variant="body2" sx={{fontWeight:'500'}}>
-                        {chatConfig.restrictedCity?.name || (userLocation ? "Ubicación actual" : "Ubicación desconocida")}
-                        {chatConfig.restrictedCity?.name && chatConfig.restrictedCity.formattedAddress ? `, ${chatConfig.restrictedCity.formattedAddress.split(',').slice(-2).join(', ').trim()}` : ''}
+                     {/* Nombre del municipio/ciudad */}
+                     <Typography variant="body2" sx={{fontWeight:'500', lineHeight: 1.2}}>
+                        {getDisplayCity()}
                      </Typography>
-                     <Typography variant="caption" color="text.secondary">
-                        {geolocationStatus === 'success' && userLocation && !chatConfig.restrictedCity ? `Lat: ${userLocation.latitude.toFixed(2)}, Lon: ${userLocation.longitude.toFixed(2)}` : "De tu dirección IP"}
+                     
+                     {/* Dirección postal detectada por coordenadas */}
+                     <Typography 
+                        variant="caption" 
+                        color="text.secondary" 
+                        sx={{ 
+                          mt: 0.25, 
+                          lineHeight: 1.2,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                     >
+                        {locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress()}
                      </Typography>
-                    <Button
+                     
+                     <Button
                         variant="text"
                         size="small"
-                        onClick={() => chatConfig.allowGeolocation && navigator.geolocation.getCurrentPosition(() => {}, () => {}, {})} 
-                        sx={{p:0, justifyContent:'flex-start', textTransform:'none', color: 'primary.main', mt:0.25, fontSize:'0.75rem'}}
-                    >
-                        Actualizar ubicación
-                    </Button>
+                        onClick={refreshLocation}
+                        disabled={!chatConfig.allowGeolocation || locationInfo.loading}
+                        sx={{
+                          p: 0, 
+                          justifyContent: 'flex-start', 
+                          textTransform: 'none', 
+                          color: 'primary.main', 
+                          mt: 0.5, 
+                          fontSize: '0.75rem'
+                        }}
+                     >
+                        {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
+                     </Button>
                 </Box>
             )}
         </ListItem>

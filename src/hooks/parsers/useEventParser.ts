@@ -24,6 +24,8 @@ export const useEventParser = () => {
   const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
   const parseEvents = (content: string, inputText: string) => {
+    console.log("🔍 PARSEEVENTS CALLED WITH:", { content: JSON.stringify(content), inputText });
+    
     const rawParsedEventsFromAI: EventInfo[] = [];
     let storedUserQueryForEvents: string | undefined = undefined;
 
@@ -34,30 +36,60 @@ export const useEventParser = () => {
       introText = content.slice(0, firstEventIndex).trim();
     }
 
+    console.log("🔍 INTRO TEXT:", JSON.stringify(introText));
+    console.log("🔍 FIRST EVENT INDEX:", firstEventIndex);
+
     // Parse events
-    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\s\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let match;
     let tempContentForProcessing = content;
+    
+    console.log("🔍 REGEX DEBUG - Full content:", JSON.stringify(content));
+    console.log("🔍 REGEX DEBUG - Event start marker:", EVENT_CARD_START_MARKER);
+    console.log("🔍 REGEX DEBUG - Event end marker:", EVENT_CARD_END_MARKER);
+    console.log("🔍 REGEX DEBUG - Regex pattern:", eventRegex.source);
+    
     while ((match = eventRegex.exec(tempContentForProcessing)) !== null) {
+      console.log("🎯 REGEX MATCH - Full match:", JSON.stringify(match[0]));
+      console.log("🎯 REGEX MATCH - Captured group:", JSON.stringify(match[1]));
+      
       let jsonStrToParse = match[1]
-        .replace(/```json|```/g, "") // Elimina bloques de código Markdown
-        .replace(/\[CITE:\s*\d+\][%]?$/, "")
+        .replace(/```json|```/g, "")
+        .replace(/^[\s\n]*|[\s\n]*$/g, "")
         .trim();
+      
+      console.log("🧹 CLEANED JSON:", JSON.stringify(jsonStrToParse));
+      
       try {
-        const eventData = JSON.parse(jsonStrToParse);
-        if (eventData.title && eventData.date) rawParsedEventsFromAI.push({ ...eventData });
-      } catch (e) { 
-        console.error("Failed to parse event JSON:", jsonStrToParse, e); 
+        const parsedEvent = JSON.parse(jsonStrToParse);
+        console.log("✅ PARSED EVENT:", parsedEvent);
+        if (parsedEvent.title && parsedEvent.date) {
+          rawParsedEventsFromAI.push(parsedEvent);
+          console.log("✅ SUCCESS - Added event:", parsedEvent);
+        } else {
+          console.log("❌ MISSING FIELDS - Event:", parsedEvent);
+        }
+      } catch (e) {
+        console.error("❌ JSON PARSE ERROR:", e.message);
+        console.error("❌ FAILED JSON STRING:", JSON.stringify(jsonStrToParse));
+        console.error("❌ ORIGINAL MATCH:", JSON.stringify(match[0]));
       }
     }
 
+    console.log("🔍 RAW PARSED EVENTS:", rawParsedEventsFromAI);
+
     // Process events
     const currentYear = new Date().getFullYear();
+    
     const currentYearRawEvents = rawParsedEventsFromAI.filter(event => {
-      try { return new Date(event.date).getFullYear() === currentYear; }
-      catch (e) { return false; }
+      const eventYear = new Date(event.date).getFullYear();
+      const isCurrentYear = eventYear === currentYear;
+      console.log("🗓️ EVENT YEAR CHECK:", { title: event.title, date: event.date, eventYear, currentYear, isCurrentYear });
+      return isCurrentYear;
     });
     
+    console.log("🔍 CURRENT YEAR EVENTS:", currentYearRawEvents);
+
     const sortedEventsFromAI = currentYearRawEvents.sort((a, b) => 
       a.title.toLowerCase().localeCompare(b.title.toLowerCase()) || 
       new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -91,40 +123,39 @@ export const useEventParser = () => {
       }
     }
 
+    console.log("🔍 GROUPED EVENTS:", tempGroupedEvents);
+
     // Filter new events
-    console.log('displayedEventUniqueKeys before filtering:', Array.from(displayedEventUniqueKeys.current));
     const eventsForThisMessageCandidate: EventInfo[] = [];
     for (const event of tempGroupedEvents) {
-      const startDate = parseDate(event.date);
+      const startDate = parseDate(event.date); 
       const endDate = event.endDate ? parseDate(event.endDate) : startDate;
-      
       let isNew = false; 
       const eventIndividualDateKeys: string[] = [];
       
       if (startDate && endDate) {
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
           const dayKey = `${event.title.toLowerCase()}+${formatDate(d)}`; 
-          console.log(`Checking event: ${dayKey}, Already displayed: ${displayedEventUniqueKeys.current.has(dayKey)}`);
           eventIndividualDateKeys.push(dayKey);
           if (!displayedEventUniqueKeys.current.has(dayKey)) isNew = true;
         }
       } else {
         const dayKey = `${event.title.toLowerCase()}+${event.date}`; 
-        console.log(`Checking event: ${dayKey}, Already displayed: ${displayedEventUniqueKeys.current.has(dayKey)}`);
         eventIndividualDateKeys.push(dayKey);
         if (!displayedEventUniqueKeys.current.has(dayKey)) isNew = true;
       }
       
-      console.log(`Event ${event.title} is considered new: ${isNew}`);
       if (isNew) { 
         eventsForThisMessageCandidate.push(event); 
         eventIndividualDateKeys.forEach(key => displayedEventUniqueKeys.current.add(key)); 
       }
     }
-    console.log('displayedEventUniqueKeys after filtering:', Array.from(displayedEventUniqueKeys.current));
 
     const eventsForThisMessage = eventsForThisMessageCandidate.slice(0, MAX_INITIAL_EVENTS);
     const showSeeMoreButtonForThisMessage = eventsForThisMessageCandidate.length > MAX_INITIAL_EVENTS;
+    
+    console.log("🔍 FINAL EVENTS FOR MESSAGE:", eventsForThisMessage);
+    console.log("🔍 SHOW SEE MORE BUTTON:", showSeeMoreButtonForThisMessage);
     
     if (eventsForThisMessage.length > 0) { 
       lastUserQueryThatLedToEvents.current = inputText; 

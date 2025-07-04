@@ -21,6 +21,8 @@ export const useMessageParser = () => {
     }
     let processedContent = content;
 
+    console.log("🔍 DEBUG - Original content received:", content);
+
     // Parse grounding metadata
     let finalGroundingMetadata: GroundingMetadata | undefined = undefined;
     if (finalResponse?.candidates?.[0]?.groundingMetadata) {
@@ -31,22 +33,29 @@ export const useMessageParser = () => {
       };
     }
 
+    // Parse place cards FIRST from original content (before removing markers)
+    const { placeCardsForMessage } = parsePlaceCards(content);
+    console.log("🔍 DEBUG - Place cards found:", placeCardsForMessage.length);
+
     // Parse events and remove event markers from content
     const { eventsForThisMessage, showSeeMoreButtonForThisMessage, storedUserQueryForEvents, introText } = parseEvents(content, inputText);
-    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}([\\\\s\\\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`, 'g');
     processedContent = processedContent.replace(eventRegex, "").trim();
 
-    // Si hay eventos, no sobrescribas el processedContent con el introText
-    if (eventsForThisMessage.length > 0) {
-      // El contenido ya está siendo procesado para quitar los marcadores
-    } else if (introText && introText.trim() !== "") {
+    // Si hay introText, úsalo como processedContent
+    if (introText && introText.trim() !== "") {
       processedContent = introText.trim();
     }
 
-    // Parse place cards and remove place card markers from content
-    const { placeCardsForMessage } = parsePlaceCards(processedContent);
+    // Remove place card markers from content AFTER parsing them
     const placeCardRegex = new RegExp(`${PLACE_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${PLACE_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     processedContent = processedContent.replace(placeCardRegex, "").trim();
+    
+    // También eliminar marcadores abreviados [PLT] y [PL] que el AI está usando
+    const abbreviatedPlaceCardRegex = /\[PLT\]([\s\S]*?)\[PL\]/g;
+    processedContent = processedContent.replace(abbreviatedPlaceCardRegex, "").trim();
+
+    console.log("🔍 DEBUG - Processed content after removing markers:", processedContent);
 
     // Parse content (maps, PDFs, TECA links)
     const { 

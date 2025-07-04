@@ -2,6 +2,8 @@ import { ChatMessage, CustomChatConfig, MessageRole } from '../../types';
 import { useCallback, useRef, useState } from 'react';
 import { useMessageParser } from '../useMessageParser';
 import { fetchChatIA } from '../../services/chatIA';
+import { useAuth } from '../useAuth';
+import { useGeolocation } from '../useGeolocation';
 
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
@@ -10,6 +12,8 @@ export const useMessageHandler = (
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const { parseAIResponse } = useMessageParser();
+  const { user } = useAuth();
+  const { userLocation } = useGeolocation(chatConfig.allowGeolocation);
   const lastProcessedMessageRef = useRef<string | null>(null);
 
   const processMessage = useCallback(async (
@@ -29,7 +33,19 @@ export const useMessageHandler = (
     setIsLoading(true);
     try {
       await addMessage(userMessage, targetConversationId);
-      const responseText = await fetchChatIA(inputText, { allowMapDisplay: chatConfig.allowMapDisplay });
+      
+      // Preparar ubicación del usuario si está disponible
+      const userLocationData = userLocation ? {
+        lat: userLocation.latitude,
+        lng: userLocation.longitude
+      } : undefined;
+      
+      const responseText = await fetchChatIA(inputText, { 
+        allowMapDisplay: chatConfig.allowMapDisplay,
+        userId: user?.id,
+        userLocation: userLocationData
+      });
+      
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: MessageRole.Model,
@@ -39,12 +55,12 @@ export const useMessageHandler = (
       // Parsea la respuesta como antes
       const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
       const parsedMessage: ChatMessage = {
-        ...aiMessage,
-        content: parsed.processedContent,
+          ...aiMessage,
+          content: parsed.processedContent,
         events: parsed.eventsForThisMessage,
         placeCards: parsed.placeCardsForMessage,
         mapQuery: parsed.mapQueryFromAI,
-        downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
+          downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
         telematicProcedureLink: parsed.telematicLinkForMessage,
         showSeeMoreButton: parsed.showSeeMoreButtonForThisMessage,
         originalUserQueryForEvents: parsed.storedUserQueryForEvents,
@@ -63,12 +79,12 @@ export const useMessageHandler = (
       try {
         await addMessage(errorMessage, targetConversationId);
       } catch {}
-      onError('Error al procesar el mensaje. Intenta de nuevo.');
+        onError('Error al procesar el mensaje. Intenta de nuevo.');
     } finally {
       setIsLoading(false);
       lastProcessedMessageRef.current = null;
     }
-  }, [parseAIResponse, onError, chatConfig]);
+  }, [parseAIResponse, onError, chatConfig, user?.id, userLocation]);
 
   return {
     isLoading,
