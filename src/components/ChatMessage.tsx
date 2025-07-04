@@ -105,9 +105,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       display: 'flex',
       justifyContent: isUser ? 'flex-end' : 'flex-start',
       mb: 2, // Increased margin bottom
-      px: { xs: 2, sm: 0 } // Remove horizontal padding on desktop as parent already has it
+      px: { xs: 0, sm: 0 } // Remove horizontal padding to allow full width
     }}>
-      <Stack direction={isUser ? "row-reverse" : "row"} spacing={1} sx={{ width: '100%' }} alignItems="flex-start">
+      <Stack direction={isUser ? "row-reverse" : "row"} spacing={1} sx={{ width: '100%', minWidth: 0 }} alignItems="flex-start">
         {!isUser && (
             <Avatar sx={{
                 width: 32, height: 32,
@@ -120,7 +120,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
         )}
         {isUser && avatar} {/* Show standard avatar for user */}
         
-        <Box> {/* Wrapper for paper and action icons */}
+        <Box sx={{ maxWidth: '100%', minWidth: 0 }}> {/* Wrapper for paper and action icons */}
             <Paper
             elevation={0} // Flat messages
             sx={{
@@ -129,9 +129,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
                 borderRadius: isUser ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
                 minWidth: '60px',
-                maxWidth: '700px',
-                width: '100%',
-                margin: '0 auto',
+                maxWidth: { xs: '100%', sm: '700px' },
+                width: 'fit-content',
                 overflowWrap: 'break-word',
                 wordWrap: 'break-word',
                 hyphens: 'auto',
@@ -182,14 +181,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   </Typography>
                 )}
                 {message.events && message.events.length > 0 && (
-                    <Stack spacing={1} sx={{ mt: 1.5 }}>
+                    <Stack spacing={1} sx={{ mt: 1.5, width: '100%' }}>
                     {message.events.map((event, index) => (
                         <EventCard key={`${message.id}-event-${index}`} event={event} />
                     ))}
                     </Stack>
                 )}
                 {message.placeCards && message.placeCards.length > 0 && (
-                    <Stack spacing={1} sx={{ mt: 1.5 }}>
+                    <Stack spacing={1} sx={{ mt: 1.5, width: '100%' }}>
                     {message.placeCards.map((place) => (
                         <PlaceCard key={`${message.id}-place-${place.id}`} place={place} />
                     ))}

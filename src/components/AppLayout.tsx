@@ -119,8 +119,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
       sx={{
         position: 'fixed',
         top: 0,
-        left: isMenuOpen ? drawerWidth : collapsedDrawerWidth,
-        width: `calc(100% - ${isMenuOpen ? drawerWidth : collapsedDrawerWidth}px)` ,
+        left: isMobile ? 0 : (isMenuOpen ? drawerWidth : collapsedDrawerWidth),
+        width: isMobile ? '100%' : `calc(100% - ${isMenuOpen ? drawerWidth : collapsedDrawerWidth}px)`,
         zIndex: (theme) => theme.zIndex.appBar || 1300,
         display: 'flex',
         alignItems: 'center',
@@ -131,6 +131,17 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         color: 'text.primary',
       }}
     >
+      {isMobile && (
+        <IconButton
+          edge="start"
+          color="inherit"
+          aria-label="menu"
+          onClick={handleMenuToggle}
+          sx={{ mr: 2, color: 'text.primary' }}
+        >
+          <MenuIcon />
+        </IconButton>
+      )}
       <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
         {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : ''}
       </Typography>

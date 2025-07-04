@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { useThemeContext } from '../theme/ThemeProvider';
@@ -27,11 +26,22 @@ export const useAppState = () => {
 
   const { userLocation, geolocationError, geolocationStatus } = useGeolocation(chatConfig.allowGeolocation);
 
-  const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage } = useGoogleMaps(
+  const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, loadGoogleMapsScript } = useGoogleMaps(
     userLocation,
     chatConfig.currentLanguageCode || 'es',
     setAppError
   );
+
+  // Load Google Maps script on app initialization
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (apiKey && !googleMapsScriptLoaded) {
+      console.log('🔍 Loading Google Maps script with API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NO API KEY');
+      loadGoogleMapsScript(apiKey);
+    } else if (!apiKey) {
+      console.warn('❌ VITE_GOOGLE_MAPS_API_KEY not found in environment variables');
+    }
+  }, [loadGoogleMapsScript, googleMapsScriptLoaded]);
 
   // Use conversations hook directly here
   const { 
@@ -80,14 +90,38 @@ export const useAppState = () => {
 
   // Handle place cards loading
   useEffect(() => {
-    if (!googleMapsScriptLoaded) return;
-    messages.forEach(msg => {
+    console.log('🔍 Place cards useEffect triggered:', {
+      googleMapsScriptLoaded,
+      messagesCount: messages.length
+    });
+    
+    if (!googleMapsScriptLoaded) {
+      console.log('❌ Google Maps script not loaded yet');
+      return;
+    }
+    
+    messages.forEach((msg, msgIndex) => {
       if (msg.role === 'model' && msg.placeCards) {
-        msg.placeCards.forEach(card => {
+        console.log(`🔍 Message ${msgIndex} has ${msg.placeCards.length} place cards`);
+        msg.placeCards.forEach((card, cardIndex) => {
+          console.log(`🔍 Place card ${cardIndex}:`, {
+            name: card.name,
+            placeId: card.placeId,
+            searchQuery: card.searchQuery,
+            isLoadingDetails: card.isLoadingDetails,
+            errorDetails: card.errorDetails,
+            photoUrl: card.photoUrl
+          });
+          
           if (card.isLoadingDetails && (card.placeId || card.searchQuery)) {
             if (!card.errorDetails && !card.photoUrl) {
+              console.log(`✅ Calling fetchPlaceDetailsAndUpdateMessage for card: ${card.name}`);
               fetchPlaceDetailsAndUpdateMessage(msg.id, card.id, card.placeId, card.searchQuery, setMessages);
+            } else {
+              console.log(`⚠️ Skipping card ${card.name} - already has errorDetails or photoUrl`);
             }
+          } else {
+            console.log(`⚠️ Skipping card ${card.name} - not loading or missing placeId/searchQuery`);
           }
         });
       }

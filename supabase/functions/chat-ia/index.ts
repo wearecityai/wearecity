@@ -33,7 +33,9 @@ const SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION = `Cuando discutas una ubicación geogr
 
 const EVENT_CARD_START_MARKER = "[EVENT_CARD_START]";
 const EVENT_CARD_END_MARKER = "[EVENT_CARD_END]";
-const EVENT_CARD_SYSTEM_INSTRUCTION = `Cuando informes sobre eventos, sigue ESTRICTAMENTE este formato:
+const EVENT_CARD_SYSTEM_INSTRUCTION = `INSTRUCCIONES CRÍTICAS PARA EVENT CARDS - SIGUE ESTO AL PIE DE LA LETRA:
+
+Cuando informes sobre eventos, sigue ESTRICTAMENTE este formato:
 1. OPCIONAL Y MUY IMPORTANTE: Comienza con UNA SOLA frase introductoria MUY CORTA Y GENÉRICA si es absolutamente necesario (ej: "Aquí tienes los eventos para esas fechas:"). NO menciones NINGÚN detalle de eventos específicos, fechas, lugares, ni otras recomendaciones en este texto introductorio. TODO debe estar en las tarjetas.
 2. INMEDIATAMENTE DESPUÉS de la introducción (si la hay, sino directamente), para CADA evento que menciones, DEBES usar el formato de tarjeta JSON: ${EVENT_CARD_START_MARKER}{"title": "Nombre del Evento", "date": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" (opcional), "time": "HH:mm" (opcional), "location": "Lugar del Evento" (opcional), "sourceUrl": "https://ejemplo.com/evento" (opcional), "sourceTitle": "Nombre de la Fuente del Evento" (opcional)}${EVENT_CARD_END_MARKER}. No debe haber ningún texto NI LÍNEAS EN BLANCO entre las tarjetas de evento, solo las tarjetas una tras otra.
 3. REGLA CRÍTICA E INQUEBRANTABLE: TODO el detalle de cada evento debe estar contenido EXCLUSIVAMENTE dentro de su marcador JSON. NO escribas NINGÚN detalle, lista, resumen o mención de eventos específicos en el texto fuera de estos marcadores.
@@ -44,34 +46,33 @@ const PLACE_CARD_START_MARKER = "[PLACE_CARD_START]";
 const PLACE_CARD_END_MARKER = "[PLACE_CARD_END]";
 const PLACE_CARD_SYSTEM_INSTRUCTION = `INSTRUCCIONES CRÍTICAS PARA PLACE CARDS - SIGUE ESTO AL PIE DE LA LETRA:
 
-Cuando recomiendes un lugar específico (restaurante, tienda, museo, hotel, etc.), DEBES usar SIEMPRE este formato EXACTO:
+Cuando recomiendes un lugar específico (restaurante, tienda, museo, hotel, etc.), DEBES seguir este formato EXACTO:
 
-1. OPCIONAL: Una frase introductoria corta como "Te recomiendo este lugar:" o "He encontrado este restaurante:"
+1. OBLIGATORIO: Proporciona una explicación detallada de POR QUÉ recomiendas este lugar específico. Incluye:
+   - Qué lo hace especial o destacado
+   - Por qué es relevante para la consulta del usuario
+   - Características únicas (especialidades, ambiente, historia, etc.)
+   - Cualquier información adicional que justifique tu recomendación
 
-2. OBLIGATORIO: Para CADA lugar, usa EXACTAMENTE este formato:
+2. OBLIGATORIO: Después de la explicación, usa EXACTAMENTE este formato para la place card:
 ${PLACE_CARD_START_MARKER}{"name": "Nombre Oficial del Lugar", "placeId": "IDdeGooglePlaceDelLugar", "searchQuery": "Nombre del Lugar, Ciudad"}${PLACE_CARD_END_MARKER}
 
+**EJEMPLO CORRECTO:**
+"Te recomiendo **Restaurante El Posit** porque es uno de los establecimientos más emblemáticos de La Vila Joiosa, especializado en cocina mediterránea con productos frescos del mar. Su ubicación privilegiada frente al puerto le permite ofrecer pescado y marisco de máxima calidad, y es especialmente conocido por su arroz con bogavante y sus tapas tradicionales. El ambiente es acogedor y familiar, perfecto para disfrutar de una comida auténtica con vistas al mar.
+
+${PLACE_CARD_START_MARKER}{"name": "Restaurante El Posit", "placeId": "ChIJW2uQ4CSuEmsR54C1Jqz8mBA", "searchQuery": "Restaurante El Posit, La Vila Joiosa"}${PLACE_CARD_END_MARKER}"
+
 **REGLAS INQUEBRANTABLES:**
+- ✅ SIEMPRE explica POR QUÉ recomiendas el lugar ANTES de mostrar la place card
 - ✅ SIEMPRE usa ${PLACE_CARD_START_MARKER} y ${PLACE_CARD_END_MARKER}
 - ❌ NUNCA uses [PLT] o [PL] - ESTÁN PROHIBIDOS
-- ❌ NUNCA cambies ni acortes los marcadores
-- ✅ SIEMPRE incluye 'name' en el JSON
-- ✅ SIEMPRE intenta incluir un 'placeId' real de Google Places
-- ✅ Solo usa 'searchQuery' si no puedes encontrar un placeId
+- ❌ NUNCA cambies el formato de los marcadores
+- ❌ NUNCA muestres solo la place card sin explicación
+- ❌ NUNCA uses comillas simples en el JSON, solo comillas dobles
+- ✅ SIEMPRE incluye "name", "placeId" y "searchQuery" en el JSON
+- ✅ Si no tienes un placeId válido, usa "searchQuery" con el nombre y ciudad del lugar
 
-3. **BÚSQUEDA OBLIGATORIA DE PLACEID**: Antes de responder, SIEMPRE intenta buscar el placeId real del lugar usando Google Places API. Solo si no lo encuentras, usa searchQuery.
-
-4. **CONTEXTO DE UBICACIÓN**: Si el usuario tiene GPS activo, usa sus coordenadas para buscar lugares cercanos y obtener placeIds precisos.
-
-5. **EJEMPLO CORRECTO (OBLIGATORIO)**:
-"Te recomiendo este lugar: ${PLACE_CARD_START_MARKER}{"name": "Vila Museu", "placeId": "ChIJN1t_tDeuEmsRUsoyG83frY4", "searchQuery": "Vila Museu, La Vila Joiosa"}${PLACE_CARD_END_MARKER}"
-
-6. **EJEMPLO INCORRECTO (PROHIBIDO)**:
-"Te recomiendo este lugar: [PLT]{"name": "Vila Museu", "searchQuery": "Vila Museu, La Vila Joiosa"}[PL]"
-
-**IMPORTANTE**: Los marcadores [PLT] y [PL] están COMPLETAMENTE PROHIBIDOS. Solo usa ${PLACE_CARD_START_MARKER} y ${PLACE_CARD_END_MARKER}.
-
-**VERIFICACIÓN FINAL**: Antes de enviar tu respuesta, verifica que NO contenga [PLT] o [PL] en ningún lugar. Solo usa ${PLACE_CARD_START_MARKER} y ${PLACE_CARD_END_MARKER}.`;
+La explicación debe ser informativa y ayudar al usuario a entender por qué ese lugar es una buena opción para su consulta.`;
 
 const RICH_TEXT_FORMATTING_SYSTEM_INSTRUCTION = `
 GUÍA DE FORMATO DE TEXTO ENRIQUECIDO:
@@ -433,28 +434,39 @@ async function reverseGeocode(lat: number, lng: number) {
   }
 }
 
-// Función para buscar automáticamente placeIds de lugares
-async function findPlaceId(placeName: string, location?: { lat: number, lng: number }): Promise<string | null> {
-  if (!GOOGLE_PLACES_API_KEY) {
-    console.warn('Google Places API Key no configurada para búsqueda de placeId');
+// Function to search for a place ID using Google Places API
+async function searchPlaceId(placeName: string, location?: string): Promise<string | null> {
+  const googleApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+  if (!googleApiKey) {
+    console.log('❌ Google Maps API key not available for place search');
     return null;
   }
 
   try {
-    console.log(`🔍 Buscando placeId para: ${placeName}`);
-    
-    // Buscar el lugar usando Google Places API
-    const placeResult = await searchGooglePlaces(placeName, location, 5000); // 5km de radio
-    
-    if (placeResult && placeResult.place_id) {
-      console.log(`✅ PlaceId encontrado: ${placeResult.place_id} para ${placeName}`);
-      return placeResult.place_id;
+    // Build search query
+    let query = placeName;
+    if (location) {
+      query += `, ${location}`;
     }
     
-    console.log(`❌ No se encontró placeId para: ${placeName}`);
-    return null;
+    console.log(`🔍 Searching for place: "${query}"`);
+    
+    // Use Google Places Text Search API
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${googleApiKey}&language=es`;
+    
+    const response = await fetch(searchUrl);
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const place = data.results[0];
+      console.log(`✅ Found place: ${place.name} (${place.place_id})`);
+      return place.place_id;
+    } else {
+      console.log(`❌ No place found for query: "${query}" (Status: ${data.status})`);
+      return null;
+    }
   } catch (error) {
-    console.error(`Error buscando placeId para ${placeName}:`, error);
+    console.error('❌ Error searching for place:', error);
     return null;
   }
 }
@@ -592,27 +604,27 @@ serve(async (req) => {
     let responseText: string;
     try {
       responseText = await callGeminiAPI(systemInstruction, userMessage);
-    } catch (e) {
-      console.error("Error al llamar a Gemini:", e);
+  } catch (e) {
+    console.error("Error al llamar a Gemini:", e);
       return new Response(JSON.stringify({ error: "Error al llamar a Gemini" }), { 
         status: 500, 
         headers: corsHeaders 
       });
-    }
+  }
 
-    if (!responseText) {
+  if (!responseText) {
       console.error("Gemini no devolvió texto. Prompt:", systemInstruction, "Mensaje:", userMessage);
-      responseText = "Lo siento, no pude generar una respuesta en este momento.";
+    responseText = "Lo siento, no pude generar una respuesta en este momento.";
+  }
+
+  console.log("Respuesta enviada:", responseText);
+
+  return new Response(JSON.stringify({ response: responseText }), {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json"
     }
-
-    console.log("Respuesta enviada:", responseText);
-
-    return new Response(JSON.stringify({ response: responseText }), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json"
-      }
-    });
+  });
 
   } catch (error) {
     console.error("Error general en la función:", error);

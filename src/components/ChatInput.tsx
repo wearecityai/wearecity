@@ -210,7 +210,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <Box sx={{ 
-      padding: { xs: '16px', sm: '32px' },
+      padding: { xs: '8px 16px 24px 16px', sm: '12px 24px 32px 24px' },
       bgcolor: 'background.default',
       maxWidth: '100%',
       width: '100%',

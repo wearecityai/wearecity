@@ -4,7 +4,6 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SyncProblemIcon from '@mui/icons-material/SyncProblem';
 import MessageList from './MessageList';
-import ChatInput from './ChatInput';
 import { ChatMessage, CustomChatConfig } from '../types';
 import { API_KEY_ERROR_MESSAGE, MAPS_API_KEY_INVALID_ERROR_MESSAGE, DEFAULT_LANGUAGE_CODE } from '../constants';
 
@@ -39,9 +38,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         overflow: 'hidden',
         position: 'relative',
         width: '100%',
-        maxWidth: { sm: '800px' },
-        margin: '0 auto',
-        padding: { xs: '0', sm: '0 32px' }, // 32px padding on desktop
+        // maxWidth y padding removidos - ahora están en MainContent
       }}
     >
       {appError && !messages.some(msg => msg.error && msg.error.includes(appError)) && (
@@ -94,16 +91,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         configuredSedeElectronicaUrl={chatConfig.sedeElectronicaUrl}
         onSeeMoreEvents={onSeeMoreEvents}
       />
-      <ChatInput
-        onSendMessage={onSendMessage}
-        isLoading={isLoading}
-        recommendedPrompts={chatConfig.recommendedPrompts}
-        currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
-        onSetLanguageCode={onSetLanguageCode}
-      />
-      <Typography variant="caption" sx={{ textAlign: 'center', p: 1, color: 'text.secondary', fontSize: '0.7rem' }}>
-        Gemini puede cometer errores, incluso sobre personas, así que comprueba sus respuestas. <a href="#" style={{color: theme.palette.text.secondary}}>Tu privacidad y Gemini</a>
-      </Typography>
+
     </Stack>
   );
 };

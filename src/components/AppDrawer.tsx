@@ -115,7 +115,14 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   }, [userLocation, geolocationStatus]);
 
   const drawerWidth = 260;
-  const collapsedDrawerWidth = 56;
+  const collapsedDrawerWidth = 72;
+  
+  // Constantes para consistencia
+  const ICON_SIZE = 24;
+  const PADDING_COLLAPSED = 0; // Sin padding en contraído para centrado perfecto
+  const PADDING_EXPANDED = 2; // 16px
+  const MARGIN_BETWEEN_ICON_TEXT = 1.5; // 12px
+  const BUTTON_HEIGHT = 48; // Altura más generosa para mejor apariencia
 
   const refreshLocation = () => {
     if (chatConfig.allowGeolocation && navigator.geolocation) {
@@ -164,15 +171,24 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
 
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, mb: 1 }}>
+      {/* Header con botón de menú */}
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        px: isMenuOpen ? PADDING_EXPANDED : 0, 
+        py: 1.5,
+        minHeight: 64,
+        justifyContent: isMenuOpen ? 'flex-start' : 'center',
+      }}>
         <IconButton
           onClick={onMenuToggle}
           sx={{
-            minWidth: 0,
-            mr: isMenuOpen ? 1 : 0,
+            width: BUTTON_HEIGHT,
+            height: BUTTON_HEIGHT,
+            mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
           }}
         >
-          <MenuIcon />
+          <MenuIcon sx={{ fontSize: ICON_SIZE }} />
         </IconButton>
         {isMenuOpen && (
           <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
@@ -180,52 +196,83 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
           </Typography>
         )}
       </Box>
-      <Button
-        variant="outlined"
-        startIcon={<EditOutlinedIcon />}
-        onClick={() => onNewChat("Nuevo chat")}
-        title={!isMenuOpen ? "Nuevo chat" : undefined}
-        sx={{
-          m: '12px 16px',
-          bgcolor: theme.palette.mode === 'dark' ? '#2e2f32' :'#e0e0e0',
-          color: theme.palette.mode === 'dark' ? theme.palette.text.primary : theme.palette.text.primary,
-          '&:hover': {
-             bgcolor: theme.palette.mode === 'dark' ? '#3c3d40' :'#d5d5d5',
-          },
-          borderRadius: '24px',
-          py: 1.25,
-          boxShadow: 'none',
-          width: isMenuOpen ? 'auto' : collapsedDrawerWidth - 24,
-          minWidth: isMenuOpen ? 'auto' : 0,
-          justifyContent: isMenuOpen ? 'flex-start' : 'center',
-          px: isMenuOpen ? '16px' : '0px',
-          overflow: 'hidden',
-          '& .MuiButton-startIcon': {
-            mr: isMenuOpen ? 1 : 0,
-            ml: isMenuOpen ? 0 : 0,
-          }
-        }}
-      >
-        {isMenuOpen && "Nuevo chat"}
-      </Button>
-      <List sx={{ flexGrow: 1, px:1 }}>
+      {/* Botón Nuevo Chat */}
+      <Box sx={{ 
+        px: isMenuOpen ? PADDING_EXPANDED : 1, 
+        pb: 1.5,
+        display: 'flex',
+        justifyContent: 'center'
+      }}>
+        <Button
+          variant="outlined"
+          startIcon={!isMenuOpen ? null : <EditOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
+          onClick={() => onNewChat("Nuevo chat")}
+          title={!isMenuOpen ? "Nuevo chat" : undefined}
+          sx={{
+            width: isMenuOpen ? '100%' : BUTTON_HEIGHT,
+            height: BUTTON_HEIGHT,
+            bgcolor: theme.palette.mode === 'dark' ? '#2e2f32' :'#e0e0e0',
+            color: theme.palette.mode === 'dark' ? theme.palette.text.primary : theme.palette.text.primary,
+            '&:hover': {
+               bgcolor: theme.palette.mode === 'dark' ? '#3c3d40' :'#d5d5d5',
+            },
+            borderRadius: '20px',
+            border: 'none',
+            boxShadow: 'none',
+            justifyContent: 'center',
+            px: isMenuOpen ? 2 : 0,
+            minWidth: isMenuOpen ? 'auto' : BUTTON_HEIGHT,
+            overflow: 'hidden',
+            textTransform: 'none',
+            fontSize: '0.875rem',
+            '& .MuiButton-startIcon': {
+              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+              ml: 0,
+            }
+          }}
+        >
+          {isMenuOpen ? "Nuevo chat" : <EditOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
+        </Button>
+      </Box>
+      <List sx={{ flexGrow: 1, px: 0, py: 0 }}>
         <ListItemButton 
           onClick={() => console.log("Descubrir ciudades clicked")}
           title={!isMenuOpen ? "Descubrir ciudades" : undefined}
           sx={{
-            justifyContent: !isMenuOpen ? 'center' : 'flex-start',
-            px: !isMenuOpen ? 2 : 3,
+            minHeight: BUTTON_HEIGHT,
+            justifyContent: 'center',
+            px: isMenuOpen ? PADDING_EXPANDED : 0,
+            mx: isMenuOpen ? 1 : 1.5,
+            my: 0.5,
+            borderRadius: '20px',
           }}
         >
-           <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><LocationCityIcon /></ListItemIcon>
+           <ListItemIcon sx={{
+             minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
+             mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+           }}>
+             <LocationCityIcon sx={{ fontSize: ICON_SIZE }} />
+           </ListItemIcon>
           {isMenuOpen && <ListItemText primary="Descubrir ciudades" primaryTypographyProps={{fontSize: '0.875rem'}} />}
         </ListItemButton>
 
-        <Typography variant="caption" sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 500, display: isMenuOpen ? 'block' : 'none' }}>
+        <Typography variant="caption" sx={{ 
+          px: PADDING_EXPANDED + 1, 
+          py: 1, 
+          color: 'text.secondary', 
+          fontWeight: 500, 
+          display: isMenuOpen ? 'block' : 'none',
+          fontSize: '0.75rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
           RECIENTE
         </Typography>
         {isMenuOpen && chatTitles.map((title, index) => (
-          <Box key={index} sx={{ position: 'relative', display: 'flex', alignItems: 'center', '&:hover .delete-chat-btn': { opacity: 1 } }}>
+          <Box key={index} sx={{ position: 'relative', mx: 1, '&:hover .delete-chat-btn': { opacity: 1 } }}>
             <ListItemButton
               selected={index === selectedChatIndex}
               title={!isMenuOpen ? title : undefined}
@@ -234,12 +281,21 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                   if (isMobile) onMenuToggle();
               }}
               sx={{
-                justifyContent: !isMenuOpen ? 'center' : 'flex-start',
-                px: !isMenuOpen ? 2 : 3,
-                pr: 5 // espacio para el icono
+                minHeight: BUTTON_HEIGHT,
+                justifyContent: isMenuOpen ? 'flex-start' : 'center',
+                px: isMenuOpen ? PADDING_EXPANDED : PADDING_COLLAPSED,
+                pr: isMenuOpen ? 6 : PADDING_COLLAPSED, // espacio para el icono de eliminar
+                borderRadius: '20px',
               }}
             >
-              <ListItemText primary={title} primaryTypographyProps={{fontSize: '0.875rem', noWrap: true, textOverflow: 'ellipsis'}} />
+              <ListItemText 
+                primary={title} 
+                primaryTypographyProps={{
+                  fontSize: '0.875rem', 
+                  noWrap: true, 
+                  textOverflow: 'ellipsis'
+                }} 
+              />
             </ListItemButton>
             <IconButton
               className="delete-chat-btn"
@@ -257,10 +313,12 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                 opacity: 0,
                 transition: 'opacity 0.2s',
                 color: 'error.main',
-                zIndex: 2
+                zIndex: 2,
+                width: 28,
+                height: 28,
               }}
             >
-              <DeleteIcon fontSize="small" />
+              <DeleteIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Box>
         ))}
@@ -268,71 +326,109 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
            onClick={() => console.log("Mostrar más clicked")}
            title={!isMenuOpen ? "Mostrar más" : undefined}
            sx={{
-             justifyContent: !isMenuOpen ? 'center' : 'flex-start',
-             px: !isMenuOpen ? 2 : 3,
+             minHeight: BUTTON_HEIGHT,
+             justifyContent: isMenuOpen ? 'flex-start' : 'center',
+             px: isMenuOpen ? PADDING_EXPANDED : PADDING_COLLAPSED,
+             mx: 1,
+             borderRadius: '20px',
            }}
          >
-            <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><ExpandMoreIcon /></ListItemIcon>
+            <ListItemIcon sx={{
+              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
+              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <ExpandMoreIcon sx={{ fontSize: ICON_SIZE }} />
+            </ListItemIcon>
             <ListItemText primary="Mostrar más" primaryTypographyProps={{fontSize: '0.875rem'}}/>
         </ListItemButton>}
       </List>
 
       {/* Bottom Drawer Section */}
-      <List sx={{pb:1, px:1}}>
-        <Divider sx={{my:1, display: isMenuOpen ? 'block' : 'none'}}/>
+      <List sx={{ pb: 1, px: 0, py: 0 }}>
+        <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
         <ListItemButton 
           onClick={() => console.log("Actividad clicked")}
           title={!isMenuOpen ? "Actividad" : undefined}
           sx={{
-            justifyContent: !isMenuOpen ? 'center' : 'flex-start',
-            px: !isMenuOpen ? 2 : 3,
+            minHeight: BUTTON_HEIGHT,
+            justifyContent: 'center',
+            px: isMenuOpen ? PADDING_EXPANDED : 0,
+            mx: isMenuOpen ? 1 : 1.5,
+            my: 0.5,
+            borderRadius: '20px',
           }}
         >
-            <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><HistoryIcon /></ListItemIcon>
+            <ListItemIcon sx={{
+              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
+              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <HistoryIcon sx={{ fontSize: ICON_SIZE }} />
+            </ListItemIcon>
             {isMenuOpen && <ListItemText primary="Actividad" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
         </ListItemButton>
         <ListItemButton 
           onClick={() => { onOpenFinetuning(); if (isMobile) onMenuToggle(); }}
           title={!isMenuOpen ? "Configurar chat" : undefined}
           sx={{
-            justifyContent: !isMenuOpen ? 'center' : 'flex-start',
-            px: !isMenuOpen ? 2 : 3,
+            minHeight: BUTTON_HEIGHT,
+            justifyContent: 'center',
+            px: isMenuOpen ? PADDING_EXPANDED : 0,
+            mx: isMenuOpen ? 1 : 1.5,
+            my: 0.5,
+            borderRadius: '20px',
           }}
         >
-            <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><TuneIcon /></ListItemIcon>
+            <ListItemIcon sx={{
+              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
+              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <TuneIcon sx={{ fontSize: ICON_SIZE }} />
+            </ListItemIcon>
             {isMenuOpen && <ListItemText primary="Configurar chat" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
         </ListItemButton>
-        <Divider sx={{my:1, display: isMenuOpen ? 'block' : 'none'}}/>
+        <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
         
         {/* Location Section - Mejorada */}
         <ListItem
             sx={{
                 display: 'flex',
                 flexDirection: 'row',
-                alignItems: 'flex-start',
-                pt: 0.5,
-                pb: 0.5,
-                px: !isMenuOpen ? 2 : 3,
+                alignItems: isMenuOpen ? 'flex-start' : 'center',
+                minHeight: BUTTON_HEIGHT,
+                px: isMenuOpen ? PADDING_EXPANDED : 0,
+                mx: isMenuOpen ? 1 : 1.5,
+                my: 0.5,
+                py: isMenuOpen ? 1 : 0,
                 cursor: 'default',
+                borderRadius: '20px',
             }}
             title={!isMenuOpen ? getDisplayCity() : undefined}
         >
             <ListItemIcon 
                 sx={{ 
-                    minWidth: isMenuOpen ? 32 : 0,
-                    mr: isMenuOpen ? 2 : 0,
-                    mt: 0.5,
+                    minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT,
+                    mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+                    mt: isMenuOpen ? 0.5 : 0,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: !isMenuOpen ? 'center' : 'flex-start'
+                    justifyContent: 'center',
                 }}
             >
-                <LocationOnIcon />
+                <LocationOnIcon sx={{ fontSize: ICON_SIZE }} />
             </ListItemIcon>
             {isMenuOpen && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexGrow: 1 }}>
                      {/* Nombre del municipio/ciudad */}
-                     <Typography variant="body2" sx={{fontWeight:'500', lineHeight: 1.2}}>
+                     <Typography variant="body2" sx={{ fontWeight: '500', lineHeight: 1.2, fontSize: '0.875rem' }}>
                         {getDisplayCity()}
                      </Typography>
                      
@@ -343,6 +439,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                         sx={{ 
                           mt: 0.25, 
                           lineHeight: 1.2,
+                          fontSize: '0.75rem',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
@@ -364,7 +461,12 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                           textTransform: 'none', 
                           color: 'primary.main', 
                           mt: 0.5, 
-                          fontSize: '0.75rem'
+                          fontSize: '0.75rem',
+                          minHeight: 'auto',
+                          '&:hover': {
+                            backgroundColor: 'transparent',
+                            textDecoration: 'underline'
+                          }
                         }}
                      >
                         {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
