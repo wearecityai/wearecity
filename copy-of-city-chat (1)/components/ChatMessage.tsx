@@ -1,8 +1,10 @@
+
+
 import React from 'react';
 import { Box, Paper, Typography, Avatar, Button, IconButton, Chip, Stack, CircularProgress, useTheme } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import SmartToyIcon from '@mui/icons-material/SmartToy'; 
-import LocationCityIcon from '@mui/icons-material/LocationCity'; // City icon for assistant
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // Sparkle for model
 import DownloadIcon from '@mui/icons-material/Download';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -104,9 +106,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       display: 'flex',
       justifyContent: isUser ? 'flex-end' : 'flex-start',
       mb: 2, // Increased margin bottom
-      px: { xs: 2, sm: 0 } // Remove horizontal padding on desktop as parent already has it
+      px: { xs: 1, sm: 2 }
     }}>
-      <Stack direction={isUser ? "row-reverse" : "row"} spacing={1} sx={{ width: '100%' }} alignItems="flex-start">
+      <Stack direction={isUser ? "row-reverse" : "row"} spacing={1} sx={{ maxWidth: { xs: '90%', sm: '80%', md: '75%' } }} alignItems="flex-start">
         {!isUser && (
             <Avatar sx={{
                 width: 32, height: 32,
@@ -114,59 +116,30 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 color: theme.palette.primary.main, // Sparkle color
                 alignSelf: 'flex-start',
             }}>
-                <LocationCityIcon fontSize="medium" />
+                <AutoAwesomeIcon fontSize="medium" />
             </Avatar>
         )}
         {isUser && avatar} {/* Show standard avatar for user */}
         
         <Box> {/* Wrapper for paper and action icons */}
             <Paper
-            elevation={0} // Flat messages
+            elevation={0} // Gemini messages are flat
             sx={{
                 p: 1.5,
-                bgcolor: isUser ? theme.palette.primary.dark : 'transparent',
+                bgcolor: isUser ? theme.palette.primary.dark : theme.palette.background.paper, // User bubble darker blue
                 color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
-                borderRadius: isUser ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
+                borderRadius: isUser ? '20px 4px 20px 20px' : '4px 20px 20px 20px', // Gemini bubble shape
                 minWidth: '60px',
-                maxWidth: '700px',
-                width: '100%',
-                margin: '0 auto',
                 overflowWrap: 'break-word',
                 wordWrap: 'break-word',
                 hyphens: 'auto',
             }}
             >
             {message.isTyping ? (
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 250 }}>
-                    <CircularProgress 
-                        size={20} 
-                        thickness={6}
-                        sx={{ 
-                            color: theme.palette.primary.main,
-                            animationDuration: '1s'
-                        }} 
-                    />
-                    <Typography 
-                        variant="body2" 
-                        sx={{ 
-                            color: 'text.secondary',
-                            animation: 'fadeInOut 6s infinite',
-                            '@keyframes fadeInOut': {
-                                '0%, 100%': { opacity: 0.7 },
-                                '16%, 84%': { opacity: 1 },
-                            }
-                        }}
-                    >
-                        {(() => {
-                            const loadingStates = [
-                                "Analizando la consulta...",
-                                "Buscando información relevante...",
-                                "Preparando la respuesta...",
-                                "Verificando datos locales..."
-                            ];
-                            return loadingStates[Math.floor((Date.now() / 2000) % loadingStates.length)];
-                        })()}
-                    </Typography>
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ display: 'inline-flex' }}>
+                <CircularProgress size={10} color="inherit" sx={{ animationDelay: '-0.3s' }} />
+                <CircularProgress size={10} color="inherit" sx={{ animationDelay: '-0.15s' }} />
+                <CircularProgress size={10} color="inherit" />
                 </Stack>
             ) : message.error ? (
                 <Box sx={{ bgcolor: isUser ? 'rgba(0,0,0,0.2)' : theme.palette.error.light, p: 1, borderRadius: 1, color: isUser ? 'inherit' : theme.palette.error.dark }}>
@@ -175,11 +148,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 </Box>
             ) : (
                 <>
-                {(message.content && message.content.trim() !== "") && (
-                  <Typography variant="body1" component="div" sx={{ whiteSpace: 'pre-line' }}> 
-                      {linkifyAndMarkdown(message.content)}
-                  </Typography>
-                )}
+                <Typography variant="body1" component="div" sx={{ whiteSpace: 'pre-line' }}> 
+                    {linkifyAndMarkdown(message.content)}
+                </Typography>
+
                 {message.events && message.events.length > 0 && (
                     <Stack spacing={1} sx={{ mt: 1.5 }}>
                     {message.events.map((event, index) => (
@@ -194,9 +166,37 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     ))}
                     </Stack>
                 )}
-                {/* Fallback: si no hay nada que mostrar */}
-                {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
-                  <Typography variant="body2" color="text.secondary">Sin respuesta</Typography>
+
+                {/* Legacy Buttons (hidden for Gemini clone visual, can be re-enabled if needed) */}
+                {false && (
+                    <Stack spacing={1} direction="column" alignItems="flex-start" sx={{ mt: message.content ? 1.5 : 0 }}>
+                        {message.downloadablePdfInfo && configuredSedeElectronicaUrl && (
+                            <Button size="small" variant="contained" color={isUser ? "inherit" : "secondary"} startIcon={<OpenInNewIcon />} href={configuredSedeElectronicaUrl} target="_blank" rel="noopener noreferrer" title="Ir a la Sede Electrónica del Ayuntamiento" sx={{ textTransform: 'none', borderRadius: '16px' }}>
+                                Ir a Sede Electrónica
+                            </Button>
+                        )}
+                        {message.downloadablePdfInfo && onDownloadPdf && (
+                        <Button size="small" variant={isUser ? "outlined" : "contained"} color={isUser ? "inherit" : "secondary"} startIcon={<DownloadIcon />} onClick={() => onDownloadPdf(message.downloadablePdfInfo!)} title={`Descargar ${message.downloadablePdfInfo.fileName}`} sx={{ textTransform: 'none', borderRadius: '16px' }}>
+                            Descargar: {message.downloadablePdfInfo.fileName}
+                        </Button>
+                        )}
+                        {!message.downloadablePdfInfo && message.telematicProcedureLink && (
+                        <Button size="small" variant="contained" color={isUser ? "inherit" : "primary"} startIcon={<OpenInNewIcon />} href={message.telematicProcedureLink.url} target="_blank" rel="noopener noreferrer" title={`Acceder a: ${message.telematicProcedureLink.text}`} sx={{ textTransform: 'none', borderRadius: '16px' }}>
+                            {message.telematicProcedureLink.text}
+                        </Button>
+                        )}
+                        {message.showSeeMoreButton && onSeeMoreEvents && message.originalUserQueryForEvents && (
+                        <Button size="small" variant="outlined" color={isUser ? "inherit" : "primary"} startIcon={<AddCircleOutlineIcon />} onClick={() => onSeeMoreEvents(message.originalUserQueryForEvents!)} title="Ver más eventos" sx={{ textTransform: 'none', borderRadius: '16px' }}>
+                            Ver más eventos
+                        </Button>
+                        )}
+                    </Stack>
+                )}
+
+                {message.mapQuery && (
+                    <Typography variant="caption" display="block" sx={{ mt: 1, fontStyle: 'italic', opacity: 0.7 }}>
+                    (Mapa: "{message.mapQuery}")
+                    </Typography>
                 )}
                 </>
             )}

@@ -1,4 +1,3 @@
-
 import { useRef } from 'react';
 import { EventInfo } from '../../types';
 import {
@@ -28,12 +27,22 @@ export const useEventParser = () => {
     const rawParsedEventsFromAI: EventInfo[] = [];
     let storedUserQueryForEvents: string | undefined = undefined;
 
+    // Encuentra la posición del primer marcador de evento
+    const firstEventIndex = content.indexOf(EVENT_CARD_START_MARKER);
+    let introText = "";
+    if (firstEventIndex > 0) {
+      introText = content.slice(0, firstEventIndex).trim();
+    }
+
     // Parse events
-    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\s\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let match;
     let tempContentForProcessing = content;
     while ((match = eventRegex.exec(tempContentForProcessing)) !== null) {
-      let jsonStrToParse = match[1].replace(/\[CITE:\s*\d+\][%]?$/, "").trim();
+      let jsonStrToParse = match[1]
+        .replace(/```json|```/g, "") // Elimina bloques de código Markdown
+        .replace(/\[CITE:\s*\d+\][%]?$/, "")
+        .trim();
       try {
         const eventData = JSON.parse(jsonStrToParse);
         if (eventData.title && eventData.date) rawParsedEventsFromAI.push({ ...eventData });
@@ -83,30 +92,36 @@ export const useEventParser = () => {
     }
 
     // Filter new events
+    console.log('displayedEventUniqueKeys before filtering:', Array.from(displayedEventUniqueKeys.current));
     const eventsForThisMessageCandidate: EventInfo[] = [];
     for (const event of tempGroupedEvents) {
-      const startDate = parseDate(event.date); 
+      const startDate = parseDate(event.date);
       const endDate = event.endDate ? parseDate(event.endDate) : startDate;
+      
       let isNew = false; 
       const eventIndividualDateKeys: string[] = [];
       
       if (startDate && endDate) {
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
           const dayKey = `${event.title.toLowerCase()}+${formatDate(d)}`; 
+          console.log(`Checking event: ${dayKey}, Already displayed: ${displayedEventUniqueKeys.current.has(dayKey)}`);
           eventIndividualDateKeys.push(dayKey);
           if (!displayedEventUniqueKeys.current.has(dayKey)) isNew = true;
         }
       } else {
         const dayKey = `${event.title.toLowerCase()}+${event.date}`; 
+        console.log(`Checking event: ${dayKey}, Already displayed: ${displayedEventUniqueKeys.current.has(dayKey)}`);
         eventIndividualDateKeys.push(dayKey);
         if (!displayedEventUniqueKeys.current.has(dayKey)) isNew = true;
       }
       
+      console.log(`Event ${event.title} is considered new: ${isNew}`);
       if (isNew) { 
         eventsForThisMessageCandidate.push(event); 
         eventIndividualDateKeys.forEach(key => displayedEventUniqueKeys.current.add(key)); 
       }
     }
+    console.log('displayedEventUniqueKeys after filtering:', Array.from(displayedEventUniqueKeys.current));
 
     const eventsForThisMessage = eventsForThisMessageCandidate.slice(0, MAX_INITIAL_EVENTS);
     const showSeeMoreButtonForThisMessage = eventsForThisMessageCandidate.length > MAX_INITIAL_EVENTS;
@@ -119,7 +134,8 @@ export const useEventParser = () => {
     return {
       eventsForThisMessage,
       showSeeMoreButtonForThisMessage,
-      storedUserQueryForEvents
+      storedUserQueryForEvents,
+      introText
     };
   };
 

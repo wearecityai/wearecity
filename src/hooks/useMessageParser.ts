@@ -32,9 +32,16 @@ export const useMessageParser = () => {
     }
 
     // Parse events and remove event markers from content
-    const { eventsForThisMessage, showSeeMoreButtonForThisMessage, storedUserQueryForEvents } = parseEvents(content, inputText);
+    const { eventsForThisMessage, showSeeMoreButtonForThisMessage, storedUserQueryForEvents, introText } = parseEvents(content, inputText);
     const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     processedContent = processedContent.replace(eventRegex, "").trim();
+
+    // Si hay eventos, no sobrescribas el processedContent con el introText
+    if (eventsForThisMessage.length > 0) {
+      // El contenido ya está siendo procesado para quitar los marcadores
+    } else if (introText && introText.trim() !== "") {
+      processedContent = introText.trim();
+    }
 
     // Parse place cards and remove place card markers from content
     const { placeCardsForMessage } = parsePlaceCards(processedContent);
