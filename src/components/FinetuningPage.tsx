@@ -623,7 +623,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
           </Paper>
         </Stack>
       </Container>
-      <Paper square elevation={2} sx={{ p: 2, position: 'sticky', bottom: 0, zIndex: 10, bgcolor: 'background.default' }}>
+      <Paper square elevation={0} sx={{ p: 2, position: 'sticky', bottom: 0, zIndex: 10, bgcolor: 'background.default', borderTop: `1px solid ${theme.palette.divider}` }}>
         <Stack direction={{xs: 'column', sm: 'row'}} spacing={2} justifyContent="flex-end">
           <Button variant="outlined" color="inherit" onClick={onCancel} startIcon={<CancelIcon />}>Cancelar</Button>
           <Tooltip title="Restablecer a los valores por defecto del Asistente">
