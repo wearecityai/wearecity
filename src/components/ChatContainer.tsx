@@ -222,7 +222,7 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
       sx={{
         display: 'flex',
         flexWrap: 'nowrap',
-        overflowX: 'hidden',
+        overflowX: 'auto',
         overflowY: 'hidden',
         gap: 2,
         justifyContent: shouldCenter ? 'center' : 'flex-start',
@@ -230,6 +230,9 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
         pb: 1,
         pl: 2,
         pr: 2,
+        '::-webkit-scrollbar': { display: 'none' },
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
       }}
     >
       {prompts.map((prompt, idx) => {
