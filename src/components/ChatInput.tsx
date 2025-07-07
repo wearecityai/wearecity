@@ -213,7 +213,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <Box sx={{ 
       padding: isInFinetuningMode 
-        ? { xs: '8px 8px 16px 8px', sm: '12px 16px 24px 16px' } 
+        ? { xs: '4px 4px 8px 4px', sm: '8px 8px 12px 8px' } 
         : { xs: '8px 16px 24px 16px', sm: '12px 24px 32px 24px' },
       bgcolor: 'background.default',
       maxWidth: '100%',
@@ -227,7 +227,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           ref={canvasRef}
           style={{
             width: '100%',
-            maxWidth: '800px',
+            maxWidth: isInFinetuningMode ? '100%' : '800px',
             height: '34px',
             display: 'block',
             backgroundColor: theme.palette.background.paper, // Match input paper

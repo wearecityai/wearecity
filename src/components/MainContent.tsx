@@ -80,9 +80,9 @@ const MainContent: React.FC<MainContentProps> = ({
         flexGrow: 1,
         display: 'flex',
         flexDirection: 'column',
-        height: { xs: '100dvh', sm: '100vh' },
+        height: isInFinetuningMode ? '100%' : { xs: '100dvh', sm: '100vh' },
         minHeight: 0,
-        maxHeight: { xs: '100dvh', sm: '100vh' },
+        maxHeight: isInFinetuningMode ? '100%' : { xs: '100dvh', sm: '100vh' },
         overflow: 'hidden',
         bgcolor: 'background.default',
         ...(isMobile && isMenuOpen && {
@@ -149,7 +149,16 @@ const MainContent: React.FC<MainContentProps> = ({
             )}
           </Box>
           {/* Input del chat pegado abajo en modo admin */}
-          <Box sx={{ width: '100%', maxWidth: '100%', margin: '0 auto', flexShrink: 0, p: 0 }}>
+          <Box sx={{ 
+            width: '100%', 
+            maxWidth: '100%', 
+            margin: '0 auto', 
+            flexShrink: 0, 
+            p: 0,
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 1
+          }}>
             <ChatInput
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
