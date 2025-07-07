@@ -15,6 +15,7 @@ interface ChatInputProps {
   recommendedPrompts?: string[]; // Keep for potential future use, but Gemini UI has fixed chips
   currentLanguageCode: string;
   onSetLanguageCode: (code: string) => void; // Keep for settings menu
+  isInFinetuningMode?: boolean; // Nueva prop para ajustar el padding en modo finetuning
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -22,7 +23,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   recommendedPrompts,
   currentLanguageCode,
-  onSetLanguageCode // Retained for settings, not used directly in this input bar
+  onSetLanguageCode, // Retained for settings, not used directly in this input bar
+  isInFinetuningMode = false
 }) => {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -210,7 +212,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <Box sx={{ 
-      padding: { xs: '8px 16px 24px 16px', sm: '12px 24px 32px 24px' },
+      padding: isInFinetuningMode 
+        ? { xs: '8px 8px 16px 8px', sm: '12px 16px 24px 16px' } 
+        : { xs: '8px 16px 24px 16px', sm: '12px 24px 32px 24px' },
       bgcolor: 'background.default',
       maxWidth: '100%',
       width: '100%',
@@ -245,7 +249,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           borderRadius: '28px', // Highly rounded
           bgcolor: 'background.paper',
           border: `1px solid ${theme.palette.divider}`, // Subtle border like Gemini
-          maxWidth: '800px',
+          maxWidth: isInFinetuningMode ? '100%' : '800px',
           width: '100%',
           '&:focus-within': {
             borderColor: theme.palette.primary.main,

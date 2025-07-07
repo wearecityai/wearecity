@@ -545,9 +545,6 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
           <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
             <Typography variant="h6" gutterBottom>
               Prompts Recomendados
-              <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-                (Iconos asignados automáticamente)
-              </Typography>
             </Typography>
             <Stack direction="row" spacing={1} mb={2}>
               <TextField 
@@ -558,16 +555,10 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
                 size="small" 
                 variant="outlined"
                 placeholder="Ej: ¿Dónde está la biblioteca municipal?"
-                helperText="El icono se asigna automáticamente según el contenido"
               />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', transition: 'all 0.3s' }}>
-                  {React.createElement(getIconComponent(newPromptIcon), { sx: { fontSize: 18 } })}
-                </Avatar>
-                <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 60 }}>
-                  {newPromptIcon}
-                </Typography>
-              </Box>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', transition: 'all 0.3s', flexShrink: 0 }}>
+                {React.createElement(getIconComponent(newPromptIcon), { sx: { fontSize: 18 } })}
+              </Avatar>
               <Button variant="contained" onClick={handleAddPrompt} disabled={!newPrompt.trim()} sx={{flexShrink:0}}>Añadir</Button>
             </Stack>
             {recommendedPrompts.length > 0 && (
@@ -583,15 +574,6 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
                       variant="outlined"
                       InputProps={{ readOnly: true }}
                       sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      label="Icono"
-                      value={prompt.img}
-                      onChange={e => handlePromptIconChange(index, e.target.value)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ width: 120 }}
-                      placeholder="event, restaurant..."
                     />
                     <Button color="error" onClick={() => handleRemovePrompt(index)}>Eliminar</Button>
                   </Stack>

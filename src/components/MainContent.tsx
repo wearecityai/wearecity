@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Box, IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -55,6 +55,8 @@ const MainContent: React.FC<MainContentProps> = ({
   isInFinetuningMode = false
 }) => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollableBoxRef = useRef<HTMLDivElement>(null);
   
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchorEl(event.currentTarget);
@@ -64,6 +66,13 @@ const MainContent: React.FC<MainContentProps> = ({
     setUserMenuAnchorEl(null);
   };
 
+  // Forzar scroll al fondo en modo finetuning
+  useEffect(() => {
+    if (isInFinetuningMode && scrollableBoxRef.current) {
+      scrollableBoxRef.current.scrollTop = scrollableBoxRef.current.scrollHeight;
+    }
+  }, [isInFinetuningMode, messages]);
+
   return (
     <Box
       component="main"
@@ -72,6 +81,7 @@ const MainContent: React.FC<MainContentProps> = ({
         display: 'flex',
         flexDirection: 'column',
         height: { xs: '100dvh', sm: '100vh' },
+        minHeight: 0,
         maxHeight: { xs: '100dvh', sm: '100vh' },
         overflow: 'hidden',
         bgcolor: 'background.default',
@@ -81,93 +91,160 @@ const MainContent: React.FC<MainContentProps> = ({
         paddingTop: isInFinetuningMode ? 0 : '64px',
       }}
     >
-      {/* Contenedor con scroll que llega hasta el borde derecho */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          overflowY: 'auto',
-          height: '100%',
-          paddingBottom: { 
-            xs: 'calc(120px + env(safe-area-inset-bottom, 0px))', 
-            sm: '120px' 
-          }, // Space for the fixed chat input + safe area
-        }}
-      >
-        {/* Saludo/avatar y prompts recomendados a ancho completo */}
-        {messages.length === 0 && (
-          <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4 }}>
-            <Box sx={{ width: { xs: '100%', sm: 600, md: 800 }, maxWidth: '100%' }}>
-              <ChatContainer
-                messages={[]}
-                isLoading={false}
-                onSendMessage={() => {}}
-                appError={null}
-                chatConfig={chatConfig}
-                onDownloadPdf={() => {}}
-                onSeeMoreEvents={() => {}}
-                onSetLanguageCode={() => {}}
-                onlyGreeting
-              />
-            </Box>
-            <RecommendedPromptsBar prompts={chatConfig.recommendedPrompts} />
-          </Box>
-        )}
-        {/* Contenedor interno con padding para el contenido */}
-        {messages.length > 0 && (
+      {isInFinetuningMode ? (
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
           <Box
+            ref={scrollableBoxRef}
             sx={{
-              width: '100%',
-              maxWidth: { sm: '800px' },
-              margin: '0 auto',
-              padding: { xs: '0 16px', sm: '0 32px' },
-              minHeight: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              mx: '16px',
+              flex: 1,
+              overflowY: 'auto',
+              minHeight: 0,
+              height: '100%',
+              paddingBottom: 0,
             }}
           >
-            {/* Chat Content - Solo mensajes reales */}
-            <ChatContainer
-              messages={messages}
-              isLoading={isLoading}
+            {messages.length === 0 && (
+              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4, px: 1 }}>
+                <Box sx={{ width: '100%', maxWidth: '100%' }}>
+                  <ChatContainer
+                    messages={[]}
+                    isLoading={false}
+                    onSendMessage={() => {}}
+                    appError={null}
+                    chatConfig={chatConfig}
+                    onDownloadPdf={() => {}}
+                    onSeeMoreEvents={() => {}}
+                    onSetLanguageCode={() => {}}
+                    onlyGreeting
+                  />
+                </Box>
+                <RecommendedPromptsBar prompts={chatConfig.recommendedPrompts} />
+              </Box>
+            )}
+            {messages.length > 0 && (
+              <Box
+                sx={{
+                  width: '100%',
+                  maxWidth: '100%',
+                  margin: '0 auto',
+                  padding: { xs: '0 8px', sm: '0 16px' },
+                  minHeight: 0,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <ChatContainer
+                  messages={messages}
+                  isLoading={isLoading}
+                  onSendMessage={handleSendMessage}
+                  appError={appError}
+                  chatConfig={chatConfig}
+                  onDownloadPdf={handleDownloadPdf}
+                  onSeeMoreEvents={handleSeeMoreEvents}
+                  onSetLanguageCode={handleSetCurrentLanguageCode}
+                />
+                <div ref={messagesEndRef} />
+              </Box>
+            )}
+          </Box>
+          {/* Input del chat pegado abajo en modo admin */}
+          <Box sx={{ width: '100%', maxWidth: '100%', margin: '0 auto', flexShrink: 0, p: 0 }}>
+            <ChatInput
               onSendMessage={handleSendMessage}
-              appError={appError}
-              chatConfig={chatConfig}
-              onDownloadPdf={handleDownloadPdf}
-              onSeeMoreEvents={handleSeeMoreEvents}
+              isLoading={isLoading}
+              recommendedPrompts={chatConfig.recommendedPrompts}
+              currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
               onSetLanguageCode={handleSetCurrentLanguageCode}
+              isInFinetuningMode={true}
             />
           </Box>
-        )}
-      </Box>
-      
-      {/* Fixed Chat Input at the bottom */}
-      <Box
-        sx={{
-          position: isInFinetuningMode ? 'relative' : 'fixed',
-          bottom: isInFinetuningMode ? 0 : { xs: 'env(safe-area-inset-bottom, 0px)', sm: 0 },
-          left: isInFinetuningMode ? 0 : (isMobile ? 0 : (isMenuOpen ? 260 : 72)),
-          right: 0,
-          bgcolor: 'background.default',
-          zIndex: 1000,
-        }}
-      >
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: { sm: '800px' },
-            margin: '0 auto',
-          }}
-        >
-          <ChatInput
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            recommendedPrompts={chatConfig.recommendedPrompts}
-            currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
-            onSetLanguageCode={handleSetCurrentLanguageCode}
-          />
         </Box>
-      </Box>
+      ) : (
+        <>
+          <Box
+            ref={scrollableBoxRef}
+            sx={{
+              flexGrow: 1,
+              overflowY: 'auto',
+              height: '100%',
+              paddingBottom: { xs: 'calc(120px + env(safe-area-inset-bottom, 0px))', sm: '120px' },
+            }}
+          >
+            {messages.length === 0 && (
+              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4 }}>
+                <Box sx={{ width: { xs: '100%', sm: 600, md: 800 }, maxWidth: '100%' }}>
+                  <ChatContainer
+                    messages={[]}
+                    isLoading={false}
+                    onSendMessage={() => {}}
+                    appError={null}
+                    chatConfig={chatConfig}
+                    onDownloadPdf={() => {}}
+                    onSeeMoreEvents={() => {}}
+                    onSetLanguageCode={() => {}}
+                    onlyGreeting
+                  />
+                </Box>
+                <RecommendedPromptsBar prompts={chatConfig.recommendedPrompts} />
+              </Box>
+            )}
+            {messages.length > 0 && (
+              <Box
+                sx={{
+                  width: '100%',
+                  maxWidth: { sm: '800px' },
+                  margin: '0 auto',
+                  padding: { xs: '0 16px', sm: '0 32px' },
+                  minHeight: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  mx: '16px',
+                }}
+              >
+                <ChatContainer
+                  messages={messages}
+                  isLoading={isLoading}
+                  onSendMessage={handleSendMessage}
+                  appError={appError}
+                  chatConfig={chatConfig}
+                  onDownloadPdf={handleDownloadPdf}
+                  onSeeMoreEvents={handleSeeMoreEvents}
+                  onSetLanguageCode={handleSetCurrentLanguageCode}
+                />
+                <div ref={messagesEndRef} />
+              </Box>
+            )}
+          </Box>
+          {/* Fixed Chat Input at the bottom */}
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: { xs: 'env(safe-area-inset-bottom, 0px)', sm: 0 },
+              left: isMobile ? 0 : (isMenuOpen ? 260 : 72),
+              right: 0,
+              bgcolor: 'background.default',
+              zIndex: 1000,
+            }}
+          >
+            <Box
+              sx={{
+                width: '100%',
+                maxWidth: { sm: '800px' },
+                margin: '0 auto',
+              }}
+            >
+              <ChatInput
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                recommendedPrompts={chatConfig.recommendedPrompts}
+                currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
+                onSetLanguageCode={handleSetCurrentLanguageCode}
+              />
+            </Box>
+          </Box>
+        </>
+      )}
     </Box>
   );
 };

@@ -71,24 +71,24 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             <Avatar 
               src={chatConfig.profileImageUrl} 
               sx={{ 
-                width: 64, 
-                height: 64, 
+                width: 80, 
+                height: 80, 
+                bgcolor: 'background.paper',
+                color: 'primary.main',
+                boxShadow: 2,
                 mb: 2,
-                border: 2,
-                borderColor: 'primary.main'
               }}
             />
           ) : (
             <Avatar
               src={process.env.BASE_URL ? process.env.BASE_URL + '/placeholder.svg' : '/placeholder.svg'}
               sx={{
-                width: 64,
-                height: 64,
-                mb: 2,
-                border: 2,
-                borderColor: 'primary.main',
+                width: 80,
+                height: 80,
                 bgcolor: 'background.paper',
-                objectFit: 'cover',
+                color: 'primary.main',
+                boxShadow: 2,
+                mb: 2,
               }}
             />
           )}
@@ -245,18 +245,19 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
               background: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
               color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
               borderRadius: 4,
-              minWidth: { xs: 220, sm: 280 },
-              maxWidth: { xs: 220, sm: 280 },
-              minHeight: { xs: 90, sm: 110 },
-              maxHeight: { xs: 90, sm: 110 },
+              minWidth: { xs: 110, sm: 140 },
+              maxWidth: { xs: 110, sm: 140 },
+              minHeight: { xs: 120, sm: 150 },
+              maxHeight: { xs: 120, sm: 150 },
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'flex-start',
-              fontSize: { xs: '0.95rem', sm: '1.08rem' },
+              fontSize: { xs: '0.85rem', sm: '0.95rem' },
               fontWeight: 400,
-              px: { xs: 1.8, sm: 2.5 },
+              px: { xs: 1, sm: 1.5 },
               py: { xs: 1.5, sm: 2 },
-              textAlign: 'left',
+              textAlign: 'center',
               flex: '0 0 auto',
               boxShadow: 'none',
               cursor: 'pointer',
@@ -266,7 +267,7 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
               },
               mb: 0,
               userSelect: 'none',
-              gap: { xs: 1.5, sm: 2 },
+              gap: 1,
             }}
             onClick={() => {
               const input = document.querySelector('textarea, input[type="text"]');
@@ -277,14 +278,15 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
             }}
           >
             <Avatar sx={{ 
-              width: { xs: 36, sm: 48 }, 
-              height: { xs: 36, sm: 48 }, 
+              width: { xs: 38, sm: 52 }, 
+              height: { xs: 38, sm: 52 }, 
               bgcolor: 'primary.main', 
-              color: 'white' 
+              color: 'white',
+              mb: 1.2
             }}>
-              <IconComponent sx={{ fontSize: { xs: 20, sm: 28 } }} />
+              <IconComponent sx={{ fontSize: { xs: 22, sm: 32 } }} />
             </Avatar>
-            <span style={{ flex: 1 }}>{prompt.text}</span>
+            <span style={{ flex: 1, width: '100%', wordBreak: 'break-word', lineHeight: 1.25 }}>{prompt.text}</span>
           </Box>
         );
       })}
