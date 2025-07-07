@@ -1,11 +1,13 @@
-import React from 'react';
-import { Box, Alert, AlertTitle, Typography, Stack, useTheme, Avatar } from '@mui/material';
+import React, { useEffect, useState, useRef } from 'react';
+import { Box, Alert, AlertTitle, Typography, Stack, useTheme, Avatar, Button } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SyncProblemIcon from '@mui/icons-material/SyncProblem';
 import MessageList from './MessageList';
-import { ChatMessage, CustomChatConfig } from '../types';
+import { ChatMessage, CustomChatConfig, RecommendedPrompt } from '../types';
 import { API_KEY_ERROR_MESSAGE, MAPS_API_KEY_INVALID_ERROR_MESSAGE, DEFAULT_LANGUAGE_CODE } from '../constants';
+import * as Icons from '@mui/icons-material';
+import HelpIcon from '@mui/icons-material/Help';
 
 interface ChatContainerProps {
   messages: ChatMessage[];
@@ -16,6 +18,7 @@ interface ChatContainerProps {
   onDownloadPdf: (pdfInfo: NonNullable<ChatMessage['downloadablePdfInfo']>) => void;
   onSeeMoreEvents: (originalUserQuery: string) => void;
   onSetLanguageCode: (langCode: string) => void;
+  onlyGreeting?: boolean;
 }
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
@@ -26,9 +29,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   onSendMessage,
   onDownloadPdf,
   onSeeMoreEvents,
-  onSetLanguageCode
+  onSetLanguageCode,
+  onlyGreeting = false
 }) => {
   const theme = useTheme();
+
+  if (!onlyGreeting && messages.length === 0) return null;
 
   return (
     <Stack
@@ -59,7 +65,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         </Alert>
       )}
 
-      {messages.length === 0 && !isLoading && (
+      {onlyGreeting && (
         <Box sx={{flexGrow: 1, display: 'flex', flexDirection:'column', alignItems: 'center', justifyContent: 'center', p:3, textAlign: 'center'}}>
           {chatConfig.profileImageUrl ? (
             <Avatar 
@@ -73,26 +79,216 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               }}
             />
           ) : (
-            <AutoAwesomeIcon sx={{fontSize: 48, color: 'primary.main', mb:2}}/>
+            <Avatar
+              src={process.env.BASE_URL ? process.env.BASE_URL + '/placeholder.svg' : '/placeholder.svg'}
+              sx={{
+                width: 64,
+                height: 64,
+                mb: 2,
+                border: 2,
+                borderColor: 'primary.main',
+                bgcolor: 'background.paper',
+                objectFit: 'cover',
+              }}
+            />
           )}
           <Typography variant="h5" sx={{mb:1}}>
-            ¡Hola! ¿Cómo puedo ayudarte hoy
-            {chatConfig.restrictedCity ? ` desde ${chatConfig.restrictedCity.name}` : ''}?
+            {(() => {
+              if (chatConfig.assistantName && chatConfig.assistantName.trim() !== "") {
+                return `¡Hola! Soy tu asistente de ${chatConfig.assistantName}`;
+              } else if (chatConfig.restrictedCity && chatConfig.restrictedCity.name) {
+                return `¡Hola! Soy tu asistente de ${chatConfig.restrictedCity.name}`;
+              } else {
+                return "¡Hola! Soy tu asistente";
+              }
+            })()}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
             Puedes comenzar a chatear inmediatamente. Inicia sesión para guardar tus conversaciones.
           </Typography>
         </Box>
       )}
-      <MessageList
-        messages={messages}
-        isLoading={isLoading && messages.length === 0}
-        onDownloadPdf={onDownloadPdf}
-        configuredSedeElectronicaUrl={chatConfig.sedeElectronicaUrl}
-        onSeeMoreEvents={onSeeMoreEvents}
-      />
+      {!onlyGreeting && (
+        <MessageList
+          messages={messages}
+          isLoading={isLoading && messages.length === 0}
+          onDownloadPdf={onDownloadPdf}
+          configuredSedeElectronicaUrl={chatConfig.sedeElectronicaUrl}
+          onSeeMoreEvents={onSeeMoreEvents}
+        />
+      )}
 
     </Stack>
+  );
+};
+
+// Helper function to get Material UI icon component by name
+const getIconComponent = (iconName: string) => {
+  // Convert snake_case or camelCase to PascalCase for Material UI icons
+  const pascalCase = iconName
+    .split(/[_-]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
+  
+  // Common icon mappings
+  const iconMap: { [key: string]: any } = {
+    'event': Icons.Event,
+    'events': Icons.Event,
+    'calendar': Icons.Event,
+    'restaurant': Icons.Restaurant,
+    'food': Icons.Restaurant,
+    'dining': Icons.Restaurant,
+    'directions_bus': Icons.DirectionsBus,
+    'bus': Icons.DirectionsBus,
+    'transport': Icons.DirectionsBus,
+    'schedule': Icons.Schedule,
+    'time': Icons.Schedule,
+    'hours': Icons.Schedule,
+    'library': Icons.LocalLibrary,
+    'book': Icons.LocalLibrary,
+    'museum': Icons.Museum,
+    'culture': Icons.Museum,
+    'art': Icons.Palette,
+    'music': Icons.MusicNote,
+    'sports': Icons.SportsScore,
+    'shopping': Icons.ShoppingCart,
+    'hotel': Icons.Hotel,
+    'accommodation': Icons.Hotel,
+    'hospital': Icons.LocalHospital,
+    'health': Icons.LocalHospital,
+    'pharmacy': Icons.LocalPharmacy,
+    'police': Icons.LocalPolice,
+    'emergency': Icons.Warning,
+    'weather': Icons.WbSunny,
+    'tourism': Icons.Place,
+    'help': Icons.Help,
+    'info': Icons.Info,
+    'location': Icons.LocationOn,
+    'map': Icons.Map,
+    'parking': Icons.LocalParking,
+    'gas': Icons.LocalGasStation,
+    'taxi': Icons.LocalTaxi,
+    'train': Icons.Train,
+    'airport': Icons.Flight,
+    'beach': Icons.Place,
+    'park': Icons.Nature,
+    'wifi': Icons.Wifi,
+    'atm': Icons.AttachMoney,
+    'church': Icons.Place,
+    'government': Icons.AccountBalance,
+    'school': Icons.School,
+    'university': Icons.School,
+  };
+  
+  // Try direct mapping first
+  if (iconMap[iconName.toLowerCase()]) {
+    return iconMap[iconName.toLowerCase()];
+  }
+  
+  // Try PascalCase lookup in Icons
+  const IconComponent = (Icons as any)[pascalCase];
+  if (IconComponent) {
+    return IconComponent;
+  }
+  
+  // Fallback to help icon
+  return Icons.Help;
+};
+
+export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> = ({ prompts }) => {
+  if (!Array.isArray(prompts) || prompts.length === 0) return null;
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldCenter, setShouldCenter] = useState(false);
+  
+  // Detectar si hay overflow para centrar o no
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current) {
+        const { scrollWidth, clientWidth } = containerRef.current;
+        setShouldCenter(scrollWidth <= clientWidth);
+      }
+    };
+    
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [prompts]);
+
+  return (
+    <Box
+      ref={containerRef}
+      sx={{
+        display: 'flex',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        gap: 2,
+        justifyContent: shouldCenter ? 'center' : 'flex-start',
+        width: '100%',
+        pb: 1,
+        pl: 2,
+        pr: 2,
+        '::-webkit-scrollbar': { height: 8 },
+        '::-webkit-scrollbar-thumb': { bgcolor: 'rgba(120,120,120,0.3)', borderRadius: 4 },
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(120,120,120,0.3) transparent',
+      }}
+    >
+      {prompts.map((prompt, idx) => {
+        const IconComponent = getIconComponent(prompt.img || 'help');
+        return (
+          <Box
+            key={idx}
+            sx={{
+              background: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
+              color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
+              borderRadius: 4,
+              minWidth: { xs: 220, sm: 280 },
+              maxWidth: { xs: 220, sm: 280 },
+              minHeight: { xs: 90, sm: 110 },
+              maxHeight: { xs: 90, sm: 110 },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              fontSize: { xs: '0.95rem', sm: '1.08rem' },
+              fontWeight: 400,
+              px: { xs: 1.8, sm: 2.5 },
+              py: { xs: 1.5, sm: 2 },
+              textAlign: 'left',
+              flex: '0 0 auto',
+              boxShadow: 'none',
+              cursor: 'pointer',
+              transition: 'background 0.18s',
+              '&:hover': {
+                background: theme => theme.palette.mode === 'dark' ? '#292a2e' : '#e0e0e0',
+              },
+              mb: 0,
+              userSelect: 'none',
+              gap: { xs: 1.5, sm: 2 },
+            }}
+            onClick={() => {
+              const input = document.querySelector('textarea, input[type="text"]');
+              if (input) {
+                (input as HTMLInputElement).value = prompt.text;
+                (input as HTMLInputElement).focus();
+              }
+            }}
+          >
+            <Avatar sx={{ 
+              width: { xs: 36, sm: 48 }, 
+              height: { xs: 36, sm: 48 }, 
+              bgcolor: 'primary.main', 
+              color: 'white' 
+            }}>
+              <IconComponent sx={{ fontSize: { xs: 20, sm: 28 } }} />
+            </Avatar>
+            <span style={{ flex: 1 }}>{prompt.text}</span>
+          </Box>
+        );
+      })}
+    </Box>
   );
 };
 

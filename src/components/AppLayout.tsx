@@ -8,6 +8,7 @@ import UserMenu from './UserMenu';
 import UserButton from './auth/UserButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import CloseIcon from '@mui/icons-material/Close';
 import { IconButton } from '@mui/material';
 import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
 
@@ -113,8 +114,11 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
   const drawerWidth = 260;
   const collapsedDrawerWidth = 72;
 
-  // Header siempre visible y fijo
-  const header = (
+  // Estado para la imagen de perfil en edición (preview)
+  const [profileImagePreview, setProfileImagePreview] = React.useState<string | undefined>(undefined);
+
+  // Header para vista normal (sin panel de configuración)
+  const normalHeader = (
     <Box
       sx={{
         position: 'fixed',
@@ -175,6 +179,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     </Box>
   );
 
+
+
   if (!isGeminiReady && appError) {
     return <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError} />;
   }
@@ -183,7 +189,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
   if (isMobile && currentView === 'finetuning') {
     return (
       <>
-        {header}
+        {normalHeader}
         <AdminRoute
           user={user}
           profile={profile}
@@ -193,6 +199,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           googleMapsScriptLoaded={googleMapsScriptLoaded}
           setCurrentView={setCurrentView}
           setIsMenuOpen={setIsMenuOpen}
+          profileImagePreview={profileImagePreview}
+          setProfileImagePreview={setProfileImagePreview}
         />
       </>
     );
@@ -207,62 +215,149 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         overflow: 'hidden', 
         bgcolor: 'background.default', 
         display: 'flex', 
-        flexDirection: 'column' 
+        flexDirection: 'row' 
       }}>
-        {header}
-        <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: '64px' }}>
-          {/* Side menu siempre visible */}
-          <AppDrawer
-            isMenuOpen={isMenuOpen}
-            onMenuToggle={handleMenuToggle}
-            onNewChat={handleNewChat}
-            onOpenFinetuning={handleOpenFinetuningWithAuth}
-            chatTitles={chatTitles}
-            chatIds={chatIds}
-            selectedChatIndex={selectedChatIndex}
-            onSelectChat={handleSelectChat}
-            onDeleteChat={deleteConversation}
-            chatConfig={chatConfig}
-            userLocation={userLocation}
-            geolocationStatus={geolocationStatus}
-          />
-          {/* Paneles redimensionables: admin y chat */}
-          <ResizablePanelGroup direction="horizontal" style={{ flex: 1 }}>
-            <ResizablePanel minSize={50} defaultSize={70} style={{ borderRight: '1px solid', borderColor: theme.palette.divider }}>
-              <AdminRoute
-                user={user}
-                profile={profile}
-                chatConfig={chatConfig}
-                handleSaveCustomization={handleSaveCustomization}
-                onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
-                googleMapsScriptLoaded={googleMapsScriptLoaded}
-                setCurrentView={setCurrentView}
-                setIsMenuOpen={setIsMenuOpen}
-              />
-            </ResizablePanel>
-            <ResizablePanel minSize={50} defaultSize={30}>
-              <MainContent
-                theme={theme}
-                isMobile={isMobile}
-                isMenuOpen={isMenuOpen}
-                handleMenuToggle={handleMenuToggle}
-                currentThemeMode={currentThemeMode}
-                toggleTheme={toggleTheme}
-                handleOpenSettings={handleOpenSettings}
-                user={user}
-                onLogin={onLogin}
-                messages={messages}
-                isLoading={isLoading}
-                appError={appError}
-                chatConfig={chatConfig}
-                handleSendMessage={handleSendMessage}
-                handleDownloadPdf={handleDownloadPdf}
-                handleSeeMoreEvents={handleSeeMoreEvents}
-                handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
-              />
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </Box>
+        {/* Side menu siempre visible */}
+        <AppDrawer
+          isMenuOpen={isMenuOpen}
+          onMenuToggle={handleMenuToggle}
+          onNewChat={handleNewChat}
+          onOpenFinetuning={handleOpenFinetuningWithAuth}
+          chatTitles={chatTitles}
+          chatIds={chatIds}
+          selectedChatIndex={selectedChatIndex}
+          onSelectChat={handleSelectChat}
+          onDeleteChat={deleteConversation}
+          chatConfig={chatConfig}
+          userLocation={userLocation}
+          geolocationStatus={geolocationStatus}
+        />
+        
+        {/* Paneles redimensionables: admin y chat */}
+        <ResizablePanelGroup direction="horizontal" style={{ flex: 1 }}>
+          {/* Panel Izquierdo: Configuración */}
+          <ResizablePanel minSize={30} defaultSize={50}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Header del panel de configuración */}
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                p: 2,
+                height: '64px',
+                minHeight: '64px',
+                maxHeight: '64px',
+                bgcolor: 'background.default',
+                color: 'text.primary',
+                borderBottom: `1px solid ${theme.palette.divider}`,
+                borderRight: `1px solid ${theme.palette.divider}`,
+              }}>
+                <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
+                  Personalizar Asistente
+                </Typography>
+                <IconButton
+                  color="inherit"
+                  aria-label="cerrar configuración"
+                  onClick={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+                  sx={{ color: 'text.primary' }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+              {/* Contenido del panel de configuración */}
+              <Box sx={{ flex: 1, overflow: 'hidden', borderRight: `1px solid ${theme.palette.divider}` }}>
+                <AdminRoute
+                  user={user}
+                  profile={profile}
+                  chatConfig={chatConfig}
+                  handleSaveCustomization={handleSaveCustomization}
+                  onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+                  googleMapsScriptLoaded={googleMapsScriptLoaded}
+                  setCurrentView={setCurrentView}
+                  setIsMenuOpen={setIsMenuOpen}
+                  profileImagePreview={profileImagePreview}
+                  setProfileImagePreview={setProfileImagePreview}
+                />
+              </Box>
+            </Box>
+          </ResizablePanel>
+          
+          {/* Panel Derecho: Chat */}
+          <ResizablePanel minSize={30} defaultSize={50}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Header del chat */}
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                p: 2,
+                height: '64px',
+                minHeight: '64px',
+                maxHeight: '64px',
+                bgcolor: 'background.default',
+                color: 'text.primary',
+                borderBottom: `1px solid ${theme.palette.divider}`,
+              }}>
+                <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
+                  {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : 'Nueva conversación'}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {user ? (
+                    <UserButton />
+                  ) : (
+                    <>
+                      <IconButton
+                        color="inherit"
+                        aria-label="user account"
+                        onClick={handleUserMenuOpen}
+                        id="user-avatar-button"
+                        sx={{ color: 'text.primary' }}
+                      >
+                        <AccountCircleIcon />
+                      </IconButton>
+                      <UserMenu
+                        anchorEl={userMenuAnchorEl}
+                        open={Boolean(userMenuAnchorEl)}
+                        onClose={handleUserMenuClose}
+                        currentThemeMode={currentThemeMode}
+                        onToggleTheme={toggleTheme}
+                        onOpenSettings={handleOpenSettings}
+                        isAuthenticated={!!user}
+                        onLogin={onLogin}
+                      />
+                    </>
+                  )}
+                </Box>
+              </Box>
+              {/* Contenido del chat */}
+              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                <MainContent
+                  theme={theme}
+                  isMobile={false}
+                  isMenuOpen={false}
+                  handleMenuToggle={handleMenuToggle}
+                  currentThemeMode={currentThemeMode}
+                  toggleTheme={toggleTheme}
+                  handleOpenSettings={handleOpenSettings}
+                  user={user}
+                  onLogin={onLogin}
+                  messages={messages}
+                  isLoading={isLoading}
+                  appError={appError}
+                  chatConfig={{
+                    ...chatConfig,
+                    profileImageUrl: profileImagePreview !== undefined ? profileImagePreview : chatConfig.profileImageUrl
+                  }}
+                  handleSendMessage={handleSendMessage}
+                  handleDownloadPdf={handleDownloadPdf}
+                  handleSeeMoreEvents={handleSeeMoreEvents}
+                  handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+                  isInFinetuningMode={true}
+                />
+              </Box>
+            </Box>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </Box>
     );
   }
@@ -277,7 +372,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
       display: 'flex', 
       flexDirection: 'column' 
     }}>
-      {header}
+      {normalHeader}
       <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: '64px' }}>
         <AppDrawer
           isMenuOpen={isMenuOpen}
@@ -306,7 +401,10 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           messages={messages}
           isLoading={isLoading}
           appError={appError}
-          chatConfig={chatConfig}
+          chatConfig={{
+            ...chatConfig,
+            profileImageUrl: profileImagePreview !== undefined ? profileImagePreview : chatConfig.profileImageUrl
+          }}
           handleSendMessage={handleSendMessage}
           handleDownloadPdf={handleDownloadPdf}
           handleSeeMoreEvents={handleSeeMoreEvents}

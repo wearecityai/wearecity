@@ -53,6 +53,11 @@ export interface UploadedProcedureDocument {
   base64Data: string;    // The PDF content encoded as a base64 string
 }
 
+export interface RecommendedPrompt {
+  text: string;
+  img: string;
+}
+
 export interface ChatMessage {
   id: string; // Client-generated UUID
   role: MessageRole;
@@ -94,7 +99,7 @@ export interface SupportedLanguage {
 export interface CustomChatConfig {
   assistantName: string;
   systemInstruction: string;
-  recommendedPrompts: string[];
+  recommendedPrompts: RecommendedPrompt[];
   serviceTags: string[];
   enableGoogleSearch: boolean;
   allowMapDisplay: boolean;

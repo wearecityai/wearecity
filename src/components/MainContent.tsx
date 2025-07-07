@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import ChatContainer from './ChatContainer';
+import ChatContainer, { RecommendedPromptsBar } from './ChatContainer';
 import ChatInput from './ChatInput';
 import UserMenu from './UserMenu';
 import UserButton from './auth/UserButton';
@@ -31,6 +31,7 @@ interface MainContentProps {
   handleDownloadPdf: (pdfInfo: any) => void;
   handleSeeMoreEvents: (originalUserQuery: string) => void;
   handleSetCurrentLanguageCode: (langCode: string) => void;
+  isInFinetuningMode?: boolean; // Nueva prop para detectar si está en modo finetuning
 }
 
 const MainContent: React.FC<MainContentProps> = ({
@@ -50,7 +51,8 @@ const MainContent: React.FC<MainContentProps> = ({
   handleSendMessage,
   handleDownloadPdf,
   handleSeeMoreEvents,
-  handleSetCurrentLanguageCode
+  handleSetCurrentLanguageCode,
+  isInFinetuningMode = false
 }) => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   
@@ -76,7 +78,7 @@ const MainContent: React.FC<MainContentProps> = ({
         ...(isMobile && isMenuOpen && {
           marginLeft: 0,
         }),
-        paddingTop: '64px',
+        paddingTop: isInFinetuningMode ? 0 : '64px',
       }}
     >
       {/* Contenedor con scroll que llega hasta el borde derecho */}
@@ -91,38 +93,60 @@ const MainContent: React.FC<MainContentProps> = ({
           }, // Space for the fixed chat input + safe area
         }}
       >
+        {/* Saludo/avatar y prompts recomendados a ancho completo */}
+        {messages.length === 0 && (
+          <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4 }}>
+            <Box sx={{ width: { xs: '100%', sm: 600, md: 800 }, maxWidth: '100%' }}>
+              <ChatContainer
+                messages={[]}
+                isLoading={false}
+                onSendMessage={() => {}}
+                appError={null}
+                chatConfig={chatConfig}
+                onDownloadPdf={() => {}}
+                onSeeMoreEvents={() => {}}
+                onSetLanguageCode={() => {}}
+                onlyGreeting
+              />
+            </Box>
+            <RecommendedPromptsBar prompts={chatConfig.recommendedPrompts} />
+          </Box>
+        )}
         {/* Contenedor interno con padding para el contenido */}
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: { sm: '800px' },
-            margin: '0 auto',
-            padding: { xs: '0 16px', sm: '0 32px' },
-            minHeight: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {/* Chat Content - This will start right after the header */}
-          <ChatContainer
-            messages={messages}
-            isLoading={isLoading}
-            onSendMessage={handleSendMessage}
-            appError={appError}
-            chatConfig={chatConfig}
-            onDownloadPdf={handleDownloadPdf}
-            onSeeMoreEvents={handleSeeMoreEvents}
-            onSetLanguageCode={handleSetCurrentLanguageCode}
-          />
-        </Box>
+        {messages.length > 0 && (
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: { sm: '800px' },
+              margin: '0 auto',
+              padding: { xs: '0 16px', sm: '0 32px' },
+              minHeight: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              mx: '16px',
+            }}
+          >
+            {/* Chat Content - Solo mensajes reales */}
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSendMessage={handleSendMessage}
+              appError={appError}
+              chatConfig={chatConfig}
+              onDownloadPdf={handleDownloadPdf}
+              onSeeMoreEvents={handleSeeMoreEvents}
+              onSetLanguageCode={handleSetCurrentLanguageCode}
+            />
+          </Box>
+        )}
       </Box>
       
       {/* Fixed Chat Input at the bottom */}
       <Box
         sx={{
-          position: 'fixed',
-          bottom: { xs: 'env(safe-area-inset-bottom, 0px)', sm: 0 },
-          left: isMobile ? 0 : (isMenuOpen ? 260 : 72), // Same logic as header
+          position: isInFinetuningMode ? 'relative' : 'fixed',
+          bottom: isInFinetuningMode ? 0 : { xs: 'env(safe-area-inset-bottom, 0px)', sm: 0 },
+          left: isInFinetuningMode ? 0 : (isMobile ? 0 : (isMenuOpen ? 260 : 72)),
           right: 0,
           bgcolor: 'background.default',
           zIndex: 1000,

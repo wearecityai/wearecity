@@ -4,14 +4,27 @@ import {
     IconButton, Chip, Select, MenuItem, InputLabel, FormControl, Alert, FormHelperText, Tooltip, useTheme, useMediaQuery
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ClearIcon from '@mui/icons-material/Clear'; // Replaces XCircleIcon
-import UploadFileIcon from '@mui/icons-material/UploadFile'; // Replaces UploadIcon
+import ClearIcon from '@mui/icons-material/Clear';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import CloseIcon from '@mui/icons-material/Close';
+import PersonIcon from '@mui/icons-material/Person';
+import SettingsIcon from '@mui/icons-material/Settings';
+import SecurityIcon from '@mui/icons-material/Security';
+import TuneIcon from '@mui/icons-material/Tune';
+import LanguageIcon from '@mui/icons-material/Language';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import SearchIcon from '@mui/icons-material/Search';
+import MapIcon from '@mui/icons-material/Map';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import DocumentScannerIcon from '@mui/icons-material/DocumentScanner';
+import FolderIcon from '@mui/icons-material/Folder';
+import * as Icons from '@mui/icons-material';
+import Avatar from '@mui/material/Avatar';
 
-import { CustomChatConfig, RestrictedCityInfo, SupportedLanguage, UploadedProcedureDocument } from '../types';
+import { CustomChatConfig, RestrictedCityInfo, SupportedLanguage, UploadedProcedureDocument, RecommendedPrompt } from '../types';
 import {
   DEFAULT_ASSISTANT_NAME,
   AVAILABLE_SERVICE_TAGS,
@@ -27,17 +40,20 @@ interface FinetuningPageProps {
   onCancel: () => void;
   googleMapsScriptLoaded: boolean;
   apiKeyForMaps: string;
+  profileImagePreview?: string;
+  setProfileImagePreview?: React.Dispatch<React.SetStateAction<string | undefined>>;
 }
 
-const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, onCancel, googleMapsScriptLoaded, apiKeyForMaps }) => {
+const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, onCancel, googleMapsScriptLoaded, apiKeyForMaps, profileImagePreview, setProfileImagePreview }) => {
   const [assistantName, setAssistantName] = useState(currentConfig.assistantName);
   const [systemInstruction, setSystemInstruction] = useState(currentConfig.systemInstruction);
-  const [recommendedPrompts, setRecommendedPrompts] = useState<string[]>(currentConfig.recommendedPrompts || []);
+  const [recommendedPrompts, setRecommendedPrompts] = useState<RecommendedPrompt[]>(currentConfig.recommendedPrompts || []);
   const [selectedServiceTags, setSelectedServiceTags] = useState<string[]>(currentConfig.serviceTags || []);
   const [enableGoogleSearch, setEnableGoogleSearch] = useState<boolean>(currentConfig.enableGoogleSearch);
   const [allowMapDisplay, setAllowMapDisplay] = useState<boolean>(currentConfig.allowMapDisplay);
   const [allowGeolocation, setAllowGeolocation] = useState<boolean>(currentConfig.allowGeolocation);
   const [newPrompt, setNewPrompt] = useState('');
+  const [newPromptIcon, setNewPromptIcon] = useState('help');
   const [currentLanguageCode, setCurrentLanguageCode] = useState<string>(currentConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE);
   const [municipalityInputName, setMunicipalityInputName] = useState<string>('');
   const [procedureSourceUrls, setProcedureSourceUrls] = useState<string[]>([]);
@@ -48,7 +64,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sedeElectronicaUrl, setSedeElectronicaUrl] = useState<string>('');
-  const [profileImageUrl, setProfileImageUrl] = useState<string>('');
+  const [profileImageUrl, setProfileImageUrl] = useState<string>(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
   const theme = useTheme();
@@ -67,16 +83,175 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
     setUploadedProcedureDocuments(currentConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
     setSedeElectronicaUrl(currentConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
     setMunicipalityInputName(currentConfig.restrictedCity?.name || '');
-    setProfileImageUrl(currentConfig.profileImageUrl || '');
-  }, [currentConfig]);
+    setProfileImageUrl(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
+  }, [currentConfig, profileImagePreview]);
+
+  // Actualizar automáticamente el icono cuando cambia el prompt
+  useEffect(() => {
+    if (newPrompt.trim()) {
+      const autoIcon = getAutomaticIcon(newPrompt.trim());
+      setNewPromptIcon(autoIcon);
+    } else {
+      setNewPromptIcon('help');
+    }
+  }, [newPrompt]);
+
+  // Helper function to get Material UI icon component by name (copiado de ChatContainer)
+  const getIconComponent = (iconName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'event': Icons.Event, 'restaurant': Icons.Restaurant, 'directions_bus': Icons.DirectionsBus,
+      'schedule': Icons.Schedule, 'library': Icons.LocalLibrary, 'museum': Icons.Museum,
+      'hospital': Icons.LocalHospital, 'pharmacy': Icons.LocalPharmacy, 'police': Icons.LocalPolice,
+      'emergency': Icons.Warning, 'weather': Icons.WbSunny, 'tourism': Icons.Place,
+      'help': Icons.Help, 'info': Icons.Info, 'location': Icons.LocationOn, 'map': Icons.Map,
+      'parking': Icons.LocalParking, 'taxi': Icons.LocalTaxi, 'train': Icons.Train,
+      'airport': Icons.Flight, 'hotel': Icons.Hotel, 'shopping': Icons.ShoppingCart,
+      'school': Icons.School, 'government': Icons.AccountBalance, 'nature': Icons.Nature,
+      'wifi': Icons.Wifi, 'attach_money': Icons.AttachMoney, 'music': Icons.MusicNote,
+      'sports': Icons.SportsScore, 'palette': Icons.Palette, 'warning': Icons.Warning,
+      'place': Icons.Place, 'local_gas_station': Icons.LocalGasStation,
+    };
+    
+    return iconMap[iconName.toLowerCase()] || Icons.Help;
+  };
+
+  // Función para asignar automáticamente un icono basado en el texto del prompt
+  const getAutomaticIcon = (promptText: string): string => {
+    const text = promptText.toLowerCase();
+    
+    // Palabras clave para eventos y tiempo
+    if (text.includes('evento') || text.includes('actividad') || text.includes('fin de semana') || 
+        text.includes('festival') || text.includes('concierto') || text.includes('fiesta') ||
+        text.includes('celebración') || text.includes('espectáculo')) {
+      return 'event';
+    }
+    
+    // Palabras clave para restaurantes y comida
+    if (text.includes('restaurante') || text.includes('comida') || text.includes('comer') ||
+        text.includes('cenar') || text.includes('almorzar') || text.includes('desayunar') ||
+        text.includes('bar') || text.includes('cafetería') || text.includes('italiano') ||
+        text.includes('chino') || text.includes('pizza') || text.includes('tapas') ||
+        text.includes('menú') || text.includes('plato')) {
+      return 'restaurant';
+    }
+    
+    // Palabras clave para transporte
+    if (text.includes('llegar') || text.includes('ir a') || text.includes('cómo llego') ||
+        text.includes('transporte') || text.includes('autobús') || text.includes('bus') ||
+        text.includes('metro') || text.includes('tren') || text.includes('taxi') ||
+        text.includes('público') || text.includes('dirección') || text.includes('ruta')) {
+      return 'directions_bus';
+    }
+    
+    // Palabras clave para horarios y tiempo
+    if (text.includes('horario') || text.includes('hora') || text.includes('abierto') ||
+        text.includes('cerrado') || text.includes('abre') || text.includes('cierra') ||
+        text.includes('cuándo') || text.includes('tiempo') || text.includes('schedule')) {
+      return 'schedule';
+    }
+    
+    // Palabras clave para biblioteca
+    if (text.includes('biblioteca') || text.includes('libro') || text.includes('leer') ||
+        text.includes('estudio') || text.includes('préstamo')) {
+      return 'library';
+    }
+    
+    // Palabras clave para museos y cultura
+    if (text.includes('museo') || text.includes('arte') || text.includes('cultura') ||
+        text.includes('exposición') || text.includes('galería') || text.includes('historia')) {
+      return 'museum';
+    }
+    
+    // Palabras clave para salud
+    if (text.includes('hospital') || text.includes('médico') || text.includes('doctor') ||
+        text.includes('urgencias') || text.includes('emergencia') || text.includes('salud')) {
+      return 'hospital';
+    }
+    
+    // Palabras clave para farmacia
+    if (text.includes('farmacia') || text.includes('medicamento') || text.includes('medicina') ||
+        text.includes('receta')) {
+      return 'pharmacy';
+    }
+    
+    // Palabras clave para policía y seguridad
+    if (text.includes('policía') || text.includes('seguridad') || text.includes('denuncia') ||
+        text.includes('comisaría')) {
+      return 'police';
+    }
+    
+    // Palabras clave para tiempo/meteorología
+    if (text.includes('tiempo') || text.includes('clima') || text.includes('lluvia') ||
+        text.includes('sol') || text.includes('temperatura') || text.includes('meteorológico')) {
+      return 'weather';
+    }
+    
+    // Palabras clave para ubicación y mapas
+    if (text.includes('dónde está') || text.includes('ubicación') || text.includes('dirección') ||
+        text.includes('mapa') || text.includes('cerca') || text.includes('lejos')) {
+      return 'location';
+    }
+    
+    // Palabras clave para parking
+    if (text.includes('parking') || text.includes('aparcamiento') || text.includes('aparcar') ||
+        text.includes('estacionar')) {
+      return 'parking';
+    }
+    
+    // Palabras clave para hoteles
+    if (text.includes('hotel') || text.includes('alojamiento') || text.includes('dormir') ||
+        text.includes('hospedaje') || text.includes('pension')) {
+      return 'hotel';
+    }
+    
+    // Palabras clave para compras
+    if (text.includes('comprar') || text.includes('tienda') || text.includes('shopping') ||
+        text.includes('centro comercial') || text.includes('mercado')) {
+      return 'shopping';
+    }
+    
+    // Palabras clave para educación
+    if (text.includes('escuela') || text.includes('colegio') || text.includes('universidad') ||
+        text.includes('educación') || text.includes('estudiar')) {
+      return 'school';
+    }
+    
+    // Palabras clave para gobierno/administración
+    if (text.includes('ayuntamiento') || text.includes('trámite') || text.includes('gobierno') ||
+        text.includes('municipal') || text.includes('oficina') || text.includes('gestión') ||
+        text.includes('documento') || text.includes('certificado')) {
+      return 'government';
+    }
+    
+    // Palabras clave para dinero/pagos
+    if (text.includes('pagar') || text.includes('precio') || text.includes('coste') ||
+        text.includes('dinero') || text.includes('euro') || text.includes('tarjeta') ||
+        text.includes('cajero')) {
+      return 'attach_money';
+    }
+    
+    // Palabras clave para información y ayuda
+    if (text.includes('información') || text.includes('info') || text.includes('ayuda') ||
+        text.includes('cómo') || text.includes('qué es') || text.includes('explicar')) {
+      return 'info';
+    }
+    
+    // Por defecto, si no coincide con ninguna categoría
+    return 'help';
+  };
 
   const handleAddPrompt = () => {
-    if (newPrompt.trim() && !recommendedPrompts.includes(newPrompt.trim())) {
-      setRecommendedPrompts([...recommendedPrompts, newPrompt.trim()]);
+    if (newPrompt.trim() && !recommendedPrompts.some(p => p.text === newPrompt.trim())) {
+      const automaticIcon = getAutomaticIcon(newPrompt.trim());
+      setRecommendedPrompts([...recommendedPrompts, { text: newPrompt.trim(), img: automaticIcon }]);
       setNewPrompt('');
+      setNewPromptIcon(automaticIcon);
     }
   };
   const handleRemovePrompt = (index: number) => setRecommendedPrompts(recommendedPrompts.filter((_, i) => i !== index));
+  const handlePromptIconChange = (index: number, icon: string) => {
+    setRecommendedPrompts(prompts => prompts.map((p, i) => i === index ? { ...p, img: icon } : p));
+  };
   const handleToggleServiceTag = (tag: string) => setSelectedServiceTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   const handleClearRestrictedCity = () => setMunicipalityInputName('');
   const isValidUrl = (url: string): boolean => { try { new URL(url); return url.startsWith('http://') || url.startsWith('https://'); } catch (_) { return false; } };
@@ -129,11 +304,11 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
           setProfileImageError("Imagen demasiado grande (máx 2MB).");
           return;
         }
-        
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
           setProfileImageUrl(reader.result as string);
+          if (setProfileImagePreview) setProfileImagePreview(reader.result as string);
         };
         reader.onerror = () => {
           setProfileImageError("Error al leer la imagen.");
@@ -146,6 +321,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
 
   const handleRemoveProfileImage = () => {
     setProfileImageUrl('');
+    if (setProfileImagePreview) setProfileImagePreview('');
     if (profileImageInputRef.current) {
       profileImageInputRef.current.value = '';
     }
@@ -161,6 +337,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
       sedeElectronicaUrl: sedeElectronicaUrl.trim() || undefined,
       profileImageUrl: profileImageUrl.trim() || undefined,
     });
+    if (setProfileImagePreview) setProfileImagePreview(undefined); // Limpiar preview tras guardar
   };
 
   const handleResetToAppDefaults = () => {
@@ -181,20 +358,47 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
     if (profileImageInputRef.current) profileImageInputRef.current.value = "";
   };
 
+  // Componente de tarjeta moderna
+  const ModernCard = ({ icon, title, children, ...props }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
+    <Paper elevation={0} sx={{ 
+      border: `1px solid ${theme.palette.divider}`,
+      borderRadius: 2,
+      overflow: 'hidden',
+      bgcolor: 'background.paper',
+      '&:hover': {
+        boxShadow: theme.shadows[2]
+      }
+    }} {...props}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 2, 
+        p: 2.5, 
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
+      }}>
+        <Box sx={{ 
+          color: 'primary.main',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          {icon}
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
+          {title}
+        </Typography>
+      </Box>
+      <Box sx={{ p: 2.5 }}>
+        {children}
+      </Box>
+    </Paper>
+  );
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
-      <Paper square elevation={0} sx={{ p: 2, position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h5" component="h1" fontWeight="medium">Personalizar Asistente</Typography>
-        </Box>
-        <IconButton aria-label="Cerrar" onClick={onCancel} size="large" sx={{ ml: 2 }}>
-          <CloseIcon />
-        </IconButton>
-      </Paper>
       <Container maxWidth="md" sx={{ flexGrow: 1, overflowY: 'auto', py: 3 }}>
         <Stack spacing={3}>
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>Información General</Typography>
+          <ModernCard icon={<PersonIcon />} title="Información General">
             <Stack spacing={2}>
               <TextField
                 fullWidth label="Nombre del Asistente" value={assistantName}
@@ -272,10 +476,9 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
                 <FormHelperText>El asistente responderá en este idioma.</FormHelperText>
               </FormControl>
             </Stack>
-          </Paper>
+          </ModernCard>
 
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>Contexto y Restricciones</Typography>
+          <ModernCard icon={<LocationOnIcon />} title="Contexto y Restricciones">
             <Stack spacing={2}>
               <TextField
                 fullWidth label="Restringir a Municipio (Opcional)" value={municipalityInputName}
@@ -295,10 +498,9 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
                 variant="outlined" helperText="Enlace principal a la Sede Electrónica para trámites."
               />
             </Stack>
-          </Paper>
+          </ModernCard>
 
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>Funcionalidades</Typography>
+          <ModernCard icon={<SettingsIcon />} title="Funcionalidades">
             <FormGroup>
               <FormControlLabel control={<Switch checked={enableGoogleSearch} onChange={(e) => setEnableGoogleSearch(e.target.checked)} />}
                 label="Habilitar Búsqueda de Google"
@@ -315,7 +517,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
               />
               <FormHelperText sx={{ml:4, mt:-0.5}}>Usa tu ubicación (con permiso) para contexto.</FormHelperText>
             </FormGroup>
-          </Paper>
+          </ModernCard>
 
           <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
             <Typography variant="h6" gutterBottom>Personalización Avanzada</Typography>
@@ -341,15 +543,58 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
           </Paper>
           
           <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>Prompts Recomendados</Typography>
+            <Typography variant="h6" gutterBottom>
+              Prompts Recomendados
+              <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                (Iconos asignados automáticamente)
+              </Typography>
+            </Typography>
             <Stack direction="row" spacing={1} mb={2}>
-              <TextField fullWidth label="Nuevo Prompt" value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} size="small" variant="outlined"/>
+              <TextField 
+                fullWidth 
+                label="Nuevo Prompt" 
+                value={newPrompt} 
+                onChange={(e) => setNewPrompt(e.target.value)} 
+                size="small" 
+                variant="outlined"
+                placeholder="Ej: ¿Dónde está la biblioteca municipal?"
+                helperText="El icono se asigna automáticamente según el contenido"
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', transition: 'all 0.3s' }}>
+                  {React.createElement(getIconComponent(newPromptIcon), { sx: { fontSize: 18 } })}
+                </Avatar>
+                <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 60 }}>
+                  {newPromptIcon}
+                </Typography>
+              </Box>
               <Button variant="contained" onClick={handleAddPrompt} disabled={!newPrompt.trim()} sx={{flexShrink:0}}>Añadir</Button>
             </Stack>
             {recommendedPrompts.length > 0 && (
               <Stack spacing={1}>
                 {recommendedPrompts.map((prompt, index) => (
-                  <Chip key={index} label={prompt} onDelete={() => handleRemovePrompt(index)} />
+                  <Stack key={index} direction="row" spacing={1} alignItems="center">
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                      {React.createElement(getIconComponent(prompt.img), { sx: { fontSize: 18 } })}
+                    </Avatar>
+                    <TextField
+                      value={prompt.text}
+                      size="small"
+                      variant="outlined"
+                      InputProps={{ readOnly: true }}
+                      sx={{ flex: 1 }}
+                    />
+                    <TextField
+                      label="Icono"
+                      value={prompt.img}
+                      onChange={e => handlePromptIconChange(index, e.target.value)}
+                      size="small"
+                      variant="outlined"
+                      sx={{ width: 120 }}
+                      placeholder="event, restaurant..."
+                    />
+                    <Button color="error" onClick={() => handleRemovePrompt(index)}>Eliminar</Button>
+                  </Stack>
                 ))}
               </Stack>
             )}

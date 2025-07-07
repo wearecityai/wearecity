@@ -25,6 +25,8 @@ interface AdminRouteProps {
   googleMapsScriptLoaded: boolean;
   setCurrentView: React.Dispatch<React.SetStateAction<'chat' | 'finetuning'>>;
   setIsMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  profileImagePreview?: string;
+  setProfileImagePreview?: React.Dispatch<React.SetStateAction<string | undefined>>;
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({
@@ -35,7 +37,9 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
   onCancel,
   googleMapsScriptLoaded,
   setCurrentView,
-  setIsMenuOpen
+  setIsMenuOpen,
+  profileImagePreview,
+  setProfileImagePreview
 }) => {
   // Check if user has admin access
   if (!user || !profile || profile.role !== 'administrativo') {
@@ -51,6 +55,8 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
       onCancel={onCancel}
       googleMapsScriptLoaded={googleMapsScriptLoaded}
       apiKeyForMaps=""
+      profileImagePreview={profileImagePreview}
+      setProfileImagePreview={setProfileImagePreview}
     />
   );
 };
