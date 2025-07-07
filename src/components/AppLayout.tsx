@@ -330,7 +330,13 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                 </Box>
               </Box>
               {/* Contenido del chat */}
-              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+              <Box sx={{ 
+                flex: 1, 
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0
+              }}>
                 <MainContent
                   theme={theme}
                   isMobile={false}
