@@ -7,6 +7,7 @@ import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
 import { useAssistantConfig } from './useAssistantConfig';
 import { useConversations } from './useConversations';
+import { MessageRole } from '../types';
 
 export const useAppState = () => {
   const theme = useTheme();
@@ -139,6 +140,38 @@ export const useAppState = () => {
     }
   }, [currentConversationId, conversations, selectedChatIndex]);
 
+  // --- INICIO: Estado para controlar la visibilidad del ChatContainer ---
+  const [shouldShowChatContainer, setShouldShowChatContainer] = useState(false);
+  
+  // Resetear shouldShowChatContainer cuando no hay mensajes
+  useEffect(() => {
+    if (messages.length === 0) {
+      setShouldShowChatContainer(false);
+    }
+  }, [messages.length]);
+  
+  // Envoltorio para handleSendMessage que añade y elimina el mensaje temporal
+  const handleSendMessageWithTyping = async (inputText: string) => {
+    // Si es el primer mensaje, activar inmediatamente el ChatContainer
+    if (messages.length === 0) {
+      console.log('First message detected, showing ChatContainer immediately');
+      setShouldShowChatContainer(true);
+    }
+    
+    try {
+      // Llamar a handleSendMessage que añadirá el mensaje del usuario
+      await handleSendMessage(inputText);
+    } catch (error) {
+      console.error('Error in handleSendMessageWithTyping:', error);
+      // En caso de error, resetear el estado si no hay mensajes
+      if (messages.length === 0) {
+        setShouldShowChatContainer(false);
+      }
+      throw error;
+    }
+  };
+  // --- FIN: Estado para controlar la visibilidad del ChatContainer ---
+
   return {
     theme,
     isMobile,
@@ -164,7 +197,7 @@ export const useAppState = () => {
     googleMapsScriptLoaded,
     messages,
     isLoading,
-    handleSendMessage,
+    handleSendMessage: handleSendMessageWithTyping,
     handleSeeMoreEvents,
     clearMessages,
     setMessages,
@@ -172,6 +205,7 @@ export const useAppState = () => {
     conversations,
     currentConversationId,
     setCurrentConversationId,
-    deleteConversation
+    deleteConversation,
+    shouldShowChatContainer
   };
 };

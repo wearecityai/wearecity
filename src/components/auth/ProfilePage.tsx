@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { UserProfile } from '@/components/UserProfile';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -67,7 +68,7 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
@@ -77,11 +78,12 @@ const ProfilePage = () => {
           Volver al chat
         </Button>
 
+        {/* Información del Perfil */}
         <Card>
           <CardHeader>
-            <CardTitle>Mi Perfil</CardTitle>
+            <CardTitle>Editar Perfil</CardTitle>
             <CardDescription>
-              Gestiona tu información personal
+              Actualiza tu información personal
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -139,6 +141,9 @@ const ProfilePage = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Información del Usuario y Chat Público */}
+        <UserProfile />
       </div>
     </div>
   );

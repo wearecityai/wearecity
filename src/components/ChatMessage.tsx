@@ -108,25 +108,30 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       px: { xs: 0, sm: 0 } // Remove horizontal padding to allow full width
     }}>
       <Stack direction={isUser ? "row-reverse" : "row"} spacing={1} sx={{ width: '100%', minWidth: 0 }} alignItems="flex-start">
-        {!isUser && (
+        {!isUser && !message.isTyping && (
             <Avatar sx={{
                 width: 32, height: 32,
-                bgcolor: 'transparent', // Sparkle icon needs transparent bg to sit nicely
-                color: theme.palette.primary.main, // Sparkle color
+                bgcolor: 'transparent',
+                color: theme.palette.primary.main,
                 alignSelf: 'flex-start',
             }}>
                 <LocationCityIcon fontSize="medium" />
             </Avatar>
         )}
-        {isUser && avatar} {/* Show standard avatar for user */}
         
         <Box sx={{ maxWidth: '100%', minWidth: 0 }}> {/* Wrapper for paper and action icons */}
             <Paper
             elevation={0} // Flat messages
             sx={{
-                p: 1.5,
-                bgcolor: isUser ? theme.palette.primary.dark : 'transparent',
-                color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                px: 1.5,
+                pb: 1.5,
+                pt: isUser ? 1.5 : 0.75,
+                bgcolor: isUser
+                  ? (theme.palette.mode === 'dark' ? '#36383a' : '#f1f3f4')
+                  : 'transparent',
+                color: isUser
+                  ? (theme.palette.mode === 'dark' ? '#fff' : '#222')
+                  : theme.palette.text.primary,
                 borderRadius: isUser ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
                 minWidth: '60px',
                 maxWidth: { xs: '100%', sm: '700px' },
@@ -134,39 +139,41 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 overflowWrap: 'break-word',
                 wordWrap: 'break-word',
                 hyphens: 'auto',
+                ...(isUser ? {} : { mt: 0, marginTop: 0 })
             }}
             >
             {message.isTyping ? (
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 250 }}>
+                  <Box sx={{ position: 'relative', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <CircularProgress 
-                        size={20} 
-                        thickness={6}
-                        sx={{ 
-                            color: theme.palette.primary.main,
-                            animationDuration: '1s'
-                        }} 
+                      size={32} 
+                      thickness={4}
+                      sx={{ color: theme.palette.primary.main, position: 'absolute', left: 0, top: 0 }}
                     />
-                    <Typography 
-                        variant="body2" 
-                        sx={{ 
-                            color: 'text.secondary',
-                            animation: 'fadeInOut 6s infinite',
-                            '@keyframes fadeInOut': {
-                                '0%, 100%': { opacity: 0.7 },
-                                '16%, 84%': { opacity: 1 },
-                            }
-                        }}
-                    >
-                        {(() => {
-                            const loadingStates = [
-                                "Analizando la consulta...",
-                                "Buscando información relevante...",
-                                "Preparando la respuesta...",
-                                "Verificando datos locales..."
-                            ];
-                            return loadingStates[Math.floor((Date.now() / 2000) % loadingStates.length)];
-                        })()}
-                    </Typography>
+                    <LocationCityIcon sx={{ fontSize: 20, color: theme.palette.primary.main, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: 'text.secondary',
+                      animation: 'fadeInOut 6s infinite',
+                      '@keyframes fadeInOut': {
+                        '0%, 100%': { opacity: 0.7 },
+                        '16%, 84%': { opacity: 1 },
+                      }
+                    }}
+                  >
+                    {(() => {
+                      const loadingStates = [
+                        "Un momento...",
+                        "Analizando la consulta...",
+                        "Buscando información relevante...",
+                        "Preparando la respuesta...",
+                        "Verificando datos locales..."
+                      ];
+                      return loadingStates[Math.floor((Date.now() / 2000) % loadingStates.length)];
+                    })()}
+                  </Typography>
                 </Stack>
             ) : message.error ? (
                 <Box sx={{ bgcolor: isUser ? 'rgba(0,0,0,0.2)' : theme.palette.error.light, p: 1, borderRadius: 1, color: isUser ? 'inherit' : theme.palette.error.dark }}>

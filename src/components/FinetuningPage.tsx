@@ -32,6 +32,7 @@ import {
   SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE_CODE,
 } from '../constants';
+import { ChatLinkDisplay } from './ChatLinkDisplay';
 
 
 interface FinetuningPageProps {
@@ -477,6 +478,9 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
               </FormControl>
             </Stack>
           </ModernCard>
+
+          {/* Chat Link Display */}
+          <ChatLinkDisplay assistantName={assistantName} />
 
           <ModernCard icon={<LocationOnIcon />} title="Contexto y Restricciones">
             <Stack spacing={2}>

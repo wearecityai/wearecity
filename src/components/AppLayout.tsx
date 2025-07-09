@@ -1,9 +1,10 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Avatar } from '@mui/material';
 import ErrorBoundary from './ErrorBoundary';
 import AppDrawer from './AppDrawer';
 import MainContent from './MainContent';
-import AdminRoute from './AdminRoute';
+import FinetuningPage from './FinetuningPage';
+
 import UserMenu from './UserMenu';
 import UserButton from './auth/UserButton';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -61,6 +62,7 @@ interface AppLayoutProps {
   googleMapsScriptLoaded: boolean;
   conversations: Array<{ id: string; title: string }>;
   deleteConversation: (conversationId: string) => Promise<void>;
+  shouldShowChatContainer: boolean;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = (props) => {
@@ -96,7 +98,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     handleSaveCustomization,
     googleMapsScriptLoaded,
     conversations,
-    deleteConversation
+    deleteConversation,
+    shouldShowChatContainer
   } = props;
 
   // Use conversation data from props instead of duplicating the hook
@@ -146,8 +149,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           <MenuIcon />
         </IconButton>
       )}
-      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
-        {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : ''}
+      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'white', letterSpacing: 1.5, fontSize: '1rem', flexGrow: 1 }}>
+        CityCore
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {user ? (
@@ -159,9 +162,23 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
               aria-label="user account"
               onClick={handleUserMenuOpen}
               id="user-avatar-button"
-              sx={{ color: 'text.primary' }}
+              sx={{ p: 0 }}
             >
-              <AccountCircleIcon />
+              <Avatar
+                sx={{
+                  width: 40,
+                  height: 40,
+                  bgcolor: theme => theme.palette.background.paper,
+                  color: theme => theme.palette.text.primary,
+                  fontSize: 28,
+                  border: `1px solid ${theme => theme.palette.divider}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AccountCircleIcon sx={{ fontSize: 32 }} />
+              </Avatar>
             </IconButton>
             <UserMenu
               anchorEl={userMenuAnchorEl}
@@ -190,15 +207,12 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     return (
       <>
         {normalHeader}
-        <AdminRoute
-          user={user}
-          profile={profile}
-          chatConfig={chatConfig}
-          handleSaveCustomization={handleSaveCustomization}
+        <FinetuningPage
+          currentConfig={chatConfig}
+          onSave={handleSaveCustomization}
           onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
           googleMapsScriptLoaded={googleMapsScriptLoaded}
-          setCurrentView={setCurrentView}
-          setIsMenuOpen={setIsMenuOpen}
+          apiKeyForMaps=""
           profileImagePreview={profileImagePreview}
           setProfileImagePreview={setProfileImagePreview}
         />
@@ -266,15 +280,12 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
               </Box>
               {/* Contenido del panel de configuración */}
               <Box sx={{ flex: 1, overflow: 'hidden', borderRight: `1px solid ${theme.palette.divider}` }}>
-                <AdminRoute
-                  user={user}
-                  profile={profile}
-                  chatConfig={chatConfig}
-                  handleSaveCustomization={handleSaveCustomization}
+                <FinetuningPage
+                  currentConfig={chatConfig}
+                  onSave={handleSaveCustomization}
                   onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
                   googleMapsScriptLoaded={googleMapsScriptLoaded}
-                  setCurrentView={setCurrentView}
-                  setIsMenuOpen={setIsMenuOpen}
+                  apiKeyForMaps=""
                   profileImagePreview={profileImagePreview}
                   setProfileImagePreview={setProfileImagePreview}
                 />
@@ -298,8 +309,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                 color: 'text.primary',
                 borderBottom: `1px solid ${theme.palette.divider}`,
               }}>
-                <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
-                  {selectedChatIndex !== null && selectedChatIndex !== undefined && selectedChatIndex >= 0 && selectedChatIndex < chatTitles.length ? chatTitles[selectedChatIndex] : 'Nueva conversación'}
+                <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'white', letterSpacing: 1.5, fontSize: '1rem', flexGrow: 1 }}>
+                  CityCore
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {user ? (
@@ -311,9 +322,23 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                         aria-label="user account"
                         onClick={handleUserMenuOpen}
                         id="user-avatar-button"
-                        sx={{ color: 'text.primary' }}
+                        sx={{ p: 0 }}
                       >
-                        <AccountCircleIcon />
+                        <Avatar
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            bgcolor: theme => theme.palette.background.paper,
+                            color: theme => theme.palette.text.primary,
+                            fontSize: 28,
+                            border: `1px solid ${theme => theme.palette.divider}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <AccountCircleIcon sx={{ fontSize: 32 }} />
+                        </Avatar>
                       </IconButton>
                       <UserMenu
                         anchorEl={userMenuAnchorEl}
@@ -359,6 +384,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                   handleSeeMoreEvents={handleSeeMoreEvents}
                   handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
                   isInFinetuningMode={true}
+                  shouldShowChatContainer={shouldShowChatContainer}
                 />
               </Box>
             </Box>
@@ -415,6 +441,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           handleDownloadPdf={handleDownloadPdf}
           handleSeeMoreEvents={handleSeeMoreEvents}
           handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+          shouldShowChatContainer={shouldShowChatContainer}
         />
       </Box>
     </Box>

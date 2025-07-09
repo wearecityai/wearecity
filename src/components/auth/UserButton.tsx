@@ -92,9 +92,9 @@ const UserButton = () => {
           <ListItemText>Perfil</ListItemText>
         </MenuItem>
         {profile?.role === 'administrativo' && (
-          <MenuItem onClick={() => navigate('/admin')}>
+          <MenuItem onClick={() => navigate('/profile')}>
             <ListItemIcon><Settings style={{width: 20, height: 20}} /></ListItemIcon>
-            <ListItemText>Panel Administrativo</ListItemText>
+            <ListItemText>Configuración</ListItemText>
           </MenuItem>
         )}
         <Divider />

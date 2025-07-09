@@ -32,6 +32,7 @@ interface MainContentProps {
   handleSeeMoreEvents: (originalUserQuery: string) => void;
   handleSetCurrentLanguageCode: (langCode: string) => void;
   isInFinetuningMode?: boolean; // Nueva prop para detectar si está en modo finetuning
+  shouldShowChatContainer?: boolean; // Nueva prop para controlar la visibilidad del ChatContainer
 }
 
 const MainContent: React.FC<MainContentProps> = ({
@@ -52,7 +53,8 @@ const MainContent: React.FC<MainContentProps> = ({
   handleDownloadPdf,
   handleSeeMoreEvents,
   handleSetCurrentLanguageCode,
-  isInFinetuningMode = false
+  isInFinetuningMode = false,
+  shouldShowChatContainer = true
 }) => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -89,10 +91,12 @@ const MainContent: React.FC<MainContentProps> = ({
           marginLeft: 0,
         }),
         paddingTop: isInFinetuningMode ? 0 : '64px',
+        justifyContent: 'center',
+        alignItems: 'center',
       }}
     >
       {isInFinetuningMode ? (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, width: '100%', maxWidth: 800, margin: '0 auto' }}>
           <Box
             ref={scrollableBoxRef}
             sx={{
@@ -103,7 +107,7 @@ const MainContent: React.FC<MainContentProps> = ({
               paddingBottom: 0,
             }}
           >
-            {messages.length === 0 && (
+            {messages.length === 0 && !shouldShowChatContainer && (
               <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4, px: 1 }}>
                 <Box sx={{ width: '100%', maxWidth: '100%' }}>
                   <ChatContainer
@@ -116,12 +120,15 @@ const MainContent: React.FC<MainContentProps> = ({
                     onSeeMoreEvents={() => {}}
                     onSetLanguageCode={() => {}}
                     onlyGreeting
+                    user={user}
+                    onLogin={onLogin}
                   />
                 </Box>
-                <RecommendedPromptsBar prompts={chatConfig.recommendedPrompts} />
+                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} />
               </Box>
             )}
-            {messages.length > 0 && (
+            {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
+            {(messages.length > 0 || shouldShowChatContainer) && (
               <Box
                 sx={{
                   width: '100%',
@@ -143,6 +150,8 @@ const MainContent: React.FC<MainContentProps> = ({
                   onDownloadPdf={handleDownloadPdf}
                   onSeeMoreEvents={handleSeeMoreEvents}
                   onSetLanguageCode={handleSetCurrentLanguageCode}
+                  user={user}
+                  onLogin={onLogin}
                 />
                 <div ref={messagesEndRef} />
               </Box>
@@ -178,11 +187,14 @@ const MainContent: React.FC<MainContentProps> = ({
               overflowY: 'auto',
               height: '100%',
               paddingBottom: { xs: 'calc(120px + env(safe-area-inset-bottom, 0px))', sm: '120px' },
+              width: '100%',
+              maxWidth: 800,
+              margin: '0 auto',
             }}
           >
-            {messages.length === 0 && (
-              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4 }}>
-                <Box sx={{ width: { xs: '100%', sm: 600, md: 800 }, maxWidth: '100%' }}>
+            {messages.length === 0 && !shouldShowChatContainer && (
+              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4, px: 1 }}>
+                <Box sx={{ width: '100%', maxWidth: '100%' }}>
                   <ChatContainer
                     messages={[]}
                     isLoading={false}
@@ -193,12 +205,15 @@ const MainContent: React.FC<MainContentProps> = ({
                     onSeeMoreEvents={() => {}}
                     onSetLanguageCode={() => {}}
                     onlyGreeting
+                    user={user}
+                    onLogin={onLogin}
                   />
                 </Box>
-                <RecommendedPromptsBar prompts={chatConfig.recommendedPrompts} />
+                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} />
               </Box>
             )}
-            {messages.length > 0 && (
+            {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
+            {(messages.length > 0 || shouldShowChatContainer) && (
               <Box
                 sx={{
                   width: '100%',
@@ -220,6 +235,8 @@ const MainContent: React.FC<MainContentProps> = ({
                   onDownloadPdf={handleDownloadPdf}
                   onSeeMoreEvents={handleSeeMoreEvents}
                   onSetLanguageCode={handleSetCurrentLanguageCode}
+                  user={user}
+                  onLogin={onLogin}
                 />
                 <div ref={messagesEndRef} />
               </Box>

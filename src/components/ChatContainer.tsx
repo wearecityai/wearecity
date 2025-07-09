@@ -19,6 +19,8 @@ interface ChatContainerProps {
   onSeeMoreEvents: (originalUserQuery: string) => void;
   onSetLanguageCode: (langCode: string) => void;
   onlyGreeting?: boolean;
+  user?: { id: string; email?: string } | null;
+  onLogin?: () => void;
 }
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
@@ -30,11 +32,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   onDownloadPdf,
   onSeeMoreEvents,
   onSetLanguageCode,
-  onlyGreeting = false
+  onlyGreeting = false,
+  user,
+  onLogin
 }) => {
   const theme = useTheme();
 
-  if (!onlyGreeting && messages.length === 0) return null;
+  if (!onlyGreeting && messages.length === 0 && !isLoading && !messages.some(m => m.isTyping)) return null;
 
   return (
     <Stack
@@ -104,8 +108,33 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             })()}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-            Puedes comenzar a chatear inmediatamente. Inicia sesión para guardar tus conversaciones.
+            Realiza cualquier consulta que tengas sobre la ciudad.
           </Typography>
+          {!user && (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 0.5, gap: 0.5, flexWrap: 'wrap' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Para guardar tus conversaciones y mejorar las recomendaciones
+              </Typography>
+              <Button
+                variant="text"
+                size="small"
+                onClick={onLogin}
+                sx={{
+                  color: 'primary.main',
+                  textTransform: 'none',
+                  fontSize: 'inherit',
+                  fontWeight: 'inherit',
+                  p: 0,
+                  minWidth: 'auto',
+                  '&:hover': {
+                    backgroundColor: 'transparent'
+                  }
+                }}
+              >
+                Inicia sesión
+              </Button>
+            </Box>
+          )}
         </Box>
       )}
       {!onlyGreeting && (
@@ -196,7 +225,7 @@ const getIconComponent = (iconName: string) => {
 };
 
 export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> = ({ prompts }) => {
-  if (!Array.isArray(prompts) || prompts.length === 0) return null;
+  if (!prompts || !Array.isArray(prompts) || prompts.length === 0) return null;
   
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldCenter, setShouldCenter] = useState(false);
@@ -237,6 +266,11 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
     >
       {prompts.map((prompt, idx) => {
         const IconComponent = getIconComponent(prompt.img || 'help');
+        // Limitar el texto del prompt a 60 caracteres
+        const MAX_PROMPT_LENGTH = 60;
+        const promptText = (prompt.text || '').length > MAX_PROMPT_LENGTH
+          ? (prompt.text || '').slice(0, MAX_PROMPT_LENGTH - 1) + '…'
+          : (prompt.text || '');
         return (
           <Box
             key={idx}
@@ -246,8 +280,8 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
               borderRadius: 4,
               minWidth: { xs: 110, sm: 140 },
               maxWidth: { xs: 110, sm: 140 },
-              minHeight: { xs: 120, sm: 150 },
-              maxHeight: { xs: 120, sm: 150 },
+              minHeight: { xs: 150, sm: 180 },
+              maxHeight: { xs: 150, sm: 180 },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -285,7 +319,7 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
             }}>
               <IconComponent sx={{ fontSize: { xs: 22, sm: 32 } }} />
             </Avatar>
-            <span style={{ flex: 1, width: '100%', wordBreak: 'break-word', lineHeight: 1.25 }}>{prompt.text}</span>
+            <span style={{ flex: 1, width: '100%', wordBreak: 'break-word', lineHeight: 1.25 }}>{promptText}</span>
           </Box>
         );
       })}

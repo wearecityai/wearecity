@@ -244,7 +244,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         elevation={0} // Flat like Gemini
         sx={{
           display: 'flex',
-          alignItems: 'flex-end', // Align items to bottom for multiline textfield
+          alignItems: 'center', // Center items vertically
           p: '4px 8px 4px 4px', // Inner padding
           borderRadius: '28px', // Highly rounded
           bgcolor: 'background.paper',
@@ -272,7 +272,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 fullWidth
                 multiline
                 maxRows={5}
-                placeholder={isRecording ? (speechError || "Escuchando...") : "Pregunta a Gemini"}
+                placeholder={isRecording ? (speechError || "Escuchando...") : "Escribir una consulta"}
                 value={inputValue}
                 onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
                 InputProps={{
