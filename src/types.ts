@@ -68,7 +68,7 @@ export interface ChatMessage {
   placeCards?: PlaceCardInfo[];
   mapQuery?: string;
   downloadablePdfInfo?: DownloadablePdfInfo;
-  telematicProcedureLink?: string;
+  telematicProcedureLink?: { url: string; text: string } | null;
   showSeeMoreButton?: boolean;
   originalUserQueryForEvents?: string;
   groundingMetadata?: any;
