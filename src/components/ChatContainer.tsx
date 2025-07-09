@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Box, Alert, AlertTitle, Typography, Stack, useTheme, Avatar, Button } from '@mui/material';
+import { Box, Alert, AlertTitle, Typography, Stack, useTheme, Avatar, Button, Link } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SyncProblemIcon from '@mui/icons-material/SyncProblem';
+import ExternalLinkIcon from '@mui/icons-material/OpenInNew';
 import MessageList from './MessageList';
 import { ChatMessage, CustomChatConfig, RecommendedPrompt } from '../types';
 import { API_KEY_ERROR_MESSAGE, MAPS_API_KEY_INVALID_ERROR_MESSAGE, DEFAULT_LANGUAGE_CODE } from '../constants';
+import { usePublicChats } from '@/hooks/usePublicChats';
+import { useAuth } from '@/hooks/useAuth';
 import * as Icons from '@mui/icons-material';
 import HelpIcon from '@mui/icons-material/Help';
 
@@ -37,6 +40,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   onLogin
 }) => {
   const theme = useTheme();
+  const { profile } = useAuth();
+  const { userChats } = usePublicChats();
+  
+  // Obtener el primer chat público del usuario admin
+  const adminPublicChat = profile?.role === 'administrativo' && userChats.length > 0 ? userChats[0] : null;
 
   if (!onlyGreeting && messages.length === 0 && !isLoading && !messages.some(m => m.isTyping)) return null;
 
@@ -107,6 +115,34 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               }
             })()}
           </Typography>
+          
+          {/* Link del chat público para usuarios admin */}
+          {adminPublicChat && (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1, mb: 1 }}>
+              <Link
+                href={`/chat/${adminPublicChat.chat_slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: 'primary.main',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  '&:hover': {
+                    textDecoration: 'underline'
+                  }
+                }}
+              >
+                <Typography variant="body2" sx={{ color: 'inherit' }}>
+                  {`${window.location.origin}/chat/${adminPublicChat.chat_slug}`}
+                </Typography>
+                <ExternalLinkIcon sx={{ fontSize: 16 }} />
+              </Link>
+            </Box>
+          )}
+          
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
             Realiza cualquier consulta que tengas sobre la ciudad.
           </Typography>
