@@ -14,6 +14,7 @@ export type Database = {
           allow_geolocation: boolean | null
           allow_map_display: boolean | null
           assistant_name: string | null
+          base_system_instruction: string | null
           config_name: string
           created_at: string | null
           current_language_code: string | null
@@ -21,6 +22,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           procedure_source_urls: Json | null
+          profile_image_url: string | null
           recommended_prompts: Json | null
           restricted_city: Json | null
           sede_electronica_url: string | null
@@ -34,6 +36,7 @@ export type Database = {
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
+          base_system_instruction?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null
@@ -41,6 +44,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           procedure_source_urls?: Json | null
+          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
@@ -54,6 +58,7 @@ export type Database = {
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
+          base_system_instruction?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null
@@ -61,6 +66,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           procedure_source_urls?: Json | null
+          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
@@ -166,7 +172,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_all_system_instructions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          instruction_key: string
+          instruction_value: string
+          description: string
+        }[]
+      }
+      get_system_instruction: {
+        Args: { instruction_key_param: string }
+        Returns: string
+      }
+      search_scraped_content: {
+        Args: {
+          search_query: string
+          user_id_param: string
+          limit_param?: number
+        }
+        Returns: {
+          id: string
+          title: string
+          content: string
+          url: string
+          website_name: string
+          content_type: string
+          rank: number
+        }[]
+      }
     }
     Enums: {
       user_role: "ciudadano" | "administrativo"

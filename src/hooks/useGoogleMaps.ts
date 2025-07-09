@@ -138,6 +138,36 @@ export const useGoogleMaps = (
           errorDetails: undefined,
         }, setMessages);
       } else {
+        // If placeId failed and we have a searchQuery, try that as fallback
+        if (placeId && searchQuery && (status === google.maps.places.PlacesServiceStatus.NOT_FOUND || status === google.maps.places.PlacesServiceStatus.INVALID_REQUEST)) {
+          console.log(`🔄 PlaceId failed (${status}), trying searchQuery fallback: ${searchQuery}`);
+          placesServiceRef.current!.textSearch({ 
+            query: searchQuery, 
+            fields: requestFields, 
+            language: currentLanguageCode || DEFAULT_LANGUAGE_CODE 
+          }, (results, searchStatus) => {
+            if (searchStatus === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+              console.log(`✅ SearchQuery fallback successful for: ${searchQuery}`);
+              if (results[0].place_id) {
+                placesServiceRef.current!.getDetails({ 
+                  placeId: results[0].place_id, 
+                  fields: requestFields, 
+                  language: currentLanguageCode || DEFAULT_LANGUAGE_CODE 
+                }, processPlaceResult);
+              } else {
+                processPlaceResult(results[0], searchStatus);
+              }
+            } else {
+              console.log(`❌ SearchQuery fallback also failed (${searchStatus}) for: ${searchQuery}`);
+              updatePlaceCardInMessage(messageId, placeCardId, { 
+                isLoadingDetails: false, 
+                errorDetails: `No se encontraron detalles (${status}).` 
+              }, setMessages);
+            }
+          });
+          return; // Don't update with error immediately, wait for fallback
+        }
+        
         updatePlaceCardInMessage(messageId, placeCardId, { 
           isLoadingDetails: false, 
           errorDetails: `No se encontraron detalles (${status}).` 

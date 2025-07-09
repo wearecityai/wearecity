@@ -1,15 +1,14 @@
-
-import { CustomChatConfig, SupportedLanguage } from './types';
+import { CustomChatConfig, SupportedLanguage, RecommendedPrompt } from './types';
 
 export const GEMINI_MODEL_NAME = 'gemini-2.5-flash-preview-04-17';
 
 export const DEFAULT_ASSISTANT_NAME = "Asistente de Ciudad";
 export const INITIAL_SYSTEM_INSTRUCTION = "Eres 'Asistente de Ciudad', un IA amigable y servicial especializado en información sobre ciudades. Proporciona respuestas concisas y directas a consultas sobre turismo, servicios locales, eventos, transporte y vida urbana. Si una pregunta requiere contexto de una ciudad específica y el usuario no la ha mencionado, pide amablemente que especifique la ciudad. De lo contrario, responde de la mejor manera posible con información general si aplica.";
-export const DEFAULT_RECOMMENDED_PROMPTS: string[] = [
-  "¿Qué eventos hay este fin de semana?",
-  "Recomiéndame un buen restaurante italiano.",
-  "¿Cómo llego al museo principal en transporte público?",
-  "Horarios de la biblioteca municipal",
+export const DEFAULT_RECOMMENDED_PROMPTS: RecommendedPrompt[] = [
+  { text: "¿Qué eventos hay este fin de semana?", img: "event" },
+  { text: "Recomiéndame un buen restaurante italiano.", img: "restaurant" },
+  { text: "¿Cómo llego al museo principal en transporte público?", img: "directions_bus" },
+  { text: "Horarios de la biblioteca municipal", img: "library" },
 ];
 export const AVAILABLE_SERVICE_TAGS: string[] = [
   "Información Turística",

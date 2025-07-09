@@ -15,6 +15,7 @@ interface ChatInputProps {
   recommendedPrompts?: string[]; // Keep for potential future use, but Gemini UI has fixed chips
   currentLanguageCode: string;
   onSetLanguageCode: (code: string) => void; // Keep for settings menu
+  isInFinetuningMode?: boolean; // Nueva prop para ajustar el padding en modo finetuning
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -22,7 +23,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   recommendedPrompts,
   currentLanguageCode,
-  onSetLanguageCode // Retained for settings, not used directly in this input bar
+  onSetLanguageCode, // Retained for settings, not used directly in this input bar
+  isInFinetuningMode = false
 }) => {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -210,7 +212,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <Box sx={{ 
-      padding: { xs: '16px', sm: '32px' },
+      padding: isInFinetuningMode 
+        ? { xs: '4px 12px 8px 12px', sm: '8px 20px 12px 20px' } 
+        : { xs: '8px 16px 24px 16px', sm: '12px 24px 32px 24px' },
       bgcolor: 'background.default',
       maxWidth: '100%',
       width: '100%',
@@ -223,7 +227,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           ref={canvasRef}
           style={{
             width: '100%',
-            maxWidth: '800px',
+            maxWidth: isInFinetuningMode ? '100%' : '800px',
             height: '34px',
             display: 'block',
             backgroundColor: theme.palette.background.paper, // Match input paper
@@ -240,12 +244,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
         elevation={0} // Flat like Gemini
         sx={{
           display: 'flex',
-          alignItems: 'flex-end', // Align items to bottom for multiline textfield
+          alignItems: 'center', // Center items vertically
           p: '4px 8px 4px 4px', // Inner padding
           borderRadius: '28px', // Highly rounded
           bgcolor: 'background.paper',
           border: `1px solid ${theme.palette.divider}`, // Subtle border like Gemini
-          maxWidth: '800px',
+          maxWidth: isInFinetuningMode ? '100%' : '800px',
           width: '100%',
           '&:focus-within': {
             borderColor: theme.palette.primary.main,
@@ -268,7 +272,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 fullWidth
                 multiline
                 maxRows={5}
-                placeholder={isRecording ? (speechError || "Escuchando...") : "Pregunta a Gemini"}
+                placeholder={isRecording ? (speechError || "Escuchando...") : "Escribir una consulta"}
                 value={inputValue}
                 onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
                 InputProps={{
