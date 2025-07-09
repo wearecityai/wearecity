@@ -34,10 +34,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, onDownlo
   //   );
   // }
   
-  if (!messages.length && !isLoading) return null;
-
   return (
-    <Box sx={{ flexGrow: 1, py: 2, bgcolor: 'transparent' }}> {/* overflow removido - ahora está en MainContent */}
+    <Box sx={{ flexGrow: 1, overflowY: 'auto', py:2, bgcolor: 'transparent' }}> {/* Sin padding lateral, barra de scroll al borde */}
       {messages.map((msg) => (
         <ChatMessage
           key={msg.id}

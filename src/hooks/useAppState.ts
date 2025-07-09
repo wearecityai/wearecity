@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { useThemeContext } from '../theme/ThemeProvider';
@@ -7,7 +8,6 @@ import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
 import { useAssistantConfig } from './useAssistantConfig';
 import { useConversations } from './useConversations';
-import { MessageRole } from '../types';
 
 export const useAppState = () => {
   const theme = useTheme();
@@ -27,22 +27,11 @@ export const useAppState = () => {
 
   const { userLocation, geolocationError, geolocationStatus } = useGeolocation(chatConfig.allowGeolocation);
 
-  const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, loadGoogleMapsScript } = useGoogleMaps(
+  const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage } = useGoogleMaps(
     userLocation,
     chatConfig.currentLanguageCode || 'es',
     setAppError
   );
-
-  // Load Google Maps script on app initialization
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (apiKey && !googleMapsScriptLoaded) {
-      console.log('🔍 Loading Google Maps script with API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NO API KEY');
-      loadGoogleMapsScript(apiKey);
-    } else if (!apiKey) {
-      console.warn('❌ VITE_GOOGLE_MAPS_API_KEY not found in environment variables');
-    }
-  }, [loadGoogleMapsScript, googleMapsScriptLoaded]);
 
   // Use conversations hook directly here
   const { 
@@ -91,38 +80,14 @@ export const useAppState = () => {
 
   // Handle place cards loading
   useEffect(() => {
-    console.log('🔍 Place cards useEffect triggered:', {
-      googleMapsScriptLoaded,
-      messagesCount: messages.length
-    });
-    
-    if (!googleMapsScriptLoaded) {
-      console.log('❌ Google Maps script not loaded yet');
-      return;
-    }
-    
-    messages.forEach((msg, msgIndex) => {
+    if (!googleMapsScriptLoaded) return;
+    messages.forEach(msg => {
       if (msg.role === 'model' && msg.placeCards) {
-        console.log(`🔍 Message ${msgIndex} has ${msg.placeCards.length} place cards`);
-        msg.placeCards.forEach((card, cardIndex) => {
-          console.log(`🔍 Place card ${cardIndex}:`, {
-            name: card.name,
-            placeId: card.placeId,
-            searchQuery: card.searchQuery,
-            isLoadingDetails: card.isLoadingDetails,
-            errorDetails: card.errorDetails,
-            photoUrl: card.photoUrl
-          });
-          
+        msg.placeCards.forEach(card => {
           if (card.isLoadingDetails && (card.placeId || card.searchQuery)) {
             if (!card.errorDetails && !card.photoUrl) {
-              console.log(`✅ Calling fetchPlaceDetailsAndUpdateMessage for card: ${card.name}`);
               fetchPlaceDetailsAndUpdateMessage(msg.id, card.id, card.placeId, card.searchQuery, setMessages);
-            } else {
-              console.log(`⚠️ Skipping card ${card.name} - already has errorDetails or photoUrl`);
             }
-          } else {
-            console.log(`⚠️ Skipping card ${card.name} - not loading or missing placeId/searchQuery`);
           }
         });
       }
@@ -139,38 +104,6 @@ export const useAppState = () => {
       }
     }
   }, [currentConversationId, conversations, selectedChatIndex]);
-
-  // --- INICIO: Estado para controlar la visibilidad del ChatContainer ---
-  const [shouldShowChatContainer, setShouldShowChatContainer] = useState(false);
-  
-  // Resetear shouldShowChatContainer cuando no hay mensajes
-  useEffect(() => {
-    if (messages.length === 0) {
-      setShouldShowChatContainer(false);
-    }
-  }, [messages.length]);
-  
-  // Envoltorio para handleSendMessage que añade y elimina el mensaje temporal
-  const handleSendMessageWithTyping = async (inputText: string) => {
-    // Si es el primer mensaje, activar inmediatamente el ChatContainer
-    if (messages.length === 0) {
-      console.log('First message detected, showing ChatContainer immediately');
-      setShouldShowChatContainer(true);
-    }
-    
-    try {
-      // Llamar a handleSendMessage que añadirá el mensaje del usuario
-      await handleSendMessage(inputText);
-    } catch (error) {
-      console.error('Error in handleSendMessageWithTyping:', error);
-      // En caso de error, resetear el estado si no hay mensajes
-      if (messages.length === 0) {
-        setShouldShowChatContainer(false);
-      }
-      throw error;
-    }
-  };
-  // --- FIN: Estado para controlar la visibilidad del ChatContainer ---
 
   return {
     theme,
@@ -197,7 +130,7 @@ export const useAppState = () => {
     googleMapsScriptLoaded,
     messages,
     isLoading,
-    handleSendMessage: handleSendMessageWithTyping,
+    handleSendMessage,
     handleSeeMoreEvents,
     clearMessages,
     setMessages,
@@ -205,7 +138,6 @@ export const useAppState = () => {
     conversations,
     currentConversationId,
     setCurrentConversationId,
-    deleteConversation,
-    shouldShowChatContainer
+    deleteConversation
   };
 };

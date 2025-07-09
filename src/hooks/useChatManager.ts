@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { CustomChatConfig } from '../types';
 import { useMessages } from './useMessages';
@@ -48,7 +49,7 @@ export const useChatManager = (
   const {
     geminiChatSessionRef,
     initializeChatSession
-  } = useChatSession();
+  } = useChatSession(isGeminiReady, onError, onGeminiReadyChange);
 
   // Message processing
   const {
@@ -70,17 +71,13 @@ export const useChatManager = (
       console.log('=== Starting handleSendMessage ===');
       console.log('Input text:', inputText);
       console.log('Current conversation ID:', currentConversationId);
-      console.log('Available conversations:', conversations.map(c => c.id));
 
       // Step 1: Determine or create the target conversation
       let targetConversationId = currentConversationId;
       let conversationWasCreated = false;
 
-      // Check if currentConversationId exists in the user's conversations
-      const conversationExists = conversations.some(c => c.id === currentConversationId);
-      
-      if (!targetConversationId || !conversationExists) {
-        console.log('No current conversation or conversation not found, creating new one...');
+      if (!targetConversationId) {
+        console.log('No current conversation, creating new one...');
         const generatedTitle = await generateConversationTitle(inputText);
         const newConversation = await createConversation(generatedTitle);
         
@@ -141,9 +138,9 @@ export const useChatManager = (
   // Initialize chat when ready
   useEffect(() => {
     if (isGeminiReady) {
-      initializeChatSession();
+      initializeChatSession(chatConfig, userLocation);
     }
-  }, [isGeminiReady, initializeChatSession]);
+  }, [isGeminiReady, chatConfig, userLocation, initializeChatSession]);
 
   return {
     messages,

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -18,18 +19,8 @@ export const useConversations = () => {
   // Cargar conversaciones del usuario
   const loadConversations = async () => {
     if (!user) {
-      // Cargar conversaciones de localStorage
-      const local = localStorage.getItem('chat_conversations');
-      let localConvs: Conversation[] = [];
-      if (local) {
-        try {
-          localConvs = JSON.parse(local);
-        } catch {}
-      }
-      setConversations(localConvs);
-      // Seleccionar la última conversación activa si existe
-      const lastId = localStorage.getItem('chat_current_conversation_id');
-      setCurrentConversationId(lastId || (localConvs[0]?.id ?? null));
+      console.log('No user found, clearing conversations');
+      setConversations([]);
       return;
     }
     
@@ -59,18 +50,8 @@ export const useConversations = () => {
   // Crear nueva conversación
   const createConversation = async (title: string = 'Consulta general') => {
     if (!user) {
-      // Crear conversación local
-      const id = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const newConv: Conversation = { id, title, created_at: now, updated_at: now };
-      setConversations(prev => {
-        const updated = [newConv, ...prev];
-        localStorage.setItem('chat_conversations', JSON.stringify(updated));
-        localStorage.setItem('chat_current_conversation_id', id);
-        return updated;
-      });
-      setCurrentConversationId(id);
-      return newConv;
+      console.log('No user found, cannot create conversation');
+      return null;
     }
 
     console.log('Creating conversation for user:', user.id, 'with title:', title);
@@ -104,14 +85,7 @@ export const useConversations = () => {
 
   // Actualizar título de conversación
   const updateConversationTitle = async (conversationId: string, title: string) => {
-    if (!user) {
-      setConversations(prev => {
-        const updated = prev.map(conv => conv.id === conversationId ? { ...conv, title, updated_at: new Date().toISOString() } : conv);
-        localStorage.setItem('chat_conversations', JSON.stringify(updated));
-        return updated;
-      });
-      return;
-    }
+    if (!user) return;
 
     console.log('Updating conversation title:', conversationId, title);
     try {
@@ -142,18 +116,7 @@ export const useConversations = () => {
 
   // Eliminar conversación
   const deleteConversation = async (conversationId: string) => {
-    if (!user) {
-      setConversations(prev => {
-        const updated = prev.filter(conv => conv.id !== conversationId);
-        localStorage.setItem('chat_conversations', JSON.stringify(updated));
-        if (currentConversationId === conversationId) {
-          setCurrentConversationId(null);
-          localStorage.removeItem('chat_current_conversation_id');
-        }
-        return updated;
-      });
-      return;
-    }
+    if (!user) return;
 
     console.log('Deleting conversation:', conversationId);
     try {
@@ -181,7 +144,8 @@ export const useConversations = () => {
     if (user) {
       loadConversations();
     } else {
-      loadConversations();
+      setConversations([]);
+      setCurrentConversationId(null);
     }
   }, [user]);
 

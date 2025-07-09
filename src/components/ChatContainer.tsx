@@ -1,16 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Box, Alert, AlertTitle, Typography, Stack, useTheme, Avatar, Button, Link } from '@mui/material';
+import React from 'react';
+import { Box, Alert, AlertTitle, Typography, Stack, useTheme, Avatar } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SyncProblemIcon from '@mui/icons-material/SyncProblem';
-import ExternalLinkIcon from '@mui/icons-material/OpenInNew';
 import MessageList from './MessageList';
-import { ChatMessage, CustomChatConfig, RecommendedPrompt } from '../types';
+import ChatInput from './ChatInput';
+import { ChatMessage, CustomChatConfig } from '../types';
 import { API_KEY_ERROR_MESSAGE, MAPS_API_KEY_INVALID_ERROR_MESSAGE, DEFAULT_LANGUAGE_CODE } from '../constants';
-import { usePublicChats } from '@/hooks/usePublicChats';
-import { useAuth } from '@/hooks/useAuth';
-import * as Icons from '@mui/icons-material';
-import HelpIcon from '@mui/icons-material/Help';
 
 interface ChatContainerProps {
   messages: ChatMessage[];
@@ -21,9 +17,6 @@ interface ChatContainerProps {
   onDownloadPdf: (pdfInfo: NonNullable<ChatMessage['downloadablePdfInfo']>) => void;
   onSeeMoreEvents: (originalUserQuery: string) => void;
   onSetLanguageCode: (langCode: string) => void;
-  onlyGreeting?: boolean;
-  user?: { id: string; email?: string } | null;
-  onLogin?: () => void;
 }
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
@@ -34,19 +27,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   onSendMessage,
   onDownloadPdf,
   onSeeMoreEvents,
-  onSetLanguageCode,
-  onlyGreeting = false,
-  user,
-  onLogin
+  onSetLanguageCode
 }) => {
   const theme = useTheme();
-  const { profile } = useAuth();
-  const { userChats } = usePublicChats();
-  
-  // Obtener el primer chat público del usuario admin
-  const adminPublicChat = profile?.role === 'administrativo' && userChats.length > 0 ? userChats[0] : null;
-
-  if (!onlyGreeting && messages.length === 0 && !isLoading && !messages.some(m => m.isTyping)) return null;
 
   return (
     <Stack
@@ -56,7 +39,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         overflow: 'hidden',
         position: 'relative',
         width: '100%',
-        // maxWidth y padding removidos - ahora están en MainContent
+        maxWidth: { sm: '800px' },
+        margin: '0 auto',
+        padding: { xs: '0', sm: '0 32px' }, // 32px padding on desktop
       }}
     >
       {appError && !messages.some(msg => msg.error && msg.error.includes(appError)) && (
@@ -77,289 +62,49 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         </Alert>
       )}
 
-      {onlyGreeting && (
+      {messages.length === 0 && !isLoading && (
         <Box sx={{flexGrow: 1, display: 'flex', flexDirection:'column', alignItems: 'center', justifyContent: 'center', p:3, textAlign: 'center'}}>
           {chatConfig.profileImageUrl ? (
             <Avatar 
               src={chatConfig.profileImageUrl} 
               sx={{ 
-                width: 80, 
-                height: 80, 
-                bgcolor: 'background.paper',
-                color: 'primary.main',
-                boxShadow: 2,
+                width: 64, 
+                height: 64, 
                 mb: 2,
+                border: 2,
+                borderColor: 'primary.main'
               }}
             />
           ) : (
-            <Avatar
-              src={process.env.BASE_URL ? process.env.BASE_URL + '/placeholder.svg' : '/placeholder.svg'}
-              sx={{
-                width: 80,
-                height: 80,
-                bgcolor: 'background.paper',
-                color: 'primary.main',
-                boxShadow: 2,
-                mb: 2,
-              }}
-            />
+            <AutoAwesomeIcon sx={{fontSize: 48, color: 'primary.main', mb:2}}/>
           )}
           <Typography variant="h5" sx={{mb:1}}>
-            {(() => {
-              if (chatConfig.assistantName && chatConfig.assistantName.trim() !== "") {
-                return `¡Hola! Soy tu asistente de ${chatConfig.assistantName}`;
-              } else if (chatConfig.restrictedCity && chatConfig.restrictedCity.name) {
-                return `¡Hola! Soy tu asistente de ${chatConfig.restrictedCity.name}`;
-              } else {
-                return "¡Hola! Soy tu asistente";
-              }
-            })()}
+            ¡Hola! ¿Cómo puedo ayudarte hoy
+            {chatConfig.restrictedCity ? ` desde ${chatConfig.restrictedCity.name}` : ''}?
           </Typography>
-          
-          {/* Link del chat público para usuarios admin */}
-          {adminPublicChat && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1, mb: 1 }}>
-              <Link
-                href={`/chat/${adminPublicChat.chat_slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  fontSize: '0.875rem',
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
-                }}
-              >
-                <Typography variant="body2" sx={{ color: 'inherit' }}>
-                  {`${window.location.origin}/chat/${adminPublicChat.chat_slug}`}
-                </Typography>
-                <ExternalLinkIcon sx={{ fontSize: 16 }} />
-              </Link>
-            </Box>
-          )}
-          
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-            Realiza cualquier consulta que tengas sobre la ciudad.
+            Puedes comenzar a chatear inmediatamente. Inicia sesión para guardar tus conversaciones.
           </Typography>
-          {!user && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 0.5, gap: 0.5, flexWrap: 'wrap' }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Para guardar tus conversaciones y mejorar las recomendaciones
-              </Typography>
-              <Button
-                variant="text"
-                size="small"
-                onClick={onLogin}
-                sx={{
-                  color: 'primary.main',
-                  textTransform: 'none',
-                  fontSize: 'inherit',
-                  fontWeight: 'inherit',
-                  p: 0,
-                  minWidth: 'auto',
-                  '&:hover': {
-                    backgroundColor: 'transparent'
-                  }
-                }}
-              >
-                Inicia sesión
-              </Button>
-            </Box>
-          )}
         </Box>
       )}
-      {!onlyGreeting && (
-        <MessageList
-          messages={messages}
-          isLoading={isLoading && messages.length === 0}
-          onDownloadPdf={onDownloadPdf}
-          configuredSedeElectronicaUrl={chatConfig.sedeElectronicaUrl}
-          onSeeMoreEvents={onSeeMoreEvents}
-        />
-      )}
-
+      <MessageList
+        messages={messages}
+        isLoading={isLoading && messages.length === 0}
+        onDownloadPdf={onDownloadPdf}
+        configuredSedeElectronicaUrl={chatConfig.sedeElectronicaUrl}
+        onSeeMoreEvents={onSeeMoreEvents}
+      />
+      <ChatInput
+        onSendMessage={onSendMessage}
+        isLoading={isLoading}
+        recommendedPrompts={chatConfig.recommendedPrompts}
+        currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
+        onSetLanguageCode={onSetLanguageCode}
+      />
+      <Typography variant="caption" sx={{ textAlign: 'center', p: 1, color: 'text.secondary', fontSize: '0.7rem' }}>
+        Gemini puede cometer errores, incluso sobre personas, así que comprueba sus respuestas. <a href="#" style={{color: theme.palette.text.secondary}}>Tu privacidad y Gemini</a>
+      </Typography>
     </Stack>
-  );
-};
-
-// Helper function to get Material UI icon component by name
-const getIconComponent = (iconName: string) => {
-  // Convert snake_case or camelCase to PascalCase for Material UI icons
-  const pascalCase = iconName
-    .split(/[_-]/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join('');
-  
-  // Common icon mappings
-  const iconMap: { [key: string]: any } = {
-    'event': Icons.Event,
-    'events': Icons.Event,
-    'calendar': Icons.Event,
-    'restaurant': Icons.Restaurant,
-    'food': Icons.Restaurant,
-    'dining': Icons.Restaurant,
-    'directions_bus': Icons.DirectionsBus,
-    'bus': Icons.DirectionsBus,
-    'transport': Icons.DirectionsBus,
-    'schedule': Icons.Schedule,
-    'time': Icons.Schedule,
-    'hours': Icons.Schedule,
-    'library': Icons.LocalLibrary,
-    'book': Icons.LocalLibrary,
-    'museum': Icons.Museum,
-    'culture': Icons.Museum,
-    'art': Icons.Palette,
-    'music': Icons.MusicNote,
-    'sports': Icons.SportsScore,
-    'shopping': Icons.ShoppingCart,
-    'hotel': Icons.Hotel,
-    'accommodation': Icons.Hotel,
-    'hospital': Icons.LocalHospital,
-    'health': Icons.LocalHospital,
-    'pharmacy': Icons.LocalPharmacy,
-    'police': Icons.LocalPolice,
-    'emergency': Icons.Warning,
-    'weather': Icons.WbSunny,
-    'tourism': Icons.Place,
-    'help': Icons.Help,
-    'info': Icons.Info,
-    'location': Icons.LocationOn,
-    'map': Icons.Map,
-    'parking': Icons.LocalParking,
-    'gas': Icons.LocalGasStation,
-    'taxi': Icons.LocalTaxi,
-    'train': Icons.Train,
-    'airport': Icons.Flight,
-    'beach': Icons.Place,
-    'park': Icons.Nature,
-    'wifi': Icons.Wifi,
-    'atm': Icons.AttachMoney,
-    'church': Icons.Place,
-    'government': Icons.AccountBalance,
-    'school': Icons.School,
-    'university': Icons.School,
-  };
-  
-  // Try direct mapping first
-  if (iconMap[iconName.toLowerCase()]) {
-    return iconMap[iconName.toLowerCase()];
-  }
-  
-  // Try PascalCase lookup in Icons
-  const IconComponent = (Icons as any)[pascalCase];
-  if (IconComponent) {
-    return IconComponent;
-  }
-  
-  // Fallback to help icon
-  return Icons.Help;
-};
-
-export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> = ({ prompts }) => {
-  if (!prompts || !Array.isArray(prompts) || prompts.length === 0) return null;
-  
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [shouldCenter, setShouldCenter] = useState(false);
-  
-  // Detectar si hay overflow para centrar o no
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (containerRef.current) {
-        const { scrollWidth, clientWidth } = containerRef.current;
-        setShouldCenter(scrollWidth <= clientWidth);
-      }
-    };
-    
-    checkOverflow();
-    window.addEventListener('resize', checkOverflow);
-    
-    return () => window.removeEventListener('resize', checkOverflow);
-  }, [prompts]);
-
-  return (
-    <Box
-      ref={containerRef}
-      sx={{
-        display: 'flex',
-        flexWrap: 'nowrap',
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        gap: 2,
-        justifyContent: shouldCenter ? 'center' : 'flex-start',
-        width: '100%',
-        pb: 1,
-        pl: 2,
-        pr: 2,
-        '::-webkit-scrollbar': { display: 'none' },
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-      }}
-    >
-      {prompts.map((prompt, idx) => {
-        const IconComponent = getIconComponent(prompt.img || 'help');
-        // Limitar el texto del prompt a 60 caracteres
-        const MAX_PROMPT_LENGTH = 60;
-        const promptText = (prompt.text || '').length > MAX_PROMPT_LENGTH
-          ? (prompt.text || '').slice(0, MAX_PROMPT_LENGTH - 1) + '…'
-          : (prompt.text || '');
-        return (
-          <Box
-            key={idx}
-            sx={{
-              background: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
-              color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
-              borderRadius: 4,
-              minWidth: { xs: 110, sm: 140 },
-              maxWidth: { xs: 110, sm: 140 },
-              minHeight: { xs: 150, sm: 180 },
-              maxHeight: { xs: 150, sm: 180 },
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              fontSize: { xs: '0.85rem', sm: '0.95rem' },
-              fontWeight: 400,
-              px: { xs: 1, sm: 1.5 },
-              py: { xs: 1.5, sm: 2 },
-              textAlign: 'center',
-              flex: '0 0 auto',
-              boxShadow: 'none',
-              cursor: 'pointer',
-              transition: 'background 0.18s',
-              '&:hover': {
-                background: theme => theme.palette.mode === 'dark' ? '#292a2e' : '#e0e0e0',
-              },
-              mb: 0,
-              userSelect: 'none',
-              gap: 1,
-            }}
-            onClick={() => {
-              const input = document.querySelector('textarea, input[type="text"]');
-              if (input) {
-                (input as HTMLInputElement).value = prompt.text;
-                (input as HTMLInputElement).focus();
-              }
-            }}
-          >
-            <Avatar sx={{ 
-              width: { xs: 38, sm: 52 }, 
-              height: { xs: 38, sm: 52 }, 
-              bgcolor: 'primary.main', 
-              color: 'white',
-              mb: 1.2
-            }}>
-              <IconComponent sx={{ fontSize: { xs: 22, sm: 32 } }} />
-            </Avatar>
-            <span style={{ flex: 1, width: '100%', wordBreak: 'break-word', lineHeight: 1.25 }}>{promptText}</span>
-          </Box>
-        );
-      })}
-    </Box>
   );
 };
 

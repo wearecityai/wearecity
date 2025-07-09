@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
-  }
   public: {
     Tables: {
       assistant_config: {
@@ -19,18 +14,13 @@ export type Database = {
           allow_geolocation: boolean | null
           allow_map_display: boolean | null
           assistant_name: string | null
-          base_system_instruction: string | null
-          chat_slug: string | null
-          city_id: string | null
           config_name: string
           created_at: string | null
           current_language_code: string | null
           enable_google_search: boolean | null
           id: string
           is_active: boolean | null
-          is_public: boolean | null
           procedure_source_urls: Json | null
-          profile_image_url: string | null
           recommended_prompts: Json | null
           restricted_city: Json | null
           sede_electronica_url: string | null
@@ -44,18 +34,13 @@ export type Database = {
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
-          base_system_instruction?: string | null
-          chat_slug?: string | null
-          city_id?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null
           enable_google_search?: boolean | null
           id?: string
           is_active?: boolean | null
-          is_public?: boolean | null
           procedure_source_urls?: Json | null
-          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
@@ -69,18 +54,13 @@ export type Database = {
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
-          base_system_instruction?: string | null
-          chat_slug?: string | null
-          city_id?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null
           enable_google_search?: boolean | null
           id?: string
           is_active?: boolean | null
-          is_public?: boolean | null
           procedure_source_urls?: Json | null
-          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
@@ -89,38 +69,6 @@ export type Database = {
           updated_at?: string | null
           uploaded_procedure_documents?: Json | null
           user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assistant_config_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "cities"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cities: {
-        Row: {
-          admin_user_id: string | null
-          created_at: string | null
-          id: string
-          name: string
-          slug: string
-        }
-        Insert: {
-          admin_user_id?: string | null
-          created_at?: string | null
-          id: string
-          name: string
-          slug: string
-        }
-        Update: {
-          admin_user_id?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string
-          slug?: string
         }
         Relationships: []
       }
@@ -218,121 +166,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_city: {
-        Args: { city_name: string; city_slug: string; admin_id: string }
-        Returns: {
-          id: string
-          name: string
-          slug: string
-          admin_user_id: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      create_public_chat: {
-        Args: {
-          config_name_param: string
-          assistant_name_param: string
-          system_instruction_param: string
-          is_public_param?: boolean
-        }
-        Returns: {
-          id: string
-          chat_slug: string
-          is_public: boolean
-        }[]
-      }
-      generate_chat_slug: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_unique_slug: {
-        Args: { user_email: string }
-        Returns: string
-      }
-      get_all_system_instructions: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          instruction_key: string
-          instruction_value: string
-          description: string
-        }[]
-      }
-      get_chat_by_slug: {
-        Args: { chat_slug_param: string }
-        Returns: {
-          id: string
-          config_name: string
-          assistant_name: string
-          system_instruction: string
-          chat_slug: string
-          is_public: boolean
-          user_id: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      get_cities: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          name: string
-          slug: string
-          admin_user_id: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      get_city_by_slug: {
-        Args: { city_slug: string }
-        Returns: {
-          id: string
-          name: string
-          slug: string
-          admin_user_id: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      get_system_instruction: {
-        Args: { instruction_key_param: string }
-        Returns: string
-      }
-      get_user_city: {
-        Args: { user_id: string }
-        Returns: {
-          id: string
-          name: string
-          slug: string
-          admin_user_id: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      is_slug_available: {
-        Args: { city_slug: string }
-        Returns: boolean
-      }
-      search_scraped_content: {
-        Args: {
-          search_query: string
-          user_id_param: string
-          limit_param?: number
-        }
-        Returns: {
-          id: string
-          title: string
-          content: string
-          url: string
-          website_name: string
-          content_type: string
-          rank: number
-        }[]
-      }
-      update_chat_slug: {
-        Args: { chat_id: string; new_slug: string; is_public_param: boolean }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       user_role: "ciudadano" | "administrativo"
@@ -343,25 +177,21 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -379,16 +209,14 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -404,16 +232,14 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -429,16 +255,14 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -446,16 +270,14 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

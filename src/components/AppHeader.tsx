@@ -1,17 +1,12 @@
+
 import React from 'react';
-import { AppBar, Toolbar, IconButton, Typography, Button, Chip, Avatar, Box, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, IconButton, Typography, Button, Chip, Avatar } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import PersonIcon from '@mui/icons-material/Person';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import LocationOffIcon from '@mui/icons-material/LocationOff';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ErrorIcon from '@mui/icons-material/Error';
 import { useTheme } from '@mui/material/styles';
 import UserMenu from './UserMenu';
-import { useGeolocation } from "../hooks/useGeolocation";
-import { useAppState } from "../hooks/useAppState";
 
 interface AppHeaderProps {
   isMobile: boolean;
@@ -35,8 +30,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const theme = useTheme();
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const openUserMenu = Boolean(userMenuAnchorEl);
-  const { chatConfig } = useAppState();
-  const { userLocation, geolocationStatus, refreshLocation, isWatching } = useGeolocation(chatConfig.allowGeolocation);
 
   const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchorEl(event.currentTarget);
@@ -44,31 +37,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const handleUserMenuClose = () => {
     setUserMenuAnchorEl(null);
-  };
-
-  const getLocationText = () => {
-    if (!chatConfig.allowGeolocation) return "Geolocalización desactivada";
-    if (geolocationStatus === 'pending') return "Obteniendo ubicación...";
-    if (geolocationStatus === 'error') return "Error de ubicación";
-    if (userLocation) {
-      const accuracy = userLocation.accuracy ? ` (±${Math.round(userLocation.accuracy)}m)` : '';
-      return `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}${accuracy}`;
-    }
-    return "Ubicación no disponible";
-  };
-
-  const getLocationIcon = () => {
-    if (!chatConfig.allowGeolocation) return <LocationOffIcon fontSize="small" />;
-    if (geolocationStatus === 'pending') return <RefreshIcon fontSize="small" className="animate-spin" />;
-    if (geolocationStatus === 'error') return <ErrorIcon fontSize="small" color="error" />;
-    return <LocationOnIcon fontSize="small" color={isWatching ? "success" : "primary"} />;
-  };
-
-  const getLocationColor = () => {
-    if (!chatConfig.allowGeolocation) return 'text.disabled';
-    if (geolocationStatus === 'pending') return 'primary.main';
-    if (geolocationStatus === 'error') return 'error.main';
-    return isWatching ? 'success.main' : 'primary.main';
   };
 
   return (
@@ -97,37 +65,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           >
             2.5 Flash
           </Button>
-
-          {/* Indicador de Geolocalización */}
-          <Tooltip title={getLocationText()} arrow>
-            <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-              {getLocationIcon()}
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  ml: 0.5, 
-                  color: getLocationColor(),
-                  display: { xs: 'none', md: 'block' },
-                  maxWidth: '200px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {userLocation ? `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}` : 'Sin ubicación'}
-              </Typography>
-              {chatConfig.allowGeolocation && geolocationStatus !== 'pending' && (
-                <IconButton
-                  size="small"
-                  onClick={refreshLocation}
-                  sx={{ ml: 0.5, p: 0.5 }}
-                  title="Actualizar ubicación"
-                >
-                  <RefreshIcon fontSize="small" />
-                </IconButton>
-              )}
-            </Box>
-          </Tooltip>
 
           <Chip
             label="Probar"

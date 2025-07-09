@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box, Drawer, IconButton, Typography, Button, List, ListItem, ListItemButton, 
   ListItemIcon, ListItemText, CircularProgress, useTheme, useMediaQuery, Divider
@@ -16,8 +16,6 @@ import { CustomChatConfig } from '../types';
 interface UserLocation {
   latitude: number;
   longitude: number;
-  accuracy?: number;
-  timestamp?: number;
 }
 
 interface AppDrawerProps {
@@ -50,145 +48,21 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   geolocationStatus
 }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [locationInfo, setLocationInfo] = useState<{
-    city: string;
-    address: string;
-    loading: boolean;
-  }>({
-    city: '',
-    address: '',
-    loading: false
-  });
-
-  // Función para obtener información de ubicación desde coordenadas
-  const getLocationInfo = async (lat: number, lng: number) => {
-    setLocationInfo(prev => ({ ...prev, loading: true }));
-    
-    try {
-      // Usar la edge function para geocodificación inversa
-      const response = await fetch("https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userMessage: "geocode", // Mensaje dummy requerido
-          userId: null,
-          userLocation: { lat, lng },
-          geocodeOnly: true
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error en la respuesta del servidor');
-      }
-      
-      const data = await response.json();
-      
-      // Usar la información devuelta por la edge function
-      setLocationInfo({
-        city: data.city || `Ubicación ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-        address: data.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        loading: false
-      });
-      
-    } catch (error) {
-      console.error('Error obteniendo información de ubicación:', error);
-      setLocationInfo({
-        city: 'Ubicación actual',
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        loading: false
-      });
-    }
-  };
-
-  // Actualizar información de ubicación cuando cambien las coordenadas
-  useEffect(() => {
-    if (userLocation && geolocationStatus === 'success') {
-      getLocationInfo(userLocation.latitude, userLocation.longitude);
-    } else if (!userLocation) {
-      setLocationInfo({
-        city: '',
-        address: '',
-        loading: false
-      });
-    }
-  }, [userLocation, geolocationStatus]);
-
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const drawerWidth = 260;
   const collapsedDrawerWidth = 72;
-  
-  // Constantes para consistencia
-  const ICON_SIZE = 24;
-  const PADDING_COLLAPSED = 0; // Sin padding en contraído para centrado perfecto
-  const PADDING_EXPANDED = 2; // 16px
-  const MARGIN_BETWEEN_ICON_TEXT = 1.5; // 12px
-  const BUTTON_HEIGHT = 48; // Altura más generosa para mejor apariencia
-
-  const refreshLocation = () => {
-    if (chatConfig.allowGeolocation && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          getLocationInfo(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          console.error('Error obteniendo ubicación:', error);
-          setLocationInfo({
-            city: 'Error de ubicación',
-            address: 'No se pudo obtener la ubicación',
-            loading: false
-          });
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-      );
-    }
-  };
-
-  const getDisplayCity = () => {
-    if (chatConfig.restrictedCity?.name) {
-      return chatConfig.restrictedCity.name;
-    }
-    if (locationInfo.city) {
-      return locationInfo.city;
-    }
-    if (userLocation) {
-      return "Ubicación actual";
-    }
-    return "Ubicación desconocida";
-  };
-
-  const getDisplayAddress = () => {
-    if (chatConfig.restrictedCity?.formattedAddress) {
-      return chatConfig.restrictedCity.formattedAddress;
-    }
-    if (locationInfo.address) {
-      return locationInfo.address;
-    }
-    if (geolocationStatus === 'success' && userLocation) {
-      return `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`;
-    }
-    return "Dirección no disponible";
-  };
 
   const drawerContent = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header con botón de menú */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        px: isMenuOpen ? PADDING_EXPANDED : 0, 
-        py: 1.5,
-        minHeight: 64,
-        justifyContent: isMenuOpen ? 'flex-start' : 'center',
-      }}>
+    <Box sx={{ width: isMenuOpen ? drawerWidth : collapsedDrawerWidth, height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', pt: 1 }} role="presentation">
+      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, mb: 1 }}>
         <IconButton
           onClick={onMenuToggle}
           sx={{
-            width: BUTTON_HEIGHT,
-            height: BUTTON_HEIGHT,
-            mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+            minWidth: 0,
+            mr: isMenuOpen ? 1 : 0,
           }}
         >
-          <MenuIcon sx={{ fontSize: ICON_SIZE }} />
+          <MenuIcon />
         </IconButton>
         {isMenuOpen && (
           <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
@@ -196,83 +70,52 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
           </Typography>
         )}
       </Box>
-      {/* Botón Nuevo Chat */}
-      <Box sx={{ 
-        px: isMenuOpen ? PADDING_EXPANDED : 1, 
-        pb: 1.5,
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
-        <Button
-          variant="outlined"
-          startIcon={!isMenuOpen ? null : <EditOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
-          onClick={() => onNewChat("Nuevo chat")}
-          title={!isMenuOpen ? "Nuevo chat" : undefined}
-          sx={{
-            width: isMenuOpen ? '100%' : BUTTON_HEIGHT,
-            height: BUTTON_HEIGHT,
-            bgcolor: theme.palette.mode === 'dark' ? '#2e2f32' :'#e0e0e0',
-            color: theme.palette.mode === 'dark' ? theme.palette.text.primary : theme.palette.text.primary,
-            '&:hover': {
-               bgcolor: theme.palette.mode === 'dark' ? '#3c3d40' :'#d5d5d5',
-            },
-            borderRadius: '20px',
-            border: 'none',
-            boxShadow: 'none',
-            justifyContent: 'center',
-            px: isMenuOpen ? 2 : 0,
-            minWidth: isMenuOpen ? 'auto' : BUTTON_HEIGHT,
-            overflow: 'hidden',
-            textTransform: 'none',
-            fontSize: '0.875rem',
-            '& .MuiButton-startIcon': {
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              ml: 0,
-            }
-          }}
-        >
-          {isMenuOpen ? "Nuevo chat" : <EditOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
-        </Button>
-      </Box>
-      <List sx={{ flexGrow: 1, px: 0, py: 0 }}>
+      <Button
+        variant="contained"
+        startIcon={<EditOutlinedIcon />}
+        onClick={() => onNewChat("Nuevo chat")}
+        title={!isMenuOpen ? "Nuevo chat" : undefined}
+        sx={{
+          m: '12px 16px',
+          bgcolor: theme.palette.mode === 'dark' ? '#2e2f32' :'#e0e0e0',
+          color: theme.palette.mode === 'dark' ? theme.palette.text.primary : theme.palette.text.primary,
+          '&:hover': {
+             bgcolor: theme.palette.mode === 'dark' ? '#3c3d40' :'#d5d5d5',
+          },
+          borderRadius: '24px',
+          py: 1.25,
+          boxShadow: 'none',
+          width: isMenuOpen ? 'auto' : collapsedDrawerWidth - 24,
+          minWidth: isMenuOpen ? 'auto' : 0,
+          justifyContent: isMenuOpen ? 'flex-start' : 'center',
+          px: isMenuOpen ? '16px' : '0px',
+          overflow: 'hidden',
+          '& .MuiButton-startIcon': {
+            mr: isMenuOpen ? 1 : 0,
+            ml: isMenuOpen ? 0 : 0,
+          }
+        }}
+      >
+        {isMenuOpen && "Nuevo chat"}
+      </Button>
+      <List sx={{ flexGrow: 1, px:1 }}>
         <ListItemButton 
           onClick={() => console.log("Descubrir ciudades clicked")}
           title={!isMenuOpen ? "Descubrir ciudades" : undefined}
           sx={{
-            minHeight: BUTTON_HEIGHT,
-            justifyContent: 'center',
-            px: isMenuOpen ? PADDING_EXPANDED : 0,
-            mx: isMenuOpen ? 1 : 1.5,
-            my: 0.5,
-            borderRadius: '20px',
+            justifyContent: !isMenuOpen ? 'center' : 'flex-start',
+            px: !isMenuOpen ? 2 : 3,
           }}
         >
-           <ListItemIcon sx={{
-             minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-             mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-             display: 'flex',
-             alignItems: 'center',
-             justifyContent: 'center',
-           }}>
-             <LocationCityIcon sx={{ fontSize: ICON_SIZE }} />
-           </ListItemIcon>
+           <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><LocationCityIcon /></ListItemIcon>
           {isMenuOpen && <ListItemText primary="Descubrir ciudades" primaryTypographyProps={{fontSize: '0.875rem'}} />}
         </ListItemButton>
 
-        <Typography variant="caption" sx={{ 
-          px: PADDING_EXPANDED + 1, 
-          py: 1, 
-          color: 'text.secondary', 
-          fontWeight: 500, 
-          display: isMenuOpen ? 'block' : 'none',
-          fontSize: '0.75rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
+        <Typography variant="caption" sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 500, display: isMenuOpen ? 'block' : 'none' }}>
           RECIENTE
         </Typography>
         {isMenuOpen && chatTitles.map((title, index) => (
-          <Box key={index} sx={{ position: 'relative', mx: 1, '&:hover .delete-chat-btn': { opacity: 1 } }}>
+          <Box key={index} sx={{ position: 'relative', display: 'flex', alignItems: 'center', '&:hover .delete-chat-btn': { opacity: 1 } }}>
             <ListItemButton
               selected={index === selectedChatIndex}
               title={!isMenuOpen ? title : undefined}
@@ -281,21 +124,12 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                   if (isMobile) onMenuToggle();
               }}
               sx={{
-                minHeight: BUTTON_HEIGHT,
-                justifyContent: isMenuOpen ? 'flex-start' : 'center',
-                px: isMenuOpen ? PADDING_EXPANDED : PADDING_COLLAPSED,
-                pr: isMenuOpen ? 6 : PADDING_COLLAPSED, // espacio para el icono de eliminar
-                borderRadius: '20px',
+                justifyContent: !isMenuOpen ? 'center' : 'flex-start',
+                px: !isMenuOpen ? 2 : 3,
+                pr: 5 // espacio para el icono
               }}
             >
-              <ListItemText 
-                primary={title} 
-                primaryTypographyProps={{
-                  fontSize: '0.875rem', 
-                  noWrap: true, 
-                  textOverflow: 'ellipsis'
-                }} 
-              />
+              <ListItemText primary={title} primaryTypographyProps={{fontSize: '0.875rem', noWrap: true, textOverflow: 'ellipsis'}} />
             </ListItemButton>
             <IconButton
               className="delete-chat-btn"
@@ -313,12 +147,10 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                 opacity: 0,
                 transition: 'opacity 0.2s',
                 color: 'error.main',
-                zIndex: 2,
-                width: 28,
-                height: 28,
+                zIndex: 2
               }}
             >
-              <DeleteIcon sx={{ fontSize: 16 }} />
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Box>
         ))}
@@ -326,151 +158,83 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
            onClick={() => console.log("Mostrar más clicked")}
            title={!isMenuOpen ? "Mostrar más" : undefined}
            sx={{
-             minHeight: BUTTON_HEIGHT,
-             justifyContent: isMenuOpen ? 'flex-start' : 'center',
-             px: isMenuOpen ? PADDING_EXPANDED : PADDING_COLLAPSED,
-             mx: 1,
-             borderRadius: '20px',
+             justifyContent: !isMenuOpen ? 'center' : 'flex-start',
+             px: !isMenuOpen ? 2 : 3,
            }}
          >
-            <ListItemIcon sx={{
-              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <ExpandMoreIcon sx={{ fontSize: ICON_SIZE }} />
-            </ListItemIcon>
+            <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><ExpandMoreIcon /></ListItemIcon>
             <ListItemText primary="Mostrar más" primaryTypographyProps={{fontSize: '0.875rem'}}/>
         </ListItemButton>}
       </List>
 
       {/* Bottom Drawer Section */}
-      <List sx={{ pb: 1, px: 0, py: 0 }}>
-        <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
+      <List sx={{pb:1, px:1}}>
+        <Divider sx={{my:1, display: isMenuOpen ? 'block' : 'none'}}/>
         <ListItemButton 
           onClick={() => console.log("Actividad clicked")}
           title={!isMenuOpen ? "Actividad" : undefined}
           sx={{
-            minHeight: BUTTON_HEIGHT,
-            justifyContent: 'center',
-            px: isMenuOpen ? PADDING_EXPANDED : 0,
-            mx: isMenuOpen ? 1 : 1.5,
-            my: 0.5,
-            borderRadius: '20px',
+            justifyContent: !isMenuOpen ? 'center' : 'flex-start',
+            px: !isMenuOpen ? 2 : 3,
           }}
         >
-            <ListItemIcon sx={{
-              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <HistoryIcon sx={{ fontSize: ICON_SIZE }} />
-            </ListItemIcon>
+            <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><HistoryIcon /></ListItemIcon>
             {isMenuOpen && <ListItemText primary="Actividad" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
         </ListItemButton>
         <ListItemButton 
           onClick={() => { onOpenFinetuning(); if (isMobile) onMenuToggle(); }}
           title={!isMenuOpen ? "Configurar chat" : undefined}
           sx={{
-            minHeight: BUTTON_HEIGHT,
-            justifyContent: 'center',
-            px: isMenuOpen ? PADDING_EXPANDED : 0,
-            mx: isMenuOpen ? 1 : 1.5,
-            my: 0.5,
-            borderRadius: '20px',
+            justifyContent: !isMenuOpen ? 'center' : 'flex-start',
+            px: !isMenuOpen ? 2 : 3,
           }}
         >
-            <ListItemIcon sx={{
-              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <TuneIcon sx={{ fontSize: ICON_SIZE }} />
-            </ListItemIcon>
+            <ListItemIcon sx={{minWidth: isMenuOpen ? 32 : 0, mr: isMenuOpen ? 2 : 0}}><TuneIcon /></ListItemIcon>
             {isMenuOpen && <ListItemText primary="Configurar chat" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
         </ListItemButton>
-        <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
-        
-        {/* Location Section - Mejorada */}
+        <Divider sx={{my:1, display: isMenuOpen ? 'block' : 'none'}}/>
+        {/* Location Section - Always visible, text hidden when collapsed */}
         <ListItem
             sx={{
                 display: 'flex',
                 flexDirection: 'row',
-                alignItems: isMenuOpen ? 'flex-start' : 'center',
-                minHeight: BUTTON_HEIGHT,
-                px: isMenuOpen ? PADDING_EXPANDED : 0,
-                mx: isMenuOpen ? 1 : 1.5,
-                my: 0.5,
-                py: isMenuOpen ? 1 : 0,
+                alignItems: 'flex-start',
+                pt: 0.5,
+                pb: 0.5,
+                px: !isMenuOpen ? 2 : 3,
                 cursor: 'default',
-                borderRadius: '20px',
             }}
-            title={!isMenuOpen ? getDisplayCity() : undefined}
+            title={!isMenuOpen ? (chatConfig.restrictedCity?.name || (userLocation ? "Ubicación actual" : "Ubicación desconocida")) : undefined}
         >
             <ListItemIcon 
                 sx={{ 
-                    minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT,
-                    mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-                    mt: isMenuOpen ? 0.5 : 0,
+                    minWidth: isMenuOpen ? 32 : 0,
+                    mr: isMenuOpen ? 2 : 0,
+                    mt: 0.5,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    justifyContent: !isMenuOpen ? 'center' : 'flex-start'
                 }}
             >
-                <LocationOnIcon sx={{ fontSize: ICON_SIZE }} />
+                <LocationOnIcon />
             </ListItemIcon>
             {isMenuOpen && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexGrow: 1 }}>
-                     {/* Nombre del municipio/ciudad */}
-                     <Typography variant="body2" sx={{ fontWeight: '500', lineHeight: 1.2, fontSize: '0.875rem' }}>
-                        {getDisplayCity()}
+                     <Typography variant="body2" sx={{fontWeight:'500'}}>
+                        {chatConfig.restrictedCity?.name || (userLocation ? "Ubicación actual" : "Ubicación desconocida")}
+                        {chatConfig.restrictedCity?.name && chatConfig.restrictedCity.formattedAddress ? `, ${chatConfig.restrictedCity.formattedAddress.split(',').slice(-2).join(', ').trim()}` : ''}
                      </Typography>
-                     
-                     {/* Dirección postal detectada por coordenadas */}
-                     <Typography 
-                        variant="caption" 
-                        color="text.secondary" 
-                        sx={{ 
-                          mt: 0.25, 
-                          lineHeight: 1.2,
-                          fontSize: '0.75rem',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                     >
-                        {locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress()}
+                     <Typography variant="caption" color="text.secondary">
+                        {geolocationStatus === 'success' && userLocation && !chatConfig.restrictedCity ? `Lat: ${userLocation.latitude.toFixed(2)}, Lon: ${userLocation.longitude.toFixed(2)}` : "De tu dirección IP"}
                      </Typography>
-                     
-                     <Button
+                    <Button
                         variant="text"
                         size="small"
-                        onClick={refreshLocation}
-                        disabled={!chatConfig.allowGeolocation || locationInfo.loading}
-                        sx={{
-                          p: 0, 
-                          justifyContent: 'flex-start', 
-                          textTransform: 'none', 
-                          color: 'primary.main', 
-                          mt: 0.5, 
-                          fontSize: '0.75rem',
-                          minHeight: 'auto',
-                          '&:hover': {
-                            backgroundColor: 'transparent',
-                            textDecoration: 'underline'
-                          }
-                        }}
-                     >
-                        {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
-                     </Button>
+                        onClick={() => chatConfig.allowGeolocation && navigator.geolocation.getCurrentPosition(() => {}, () => {}, {})} 
+                        sx={{p:0, justifyContent:'flex-start', textTransform:'none', color: 'primary.main', mt:0.25, fontSize:'0.75rem'}}
+                    >
+                        Actualizar ubicación
+                    </Button>
                 </Box>
             )}
         </ListItem>

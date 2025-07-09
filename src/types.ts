@@ -53,26 +53,29 @@ export interface UploadedProcedureDocument {
   base64Data: string;    // The PDF content encoded as a base64 string
 }
 
-export interface RecommendedPrompt {
-  text: string;
-  img: string;
-}
-
 export interface ChatMessage {
-  id: string;
+  id: string; // Client-generated UUID
   role: MessageRole;
   content: string;
   timestamp: Date;
-  error?: string;
-  events?: EventInfo[];
-  placeCards?: PlaceCardInfo[];
-  mapQuery?: string;
-  downloadablePdfInfo?: DownloadablePdfInfo;
-  telematicProcedureLink?: { url: string; text: string } | null;
-  showSeeMoreButton?: boolean;
-  originalUserQueryForEvents?: string;
-  groundingMetadata?: any;
   isTyping?: boolean;
+  error?: string;
+  groundingMetadata?: GroundingMetadata;
+  mapQuery?: string;
+  events?: EventInfo[]; 
+  placeCards?: PlaceCardInfo[];
+  downloadablePdfInfo?: { // Information to trigger a PDF download
+    procedureName: string;
+    fileName: string;
+    base64Data: string;
+    mimeType: string;
+  };
+  telematicProcedureLink?: { // For a special button for online procedure submission
+    url: string;
+    text: string;
+  };
+  showSeeMoreButton?: boolean; // For "see more events" button
+  originalUserQueryForEvents?: string; // To store the user query that led to events
 }
 
 export interface RestrictedCityInfo {
@@ -91,7 +94,7 @@ export interface SupportedLanguage {
 export interface CustomChatConfig {
   assistantName: string;
   systemInstruction: string;
-  recommendedPrompts: RecommendedPrompt[];
+  recommendedPrompts: string[];
   serviceTags: string[];
   enableGoogleSearch: boolean;
   allowMapDisplay: boolean;
@@ -102,48 +105,6 @@ export interface CustomChatConfig {
   restrictedCity: RestrictedCityInfo | null;
   sedeElectronicaUrl?: string; // URL for the City Council's Electronic Office
   profileImageUrl?: string; // Nueva propiedad para la foto de perfil
-}
-
-// Nuevos tipos para el sistema de ciudades
-export interface City {
-  id: string;
-  name: string;
-  slug: string;
-  admin_user_id: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface CityConfig extends CustomChatConfig {
-  city_id: string;
-  city?: City;
-}
-
-// Tipo para información de PDF descargable
-export interface DownloadablePdfInfo {
-  procedureName: string;
-  fileName: string;
-  base64Data: string;
-  mimeType: string;
-}
-
-// Tipos para el sistema de chat público
-export interface PublicChat {
-  id: string;
-  config_name: string;
-  assistant_name: string;
-  system_instruction: string;
-  chat_slug: string;
-  is_public: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface ChatSlugUpdate {
-  chat_id: string;
-  new_slug: string;
-  is_public: boolean;
 }
 
 // Google Maps API Type Declarations

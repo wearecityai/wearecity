@@ -10,22 +10,8 @@ export const useAssistantConfig = () => {
   const [config, setConfig] = useState<CustomChatConfig>(DEFAULT_CHAT_CONFIG);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper function to safely parse JSON arrays of strings
+  // Helper function to safely parse JSON arrays
   const safeParseJsonArray = (value: any, fallback: string[]): string[] => {
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : fallback;
-      } catch {
-        return fallback;
-      }
-    }
-    return fallback;
-  };
-
-  // Helper function to safely parse JSON arrays of RecommendedPrompt
-  const safeParseJsonRecommendedPrompts = (value: any, fallback: any[]): any[] => {
     if (Array.isArray(value)) return value;
     if (typeof value === 'string') {
       try {
@@ -97,7 +83,7 @@ export const useAssistantConfig = () => {
         const loadedConfig: CustomChatConfig = {
           assistantName: data.assistant_name || DEFAULT_CHAT_CONFIG.assistantName,
           systemInstruction: data.system_instruction || DEFAULT_CHAT_CONFIG.systemInstruction,
-          recommendedPrompts: safeParseJsonRecommendedPrompts(data.recommended_prompts, DEFAULT_CHAT_CONFIG.recommendedPrompts),
+          recommendedPrompts: safeParseJsonArray(data.recommended_prompts, DEFAULT_CHAT_CONFIG.recommendedPrompts),
           serviceTags: safeParseJsonArray(data.service_tags, DEFAULT_CHAT_CONFIG.serviceTags),
           enableGoogleSearch: data.enable_google_search ?? DEFAULT_CHAT_CONFIG.enableGoogleSearch,
           allowMapDisplay: data.allow_map_display ?? DEFAULT_CHAT_CONFIG.allowMapDisplay,

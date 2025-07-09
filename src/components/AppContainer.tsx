@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAppHandlers } from '../hooks/useAppHandlers';
 import { useAppAuth } from '../hooks/useAppAuth';
@@ -53,7 +54,6 @@ interface AppContainerProps {
   currentConversationId: string | null;
   setCurrentConversationId: (id: string | null) => void;
   deleteConversation: (conversationId: string) => Promise<void>;
-  shouldShowChatContainer: boolean;
 }
 
 const AppContainer: React.FC<AppContainerProps> = ({ 
@@ -90,8 +90,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
   conversations,
   currentConversationId,
   setCurrentConversationId,
-  deleteConversation,
-  shouldShowChatContainer
+  deleteConversation
 }) => {
   const {
     handleNewChat: handleNewChatClick,
@@ -168,7 +167,6 @@ const AppContainer: React.FC<AppContainerProps> = ({
       googleMapsScriptLoaded={googleMapsScriptLoaded}
       conversations={conversations}
       deleteConversation={deleteConversation}
-      shouldShowChatContainer={shouldShowChatContainer}
     />
   );
 };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -43,23 +44,9 @@ export const useMessages = (conversationId: string | null) => {
 
   // Load messages from a conversation
   const loadMessages = async () => {
-    if (!conversationId) {
+    if (!user || !conversationId) {
+      console.log('No user or conversationId, clearing messages. User:', !!user, 'ConversationId:', conversationId);
       setMessages([]);
-      return;
-    }
-    if (!user) {
-      // Cargar mensajes de localStorage
-      const local = localStorage.getItem(`chat_messages_${conversationId}`);
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          setMessages(parsed.map((msg: any) => ({ ...msg, timestamp: new Date(msg.timestamp) })));
-        } catch {
-          setMessages([]);
-        }
-      } else {
-        setMessages([]);
-      }
       return;
     }
     
@@ -156,28 +143,15 @@ export const useMessages = (conversationId: string | null) => {
   // Add message locally and save it to a specific conversation
   const addMessage = async (message: ChatMessage, targetConversationId?: string) => {
     const conversationIdToUse = targetConversationId || conversationId;
-    if (!conversationIdToUse) return;
-    if (!user) {
-      // Guardar en localStorage
-      setMessages(prev => {
-        const updated = [...prev, message];
-        localStorage.setItem(`chat_messages_${conversationIdToUse}`, JSON.stringify(updated));
-        return updated;
-      });
-      return;
-    }
     console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role, 'to conversation:', conversationIdToUse);
     
     // Save to database first
     await saveMessageOnly(message, conversationIdToUse);
     
-    // Always add to local state when we have a targetConversationId
-    // This ensures consistent behavior for the first message in a conversation
-    if (targetConversationId) {
-      console.log('Adding message to local state (targetConversationId provided):', message.id);
-      setMessages(prev => [...prev, message]);
-    } else if (conversationIdToUse === conversationId) {
-      console.log('Adding message to local state (current conversation):', message.id);
+    // Add to local state immediately if it belongs to the current conversation
+    // OR if the target conversation is about to become the current conversation
+    if (conversationIdToUse === conversationId || !conversationId) {
+      console.log('Adding message to local state:', message.id);
       setMessages(prev => [...prev, message]);
     }
   };
@@ -221,10 +195,8 @@ export const useMessages = (conversationId: string | null) => {
 
   // Clear messages
   const clearMessages = () => {
+    console.log('Clearing messages');
     setMessages([]);
-    if (!user && conversationId) {
-      localStorage.removeItem(`chat_messages_${conversationId}`);
-    }
   };
 
   // React to conversation ID changes

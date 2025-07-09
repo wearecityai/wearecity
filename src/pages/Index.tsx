@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,8 +39,7 @@ const Index = () => {
     conversations,
     currentConversationId,
     setCurrentConversationId,
-    deleteConversation,
-    shouldShowChatContainer
+    deleteConversation
   } = useAppState();
 
   const handleLogin = () => {
@@ -95,7 +95,6 @@ const Index = () => {
       currentConversationId={currentConversationId}
       setCurrentConversationId={setCurrentConversationId}
       deleteConversation={deleteConversation}
-      shouldShowChatContainer={shouldShowChatContainer}
     />
   );
 };
