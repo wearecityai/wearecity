@@ -87,17 +87,6 @@ const UserButton = () => {
           )}
         </Box>
         <Divider />
-        <MenuItem onClick={() => navigate('/profile')}>
-          <ListItemIcon><User style={{width: 20, height: 20}} /></ListItemIcon>
-          <ListItemText>Perfil</ListItemText>
-        </MenuItem>
-        {profile?.role === 'administrativo' && (
-          <MenuItem onClick={() => navigate('/profile')}>
-            <ListItemIcon><Settings style={{width: 20, height: 20}} /></ListItemIcon>
-            <ListItemText>Configuración</ListItemText>
-          </MenuItem>
-        )}
-        <Divider />
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon><LogOut style={{width: 20, height: 20}} /></ListItemIcon>
           <ListItemText>Cerrar Sesión</ListItemText>

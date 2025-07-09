@@ -152,7 +152,6 @@ export const UserProfile: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.location.href = '/profile'}
                 >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Gestionar

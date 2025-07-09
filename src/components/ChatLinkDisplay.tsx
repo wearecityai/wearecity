@@ -79,18 +79,8 @@ export const ChatLinkDisplay: React.FC<ChatLinkDisplayProps> = ({ assistantName 
       <Box sx={{ p: 2 }}>
         <Alert severity="info">
           <Typography variant="body2">
-            No tienes chats públicos configurados. 
-            <br />
-            Ve al panel administrativo para crear tu primer chat público.
+            No tienes chats públicos configurados.
           </Typography>
-          <Button 
-            variant="outlined" 
-            size="small" 
-            sx={{ mt: 1 }}
-            onClick={() => window.location.href = '/profile'}
-          >
-            Ir al Perfil
-          </Button>
         </Alert>
       </Box>
     );
@@ -173,24 +163,7 @@ export const ChatLinkDisplay: React.FC<ChatLinkDisplayProps> = ({ assistantName 
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={() => window.location.href = '/profile'}
-            startIcon={<LinkIcon />}
-          >
-            Gestionar Chats
-          </Button>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={() => window.location.href = '/profile'}
-            startIcon={<LinkIcon />}
-          >
-            Ver en Perfil
-          </Button>
-        </Box>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}></Box>
 
         <Typography variant="caption" color="text.secondary">
           Creado: {new Date(mainChat.created_at).toLocaleDateString()}
