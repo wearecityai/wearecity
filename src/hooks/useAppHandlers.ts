@@ -67,6 +67,7 @@ export const useAppHandlers = ({
     configToSave.procedureSourceUrls = newConfig.procedureSourceUrls || DEFAULT_CHAT_CONFIG.procedureSourceUrls;
     configToSave.uploadedProcedureDocuments = newConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments;
     configToSave.sedeElectronicaUrl = newConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl;
+    configToSave.profileImageUrl = newConfig.profileImageUrl || DEFAULT_CHAT_CONFIG.profileImageUrl;
 
     setChatConfig(configToSave);
     const success = await saveConfig(configToSave);

@@ -187,6 +187,7 @@ export const useAssistantConfig = () => {
           uploaded_procedure_documents: JSON.stringify(newConfig.uploadedProcedureDocuments || []),
           restricted_city: newConfig.restrictedCity ? JSON.stringify(newConfig.restrictedCity) : null,
           sede_electronica_url: newConfig.sedeElectronicaUrl,
+          profile_image_url: newConfig.profileImageUrl,
           is_public: true, // Por defecto las ciudades son públicas
           updated_at: new Date().toISOString()
         })
