@@ -7,14 +7,53 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      assistant_config: {
+      admin_chats: {
         Row: {
+          admin_user_id: string
+          chat_name: string
+          chat_slug: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_public: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_user_id: string
+          chat_name?: string
+          chat_slug: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_user_id?: string
+          chat_name?: string
+          chat_slug?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      admin_finetuning_config: {
+        Row: {
+          admin_user_id: string
           allow_geolocation: boolean | null
           allow_map_display: boolean | null
           assistant_name: string | null
-          base_system_instruction: string | null
+          chat_id: string | null
           config_name: string
           created_at: string | null
           current_language_code: string | null
@@ -22,7 +61,6 @@ export type Database = {
           id: string
           is_active: boolean | null
           procedure_source_urls: Json | null
-          profile_image_url: string | null
           recommended_prompts: Json | null
           restricted_city: Json | null
           sede_electronica_url: string | null
@@ -30,13 +68,13 @@ export type Database = {
           system_instruction: string | null
           updated_at: string | null
           uploaded_procedure_documents: Json | null
-          user_id: string
         }
         Insert: {
+          admin_user_id: string
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
-          base_system_instruction?: string | null
+          chat_id?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null
@@ -44,7 +82,6 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           procedure_source_urls?: Json | null
-          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
@@ -52,13 +89,13 @@ export type Database = {
           system_instruction?: string | null
           updated_at?: string | null
           uploaded_procedure_documents?: Json | null
-          user_id: string
         }
         Update: {
+          admin_user_id?: string
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
-          base_system_instruction?: string | null
+          chat_id?: string | null
           config_name?: string
           created_at?: string | null
           current_language_code?: string | null
@@ -66,7 +103,6 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           procedure_source_urls?: Json | null
-          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
@@ -74,9 +110,93 @@ export type Database = {
           system_instruction?: string | null
           updated_at?: string | null
           uploaded_procedure_documents?: Json | null
-          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admin_finetuning_config_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "admin_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cities: {
+        Row: {
+          admin_user_id: string
+          allow_geolocation: boolean | null
+          allow_map_display: boolean | null
+          assistant_name: string | null
+          chat_id: string | null
+          created_at: string | null
+          current_language_code: string | null
+          enable_google_search: boolean | null
+          id: string
+          is_active: boolean | null
+          name: string
+          procedure_source_urls: Json | null
+          recommended_prompts: Json | null
+          restricted_city: Json | null
+          sede_electronica_url: string | null
+          service_tags: Json | null
+          slug: string
+          system_instruction: string | null
+          updated_at: string | null
+          uploaded_procedure_documents: Json | null
+        }
+        Insert: {
+          admin_user_id: string
+          allow_geolocation?: boolean | null
+          allow_map_display?: boolean | null
+          assistant_name?: string | null
+          chat_id?: string | null
+          created_at?: string | null
+          current_language_code?: string | null
+          enable_google_search?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          procedure_source_urls?: Json | null
+          recommended_prompts?: Json | null
+          restricted_city?: Json | null
+          sede_electronica_url?: string | null
+          service_tags?: Json | null
+          slug: string
+          system_instruction?: string | null
+          updated_at?: string | null
+          uploaded_procedure_documents?: Json | null
+        }
+        Update: {
+          admin_user_id?: string
+          allow_geolocation?: boolean | null
+          allow_map_display?: boolean | null
+          assistant_name?: string | null
+          chat_id?: string | null
+          created_at?: string | null
+          current_language_code?: string | null
+          enable_google_search?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          procedure_source_urls?: Json | null
+          recommended_prompts?: Json | null
+          restricted_city?: Json | null
+          sede_electronica_url?: string | null
+          service_tags?: Json | null
+          slug?: string
+          system_instruction?: string | null
+          updated_at?: string | null
+          uploaded_procedure_documents?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cities_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "admin_chats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
@@ -104,6 +224,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          city_id: string | null
           content: string
           conversation_id: string
           created_at: string | null
@@ -112,6 +233,7 @@ export type Database = {
           role: string
         }
         Insert: {
+          city_id?: string | null
           content: string
           conversation_id: string
           created_at?: string | null
@@ -120,6 +242,7 @@ export type Database = {
           role: string
         }
         Update: {
+          city_id?: string | null
           content?: string
           conversation_id?: string
           created_at?: string | null
@@ -128,6 +251,13 @@ export type Database = {
           role?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -172,6 +302,94 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_admin_chat: {
+        Args: { chat_name_param?: string; is_public_param?: boolean }
+        Returns: {
+          id: string
+          chat_slug: string
+          chat_name: string
+          is_public: boolean
+        }[]
+      }
+      create_city_for_admin: {
+        Args: { admin_user_id_param: string }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+          admin_user_id: string
+        }[]
+      }
+      generate_admin_chat_slug: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_city_slug: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_provisional_city_name: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_unique_slug: {
+        Args: { base_text: string }
+        Returns: string
+      }
+      get_admin_chat_by_slug: {
+        Args: { chat_slug_param: string }
+        Returns: {
+          id: string
+          chat_name: string
+          chat_slug: string
+          is_public: boolean
+          admin_user_id: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_admin_chats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          chat_name: string
+          chat_slug: string
+          is_public: boolean
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_admin_city: {
+        Args: { admin_user_id_param: string }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+          admin_user_id: string
+          chat_id: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_admin_finetuning_config: {
+        Args: { chat_id_param: string }
+        Returns: {
+          id: string
+          config_name: string
+          assistant_name: string
+          system_instruction: string
+          recommended_prompts: Json
+          service_tags: Json
+          enable_google_search: boolean
+          allow_map_display: boolean
+          allow_geolocation: boolean
+          current_language_code: string
+          procedure_source_urls: Json
+          uploaded_procedure_documents: Json
+          sede_electronica_url: string
+          restricted_city: Json
+        }[]
+      }
       get_all_system_instructions: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -200,6 +418,14 @@ export type Database = {
           rank: number
         }[]
       }
+      update_admin_finetuning_config: {
+        Args: { chat_id_param: string; config_data: Json }
+        Returns: boolean
+      }
+      update_city_name_from_chat: {
+        Args: { chat_id_param: string; new_chat_name: string }
+        Returns: boolean
+      }
     }
     Enums: {
       user_role: "ciudadano" | "administrativo"
@@ -210,21 +436,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -242,14 +472,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -265,14 +497,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -288,14 +522,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -303,14 +539,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

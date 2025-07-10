@@ -65,26 +65,29 @@ export const useAssistantConfig = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('assistant_config')
+      // Para admins, cargar desde la ciudad
+      const { data: cityData, error: cityError } = await supabase
+        .from('cities')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('admin_user_id', user.id)
         .eq('is_active', true)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error loading assistant config:', error);
+      if (cityError) {
+        console.error('Error loading city config:', cityError);
         setConfig(DEFAULT_CHAT_CONFIG);
         return;
       }
+
+      const data = cityData;
 
       if (data) {
         // Convertir datos de Supabase al formato CustomChatConfig
         const loadedConfig: CustomChatConfig = {
           assistantName: data.assistant_name || DEFAULT_CHAT_CONFIG.assistantName,
           systemInstruction: data.system_instruction || DEFAULT_CHAT_CONFIG.systemInstruction,
-          recommendedPrompts: safeParseJsonArray(data.recommended_prompts, DEFAULT_CHAT_CONFIG.recommendedPrompts),
-          serviceTags: safeParseJsonArray(data.service_tags, DEFAULT_CHAT_CONFIG.serviceTags),
+          recommendedPrompts: (data.recommended_prompts || DEFAULT_CHAT_CONFIG.recommendedPrompts) as any,
+          serviceTags: (data.service_tags || DEFAULT_CHAT_CONFIG.serviceTags) as any,
           enableGoogleSearch: data.enable_google_search ?? DEFAULT_CHAT_CONFIG.enableGoogleSearch,
           allowMapDisplay: data.allow_map_display ?? DEFAULT_CHAT_CONFIG.allowMapDisplay,
           allowGeolocation: data.allow_geolocation ?? DEFAULT_CHAT_CONFIG.allowGeolocation,
@@ -140,32 +143,27 @@ export const useAssistantConfig = () => {
         config_name: 'default',
       };
 
-      // First, check if a record exists for this user
-      const { data: existingConfig } = await supabase
-        .from('assistant_config')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      let result;
-      
-      if (existingConfig) {
-        // Update existing record
-        result = await supabase
-          .from('assistant_config')
-          .update(configRow)
-          .eq('id', existingConfig.id)
-          .select()
-          .single();
-      } else {
-        // Insert new record
-        result = await supabase
-          .from('assistant_config')
-          .insert(configRow)
-          .select()
-          .single();
-      }
+      // Actualizar ciudad del usuario admin
+      const result = await supabase
+        .from('cities')
+        .update({
+          assistant_name: newConfig.assistantName,
+          system_instruction: newConfig.systemInstruction,
+          recommended_prompts: JSON.stringify(newConfig.recommendedPrompts),
+          service_tags: JSON.stringify(newConfig.serviceTags),
+          enable_google_search: newConfig.enableGoogleSearch,
+          allow_map_display: newConfig.allowMapDisplay,
+          allow_geolocation: newConfig.allowGeolocation,
+          current_language_code: newConfig.currentLanguageCode,
+          procedure_source_urls: JSON.stringify(newConfig.procedureSourceUrls),
+          uploaded_procedure_documents: JSON.stringify(newConfig.uploadedProcedureDocuments),
+          restricted_city: JSON.stringify(newConfig.restrictedCity),
+          sede_electronica_url: newConfig.sedeElectronicaUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('admin_user_id', user.id)
+        .select()
+        .single();
 
       if (result.error) {
         console.error('Error saving assistant config:', result.error);

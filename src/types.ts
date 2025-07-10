@@ -110,6 +110,20 @@ export interface City {
   name: string;
   slug: string;
   admin_user_id: string;
+  chat_id?: string;
+  assistant_name?: string;
+  system_instruction?: string;
+  recommended_prompts?: any[];
+  service_tags?: any[];
+  enable_google_search?: boolean;
+  allow_map_display?: boolean;
+  allow_geolocation?: boolean;
+  current_language_code?: string;
+  procedure_source_urls?: any[];
+  uploaded_procedure_documents?: any;
+  sede_electronica_url?: string;
+  restricted_city?: any;
+  is_active?: boolean;
   created_at: string;
   updated_at?: string;
 }

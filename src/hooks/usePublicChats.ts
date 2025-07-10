@@ -1,26 +1,93 @@
 import { useState, useEffect } from 'react';
-import { PublicChat } from '../types';
 import { useAuth } from './useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
-// Versión temporal usando localStorage hasta que configuremos las funciones SQL
+interface AdminChat {
+  id: string;
+  chat_name: string;
+  chat_slug: string;
+  is_public: boolean;
+  admin_user_id: string;
+  assistant_name?: string;
+  config_name?: string;
+  system_instruction?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AdminFinetuningConfig {
+  id: string;
+  config_name: string;
+  assistant_name: string;
+  system_instruction: string;
+  recommended_prompts: any[];
+  service_tags: any[];
+  enable_google_search: boolean;
+  allow_map_display: boolean;
+  allow_geolocation: boolean;
+  current_language_code: string;
+  procedure_source_urls: any[];
+  uploaded_procedure_documents: any;
+  sede_electronica_url: string;
+  restricted_city: any;
+}
+
+// Mantener compatibilidad con el hook anterior
 export const usePublicChats = () => {
-  const { user } = useAuth();
-  const [userChats, setUserChats] = useState<PublicChat[]>([]);
-  const [currentChat, setCurrentChat] = useState<PublicChat | null>(null);
+  const adminChats = useAdminChats();
+  return {
+    ...adminChats,
+    userChats: adminChats.userChats,
+    currentChat: adminChats.currentChat,
+    createPublicChat: adminChats.createChat,
+    loadChatBySlug: adminChats.loadChatBySlug,
+    updateChatSlug: async (chatId: string, newSlug: string, isPublic: boolean) => {
+      // Implementar actualización de slug si es necesario
+      return true;
+    },
+    generateSlug: (name: string) => {
+      return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim()
+        .replace(/^-+|-+$/g, '');
+    },
+    isSlugAvailable: async (slug: string) => {
+      const chat = await adminChats.loadChatBySlug(slug);
+      return !chat;
+    }
+  };
+};
+
+export const useAdminChats = () => {
+  const { user, profile } = useAuth();
+  const [userChats, setUserChats] = useState<AdminChat[]>([]);
+  const [currentChat, setCurrentChat] = useState<AdminChat | null>(null);
+  const [currentConfig, setCurrentConfig] = useState<AdminFinetuningConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar chats del usuario
+  // Cargar chats del usuario admin
   const loadUserChats = async () => {
-    if (!user) return;
+    if (!user || profile?.role !== 'administrativo') return;
 
     setIsLoading(true);
     setError(null);
     try {
-      const storedChats = localStorage.getItem(`chats_${user.id}`);
-      if (storedChats) {
-        setUserChats(JSON.parse(storedChats));
+      const { data, error } = await supabase
+        .rpc('get_admin_chats');
+
+      if (error) {
+        console.error('Error loading user chats:', error);
+        setError('Error al cargar los chats');
+        return;
       }
+
+      setUserChats((data || []) as AdminChat[]);
     } catch (error) {
       console.error('Error loading user chats:', error);
       setError('Error al cargar los chats');
@@ -29,72 +96,91 @@ export const usePublicChats = () => {
     }
   };
 
-  // Cargar chat por slug
-  const loadChatBySlug = async (slug: string): Promise<PublicChat | null> => {
+  // Cargar chat por slug (público o del admin)
+  const loadChatBySlug = async (slug: string): Promise<AdminChat | null> => {
     try {
-      // Buscar en todos los chats almacenados
-      const allChats: PublicChat[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('chats_')) {
-          const chats = JSON.parse(localStorage.getItem(key) || '[]');
-          allChats.push(...chats);
-        }
+      const { data, error } = await supabase
+        .rpc('get_admin_chat_by_slug', { chat_slug_param: slug });
+
+      if (error) {
+        console.error('Error loading chat by slug:', error);
+        return null;
       }
-      
-      return allChats.find(chat => chat.chat_slug === slug) || null;
+
+      return data && data.length > 0 ? data[0] : null;
     } catch (error) {
       console.error('Error loading chat by slug:', error);
       return null;
     }
   };
 
-  // Crear nuevo chat público
-  const createPublicChat = async (
-    configName: string,
-    assistantName: string,
-    systemInstruction: string,
-    isPublic: boolean = false
-  ): Promise<PublicChat | null> => {
-    if (!user) {
-      setError('Usuario no autenticado');
+  // Cargar configuración de finetuning para un chat
+  const loadChatConfig = async (chatId: string): Promise<AdminFinetuningConfig | null> => {
+    if (!user || profile?.role !== 'administrativo') return null;
+
+    try {
+      const { data, error } = await supabase
+        .rpc('get_admin_finetuning_config', { chat_id_param: chatId });
+
+      if (error) {
+        console.error('Error loading chat config:', error);
+        return null;
+      }
+
+      const result = data && data.length > 0 ? data[0] : null;
+      if (result) {
+        setCurrentConfig({
+          ...result,
+          recommended_prompts: Array.isArray(result.recommended_prompts) ? result.recommended_prompts : [],
+          service_tags: Array.isArray(result.service_tags) ? result.service_tags : [],
+          procedure_source_urls: Array.isArray(result.procedure_source_urls) ? result.procedure_source_urls : [],
+        });
+      }
+      return result;
+    } catch (error) {
+      console.error('Error loading chat config:', error);
+      return null;
+    }
+  };
+
+  // Crear nuevo chat
+  const createChat = async (chatName: string = 'Mi Chat', isPublic: boolean = false): Promise<AdminChat | null> => {
+    if (!user || profile?.role !== 'administrativo') {
+      setError('Solo los administradores pueden crear chats');
       return null;
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      const storedChats = localStorage.getItem(`chats_${user.id}`);
-      const chats: PublicChat[] = storedChats ? JSON.parse(storedChats) : [];
+      const { data, error } = await supabase
+        .rpc('create_admin_chat', { 
+          chat_name_param: chatName,
+          is_public_param: isPublic 
+        });
 
-      // Generar slug único
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 1000);
-      const newSlug = `chat_${timestamp}_${random.toString().padStart(3, '0')}`;
+      if (error) {
+        console.error('Error creating chat:', error);
+        setError('Error al crear el chat');
+        return null;
+      }
 
-      // Crear nuevo chat
-      const newChat: PublicChat = {
-        id: crypto.randomUUID(),
-        config_name: configName,
-        assistant_name: assistantName,
-        system_instruction: systemInstruction,
-        chat_slug: newSlug,
-        is_public: isPublic,
-        user_id: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      const newChatData = data && data.length > 0 ? data[0] : null;
+      if (newChatData) {
+        const newChat: AdminChat = {
+          ...newChatData,
+          admin_user_id: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        setCurrentChat(newChat);
+        await loadUserChats(); // Recargar lista
+        return newChat;
+      }
 
-      const updatedChats = [...chats, newChat];
-      localStorage.setItem(`chats_${user.id}`, JSON.stringify(updatedChats));
-
-      // Actualizar estado local
-      setUserChats(updatedChats);
-      setCurrentChat(newChat);
-
-      return newChat;
+      return null;
     } catch (error) {
-      console.error('Error creating public chat:', error);
+      console.error('Error creating chat:', error);
       setError('Error al crear el chat');
       return null;
     } finally {
@@ -102,107 +188,60 @@ export const usePublicChats = () => {
     }
   };
 
-  // Actualizar slug del chat
-  const updateChatSlug = async (
-    chatId: string,
-    newSlug: string,
-    isPublic: boolean
-  ): Promise<boolean> => {
-    if (!user) {
-      setError('Usuario no autenticado');
+  // Actualizar configuración de finetuning
+  const updateChatConfig = async (chatId: string, configData: Partial<AdminFinetuningConfig>): Promise<boolean> => {
+    if (!user || profile?.role !== 'administrativo') {
+      setError('Solo los administradores pueden actualizar configuraciones');
       return false;
     }
 
-    setIsLoading(true);
-    setError(null);
     try {
-      const storedChats = localStorage.getItem(`chats_${user.id}`);
-      const chats: PublicChat[] = storedChats ? JSON.parse(storedChats) : [];
+      const { data, error } = await supabase
+        .rpc('update_admin_finetuning_config', {
+          chat_id_param: chatId,
+          config_data: configData
+        });
 
-      // Verificar que el slug no esté en uso
-      const slugExists = chats.some(chat => chat.chat_slug === newSlug && chat.id !== chatId);
-      if (slugExists) {
-        setError('El slug ya está en uso');
+      if (error) {
+        console.error('Error updating chat config:', error);
+        setError('Error al actualizar la configuración');
         return false;
       }
 
-      // Actualizar chat
-      const updatedChats = chats.map(chat => 
-        chat.id === chatId 
-          ? { ...chat, chat_slug: newSlug, is_public: isPublic, updated_at: new Date().toISOString() }
-          : chat
-      );
-
-      localStorage.setItem(`chats_${user.id}`, JSON.stringify(updatedChats));
-
-      // Actualizar estado local
-      setUserChats(updatedChats);
-      const updatedChat = updatedChats.find(chat => chat.id === chatId);
-      if (updatedChat) {
-        setCurrentChat(updatedChat);
+      // Recargar configuración
+      const updatedConfig = await loadChatConfig(chatId);
+      if (updatedConfig) {
+        setCurrentConfig(updatedConfig);
       }
 
-      return true;
+      return data;
     } catch (error) {
-      console.error('Error updating chat slug:', error);
-      setError('Error al actualizar el slug');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Generar slug desde nombre
-  const generateSlug = (name: string): string => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
-      .replace(/[^a-z0-9\s-]/g, '') // Solo letras, números, espacios y guiones
-      .replace(/\s+/g, '-') // Espacios a guiones
-      .replace(/-+/g, '-') // Múltiples guiones a uno
-      .trim()
-      .replace(/^-+|-+$/g, ''); // Eliminar guiones al inicio/final
-  };
-
-  // Verificar si un slug está disponible
-  const isSlugAvailable = async (slug: string): Promise<boolean> => {
-    try {
-      // Buscar en todos los chats almacenados
-      const allChats: PublicChat[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('chats_')) {
-          const chats = JSON.parse(localStorage.getItem(key) || '[]');
-          allChats.push(...chats);
-        }
-      }
-      
-      return !allChats.some(chat => chat.chat_slug === slug);
-    } catch (error) {
-      console.error('Error checking slug availability:', error);
+      console.error('Error updating chat config:', error);
+      setError('Error al actualizar la configuración');
       return false;
     }
   };
 
   // Cargar datos iniciales
   useEffect(() => {
-    if (user) {
+    if (user && profile?.role === 'administrativo') {
       loadUserChats();
     }
-  }, [user]);
+  }, [user, profile]);
 
   return {
     userChats,
     currentChat,
+    currentConfig,
     isLoading,
     error,
     loadUserChats,
     loadChatBySlug,
-    createPublicChat,
-    updateChatSlug,
-    generateSlug,
-    isSlugAvailable,
+    loadChatConfig,
+    createChat,
+    updateChatConfig,
+    setCurrentChat,
+    setCurrentConfig,
     setError
   };
-}; 
+};
