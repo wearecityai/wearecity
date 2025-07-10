@@ -445,7 +445,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
       flexDirection: 'column' 
     }}>
       {normalHeader}
-      <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: '64px' }}>
+      <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: { xs: 0, sm: '64px' } }}>
         <AppDrawer
           isMenuOpen={isMenuOpen}
           onMenuToggle={handleMenuToggle}
