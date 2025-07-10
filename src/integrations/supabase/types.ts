@@ -22,6 +22,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           procedure_source_urls: Json | null
+          profile_image_url: string | null
           recommended_prompts: Json | null
           restricted_city: Json | null
           sede_electronica_url: string | null
@@ -43,6 +44,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           procedure_source_urls?: Json | null
+          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
@@ -64,6 +66,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           procedure_source_urls?: Json | null
+          profile_image_url?: string | null
           recommended_prompts?: Json | null
           restricted_city?: Json | null
           sede_electronica_url?: string | null
