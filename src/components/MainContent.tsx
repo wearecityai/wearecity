@@ -124,7 +124,7 @@ const MainContent: React.FC<MainContentProps> = ({
                     onLogin={onLogin}
                   />
                 </Box>
-                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} />
+                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
               </Box>
             )}
             {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
@@ -209,7 +209,7 @@ const MainContent: React.FC<MainContentProps> = ({
                     onLogin={onLogin}
                   />
                 </Box>
-                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} />
+                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
               </Box>
             )}
             {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}

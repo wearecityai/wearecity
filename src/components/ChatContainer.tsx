@@ -224,7 +224,10 @@ const getIconComponent = (iconName: string) => {
   return Icons.Help;
 };
 
-export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> = ({ prompts }) => {
+export const RecommendedPromptsBar: React.FC<{ 
+  prompts: RecommendedPrompt[], 
+  onSendMessage: (message: string) => void 
+}> = ({ prompts, onSendMessage }) => {
   if (!prompts || !Array.isArray(prompts) || prompts.length === 0) return null;
   
   const containerRef = useRef<HTMLDivElement>(null);
@@ -302,13 +305,7 @@ export const RecommendedPromptsBar: React.FC<{ prompts: RecommendedPrompt[] }> =
               userSelect: 'none',
               gap: 1,
             }}
-            onClick={() => {
-              const input = document.querySelector('textarea, input[type="text"]');
-              if (input) {
-                (input as HTMLInputElement).value = prompt.text;
-                (input as HTMLInputElement).focus();
-              }
-            }}
+            onClick={() => onSendMessage(prompt.text)}
           >
             <Avatar sx={{ 
               width: { xs: 38, sm: 52 }, 
