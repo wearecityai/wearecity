@@ -1,75 +1,32 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-}
+import { Container, Paper, Typography, Button } from '@mui/material';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { API_KEY_ERROR_MESSAGE } from '../constants';
 
 interface ErrorBoundaryProps {
-  children: React.ReactNode;
+  isGeminiReady: boolean;
+  appError: string | null;
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
+const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ isGeminiReady, appError }) => {
+  if (!isGeminiReady && appError === API_KEY_ERROR_MESSAGE) {
+    return (
+      <Container maxWidth="sm" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
+          <ErrorOutlineIcon color="error" sx={{ fontSize: 48, mb: 2 }} />
+          <Typography variant="h5" component="h2" gutterBottom>Error de Configuración</Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>{API_KEY_ERROR_MESSAGE}</Typography>
+          <Typography variant="caption" display="block" color="text.secondary">
+            Consulta la documentación para configurar la API_KEY.
+            <Button size="small" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Obtén una API Key</Button>
+          </Typography>
+        </Paper>
+      </Container>
+    );
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
+  return null;
+};
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-  }
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
-  };
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <AlertTriangle className="h-12 w-12 text-destructive" />
-              </div>
-              <CardTitle className="text-destructive">Error en la Aplicación</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-center text-muted-foreground">
-                Ha ocurrido un error inesperado. Por favor, intenta recargar la página.
-              </p>
-              
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="p-4 bg-muted rounded-md">
-                  <p className="text-sm font-mono text-destructive">
-                    {this.state.error.message}
-                  </p>
-                </div>
-              )}
-              
-              <div className="flex gap-2 justify-center">
-                <Button onClick={this.handleReset} variant="outline">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Intentar de Nuevo
-                </Button>
-                <Button onClick={() => window.location.reload()}>
-                  Recargar Página
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
+export default ErrorBoundary;

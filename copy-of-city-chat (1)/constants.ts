@@ -1,4 +1,5 @@
 
+
 import { CustomChatConfig, SupportedLanguage } from './types';
 
 export const GEMINI_MODEL_NAME = 'gemini-2.5-flash-preview-04-17';
@@ -217,15 +218,14 @@ export const DEFAULT_CHAT_CONFIG: CustomChatConfig = {
   systemInstruction: INITIAL_SYSTEM_INSTRUCTION,
   recommendedPrompts: DEFAULT_RECOMMENDED_PROMPTS,
   serviceTags: DEFAULT_SERVICE_TAGS,
-  enableGoogleSearch: true,
-  allowMapDisplay: true,
-  allowGeolocation: true,
+  enableGoogleSearch: DEFAULT_ENABLE_GOOGLE_SEARCH,
+  allowMapDisplay: DEFAULT_ALLOW_MAP_DISPLAY,
+  allowGeolocation: DEFAULT_ALLOW_GEOLOCATION,
+  restrictedCity: null,
   currentLanguageCode: DEFAULT_LANGUAGE_CODE,
   procedureSourceUrls: [],
   uploadedProcedureDocuments: [],
-  restrictedCity: null,
   sedeElectronicaUrl: '',
-  profileImageUrl: '', // Nueva propiedad por defecto
 };
 
 export const DEFAULT_CHAT_TITLE = "Nuevo Chat de Ciudad";
