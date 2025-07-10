@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { 
   Loader2, 
@@ -14,10 +13,12 @@ import {
   Copy,
   Eye,
   EyeOff,
-  Settings
+  Settings,
+  Globe
 } from 'lucide-react';
 import { usePublicChats } from '@/hooks/usePublicChats';
 import { useAuth } from '@/hooks/useAuth';
+import { useAssistantConfig } from '@/hooks/useAssistantConfig';
 import { PublicChat } from '@/types';
 
 interface PublicChatManagerProps {
@@ -26,6 +27,7 @@ interface PublicChatManagerProps {
 
 export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCreated }) => {
   const { user } = useAuth();
+  const { config } = useAssistantConfig();
   const { 
     userChats, 
     isLoading, 
@@ -38,21 +40,17 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
   
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingChat, setEditingChat] = useState<PublicChat | null>(null);
-  const [configName, setConfigName] = useState('');
-  const [assistantName, setAssistantName] = useState('');
-  const [systemInstruction, setSystemInstruction] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
   const [customSlug, setCustomSlug] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [validationError, setValidationError] = useState('');
 
-  // Auto-generar slug cuando cambia el nombre del asistente
+  // Auto-generar slug usando el nombre del asistente de la configuración
   useEffect(() => {
-    if (assistantName && !customSlug) {
-      setCustomSlug(generateSlug(assistantName));
+    if (config.assistantName && !customSlug && !editingChat) {
+      setCustomSlug(generateSlug(config.assistantName));
     }
-  }, [assistantName, customSlug, generateSlug]);
+  }, [config.assistantName, customSlug, generateSlug, editingChat]);
 
   // Mostrar form de creación si no hay chats
   useEffect(() => {
@@ -62,11 +60,6 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
   }, [user, userChats.length, isLoading]);
 
   const handleCreateChat = async () => {
-    if (!configName.trim() || !assistantName.trim() || !systemInstruction.trim()) {
-      setValidationError('Todos los campos son requeridos');
-      return;
-    }
-
     if (customSlug.length < 3) {
       setValidationError('El slug debe tener al menos 3 caracteres');
       return;
@@ -77,11 +70,12 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
     setError(null);
 
     try {
+      // Usar la configuración existente de la ciudad
       const newChat = await createPublicChat(
-        configName.trim(),
-        assistantName.trim(),
-        systemInstruction.trim(),
-        isPublic
+        config.assistantName, // Usar el nombre del asistente como nombre de configuración
+        config.assistantName,
+        config.systemInstruction,
+        true // Siempre público
       );
       
       if (newChat) {
@@ -112,7 +106,7 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
       const success = await updateChatSlug(
         editingChat.id,
         customSlug.trim(),
-        isPublic
+        true // Siempre público
       );
       
       if (success) {
@@ -127,20 +121,12 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
   };
 
   const resetForm = () => {
-    setConfigName('');
-    setAssistantName('');
-    setSystemInstruction('');
-    setIsPublic(false);
     setCustomSlug('');
     setValidationError('');
   };
 
   const handleEditChat = (chat: PublicChat) => {
     setEditingChat(chat);
-    setConfigName(chat.config_name);
-    setAssistantName(chat.assistant_name);
-    setSystemInstruction(chat.system_instruction);
-    setIsPublic(chat.is_public);
     setCustomSlug(chat.chat_slug);
     setShowCreateForm(false);
   };
@@ -195,18 +181,9 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
                       <p className="text-sm text-muted-foreground">{chat.config_name}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={chat.is_public ? "default" : "secondary"}>
-                        {chat.is_public ? (
-                          <>
-                            <Eye className="h-3 w-3 mr-1" />
-                            Público
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="h-3 w-3 mr-1" />
-                            Test
-                          </>
-                        )}
+                      <Badge variant="default">
+                        <Globe className="h-3 w-3 mr-1" />
+                        Público
                       </Badge>
                       <Button
                         variant="outline"
@@ -256,53 +233,33 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
         </div>
       )}
 
-      {/* Formulario de creación/edición */}
+      {/* Formulario de creación/edición simplificado */}
       {(showCreateForm || editingChat) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              {editingChat ? 'Editar Chat' : 'Crear Nuevo Chat'}
+              <Globe className="h-5 w-5" />
+              {editingChat ? 'Editar Chat Público' : 'Crear Nuevo Chat Público'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="configName">Nombre de la Configuración</Label>
-                <Input
-                  id="configName"
-                  value={configName}
-                  onChange={(e) => setConfigName(e.target.value)}
-                  placeholder="Mi Chat Personalizado"
-                  disabled={isCreating || isUpdating}
-                />
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Globe className="h-4 w-4 text-primary" />
+                  <span className="font-medium">Configuración del Chat</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Se usará la configuración actual de tu asistente:
+                </p>
+                <div className="text-sm">
+                  <p><strong>Asistente:</strong> {config.assistantName}</p>
+                  <p><strong>Idioma:</strong> {config.currentLanguageCode === 'es' ? 'Español' : config.currentLanguageCode}</p>
+                </div>
               </div>
               
               <div>
-                <Label htmlFor="assistantName">Nombre del Asistente</Label>
-                <Input
-                  id="assistantName"
-                  value={assistantName}
-                  onChange={(e) => setAssistantName(e.target.value)}
-                  placeholder="Asistente de La Vila Joiosa"
-                  disabled={isCreating || isUpdating}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="systemInstruction">Instrucción del Sistema</Label>
-                <textarea
-                  id="systemInstruction"
-                  value={systemInstruction}
-                  onChange={(e) => setSystemInstruction(e.target.value)}
-                  placeholder="Eres un asistente virtual especializado en..."
-                  className="w-full min-h-[100px] p-3 border border-input rounded-md resize-none"
-                  disabled={isCreating || isUpdating}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="customSlug">URL Personalizada</Label>
+                <Label htmlFor="customSlug">URL del Chat Público</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-sm text-muted-foreground">
                     {window.location.origin}/chat/
@@ -311,7 +268,7 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
                     id="customSlug"
                     value={customSlug}
                     onChange={(e) => setCustomSlug(e.target.value)}
-                    placeholder="lavilajoiosa"
+                    placeholder="mi-ciudad-chat"
                     disabled={isCreating || isUpdating}
                     className="font-mono"
                   />
@@ -321,30 +278,14 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
                 </p>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="isPublic"
-                  checked={isPublic}
-                  onCheckedChange={setIsPublic}
-                  disabled={isCreating || isUpdating}
-                />
-                <Label htmlFor="isPublic">
-                  Chat Público (cualquier usuario puede acceder)
-                </Label>
-              </div>
-              
-              <div className="text-sm text-muted-foreground">
-                {isPublic ? (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <Eye className="h-4 w-4" />
-                    <span>Modo Público: Cualquier usuario puede acceder a tu chat</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-orange-600">
-                    <EyeOff className="h-4 w-4" />
-                    <span>Modo Test: Solo tú puedes acceder a tu chat</span>
-                  </div>
-                )}
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700">
+                  <Globe className="h-4 w-4" />
+                  <span className="font-medium">Chat Público</span>
+                </div>
+                <p className="text-sm text-green-600 mt-1">
+                  Este chat será accesible para cualquier usuario sin necesidad de autenticación y sin opciones de personalización del asistente.
+                </p>
               </div>
 
               {(validationError || error) && (
@@ -368,8 +309,8 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
                     </>
                   ) : (
                     <>
-                      <Settings className="h-4 w-4 mr-2" />
-                      {editingChat ? 'Actualizar Chat' : 'Crear Chat'}
+                      <Globe className="h-4 w-4 mr-2" />
+                      {editingChat ? 'Actualizar Chat' : 'Crear Chat Público'}
                     </>
                   )}
                 </Button>
@@ -397,7 +338,7 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-muted-foreground mb-4">
-                Puedes crear múltiples chats públicos con diferentes configuraciones.
+                Crea chats públicos usando tu configuración actual de asistente. Serán accesibles para cualquier usuario.
               </p>
               <Button
                 variant="outline"
@@ -409,7 +350,7 @@ export const PublicChatManager: React.FC<PublicChatManagerProps> = ({ onChatCrea
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Crear Nuevo Chat
+                Crear Nuevo Chat Público
               </Button>
             </div>
           </CardContent>
