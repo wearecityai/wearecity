@@ -35,6 +35,45 @@ import {
 } from '../constants';
 import { CityLinkManager } from './CityLinkManager';
 
+// Componente de tarjeta moderna fuera del componente principal para evitar re-renders
+const ModernCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = React.memo(({ icon, title, children, ...props }) => {
+  const theme = useTheme();
+  
+  return (
+    <Paper elevation={0} sx={{ 
+      border: `1px solid ${theme.palette.divider}`,
+      borderRadius: 2,
+      overflow: 'hidden',
+      bgcolor: 'background.paper',
+      '&:hover': {
+        boxShadow: theme.shadows[2]
+      }
+    }} {...props}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 2, 
+        p: 2.5, 
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
+      }}>
+        <Box sx={{ 
+          color: 'primary.main',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          {icon}
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
+          {title}
+        </Typography>
+      </Box>
+      <Box sx={{ p: 2.5 }}>
+        {children}
+      </Box>
+    </Paper>
+  );
+});
 
 interface FinetuningPageProps {
   currentConfig: CustomChatConfig;
@@ -392,41 +431,42 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
     if (profileImageInputRef.current) profileImageInputRef.current.value = "";
   };
 
-  // Componente de tarjeta moderna
-  const ModernCard = ({ icon, title, children, ...props }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
-    <Paper elevation={0} sx={{ 
-      border: `1px solid ${theme.palette.divider}`,
-      borderRadius: 2,
-      overflow: 'hidden',
-      bgcolor: 'background.paper',
-      '&:hover': {
-        boxShadow: theme.shadows[2]
-      }
-    }} {...props}>
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 2, 
-        p: 2.5, 
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
-      }}>
-        <Box sx={{ 
-          color: 'primary.main',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          {icon}
-        </Box>
-        <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
-          {title}
-        </Typography>
-      </Box>
-      <Box sx={{ p: 2.5 }}>
-        {children}
-      </Box>
-    </Paper>
-  );
+  // Memoizar funciones para evitar recreaciones innecesarias
+  const memoizedHandleAddPrompt = useMemo(() => () => {
+    if (newPrompt.trim() && !recommendedPrompts.some(p => p.text === newPrompt.trim())) {
+      const automaticIcon = getAutomaticIcon(newPrompt.trim());
+      setRecommendedPrompts([...recommendedPrompts, { text: newPrompt.trim(), img: automaticIcon }]);
+      setNewPrompt('');
+      setNewPromptIcon(automaticIcon);
+    }
+  }, [newPrompt, recommendedPrompts]);
+
+  const memoizedHandleAddProcedureUrl = useMemo(() => () => {
+    const trimmedUrl = newProcedureUrl.trim();
+    if (trimmedUrl && isValidUrl(trimmedUrl) && !procedureSourceUrls.includes(trimmedUrl)) {
+      setProcedureSourceUrls([...procedureSourceUrls, trimmedUrl]);
+      setNewProcedureUrl('');
+    }
+  }, [newProcedureUrl, procedureSourceUrls]);
+
+  const memoizedHandleAddProcedureDocument = useMemo(() => () => {
+    if (!currentProcedureNameToUpload.trim()) { setPdfUploadError("Introduce un nombre para el trámite."); return; }
+    if (!currentPdfFile) { setPdfUploadError("Selecciona un archivo PDF."); return; }
+    if (uploadedProcedureDocuments.find(doc => doc.procedureName.toLowerCase() === currentProcedureNameToUpload.trim().toLowerCase())) {
+      setPdfUploadError("Ya existe un documento con este nombre de trámite."); return;
+    }
+    setPdfUploadError(null);
+    const reader = new FileReader();
+    reader.readAsDataURL(currentPdfFile);
+    reader.onload = () => {
+      const base64Data = (reader.result as string).split(',')[1];
+      const newDocument: UploadedProcedureDocument = { procedureName: currentProcedureNameToUpload.trim(), fileName: currentPdfFile.name, mimeType: currentPdfFile.type, base64Data };
+      setUploadedProcedureDocuments([...uploadedProcedureDocuments, newDocument]);
+      setCurrentProcedureNameToUpload(''); setCurrentPdfFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.onerror = (error) => { console.error("Error reading PDF:", error); setPdfUploadError("Error al leer el PDF."); };
+  }, [currentProcedureNameToUpload, currentPdfFile, uploadedProcedureDocuments]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
@@ -601,7 +641,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
                 <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', transition: 'all 0.3s', flexShrink: 0 }}>
                   {React.createElement(getIconComponent(newPromptIcon), { sx: { fontSize: 18 } })}
                 </Avatar>
-                <Button variant="contained" onClick={handleAddPrompt} disabled={!newPrompt.trim()} sx={{flexShrink:0}}>Añadir</Button>
+                <Button variant="contained" onClick={memoizedHandleAddPrompt} disabled={!newPrompt.trim()} sx={{flexShrink:0}}>Añadir</Button>
               </Stack>
               {recommendedPrompts.length > 0 && (
                 <Stack spacing={1}>
@@ -628,7 +668,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
               <Typography variant="h6" gutterBottom>Fuentes de Trámites (URLs)</Typography>
               <Stack direction="row" spacing={1} mb={procedureSourceUrls.length > 0 ? 2 : 0}>
                 <TextField fullWidth label="Nueva URL de Trámite" value={newProcedureUrl} onChange={(e) => setNewProcedureUrl(e.target.value)} type="url" size="small" variant="outlined"/>
-                <Button variant="contained" onClick={handleAddProcedureUrl} disabled={!newProcedureUrl.trim() || !isValidUrl(newProcedureUrl.trim())} sx={{flexShrink:0}}>Añadir URL</Button>
+                <Button variant="contained" onClick={memoizedHandleAddProcedureUrl} disabled={!newProcedureUrl.trim() || !isValidUrl(newProcedureUrl.trim())} sx={{flexShrink:0}}>Añadir URL</Button>
               </Stack>
               {procedureSourceUrls.length > 0 && (
                 <Stack spacing={1}>
@@ -649,7 +689,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
                 </Button>
                 {currentPdfFile && <Typography variant="caption" color="text.secondary">Archivo seleccionado: {currentPdfFile.name}</Typography>}
                 {pdfUploadError && <Alert severity="error" variant="standard" sx={{py:0.5}}>{pdfUploadError}</Alert>}
-                <Button variant="contained" onClick={handleAddProcedureDocument} disabled={!currentProcedureNameToUpload.trim() || !currentPdfFile}>Adjuntar PDF al Trámite</Button>
+                <Button variant="contained" onClick={memoizedHandleAddProcedureDocument} disabled={!currentProcedureNameToUpload.trim() || !currentPdfFile}>Adjuntar PDF al Trámite</Button>
                 {uploadedProcedureDocuments.length > 0 && (
                   <Box>
                     <Typography variant="subtitle2" sx={{mt:1}}>PDFs adjuntados:</Typography>
