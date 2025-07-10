@@ -2,26 +2,26 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from './theme/ThemeProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Index from '@/pages/Index';
 import AuthPage from '@/components/auth/AuthPage';
-import { CityChat } from '@/pages/CityChat';
-import { PublicChatPage } from '@/pages/PublicChatPage';
+import NotFound from '@/pages/NotFound';
 
 const App = () => {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/city/:citySlug" element={<CityChat />} />
-            <Route path="/chat/:chatSlug" element={<PublicChatPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 

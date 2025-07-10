@@ -1,53 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useApiInitialization } from '../hooks/useApiInitialization';
-import { useAppState } from '../hooks/useAppState';
-import AppContainer from '../components/AppContainer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import UserButton from '@/components/auth/UserButton';
+import { UserProfile } from '@/components/UserProfile';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, isLoading: authLoading } = useAuth();
-  const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
-  
-  // App state hooks
-  const {
-    theme,
-    isMobile,
-    currentView,
-    setCurrentView,
-    chatTitles,
-    selectedChatIndex,
-    setSelectedChatIndex,
-    isMenuOpen,
-    setIsMenuOpen,
-    chatConfig,
-    setChatConfig,
-    saveConfig,
-    userLocation,
-    geolocationStatus,
-    googleMapsScriptLoaded,
-    messages,
-    isLoading,
-    handleSendMessage,
-    handleSeeMoreEvents,
-    clearMessages,
-    currentThemeMode,
-    toggleTheme,
-    handleNewChat,
-    conversations,
-    currentConversationId,
-    setCurrentConversationId,
-    deleteConversation,
-    shouldShowChatContainer
-  } = useAppState();
+  const { user, profile, isLoading } = useAuth();
 
   const handleLogin = () => {
     navigate('/auth');
   };
 
-  // Show loading state only while auth is initializing AND we don't have a definitive auth state
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -58,45 +25,83 @@ const Index = () => {
     );
   }
 
-  // Always show the main app - authentication is optional
   return (
-    <AppContainer
-      toggleTheme={toggleTheme}
-      currentThemeMode={currentThemeMode}
-      user={user}
-      profile={profile}
-      onLogin={handleLogin}
-      theme={theme}
-      isMobile={isMobile}
-      isGeminiReady={isGeminiReady}
-      appError={appError}
-      currentView={currentView}
-      setCurrentView={setCurrentView}
-      chatTitles={chatTitles}
-      selectedChatIndex={selectedChatIndex}
-      setSelectedChatIndex={setSelectedChatIndex}
-      isMenuOpen={isMenuOpen}
-      setIsMenuOpen={setIsMenuOpen}
-      chatConfig={chatConfig}
-      setChatConfig={setChatConfig}
-      saveConfig={saveConfig}
-      userLocation={userLocation}
-      geolocationStatus={geolocationStatus}
-      googleMapsScriptLoaded={googleMapsScriptLoaded}
-      messages={messages}
-      isLoading={isLoading}
-      handleSendMessage={handleSendMessage}
-      handleSeeMoreEvents={handleSeeMoreEvents}
-      clearMessages={clearMessages}
-      setAppError={setAppError}
-      setIsGeminiReady={setIsGeminiReady}
-      handleNewChat={handleNewChat}
-      conversations={conversations}
-      currentConversationId={currentConversationId}
-      setCurrentConversationId={setCurrentConversationId}
-      deleteConversation={deleteConversation}
-      shouldShowChatContainer={shouldShowChatContainer}
-    />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-primary">City Chat</h1>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <UserButton />
+            ) : (
+              <Button onClick={handleLogin}>
+                Iniciar Sesión
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
+        {user ? (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight mb-2">
+                ¡Bienvenido, {profile?.first_name || user.email}!
+              </h2>
+              <p className="text-muted-foreground">
+                Tu sistema de chat municipal está listo para usar
+              </p>
+            </div>
+            
+            <UserProfile />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight mb-2">
+                Sistema de Chat Municipal
+              </h2>
+              <p className="text-muted-foreground mb-8">
+                Conecta con los servicios de tu ciudad de manera fácil y rápida
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Para Ciudadanos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    Accede a información municipal, consulta trámites y obtén respuestas rápidas sobre servicios de tu ciudad.
+                  </p>
+                  <Button onClick={handleLogin} variant="outline" className="w-full">
+                    Acceder como Ciudadano
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Para Administradores</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    Gestiona tu chat público, configura respuestas automáticas y administra la información de tu municipio.
+                  </p>
+                  <Button onClick={handleLogin} className="w-full">
+                    Panel Administrativo
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   );
 };
 
