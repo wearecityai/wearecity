@@ -143,10 +143,26 @@ export const useAssistantConfig = () => {
         config_name: 'default',
       };
 
+      // Generar slug automáticamente basado en assistant_name
+      const generateSlug = (name: string): string => {
+        return name
+          .toLowerCase()
+          .normalize('NFD') // Decompose unicode
+          .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+          .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+          .trim()
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .replace(/-+/g, '-'); // Replace multiple hyphens with single
+      };
+
+      const newSlug = generateSlug(newConfig.assistantName);
+
       // Actualizar ciudad del usuario admin
       const result = await supabase
         .from('cities')
         .update({
+          name: newConfig.assistantName,  // También actualizar el nombre de la ciudad
+          slug: newSlug,  // Actualizar slug automáticamente
           assistant_name: newConfig.assistantName,
           system_instruction: newConfig.systemInstruction,
           recommended_prompts: JSON.stringify(newConfig.recommendedPrompts),
