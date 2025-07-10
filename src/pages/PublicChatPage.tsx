@@ -103,7 +103,7 @@ export const PublicChatPage: React.FC = () => {
             return fallback;
           };
           
-          // Aplicar configuración de la ciudad al chat
+          // Aplicar configuración de la ciudad al chat - usando la misma lógica que useAssistantConfig
           const newChatConfig = {
             assistantName: cityData.assistant_name || 'Asistente de Ciudad',
             systemInstruction: cityData.system_instruction || 'Soy un asistente inteligente que ayuda a los ciudadanos.',
@@ -119,6 +119,18 @@ export const PublicChatPage: React.FC = () => {
             restrictedCity: safeParseJsonObject(cityData.restricted_city, null),
             profileImageUrl: undefined
           };
+          
+          console.log('🔧 Configuración del chat público cargada:', {
+            assistantName: newChatConfig.assistantName,
+            systemInstruction: newChatConfig.systemInstruction,
+            recommendedPrompts: newChatConfig.recommendedPrompts,
+            serviceTags: newChatConfig.serviceTags,
+            enableGoogleSearch: newChatConfig.enableGoogleSearch,
+            allowMapDisplay: newChatConfig.allowMapDisplay,
+            allowGeolocation: newChatConfig.allowGeolocation,
+            currentLanguageCode: newChatConfig.currentLanguageCode
+          });
+          
           setChatConfig(newChatConfig);
         } else {
           setError('Ciudad no encontrada o no es pública');
