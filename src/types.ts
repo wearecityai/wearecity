@@ -141,7 +141,7 @@ export interface DownloadablePdfInfo {
   mimeType: string;
 }
 
-// Tipos para el sistema de chat público
+// Tipos para el sistema de chat público unificado
 export interface PublicChat {
   id: string;
   config_name: string;
@@ -149,7 +149,21 @@ export interface PublicChat {
   system_instruction: string;
   chat_slug: string;
   is_public: boolean;
-  user_id: string;
+  admin_user_id: string;  // Cambio de user_id a admin_user_id para compatibilidad
+  created_at: string;
+  updated_at?: string;
+}
+
+// Tipo AdminChat para compatibilidad
+export interface AdminChat {
+  id: string;
+  chat_name: string;
+  chat_slug: string;
+  is_public: boolean;
+  admin_user_id: string;
+  assistant_name?: string;
+  config_name?: string;
+  system_instruction?: string;
   created_at: string;
   updated_at?: string;
 }

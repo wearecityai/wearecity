@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCities } from '@/hooks/useCities';
-import { useAdminChats } from '@/hooks/usePublicChats';
+import { usePublicChats } from '@/hooks/usePublicChats';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ export const AdminDashboard = () => {
     loadChatConfig, 
     updateChatConfig, 
     isLoading: chatLoading 
-  } = useAdminChats();
+  } = usePublicChats();
 
   const [cityName, setCityName] = useState('');
   const [assistantName, setAssistantName] = useState('');

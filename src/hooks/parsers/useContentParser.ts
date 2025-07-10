@@ -47,7 +47,7 @@ export const useContentParser = () => {
       try {
         const linkData = JSON.parse(jsonPayload);
         if (linkData.url && typeof linkData.url === 'string' && linkData.text && typeof linkData.text === 'string') {
-          telematicLinkForMessage = { url: linkData.url, text: linkData.text };
+          telematicLinkForMessage = linkData.url;
         } else {
           console.warn("Invalid TECA link JSON:", jsonPayload);
         }

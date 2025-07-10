@@ -49,7 +49,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
         );
       }
       if (part.match(/^https?:\/\/\S+$/)) { // Plain URL
-        const isPartOfSpecialLink = (message.telematicProcedureLink && part.includes(message.telematicProcedureLink.url)) ||
+        const isPartOfSpecialLink = (message.telematicProcedureLink && part.includes(message.telematicProcedureLink)) ||
                                    (configuredSedeElectronicaUrl && part.includes(configuredSedeElectronicaUrl));
         if (isPartOfSpecialLink) return part; 
         return (

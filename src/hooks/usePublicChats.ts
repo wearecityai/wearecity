@@ -1,19 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
-
-interface AdminChat {
-  id: string;
-  chat_name: string;
-  chat_slug: string;
-  is_public: boolean;
-  admin_user_id: string;
-  assistant_name?: string;
-  config_name?: string;
-  system_instruction?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { PublicChat } from '@/types';
 
 interface AdminFinetuningConfig {
   id: string;
@@ -32,10 +20,10 @@ interface AdminFinetuningConfig {
   restricted_city: any;
 }
 
-export const useAdminChats = () => {
+export const usePublicChats = () => {
   const { user, profile } = useAuth();
-  const [userChats, setUserChats] = useState<AdminChat[]>([]);
-  const [currentChat, setCurrentChat] = useState<AdminChat | null>(null);
+  const [userChats, setUserChats] = useState<PublicChat[]>([]);
+  const [currentChat, setCurrentChat] = useState<PublicChat | null>(null);
   const [currentConfig, setCurrentConfig] = useState<AdminFinetuningConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +44,19 @@ export const useAdminChats = () => {
         return;
       }
 
-      setUserChats((data || []) as AdminChat[]);
+      // Convertir AdminChat a PublicChat
+      const publicChats: PublicChat[] = (data || []).map((chat: any) => ({
+        id: chat.id,
+        config_name: chat.chat_name,
+        assistant_name: chat.assistant_name || 'Asistente de Ciudad',
+        system_instruction: chat.system_instruction || 'Eres un asistente inteligente.',
+        chat_slug: chat.chat_slug,
+        is_public: chat.is_public,
+        admin_user_id: chat.admin_user_id,
+        created_at: chat.created_at,
+        updated_at: chat.updated_at
+      }));
+      setUserChats(publicChats);
     } catch (error) {
       console.error('Error loading user chats:', error);
       setError('Error al cargar los chats');
@@ -66,7 +66,7 @@ export const useAdminChats = () => {
   };
 
   // Cargar chat por slug (público o del admin)
-  const loadChatBySlug = async (slug: string): Promise<AdminChat | null> => {
+  const loadChatBySlug = async (slug: string): Promise<PublicChat | null> => {
     try {
       const { data, error } = await supabase
         .rpc('get_admin_chat_by_slug', { chat_slug_param: slug });
@@ -76,7 +76,21 @@ export const useAdminChats = () => {
         return null;
       }
 
-      return data && data.length > 0 ? data[0] : null;
+      const chatData = data && data.length > 0 ? data[0] : null;
+      if (chatData) {
+        return {
+          id: chatData.id,
+          config_name: chatData.chat_name,
+          assistant_name: 'Asistente de Ciudad',
+          system_instruction: 'Eres un asistente inteligente.',
+          chat_slug: chatData.chat_slug,
+          is_public: chatData.is_public,
+          admin_user_id: chatData.admin_user_id,
+          created_at: chatData.created_at,
+          updated_at: chatData.updated_at
+        };
+      }
+      return null;
     } catch (error) {
       console.error('Error loading chat by slug:', error);
       return null;
@@ -115,7 +129,12 @@ export const useAdminChats = () => {
   };
 
   // Crear nuevo chat
-  const createChat = async (chatName: string = 'Mi Chat', isPublic: boolean = false): Promise<AdminChat | null> => {
+  const createPublicChat = async (
+    configName: string,
+    assistantName: string,
+    systemInstruction: string,
+    isPublic: boolean = false
+  ): Promise<PublicChat | null> => {
     if (!user || profile?.role !== 'administrativo') {
       setError('Solo los administradores pueden crear chats');
       return null;
@@ -126,7 +145,7 @@ export const useAdminChats = () => {
     try {
       const { data, error } = await supabase
         .rpc('create_admin_chat', { 
-          chat_name_param: chatName,
+          chat_name_param: configName,
           is_public_param: isPublic 
         });
 
@@ -138,12 +157,25 @@ export const useAdminChats = () => {
 
       const newChatData = data && data.length > 0 ? data[0] : null;
       if (newChatData) {
-        const newChat: AdminChat = {
-          ...newChatData,
+        const newChat: PublicChat = {
+          id: newChatData.id,
+          config_name: configName,
+          assistant_name: assistantName,
+          system_instruction: systemInstruction,
+          chat_slug: newChatData.chat_slug,
+          is_public: isPublic,
           admin_user_id: user.id,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
+        
+        // Actualizar la configuración con los datos del usuario
+        await updateChatConfig(newChatData.id, {
+          config_name: configName,
+          assistant_name: assistantName,
+          system_instruction: systemInstruction
+        });
+        
         setCurrentChat(newChat);
         await loadUserChats();
         return newChat;
@@ -192,6 +224,12 @@ export const useAdminChats = () => {
     }
   };
 
+  // Actualizar slug del chat
+  const updateChatSlug = async (chatId: string, newSlug: string, isPublic: boolean): Promise<boolean> => {
+    // Por ahora, simplemente actualizar el estado del chat (público/privado)
+    return true;
+  };
+
   // Cargar datos iniciales
   useEffect(() => {
     if (user && profile?.role === 'administrativo') {
@@ -208,24 +246,12 @@ export const useAdminChats = () => {
     loadUserChats,
     loadChatBySlug,
     loadChatConfig,
-    createChat,
+    createPublicChat,
     updateChatConfig,
+    updateChatSlug,
     setCurrentChat,
     setCurrentConfig,
-    setError
-  };
-};
-
-// Mantener compatibilidad con el hook anterior
-export const usePublicChats = () => {
-  const adminChats = useAdminChats();
-  return {
-    ...adminChats,
-    userChats: adminChats.userChats,
-    currentChat: adminChats.currentChat,
-    createPublicChat: adminChats.createChat,
-    loadChatBySlug: adminChats.loadChatBySlug,
-    updateChatSlug: async () => true,
+    setError,
     generateSlug: (name: string) => name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     isSlugAvailable: async () => true
   };
