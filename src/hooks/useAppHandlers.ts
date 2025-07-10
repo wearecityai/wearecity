@@ -59,6 +59,8 @@ export const useAppHandlers = ({
   }, [chatConfig, setChatConfig, saveConfig, clearMessages]);
 
   const handleSaveCustomization = useCallback(async (newConfig: CustomChatConfig) => {
+    console.log('🔧 handleSaveCustomization called with:', newConfig);
+    
     const configToSave: CustomChatConfig = { ...DEFAULT_CHAT_CONFIG, ...newConfig };
     configToSave.assistantName = newConfig.assistantName.trim() || DEFAULT_CHAT_CONFIG.assistantName;
     configToSave.systemInstruction = typeof newConfig.systemInstruction === 'string' ? newConfig.systemInstruction.trim() : DEFAULT_CHAT_CONFIG.systemInstruction;
@@ -69,6 +71,8 @@ export const useAppHandlers = ({
     configToSave.sedeElectronicaUrl = newConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl;
     configToSave.profileImageUrl = newConfig.profileImageUrl || DEFAULT_CHAT_CONFIG.profileImageUrl;
 
+    console.log('🔧 Final config to save:', configToSave);
+    
     setChatConfig(configToSave);
     const success = await saveConfig(configToSave);
     

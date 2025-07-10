@@ -396,14 +396,25 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
 
   const handleSave = () => {
     const finalRestrictedCity: RestrictedCityInfo | null = municipalityInputName.trim() ? { name: municipalityInputName.trim() } : null;
-    onSave({
+    
+    const configToSend = {
       assistantName: assistantName.trim() || DEFAULT_ASSISTANT_NAME,
-      systemInstruction: systemInstruction.trim(), recommendedPrompts, serviceTags: selectedServiceTags,
-      enableGoogleSearch, allowMapDisplay, allowGeolocation, restrictedCity: finalRestrictedCity,
-      currentLanguageCode, procedureSourceUrls, uploadedProcedureDocuments,
+      systemInstruction: systemInstruction.trim(), 
+      recommendedPrompts, 
+      serviceTags: selectedServiceTags,
+      enableGoogleSearch, 
+      allowMapDisplay, 
+      allowGeolocation, 
+      restrictedCity: finalRestrictedCity,
+      currentLanguageCode, 
+      procedureSourceUrls, 
+      uploadedProcedureDocuments,
       sedeElectronicaUrl: sedeElectronicaUrl.trim() || undefined,
       profileImageUrl: profileImageUrl.trim() || undefined,
-    });
+    };
+    
+    console.log('🎛️ FinetuningPage sending config:', configToSend);
+    onSave(configToSend);
     if (setProfileImagePreview) setProfileImagePreview(undefined); // Limpiar preview tras guardar
   };
 

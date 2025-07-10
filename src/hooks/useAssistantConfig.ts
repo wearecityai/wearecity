@@ -124,14 +124,19 @@ export const useAssistantConfig = () => {
 
   // Guardar configuración
   const saveConfig = async (newConfig: CustomChatConfig) => {
+    console.log('💾 saveConfig called with:', newConfig);
+    
     // Siempre guardar en localStorage para usuarios normales
     localStorage.setItem('chatConfig', JSON.stringify(newConfig));
     setConfig(newConfig);
 
     // Solo guardar en Supabase si es administrador
     if (!user || profile?.role !== 'administrativo') {
+      console.log('💾 User is not admin, only saving to localStorage');
       return true;
     }
+
+    console.log('💾 User is admin, saving to Supabase for user:', user.id);
 
     try {
       console.log('Saving config to Supabase for user:', user.id);
