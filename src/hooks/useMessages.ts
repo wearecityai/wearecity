@@ -107,8 +107,15 @@ export const useMessages = (conversationId: string | null) => {
     const conversationIdToUse = targetConversationId || conversationId;
     
     if (!user) {
-      console.log('No user available, cannot save message. User:', !!user);
-      throw new Error('No user available');
+      console.log('No user available, saving to localStorage instead. User:', !!user);
+      // For unauthenticated users, save to localStorage
+      if (conversationIdToUse) {
+        const existing = localStorage.getItem(`chat_messages_${conversationIdToUse}`);
+        const messages = existing ? JSON.parse(existing) : [];
+        messages.push(message);
+        localStorage.setItem(`chat_messages_${conversationIdToUse}`, JSON.stringify(messages));
+      }
+      return;
     }
 
     if (!conversationIdToUse) {
