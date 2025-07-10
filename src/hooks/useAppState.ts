@@ -35,12 +35,12 @@ export const useAppState = () => {
 
   // Load Google Maps script on app initialization
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = 'AIzaSyC8UkMJYtp0_Whz4lmWw4CtEQ8u5nMzUoI'; // Google Maps API Key from Supabase
     if (apiKey && !googleMapsScriptLoaded) {
       console.log('🔍 Loading Google Maps script with API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NO API KEY');
       loadGoogleMapsScript(apiKey);
     } else if (!apiKey) {
-      console.warn('❌ VITE_GOOGLE_MAPS_API_KEY not found in environment variables');
+      console.warn('❌ Google Maps API key not found');
     }
   }, [loadGoogleMapsScript, googleMapsScriptLoaded]);
 

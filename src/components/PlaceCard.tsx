@@ -35,7 +35,7 @@ declare global {
 
 const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const apiKey = 'AIzaSyC8UkMJYtp0_Whz4lmWw4CtEQ8u5nMzUoI'; // Google Maps API Key from Supabase
 
   console.log('🔍 PlaceCard rendered with:', {
     name: place.name,
