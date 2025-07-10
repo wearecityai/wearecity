@@ -118,8 +118,13 @@ function safeParseJsonObject(jsonString: any, fallback: any = null): any {
 }
 
 // Función para cargar configuración del asistente
-async function loadAssistantConfig(userId: string) {
+async function loadAssistantConfig(userId: string | null | undefined) {
   try {
+    if (!userId) {
+      console.log('Usuario no autenticado, usando configuración por defecto');
+      return null;
+    }
+    
     console.log(`Cargando configuración para usuario: ${userId}`);
     
     const { data, error } = await supabase
