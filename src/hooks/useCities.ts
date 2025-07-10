@@ -27,7 +27,7 @@ export const useCities = () => {
         return;
       }
 
-      setCities(data || []);
+      setCities((data || []) as City[]);
     } catch (error) {
       console.error('Error loading cities:', error);
       setError('Error al cargar las ciudades');
@@ -51,7 +51,7 @@ export const useCities = () => {
         return null;
       }
 
-      return data;
+      return data as City;
     } catch (error) {
       console.error('Error loading city by slug:', error);
       return null;

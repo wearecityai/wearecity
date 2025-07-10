@@ -46,10 +46,6 @@ const Index = () => {
     navigate('/auth');
   };
 
-  const handleAdminPanel = () => {
-    navigate('/admin');
-  };
-
   // Show loading state only while auth is initializing AND we don't have a definitive auth state
   if (authLoading) {
     return (
@@ -70,7 +66,6 @@ const Index = () => {
       user={user}
       profile={profile}
       onLogin={handleLogin}
-      onAdminPanel={handleAdminPanel}
       theme={theme}
       isMobile={isMobile}
       isGeminiReady={isGeminiReady}

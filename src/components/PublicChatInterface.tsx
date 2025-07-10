@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAdminChats } from '@/hooks/usePublicChats';
 import { useCities } from '@/hooks/useCities';
 import { useAuth } from '@/hooks/useAuth';
-import { ChatContainer } from './ChatContainer';
+import ChatContainer from './ChatContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -164,9 +164,6 @@ export const PublicChatInterface = () => {
               sedeElectronicaUrl: city.sede_electronica_url || '',
               profileImageUrl: ''
             }}
-            onConfigChange={() => {}}
-            isPublicChat={true}
-            citySlug={citySlug}
           />
         </div>
       </div>
