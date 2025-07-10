@@ -48,8 +48,16 @@ interface FinetuningPageProps {
 const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, onCancel, googleMapsScriptLoaded, apiKeyForMaps, profileImagePreview, setProfileImagePreview }) => {
   const [assistantName, setAssistantName] = useState(currentConfig.assistantName);
   const [systemInstruction, setSystemInstruction] = useState(currentConfig.systemInstruction);
-  const [recommendedPrompts, setRecommendedPrompts] = useState<RecommendedPrompt[]>(currentConfig.recommendedPrompts || []);
-  const [selectedServiceTags, setSelectedServiceTags] = useState<string[]>(currentConfig.serviceTags || []);
+  const [recommendedPrompts, setRecommendedPrompts] = useState<RecommendedPrompt[]>(() => {
+    // Asegurar que recommendedPrompts sea siempre un array
+    const prompts = currentConfig.recommendedPrompts;
+    return Array.isArray(prompts) ? prompts : [];
+  });
+  const [selectedServiceTags, setSelectedServiceTags] = useState<string[]>(() => {
+    // Asegurar que serviceTags sea siempre un array
+    const tags = currentConfig.serviceTags;
+    return Array.isArray(tags) ? tags : [];
+  });
   const [enableGoogleSearch, setEnableGoogleSearch] = useState<boolean>(currentConfig.enableGoogleSearch);
   const [allowMapDisplay, setAllowMapDisplay] = useState<boolean>(currentConfig.allowMapDisplay);
   const [allowGeolocation, setAllowGeolocation] = useState<boolean>(currentConfig.allowGeolocation);
@@ -74,14 +82,14 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   useEffect(() => {
     setAssistantName(currentConfig.assistantName || DEFAULT_CHAT_CONFIG.assistantName);
     setSystemInstruction(typeof currentConfig.systemInstruction === 'string' ? currentConfig.systemInstruction : DEFAULT_CHAT_CONFIG.systemInstruction);
-    setRecommendedPrompts(currentConfig.recommendedPrompts || DEFAULT_CHAT_CONFIG.recommendedPrompts);
-    setSelectedServiceTags(currentConfig.serviceTags || DEFAULT_CHAT_CONFIG.serviceTags);
+    setRecommendedPrompts(Array.isArray(currentConfig.recommendedPrompts) ? currentConfig.recommendedPrompts : DEFAULT_CHAT_CONFIG.recommendedPrompts);
+    setSelectedServiceTags(Array.isArray(currentConfig.serviceTags) ? currentConfig.serviceTags : DEFAULT_CHAT_CONFIG.serviceTags);
     setEnableGoogleSearch(currentConfig.enableGoogleSearch === undefined ? DEFAULT_CHAT_CONFIG.enableGoogleSearch : currentConfig.enableGoogleSearch);
     setAllowMapDisplay(currentConfig.allowMapDisplay === undefined ? DEFAULT_CHAT_CONFIG.allowMapDisplay : currentConfig.allowMapDisplay);
     setAllowGeolocation(currentConfig.allowGeolocation === undefined ? DEFAULT_CHAT_CONFIG.allowGeolocation : currentConfig.allowGeolocation);
     setCurrentLanguageCode(currentConfig.currentLanguageCode || DEFAULT_CHAT_CONFIG.currentLanguageCode);
-    setProcedureSourceUrls(currentConfig.procedureSourceUrls || DEFAULT_CHAT_CONFIG.procedureSourceUrls);
-    setUploadedProcedureDocuments(currentConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
+    setProcedureSourceUrls(Array.isArray(currentConfig.procedureSourceUrls) ? currentConfig.procedureSourceUrls : DEFAULT_CHAT_CONFIG.procedureSourceUrls);
+    setUploadedProcedureDocuments(Array.isArray(currentConfig.uploadedProcedureDocuments) ? currentConfig.uploadedProcedureDocuments : DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
     setSedeElectronicaUrl(currentConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
     setMunicipalityInputName(currentConfig.restrictedCity?.name || '');
     setProfileImageUrl(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
