@@ -171,6 +171,8 @@ export const useCities = () => {
     loadCityBySlug,
     loadUserCity,
     createAdminChat,
+    createCity: createAdminChat, // Alias for compatibility
+    generateSlug: (name: string) => name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     isAdminOfCity,
     updateCityName,
     setError
