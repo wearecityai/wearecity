@@ -32,7 +32,7 @@ import {
   SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE_CODE,
 } from '../constants';
-import { ChatLinkDisplay } from './ChatLinkDisplay';
+import { PublicChatManager } from './PublicChatManager';
 
 
 interface FinetuningPageProps {
@@ -487,8 +487,8 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
             </Stack>
           </ModernCard>
 
-          {/* Chat Link Display */}
-          <ChatLinkDisplay assistantName={assistantName} />
+          {/* Public Chat Manager */}
+          <PublicChatManager />
 
           <ModernCard icon={<LocationOnIcon />} title="Contexto y Restricciones">
             <Stack spacing={2}>
