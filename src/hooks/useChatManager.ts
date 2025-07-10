@@ -66,11 +66,13 @@ export const useChatManager = (
   } = useChatActions();
 
   const handleSendMessage = async (inputText: string) => {
+    const callId = crypto.randomUUID();
     try {
-      console.log('=== Starting handleSendMessage ===');
+      console.log(`=== Starting handleSendMessage [${callId}] ===`);
       console.log('Input text:', inputText);
       console.log('Current conversation ID:', currentConversationId);
       console.log('Available conversations:', conversations.map(c => c.id));
+      console.log('Stack trace:', new Error().stack);
 
       // Step 1: Determine or create the target conversation
       let targetConversationId = currentConversationId;
