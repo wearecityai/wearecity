@@ -415,10 +415,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                   messages={messages}
                   isLoading={isLoading}
                   appError={appError}
-                  chatConfig={{
-                    ...chatConfig,
-                    profileImageUrl: profileImagePreview !== undefined ? profileImagePreview : chatConfig.profileImageUrl
-                  }}
+                  chatConfig={chatConfig}
                   handleSendMessage={handleSendMessage}
                   handleDownloadPdf={handleDownloadPdf}
                   handleSeeMoreEvents={handleSeeMoreEvents}
@@ -474,10 +471,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           messages={messages}
           isLoading={isLoading}
           appError={appError}
-          chatConfig={{
-            ...chatConfig,
-            profileImageUrl: profileImagePreview !== undefined ? profileImagePreview : chatConfig.profileImageUrl
-          }}
+          chatConfig={chatConfig}
           handleSendMessage={handleSendMessage}
           handleDownloadPdf={handleDownloadPdf}
           handleSeeMoreEvents={handleSeeMoreEvents}

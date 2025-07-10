@@ -46,6 +46,18 @@ export const useAssistantConfig = () => {
     return obj;
   };
 
+  // Helper para recommendedPrompts: asegura array de objetos {text, img}
+  const safeParseRecommendedPrompts = (value: any, fallback: any[]): any[] => {
+    if (Array.isArray(value) && value.every(v => typeof v === 'object' && v !== null && 'text' in v && 'img' in v)) return value;
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed) && parsed.every(v => typeof v === 'object' && v !== null && 'text' in v && 'img' in v)) return parsed;
+      } catch {}
+    }
+    return fallback;
+  };
+
   // Cargar configuración desde Supabase
   const loadConfig = async () => {
     if (!user || profile?.role !== 'administrativo') {
@@ -86,8 +98,8 @@ export const useAssistantConfig = () => {
         const loadedConfig: CustomChatConfig = {
           assistantName: data.assistant_name || DEFAULT_CHAT_CONFIG.assistantName,
           systemInstruction: data.system_instruction || DEFAULT_CHAT_CONFIG.systemInstruction,
-          recommendedPrompts: (data.recommended_prompts || DEFAULT_CHAT_CONFIG.recommendedPrompts) as any,
-          serviceTags: (data.service_tags || DEFAULT_CHAT_CONFIG.serviceTags) as any,
+          recommendedPrompts: safeParseRecommendedPrompts(data.recommended_prompts, DEFAULT_CHAT_CONFIG.recommendedPrompts),
+          serviceTags: safeParseJsonArray(data.service_tags, DEFAULT_CHAT_CONFIG.serviceTags),
           enableGoogleSearch: data.enable_google_search ?? DEFAULT_CHAT_CONFIG.enableGoogleSearch,
           allowMapDisplay: data.allow_map_display ?? DEFAULT_CHAT_CONFIG.allowMapDisplay,
           allowGeolocation: data.allow_geolocation ?? DEFAULT_CHAT_CONFIG.allowGeolocation,

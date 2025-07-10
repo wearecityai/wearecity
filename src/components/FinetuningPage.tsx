@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     Box, Container, Typography, TextField, Button, Switch, FormControlLabel, FormGroup, Grid, Paper, Stack,
     IconButton, Chip, Select, MenuItem, InputLabel, FormControl, Alert, FormHelperText, Tooltip, useTheme, useMediaQuery,
@@ -85,21 +85,26 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Solo sincronizar el estado local si cambia la ciudad base (o un id único de config)
+  const lastCityRef = useRef<string | undefined>(currentConfig.restrictedCity?.name);
   useEffect(() => {
-    setAssistantName(currentConfig.assistantName || DEFAULT_CHAT_CONFIG.assistantName);
-    setSystemInstruction(typeof currentConfig.systemInstruction === 'string' ? currentConfig.systemInstruction : DEFAULT_CHAT_CONFIG.systemInstruction);
-    setRecommendedPrompts(Array.isArray(currentConfig.recommendedPrompts) ? currentConfig.recommendedPrompts : DEFAULT_CHAT_CONFIG.recommendedPrompts);
-    setSelectedServiceTags(Array.isArray(currentConfig.serviceTags) ? currentConfig.serviceTags : DEFAULT_CHAT_CONFIG.serviceTags);
-    setEnableGoogleSearch(currentConfig.enableGoogleSearch === undefined ? DEFAULT_CHAT_CONFIG.enableGoogleSearch : currentConfig.enableGoogleSearch);
-    setAllowMapDisplay(currentConfig.allowMapDisplay === undefined ? DEFAULT_CHAT_CONFIG.allowMapDisplay : currentConfig.allowMapDisplay);
-    setAllowGeolocation(currentConfig.allowGeolocation === undefined ? DEFAULT_CHAT_CONFIG.allowGeolocation : currentConfig.allowGeolocation);
-    setCurrentLanguageCode(currentConfig.currentLanguageCode || DEFAULT_CHAT_CONFIG.currentLanguageCode);
-    setProcedureSourceUrls(Array.isArray(currentConfig.procedureSourceUrls) ? currentConfig.procedureSourceUrls : DEFAULT_CHAT_CONFIG.procedureSourceUrls);
-    setUploadedProcedureDocuments(Array.isArray(currentConfig.uploadedProcedureDocuments) ? currentConfig.uploadedProcedureDocuments : DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
-    setSedeElectronicaUrl(currentConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
-    setMunicipalityInputName(currentConfig.restrictedCity?.name || '');
-    setProfileImageUrl(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
-  }, [currentConfig, profileImagePreview]);
+    if (lastCityRef.current !== currentConfig.restrictedCity?.name) {
+      setAssistantName(currentConfig.assistantName || DEFAULT_CHAT_CONFIG.assistantName);
+      setSystemInstruction(typeof currentConfig.systemInstruction === 'string' ? currentConfig.systemInstruction : DEFAULT_CHAT_CONFIG.systemInstruction);
+      setRecommendedPrompts(Array.isArray(currentConfig.recommendedPrompts) ? currentConfig.recommendedPrompts : DEFAULT_CHAT_CONFIG.recommendedPrompts);
+      setSelectedServiceTags(Array.isArray(currentConfig.serviceTags) ? currentConfig.serviceTags : DEFAULT_CHAT_CONFIG.serviceTags);
+      setEnableGoogleSearch(currentConfig.enableGoogleSearch === undefined ? DEFAULT_CHAT_CONFIG.enableGoogleSearch : currentConfig.enableGoogleSearch);
+      setAllowMapDisplay(currentConfig.allowMapDisplay === undefined ? DEFAULT_CHAT_CONFIG.allowMapDisplay : currentConfig.allowMapDisplay);
+      setAllowGeolocation(currentConfig.allowGeolocation === undefined ? DEFAULT_CHAT_CONFIG.allowGeolocation : currentConfig.allowGeolocation);
+      setCurrentLanguageCode(currentConfig.currentLanguageCode || DEFAULT_CHAT_CONFIG.currentLanguageCode);
+      setProcedureSourceUrls(Array.isArray(currentConfig.procedureSourceUrls) ? currentConfig.procedureSourceUrls : DEFAULT_CHAT_CONFIG.procedureSourceUrls);
+      setUploadedProcedureDocuments(Array.isArray(currentConfig.uploadedProcedureDocuments) ? currentConfig.uploadedProcedureDocuments : DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
+      setSedeElectronicaUrl(currentConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
+      setMunicipalityInputName(currentConfig.restrictedCity?.name || '');
+      setProfileImageUrl(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
+      lastCityRef.current = currentConfig.restrictedCity?.name;
+    }
+  }, [currentConfig.restrictedCity?.name, profileImagePreview]);
 
   // Actualizar automáticamente el icono cuando cambia el prompt
   useEffect(() => {

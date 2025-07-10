@@ -282,18 +282,17 @@ export const RecommendedPromptsBar: React.FC<{
               color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
               borderRadius: 4,
               minWidth: { xs: 110, sm: 140 },
-              maxWidth: { xs: 110, sm: 140 },
-              minHeight: { xs: 150, sm: 180 },
-              maxHeight: { xs: 150, sm: 180 },
+              maxWidth: { xs: 220, sm: 180 },
+              minHeight: { xs: 56, sm: 70 },
+              maxHeight: { xs: 300, sm: 300 },
               display: 'flex',
-              flexDirection: 'column',
+              flexDirection: { xs: 'row', sm: 'column' },
               alignItems: 'center',
-              justifyContent: 'flex-start',
-              fontSize: { xs: '0.85rem', sm: '0.95rem' },
+              fontSize: { xs: '0.95rem', sm: '0.95rem' },
               fontWeight: 400,
               px: { xs: 1, sm: 1.5 },
-              py: { xs: 1.5, sm: 2 },
-              textAlign: 'center',
+              py: { xs: 0.5, sm: 1 },
+              textAlign: { xs: 'left', sm: 'center' },
               flex: '0 0 auto',
               boxShadow: 'none',
               cursor: 'pointer',
@@ -303,20 +302,34 @@ export const RecommendedPromptsBar: React.FC<{
               },
               mb: 0,
               userSelect: 'none',
-              gap: 1,
+              gap: 1.2,
             }}
             onClick={() => onSendMessage(prompt.text)}
           >
             <Avatar sx={{ 
-              width: { xs: 38, sm: 52 }, 
-              height: { xs: 38, sm: 52 }, 
+              width: { xs: 32, sm: 38 }, 
+              height: { xs: 32, sm: 38 }, 
               bgcolor: 'primary.main', 
               color: 'white',
-              mb: 1.2
+              mr: { xs: 1, sm: 0 },
+              mb: { xs: 0, sm: 1 },
+              flexShrink: 0,
+              alignSelf: 'center',
             }}>
-              <IconComponent sx={{ fontSize: { xs: 22, sm: 32 } }} />
+              <IconComponent sx={{ fontSize: { xs: 18, sm: 22 } }} />
             </Avatar>
-            <span style={{ flex: 1, width: '100%', wordBreak: 'break-word', lineHeight: 1.25 }}>{promptText}</span>
+            <span
+              style={{
+                flex: 1,
+                width: '100%',
+                wordBreak: 'break-word',
+                lineHeight: 1.25,
+                whiteSpace: 'normal',
+                fontSize: '0.97em',
+              }}
+            >
+              {promptText}
+            </span>
           </Box>
         );
       })}
