@@ -54,6 +54,7 @@ interface AppContainerProps {
   setCurrentConversationId: (id: string | null) => void;
   deleteConversation: (conversationId: string) => Promise<void>;
   shouldShowChatContainer: boolean;
+  isPublicChat?: boolean;
 }
 
 const AppContainer: React.FC<AppContainerProps> = ({ 
@@ -91,7 +92,8 @@ const AppContainer: React.FC<AppContainerProps> = ({
   currentConversationId,
   setCurrentConversationId,
   deleteConversation,
-  shouldShowChatContainer
+  shouldShowChatContainer,
+  isPublicChat = false
 }) => {
   const {
     handleNewChat: handleNewChatClick,
@@ -169,6 +171,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
       conversations={conversations}
       deleteConversation={deleteConversation}
       shouldShowChatContainer={shouldShowChatContainer}
+      isPublicChat={isPublicChat}
     />
   );
 };

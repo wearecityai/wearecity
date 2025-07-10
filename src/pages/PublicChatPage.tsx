@@ -155,8 +155,8 @@ export const PublicChatPage: React.FC = () => {
         isMobile={isMobile}
         isGeminiReady={isGeminiReady}
         appError={appError}
-        currentView={currentView}
-        setCurrentView={setCurrentView}
+        currentView="chat"  // Forzar vista de chat
+        setCurrentView={() => {}}  // No permitir cambios de vista
         chatTitles={chatTitles}
         selectedChatIndex={selectedChatIndex}
         setSelectedChatIndex={setSelectedChatIndex}
@@ -181,6 +181,7 @@ export const PublicChatPage: React.FC = () => {
         setCurrentConversationId={setCurrentConversationId}
         deleteConversation={deleteConversation}
         shouldShowChatContainer={shouldShowChatContainer}
+        isPublicChat={true}  // Marcar como chat público
       />
     );
   }

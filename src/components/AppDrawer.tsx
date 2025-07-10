@@ -33,6 +33,7 @@ interface AppDrawerProps {
   chatConfig: CustomChatConfig;
   userLocation: UserLocation | null;
   geolocationStatus: 'idle' | 'pending' | 'success' | 'error';
+  isPublicChat?: boolean;
 }
 
 const AppDrawer: React.FC<AppDrawerProps> = ({
@@ -47,7 +48,8 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   onDeleteChat,
   chatConfig,
   userLocation,
-  geolocationStatus
+  geolocationStatus,
+  isPublicChat = false
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -372,29 +374,31 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
             </ListItemIcon>
             {isMenuOpen && <ListItemText primary="Actividad" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
         </ListItemButton>
-        <ListItemButton 
-          onClick={() => { onOpenFinetuning(); if (isMobile) onMenuToggle(); }}
-          title={!isMenuOpen ? "Configurar chat" : undefined}
-          sx={{
-            minHeight: BUTTON_HEIGHT,
-            justifyContent: 'center',
-            px: isMenuOpen ? PADDING_EXPANDED : 0,
-            mx: isMenuOpen ? 1 : 1.5,
-            my: 0.5,
-            borderRadius: '20px',
-          }}
-        >
-            <ListItemIcon sx={{
-              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              display: 'flex',
-              alignItems: 'center',
+        {!isPublicChat && (
+          <ListItemButton 
+            onClick={() => { onOpenFinetuning(); if (isMobile) onMenuToggle(); }}
+            title={!isMenuOpen ? "Configurar chat" : undefined}
+            sx={{
+              minHeight: BUTTON_HEIGHT,
               justifyContent: 'center',
-            }}>
-              <TuneIcon sx={{ fontSize: ICON_SIZE }} />
-            </ListItemIcon>
-            {isMenuOpen && <ListItemText primary="Configurar chat" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
-        </ListItemButton>
+              px: isMenuOpen ? PADDING_EXPANDED : 0,
+              mx: isMenuOpen ? 1 : 1.5,
+              my: 0.5,
+              borderRadius: '20px',
+            }}
+          >
+              <ListItemIcon sx={{
+                minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
+                mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <TuneIcon sx={{ fontSize: ICON_SIZE }} />
+              </ListItemIcon>
+              {isMenuOpen && <ListItemText primary="Configurar chat" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
+          </ListItemButton>
+        )}
         <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
         
         {/* Location Section - Mejorada */}

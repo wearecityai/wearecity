@@ -63,6 +63,7 @@ interface AppLayoutProps {
   conversations: Array<{ id: string; title: string }>;
   deleteConversation: (conversationId: string) => Promise<void>;
   shouldShowChatContainer: boolean;
+  isPublicChat?: boolean;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = (props) => {
@@ -99,7 +100,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     googleMapsScriptLoaded,
     conversations,
     deleteConversation,
-    shouldShowChatContainer
+    shouldShowChatContainer,
+    isPublicChat = false
   } = props;
 
   // Use conversation data from props instead of duplicating the hook
@@ -245,6 +247,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           chatConfig={chatConfig}
           userLocation={userLocation}
           geolocationStatus={geolocationStatus}
+          isPublicChat={isPublicChat}
         />
         
         {/* Paneles redimensionables: admin y chat */}
@@ -419,6 +422,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           chatConfig={chatConfig}
           userLocation={userLocation}
           geolocationStatus={geolocationStatus}
+          isPublicChat={isPublicChat}
         />
         <MainContent
           theme={theme}
