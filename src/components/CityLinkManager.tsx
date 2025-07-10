@@ -30,6 +30,7 @@ import QRCode from 'qrcode';
 import { useAssistantConfig } from '@/hooks/useAssistantConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { CityDebug } from './CityDebug';
 
 export const CityLinkManager: React.FC = () => {
   const { user } = useAuth();
@@ -195,6 +196,11 @@ export const CityLinkManager: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Debug component - solo en desarrollo */}
+      {process.env.NODE_ENV === 'development' && (
+        <CityDebug />
+      )}
+      
       <Card>
         <CardHeader
           title={

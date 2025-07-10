@@ -59,6 +59,8 @@ export const PublicChatPage: React.FC = () => {
       }
 
       try {
+        console.log('🔍 Buscando ciudad con slug:', chatSlug);
+        
         // Cargar ciudad por slug directamente desde la tabla cities
         const { data: cityData, error: cityError } = await supabase
           .from('cities')
@@ -68,6 +70,8 @@ export const PublicChatPage: React.FC = () => {
           .eq('is_public', true)
           .maybeSingle();
 
+        console.log('📊 Resultado de la búsqueda:', { cityData, cityError });
+
         if (cityError) {
           console.error('Error loading city:', cityError);
           setError('Error al cargar la ciudad');
@@ -75,6 +79,7 @@ export const PublicChatPage: React.FC = () => {
         }
 
         if (cityData) {
+          console.log('✅ Ciudad encontrada:', cityData);
           setCity(cityData);
           
           // Helper functions para parsear datos JSON
