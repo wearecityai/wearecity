@@ -32,37 +32,6 @@ interface AdminFinetuningConfig {
   restricted_city: any;
 }
 
-// Mantener compatibilidad con el hook anterior
-export const usePublicChats = () => {
-  const adminChats = useAdminChats();
-  return {
-    ...adminChats,
-    userChats: adminChats.userChats,
-    currentChat: adminChats.currentChat,
-    createPublicChat: adminChats.createChat,
-    loadChatBySlug: adminChats.loadChatBySlug,
-    updateChatSlug: async (chatId: string, newSlug: string, isPublic: boolean) => {
-      // Implementar actualización de slug si es necesario
-      return true;
-    },
-    generateSlug: (name: string) => {
-      return name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim()
-        .replace(/^-+|-+$/g, '');
-    },
-    isSlugAvailable: async (slug: string) => {
-      const chat = await adminChats.loadChatBySlug(slug);
-      return !chat;
-    }
-  };
-};
-
 export const useAdminChats = () => {
   const { user, profile } = useAuth();
   const [userChats, setUserChats] = useState<AdminChat[]>([]);
@@ -129,14 +98,16 @@ export const useAdminChats = () => {
 
       const result = data && data.length > 0 ? data[0] : null;
       if (result) {
-        setCurrentConfig({
+        const configResult: AdminFinetuningConfig = {
           ...result,
           recommended_prompts: Array.isArray(result.recommended_prompts) ? result.recommended_prompts : [],
           service_tags: Array.isArray(result.service_tags) ? result.service_tags : [],
           procedure_source_urls: Array.isArray(result.procedure_source_urls) ? result.procedure_source_urls : [],
-        });
+        };
+        setCurrentConfig(configResult);
+        return configResult;
       }
-      return result;
+      return null;
     } catch (error) {
       console.error('Error loading chat config:', error);
       return null;
@@ -174,7 +145,7 @@ export const useAdminChats = () => {
           updated_at: new Date().toISOString()
         };
         setCurrentChat(newChat);
-        await loadUserChats(); // Recargar lista
+        await loadUserChats();
         return newChat;
       }
 
@@ -208,7 +179,6 @@ export const useAdminChats = () => {
         return false;
       }
 
-      // Recargar configuración
       const updatedConfig = await loadChatConfig(chatId);
       if (updatedConfig) {
         setCurrentConfig(updatedConfig);
@@ -243,5 +213,20 @@ export const useAdminChats = () => {
     setCurrentChat,
     setCurrentConfig,
     setError
+  };
+};
+
+// Mantener compatibilidad con el hook anterior
+export const usePublicChats = () => {
+  const adminChats = useAdminChats();
+  return {
+    ...adminChats,
+    userChats: adminChats.userChats,
+    currentChat: adminChats.currentChat,
+    createPublicChat: adminChats.createChat,
+    loadChatBySlug: adminChats.loadChatBySlug,
+    updateChatSlug: async () => true,
+    generateSlug: (name: string) => name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+    isSlugAvailable: async () => true
   };
 };
