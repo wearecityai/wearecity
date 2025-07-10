@@ -1,44 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Navigate, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, MessageCircle, ArrowLeft } from 'lucide-react';
+import { useParams, Navigate } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useApiInitialization } from '@/hooks/useApiInitialization';
 import { useAppState } from '@/hooks/useAppState';
 import AppContainer from '@/components/AppContainer';
 import { supabase } from '@/integrations/supabase/client';
 
-interface CityChat {
-  id: string;
-  name: string;
-  slug: string;
-  assistant_name: string | null;
-  system_instruction: string | null;
-  recommended_prompts: any;
-  service_tags: any;
-  enable_google_search: boolean | null;
-  allow_map_display: boolean | null;
-  allow_geolocation: boolean | null;
-  current_language_code: string | null;
-  procedure_source_urls: any;
-  uploaded_procedure_documents: any;
-  sede_electronica_url: string | null;
-  restricted_city: any;
-  created_at: string | null;
-  updated_at: string | null;
-}
 
 export const PublicChatPage: React.FC = () => {
   const { chatSlug } = useParams<{ chatSlug: string }>();
-  const navigate = useNavigate();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
   
-  const [city, setCity] = useState<CityChat | null>(null);
+  const [city, setCity] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState(false);
 
   // App state hooks para el chat funcional
   const {
@@ -87,6 +65,7 @@ export const PublicChatPage: React.FC = () => {
           .select('*')
           .eq('slug', chatSlug)
           .eq('is_active', true)
+          .eq('is_public', true)
           .maybeSingle();
 
         if (cityError) {
@@ -142,7 +121,7 @@ export const PublicChatPage: React.FC = () => {
           };
           setChatConfig(newChatConfig);
         } else {
-          setError('Ciudad no encontrada');
+          setError('Ciudad no encontrada o no es pública');
         }
       } catch (err) {
         console.error('Error loading city:', err);
@@ -156,7 +135,7 @@ export const PublicChatPage: React.FC = () => {
   }, [chatSlug, setChatConfig]);
 
   const handleLogin = () => {
-    navigate('/auth');
+    window.location.href = '/auth';
   };
 
   if (!chatSlug) {
@@ -185,139 +164,53 @@ export const PublicChatPage: React.FC = () => {
             <div className="text-6xl mb-4">🤖</div>
             <h2 className="text-2xl font-bold mb-2">Ciudad no encontrada</h2>
             <p className="text-muted-foreground mb-4">
-              La ciudad "{chatSlug}" no existe o no está disponible.
+              La ciudad "{chatSlug}" no existe o no está disponible públicamente.
             </p>
-            <Button onClick={() => window.location.href = '/'}>
-              Volver al inicio
-            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Si el chat está listo y se solicita mostrarlo, usar AppContainer completo
-  if (showChat) {
-    return (
-      <AppContainer
-        toggleTheme={toggleTheme}
-        currentThemeMode={currentThemeMode}
-        user={user}
-        profile={profile}
-        onLogin={handleLogin}
-        theme={theme}
-        isMobile={isMobile}
-        isGeminiReady={isGeminiReady}
-        appError={appError}
-        currentView="chat"  // Forzar vista de chat
-        setCurrentView={() => {}}  // No permitir cambios de vista
-        chatTitles={chatTitles}
-        selectedChatIndex={selectedChatIndex}
-        setSelectedChatIndex={setSelectedChatIndex}
-        isMenuOpen={isMenuOpen}
-        setIsMenuOpen={setIsMenuOpen}
-        chatConfig={chatConfig}
-        setChatConfig={setChatConfig}
-        saveConfig={saveConfig}
-        userLocation={userLocation}
-        geolocationStatus={geolocationStatus}
-        googleMapsScriptLoaded={googleMapsScriptLoaded}
-        messages={messages}
-        isLoading={chatIsLoading}
-        handleSendMessage={handleSendMessage}
-        handleSeeMoreEvents={handleSeeMoreEvents}
-        clearMessages={clearMessages}
-        setAppError={setAppError}
-        setIsGeminiReady={setIsGeminiReady}
-        handleNewChat={handleNewChat}
-        conversations={conversations}
-        currentConversationId={currentConversationId}
-        setCurrentConversationId={setCurrentConversationId}
-        deleteConversation={deleteConversation}
-        shouldShowChatContainer={shouldShowChatContainer}
-        isPublicChat={true}  // Marcar como chat público
-      />
-    );
-  }
-
+  // Usar AppContainer directamente - igual que la home pero con la config de la ciudad
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          {/* Hero Section */}
-          <Card className="mb-8">
-            <CardHeader className="text-center">
-              <div className="text-6xl mb-4">🤖</div>
-              <CardTitle className="text-3xl mb-2">
-                {city.assistant_name || city.name}
-              </CardTitle>
-              <p className="text-muted-foreground text-lg">
-                {city.name}
-              </p>
-            </CardHeader>
-          </Card>
-
-          {/* Chat Info */}
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4">Sobre este Asistente</h3>
-              <div className="prose prose-sm max-w-none">
-                <p className="text-muted-foreground">
-                  {city.system_instruction || 'Soy un asistente inteligente que ayuda a los ciudadanos.'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* City Info */}
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold mb-2">Información de la Ciudad</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Este asistente está configurado para ayudar específicamente con información sobre {city.name}.
-                  </p>
-                </div>
-                <div className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                  Público
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* CTA */}
-          <Card>
-            <CardContent className="text-center p-8">
-              <h3 className="text-xl font-semibold mb-4">
-                ¿Listo para chatear?
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Inicia una conversación con {city.assistant_name || city.name} 
-                y descubre cómo puede ayudarte.
-              </p>
-              <Button 
-                size="lg" 
-                onClick={() => setShowChat(true)}
-                className="gap-2"
-              >
-                <MessageCircle className="h-5 w-5" />
-                Iniciar Chat
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Footer Info */}
-          <div className="text-center text-sm text-muted-foreground mt-8">
-            <p>
-              Creado el {city.created_at ? new Date(city.created_at).toLocaleDateString() : 'Fecha no disponible'}
-              {city.updated_at && city.updated_at !== city.created_at && (
-                <span> • Actualizado el {new Date(city.updated_at).toLocaleDateString()}</span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AppContainer
+      toggleTheme={toggleTheme}
+      currentThemeMode={currentThemeMode}
+      user={user}
+      profile={profile}
+      onLogin={handleLogin}
+      theme={theme}
+      isMobile={isMobile}
+      isGeminiReady={isGeminiReady}
+      appError={appError}
+      currentView="chat"
+      setCurrentView={setCurrentView}
+      chatTitles={chatTitles}
+      selectedChatIndex={selectedChatIndex}
+      setSelectedChatIndex={setSelectedChatIndex}
+      isMenuOpen={isMenuOpen}
+      setIsMenuOpen={setIsMenuOpen}
+      chatConfig={chatConfig}
+      setChatConfig={setChatConfig}
+      saveConfig={saveConfig}
+      userLocation={userLocation}
+      geolocationStatus={geolocationStatus}
+      googleMapsScriptLoaded={googleMapsScriptLoaded}
+      messages={messages}
+      isLoading={chatIsLoading}
+      handleSendMessage={handleSendMessage}
+      handleSeeMoreEvents={handleSeeMoreEvents}
+      clearMessages={clearMessages}
+      setAppError={setAppError}
+      setIsGeminiReady={setIsGeminiReady}
+      handleNewChat={handleNewChat}
+      conversations={conversations}
+      currentConversationId={currentConversationId}
+      setCurrentConversationId={setCurrentConversationId}
+      deleteConversation={deleteConversation}
+      shouldShowChatContainer={shouldShowChatContainer}
+      isPublicChat={true}
+    />
   );
 }; 

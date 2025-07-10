@@ -161,8 +161,8 @@ export const useAssistantConfig = () => {
       const result = await supabase
         .from('cities')
         .update({
-          name: newConfig.assistantName,  // También actualizar el nombre de la ciudad
-          slug: newSlug,  // Actualizar slug automáticamente
+          name: newConfig.assistantName,
+          slug: newSlug,
           assistant_name: newConfig.assistantName,
           system_instruction: newConfig.systemInstruction,
           recommended_prompts: JSON.stringify(newConfig.recommendedPrompts),
@@ -175,6 +175,7 @@ export const useAssistantConfig = () => {
           uploaded_procedure_documents: JSON.stringify(newConfig.uploadedProcedureDocuments),
           restricted_city: JSON.stringify(newConfig.restrictedCity),
           sede_electronica_url: newConfig.sedeElectronicaUrl,
+          is_public: true, // Por defecto las ciudades son públicas
           updated_at: new Date().toISOString()
         })
         .eq('admin_user_id', user.id)

@@ -14,113 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_chats: {
-        Row: {
-          admin_user_id: string
-          chat_name: string
-          chat_slug: string
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          is_public: boolean | null
-          updated_at: string | null
-        }
-        Insert: {
-          admin_user_id: string
-          chat_name?: string
-          chat_slug: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_public?: boolean | null
-          updated_at?: string | null
-        }
-        Update: {
-          admin_user_id?: string
-          chat_name?: string
-          chat_slug?: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_public?: boolean | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      admin_finetuning_config: {
-        Row: {
-          admin_user_id: string
-          allow_geolocation: boolean | null
-          allow_map_display: boolean | null
-          assistant_name: string | null
-          chat_id: string | null
-          config_name: string
-          created_at: string | null
-          current_language_code: string | null
-          enable_google_search: boolean | null
-          id: string
-          is_active: boolean | null
-          procedure_source_urls: Json | null
-          recommended_prompts: Json | null
-          restricted_city: Json | null
-          sede_electronica_url: string | null
-          service_tags: Json | null
-          system_instruction: string | null
-          updated_at: string | null
-          uploaded_procedure_documents: Json | null
-        }
-        Insert: {
-          admin_user_id: string
-          allow_geolocation?: boolean | null
-          allow_map_display?: boolean | null
-          assistant_name?: string | null
-          chat_id?: string | null
-          config_name?: string
-          created_at?: string | null
-          current_language_code?: string | null
-          enable_google_search?: boolean | null
-          id?: string
-          is_active?: boolean | null
-          procedure_source_urls?: Json | null
-          recommended_prompts?: Json | null
-          restricted_city?: Json | null
-          sede_electronica_url?: string | null
-          service_tags?: Json | null
-          system_instruction?: string | null
-          updated_at?: string | null
-          uploaded_procedure_documents?: Json | null
-        }
-        Update: {
-          admin_user_id?: string
-          allow_geolocation?: boolean | null
-          allow_map_display?: boolean | null
-          assistant_name?: string | null
-          chat_id?: string | null
-          config_name?: string
-          created_at?: string | null
-          current_language_code?: string | null
-          enable_google_search?: boolean | null
-          id?: string
-          is_active?: boolean | null
-          procedure_source_urls?: Json | null
-          recommended_prompts?: Json | null
-          restricted_city?: Json | null
-          sede_electronica_url?: string | null
-          service_tags?: Json | null
-          system_instruction?: string | null
-          updated_at?: string | null
-          uploaded_procedure_documents?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_finetuning_config_chat_id_fkey"
-            columns: ["chat_id"]
-            isOneToOne: false
-            referencedRelation: "admin_chats"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cities: {
         Row: {
           admin_user_id: string
@@ -133,6 +26,7 @@ export type Database = {
           enable_google_search: boolean | null
           id: string
           is_active: boolean | null
+          is_public: boolean | null
           name: string
           procedure_source_urls: Json | null
           recommended_prompts: Json | null
@@ -155,6 +49,7 @@ export type Database = {
           enable_google_search?: boolean | null
           id?: string
           is_active?: boolean | null
+          is_public?: boolean | null
           name: string
           procedure_source_urls?: Json | null
           recommended_prompts?: Json | null
@@ -177,6 +72,7 @@ export type Database = {
           enable_google_search?: boolean | null
           id?: string
           is_active?: boolean | null
+          is_public?: boolean | null
           name?: string
           procedure_source_urls?: Json | null
           recommended_prompts?: Json | null
@@ -188,15 +84,7 @@ export type Database = {
           updated_at?: string | null
           uploaded_procedure_documents?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "cities_chat_id_fkey"
-            columns: ["chat_id"]
-            isOneToOne: false
-            referencedRelation: "admin_chats"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversations: {
         Row: {

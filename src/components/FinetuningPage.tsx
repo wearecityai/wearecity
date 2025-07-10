@@ -32,7 +32,7 @@ import {
   SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE_CODE,
 } from '../constants';
-import { PublicChatManager } from './PublicChatManager';
+import { CityLinkManager } from './CityLinkManager';
 
 
 interface FinetuningPageProps {
@@ -488,7 +488,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
           </ModernCard>
 
           {/* Public Chat Manager */}
-          <PublicChatManager />
+          <CityLinkManager />
 
           <ModernCard icon={<LocationOnIcon />} title="Contexto y Restricciones">
             <Stack spacing={2}>
