@@ -513,7 +513,7 @@ serve(async (req) => {
     });
   }
 
-  const { userMessage, userId, geocodeOnly, userLocation } = body;
+  const { userMessage, userId, geocodeOnly, userLocation, chatConfig } = body;
 
   // Manejo especial para geocodificación
   if (geocodeOnly && userLocation) {
@@ -595,11 +595,19 @@ serve(async (req) => {
   }
 
   try {
-    // Cargar configuración del asistente si hay userId
-    let assistantConfig = null;
-    if (userId) {
+    // Usar configuración enviada desde el cliente o cargar desde base de datos como fallback
+    let assistantConfig = chatConfig;
+    
+    if (!assistantConfig && userId) {
+      console.log('No se envió configuración, intentando cargar desde base de datos');
       assistantConfig = await loadAssistantConfig(userId);
     }
+    
+    console.log('Configuración final:', { 
+      hasConfig: !!assistantConfig,
+      restrictedCity: assistantConfig?.restrictedCity?.name || 'no restringida',
+      systemInstruction: assistantConfig?.systemInstruction ? 'sí' : 'no'
+    });
 
     // Construir el prompt del sistema
     const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation);

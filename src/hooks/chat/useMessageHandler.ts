@@ -73,7 +73,8 @@ export const useMessageHandler = (
       const responseText = await fetchChatIA(inputText, { 
         allowMapDisplay: chatConfig.allowMapDisplay,
         userId: user?.id,
-        userLocation: userLocationData
+        userLocation: userLocationData,
+        chatConfig: chatConfig // Enviar la configuración completa al edge function
       });
       
       const aiMessage: ChatMessage = {
