@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Avatar } from '@mui/material';
+import { Box, Typography, Avatar, Paper, Stack, Button } from '@mui/material';
 import ErrorBoundary from './ErrorBoundary';
 import AppDrawer from './AppDrawer';
 import MainContent from './MainContent';
@@ -10,6 +10,7 @@ import UserButton from './auth/UserButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CloseIcon from '@mui/icons-material/Close';
+import LanguageIcon from '@mui/icons-material/Language';
 import { IconButton } from '@mui/material';
 import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
 
@@ -116,11 +117,43 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     setUserMenuAnchorEl(null);
   };
 
+  const handleShareClick = () => {
+    setFinetuningActiveTab(1); // Cambiar a la pestaña "Compartir"
+    setCurrentView('finetuning');
+    setIsMenuOpen(false);
+    setShowShareToast(false);
+  };
+
+  // Estado para controlar la pestaña activa en FinetuningPage
+  const [finetuningActiveTab, setFinetuningActiveTab] = React.useState(0);
+
+  const handleCloseToast = () => {
+    setShowShareToast(false);
+  };
+
+  const showShareToastAfterSave = () => {
+    setShowShareToast(true);
+    setTimeout(() => {
+      setShowShareToast(false);
+    }, 5000);
+  };
+
+  const handleSaveCustomizationWithToast = (newConfig: any) => {
+    handleSaveCustomization(newConfig);
+    // Mostrar el toast después de guardar
+    setTimeout(() => {
+      showShareToastAfterSave();
+    }, 300);
+  };
+
   const drawerWidth = 260;
   const collapsedDrawerWidth = 72;
 
   // Estado para la imagen de perfil en edición (preview)
   const [profileImagePreview, setProfileImagePreview] = React.useState<string | undefined>(undefined);
+  
+  // Estado para el toast de compartir
+  const [showShareToast, setShowShareToast] = React.useState(false);
 
   // Header para vista normal (sin panel de configuración)
   const normalHeader = (
@@ -211,12 +244,14 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         {normalHeader}
         <FinetuningPage
           currentConfig={chatConfig}
-          onSave={handleSaveCustomization}
+          onSave={handleSaveCustomizationWithToast}
           onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
           googleMapsScriptLoaded={googleMapsScriptLoaded}
           apiKeyForMaps=""
           profileImagePreview={profileImagePreview}
           setProfileImagePreview={setProfileImagePreview}
+          activeTab={finetuningActiveTab}
+          onTabChange={setFinetuningActiveTab}
         />
       </>
     );
@@ -285,12 +320,14 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
               <Box sx={{ flex: 1, overflow: 'hidden', borderRight: `1px solid ${theme.palette.divider}` }}>
                 <FinetuningPage
                   currentConfig={chatConfig}
-                  onSave={handleSaveCustomization}
+                  onSave={handleSaveCustomizationWithToast}
                   onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
                   googleMapsScriptLoaded={googleMapsScriptLoaded}
                   apiKeyForMaps=""
                   profileImagePreview={profileImagePreview}
                   setProfileImagePreview={setProfileImagePreview}
+                  activeTab={finetuningActiveTab}
+                  onTabChange={setFinetuningActiveTab}
                 />
               </Box>
             </Box>
@@ -448,6 +485,72 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           shouldShowChatContainer={shouldShowChatContainer}
         />
       </Box>
+      
+      {/* Toast de compartir */}
+      {showShareToast && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: '80px', // Posición arriba del input del chat
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            maxWidth: 400,
+            width: '90%',
+            mx: 2
+          }}
+        >
+          <Paper
+            elevation={4}
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'background.paper',
+              border: `1px solid ${theme.palette.divider}`,
+              position: 'relative',
+              boxShadow: theme.shadows[8]
+            }}
+          >
+            <IconButton
+              onClick={handleCloseToast}
+              sx={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                color: 'text.secondary',
+                size: 'small'
+              }}
+              size="small"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+            
+            <Stack spacing={1.5} alignItems="center" textAlign="center">
+              <Box sx={{ color: 'primary.main' }}>
+                <LanguageIcon sx={{ fontSize: 32 }} />
+              </Box>
+              
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                ¡Configuración Guardada!
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Tu asistente está listo. ¿Quieres compartirlo?
+              </Typography>
+              
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleShareClick}
+                startIcon={<LanguageIcon />}
+                size="small"
+              >
+                Compartir Chat
+              </Button>
+            </Stack>
+          </Paper>
+        </Box>
+      )}
     </Box>
   );
 };

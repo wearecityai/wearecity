@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Box, Container, Typography, TextField, Button, Switch, FormControlLabel, FormGroup, Grid, Paper, Stack,
-    IconButton, Chip, Select, MenuItem, InputLabel, FormControl, Alert, FormHelperText, Tooltip, useTheme, useMediaQuery
+    IconButton, Chip, Select, MenuItem, InputLabel, FormControl, Alert, FormHelperText, Tooltip, useTheme, useMediaQuery,
+    Tabs, Tab
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -43,9 +44,11 @@ interface FinetuningPageProps {
   apiKeyForMaps: string;
   profileImagePreview?: string;
   setProfileImagePreview?: React.Dispatch<React.SetStateAction<string | undefined>>;
+  activeTab?: number;
+  onTabChange?: (tab: number) => void;
 }
 
-const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, onCancel, googleMapsScriptLoaded, apiKeyForMaps, profileImagePreview, setProfileImagePreview }) => {
+const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, onCancel, googleMapsScriptLoaded, apiKeyForMaps, profileImagePreview, setProfileImagePreview, activeTab: externalActiveTab, onTabChange }) => {
   const [assistantName, setAssistantName] = useState(currentConfig.assistantName);
   const [systemInstruction, setSystemInstruction] = useState(currentConfig.systemInstruction);
   const [recommendedPrompts, setRecommendedPrompts] = useState<RecommendedPrompt[]>(() => {
@@ -76,6 +79,9 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   const [profileImageUrl, setProfileImageUrl] = useState<string>(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
+  const [internalActiveTab, setInternalActiveTab] = useState(0);
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+  const setActiveTab = onTabChange || setInternalActiveTab;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -336,6 +342,14 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
     }
   };
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
+
+  const handleShareClick = () => {
+    setActiveTab(1); // Cambiar a la pestaña "Compartir"
+  };
+
   const handleSave = () => {
     const finalRestrictedCity: RestrictedCityInfo | null = municipalityInputName.trim() ? { name: municipalityInputName.trim() } : null;
     onSave({
@@ -347,6 +361,12 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
       profileImageUrl: profileImageUrl.trim() || undefined,
     });
     if (setProfileImagePreview) setProfileImagePreview(undefined); // Limpiar preview tras guardar
+  };
+
+  const handleSaveAndClose = () => {
+    handleSave();
+    // Cerrar el panel inmediatamente
+    if (isMobile) onCancel();
   };
 
   const handleResetToAppDefaults = () => {
@@ -406,244 +426,259 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
       <Container maxWidth="md" sx={{ flexGrow: 1, overflowY: 'auto', py: 3 }}>
-        <Stack spacing={3}>
-          <ModernCard icon={<PersonIcon />} title="Información General">
-            <Stack spacing={2}>
-              <TextField
-                fullWidth label="Nombre del Asistente" value={assistantName}
-                onChange={(e) => setAssistantName(e.target.value)} placeholder={DEFAULT_ASSISTANT_NAME}
-                variant="outlined"
-              />
-              
-              <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Foto de Perfil del Chat</Typography>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  {profileImageUrl && (
-                    <Box sx={{ position: 'relative' }}>
-                      <img 
-                        src={profileImageUrl} 
-                        alt="Profile preview" 
-                        style={{ 
-                          width: 64, 
-                          height: 64, 
-                          borderRadius: '50%', 
-                          objectFit: 'cover',
-                          border: `2px solid ${theme.palette.divider}`
-                        }} 
-                      />
-                      <IconButton
-                        onClick={handleRemoveProfileImage}
-                        sx={{
-                          position: 'absolute',
-                          top: -8,
-                          right: -8,
-                          bgcolor: 'error.main',
-                          color: 'white',
-                          width: 24,
-                          height: 24,
-                          '&:hover': { bgcolor: 'error.dark' }
-                        }}
-                        size="small"
-                      >
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )}
-                  <Button
-                    component="label"
-                    variant="outlined"
-                    startIcon={<UploadFileIcon />}
-                  >
-                    {profileImageUrl ? 'Cambiar Imagen' : 'Subir Imagen'}
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      ref={profileImageInputRef}
-                      onChange={handleProfileImageChange}
-                    />
-                  </Button>
-                </Stack>
-                {profileImageError && (
-                  <Alert severity="error" variant="standard" sx={{ py: 0.5, mt: 1 }}>
-                    {profileImageError}
-                  </Alert>
-                )}
-                <FormHelperText sx={{ mt: 1 }}>
-                  Imagen que aparecerá en el mensaje de bienvenida. Formatos: JPG, PNG, GIF. Máximo 2MB.
-                </FormHelperText>
-              </Box>
-
-              <FormControl fullWidth variant="outlined">
-                <InputLabel id="language-select-label">Idioma</InputLabel>
-                <Select
-                  labelId="language-select-label" label="Idioma" value={currentLanguageCode}
-                  onChange={(e) => setCurrentLanguageCode(e.target.value as string)}
-                >
-                  {SUPPORTED_LANGUAGES.map(lang => <MenuItem key={lang.code} value={lang.code}>{lang.flagEmoji} {lang.name} ({lang.abbr})</MenuItem>)}
-                </Select>
-                <FormHelperText>El asistente responderá en este idioma.</FormHelperText>
-              </FormControl>
-            </Stack>
-          </ModernCard>
-
-          {/* Public Chat Manager */}
-          <CityLinkManager />
-
-          <ModernCard icon={<LocationOnIcon />} title="Contexto y Restricciones">
-            <Stack spacing={2}>
-              <TextField
-                fullWidth label="Restringir a Municipio (Opcional)" value={municipalityInputName}
-                onChange={(e) => setMunicipalityInputName(e.target.value)}
-                placeholder="Ej: Madrid, Barcelona" variant="outlined"
-                InputProps={{
-                  endAdornment: municipalityInputName.trim() && (
-                    <IconButton onClick={handleClearRestrictedCity} edge="end" size="small" title="Limpiar municipio">
-                      <ClearIcon />
-                    </IconButton>
-                  )
-                }}
-              />
-              <TextField
-                fullWidth label="URL Sede Electrónica (Opcional)" value={sedeElectronicaUrl} type="url"
-                onChange={(e) => setSedeElectronicaUrl(e.target.value)} placeholder="https://sede.ejemplo.es"
-                variant="outlined" helperText="Enlace principal a la Sede Electrónica para trámites."
-              />
-            </Stack>
-          </ModernCard>
-
-          <ModernCard icon={<SettingsIcon />} title="Funcionalidades">
-            <FormGroup>
-              <FormControlLabel control={<Switch checked={enableGoogleSearch} onChange={(e) => setEnableGoogleSearch(e.target.checked)} />}
-                label="Habilitar Búsqueda de Google"
-              />
-              <FormHelperText sx={{ml:4, mt:-0.5}}>Permite buscar en la web (restringido al municipio si está configurado).</FormHelperText>
-
-              <FormControlLabel control={<Switch checked={allowMapDisplay} onChange={(e) => setAllowMapDisplay(e.target.checked)} disabled={!apiKeyForMaps} />}
-                label="Permitir Mostrar Mapas"
-              />
-              <FormHelperText sx={{ml:4, mt:-0.5}}>Muestra mapas de Google. {!apiKeyForMaps && "(API Key de Mapas no disponible)"}</FormHelperText>
-              
-              <FormControlLabel control={<Switch checked={allowGeolocation} onChange={(e) => setAllowGeolocation(e.target.checked)} />}
-                label="Habilitar Geolocalización"
-              />
-              <FormHelperText sx={{ml:4, mt:-0.5}}>Usa tu ubicación (con permiso) para contexto.</FormHelperText>
-            </FormGroup>
-          </ModernCard>
-
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>Personalización Avanzada</Typography>
-            <Stack spacing={2}>
-              <TextField
-                fullWidth multiline rows={4} label="Instrucciones Adicionales del Sistema"
-                value={systemInstruction} onChange={(e) => setSystemInstruction(e.target.value)}
-                placeholder="Ej: Prioriza opciones de bajo costo. Sé amigable." variant="outlined"
-                helperText="Directrices específicas. Se combinarán con otras configuraciones."
-              />
-              <Typography variant="subtitle1" sx={{mb:-1}}>Áreas de Especialización</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {AVAILABLE_SERVICE_TAGS.map(tag => (
-                  <Chip key={tag} label={tag} clickable
-                    color={selectedServiceTags.includes(tag) ? "primary" : "default"}
-                    onClick={() => handleToggleServiceTag(tag)}
-                    onDelete={selectedServiceTags.includes(tag) ? () => handleToggleServiceTag(tag) : undefined}
-                    deleteIcon={selectedServiceTags.includes(tag) ? <ClearIcon /> : undefined}
-                  />
-                ))}
-              </Box>
-            </Stack>
-          </Paper>
-          
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>
-              Prompts Recomendados
-            </Typography>
-            <Stack direction="row" spacing={1} mb={2}>
-              <TextField 
-                fullWidth 
-                label="Nuevo Prompt" 
-                value={newPrompt} 
-                onChange={(e) => setNewPrompt(e.target.value)} 
-                size="small" 
-                variant="outlined"
-                placeholder="Ej: ¿Dónde está la biblioteca municipal?"
-              />
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', transition: 'all 0.3s', flexShrink: 0 }}>
-                {React.createElement(getIconComponent(newPromptIcon), { sx: { fontSize: 18 } })}
-              </Avatar>
-              <Button variant="contained" onClick={handleAddPrompt} disabled={!newPrompt.trim()} sx={{flexShrink:0}}>Añadir</Button>
-            </Stack>
-            {recommendedPrompts.length > 0 && (
-              <Stack spacing={1}>
-                {recommendedPrompts.map((prompt, index) => (
-                  <Stack key={index} direction="row" spacing={1} alignItems="center">
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                      {React.createElement(getIconComponent(prompt.img), { sx: { fontSize: 18 } })}
-                    </Avatar>
-                    <TextField
-                      value={prompt.text}
-                      size="small"
-                      variant="outlined"
-                      InputProps={{ readOnly: true }}
-                      sx={{ flex: 1 }}
-                    />
-                    <Button color="error" onClick={() => handleRemovePrompt(index)}>Eliminar</Button>
-                  </Stack>
-                ))}
-              </Stack>
-            )}
-          </Paper>
-
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>Fuentes de Trámites (URLs)</Typography>
-            <Stack direction="row" spacing={1} mb={procedureSourceUrls.length > 0 ? 2 : 0}>
-              <TextField fullWidth label="Nueva URL de Trámite" value={newProcedureUrl} onChange={(e) => setNewProcedureUrl(e.target.value)} type="url" size="small" variant="outlined"/>
-              <Button variant="contained" onClick={handleAddProcedureUrl} disabled={!newProcedureUrl.trim() || !isValidUrl(newProcedureUrl.trim())} sx={{flexShrink:0}}>Añadir URL</Button>
-            </Stack>
-            {procedureSourceUrls.length > 0 && (
-              <Stack spacing={1}>
-                {procedureSourceUrls.map((url, index) => (
-                  <Chip key={index} label={url} onDelete={() => handleRemoveProcedureUrl(index)} sx={{maxWidth: '100%', '& .MuiChip-label': {overflow: 'hidden', textOverflow: 'ellipsis'}}}/>
-                ))}
-              </Stack>
-            )}
-          </Paper>
-
-          <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
-            <Typography variant="h6" gutterBottom>Documentos de Trámites (PDF)</Typography>
-            <Stack spacing={2}>
-              <TextField fullWidth label="Nombre del Trámite para PDF" value={currentProcedureNameToUpload} onChange={(e) => setCurrentProcedureNameToUpload(e.target.value)} size="small" variant="outlined"/>
-              <Button component="label" variant="outlined" startIcon={<UploadFileIcon />} fullWidth>
-                Seleccionar PDF
-                <input type="file" hidden accept=".pdf" ref={fileInputRef} onChange={handlePdfFileChange} />
-              </Button>
-              {currentPdfFile && <Typography variant="caption" color="text.secondary">Archivo seleccionado: {currentPdfFile.name}</Typography>}
-              {pdfUploadError && <Alert severity="error" variant="standard" sx={{py:0.5}}>{pdfUploadError}</Alert>}
-              <Button variant="contained" onClick={handleAddProcedureDocument} disabled={!currentProcedureNameToUpload.trim() || !currentPdfFile}>Adjuntar PDF al Trámite</Button>
-              {uploadedProcedureDocuments.length > 0 && (
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={activeTab} onChange={handleTabChange} aria-label="Configuración del asistente">
+            <Tab label="Personalizar" />
+            <Tab label="Compartir" />
+          </Tabs>
+        </Box>
+        
+        {activeTab === 0 && (
+          <Stack spacing={3}>
+            <ModernCard icon={<PersonIcon />} title="Información General">
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth label="Nombre del Asistente" value={assistantName}
+                  onChange={(e) => setAssistantName(e.target.value)} placeholder={DEFAULT_ASSISTANT_NAME}
+                  variant="outlined"
+                />
+                
                 <Box>
-                  <Typography variant="subtitle2" sx={{mt:1}}>PDFs adjuntados:</Typography>
-                  <Stack spacing={1} mt={1}>
-                    {uploadedProcedureDocuments.map((doc) => (
-                      <Chip key={doc.procedureName} label={`${doc.procedureName} (${doc.fileName})`} onDelete={() => handleRemoveProcedureDocument(doc.procedureName)} />
-                    ))}
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Foto de Perfil del Chat</Typography>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    {profileImageUrl && (
+                      <Box sx={{ position: 'relative' }}>
+                        <img 
+                          src={profileImageUrl} 
+                          alt="Profile preview" 
+                          style={{ 
+                            width: 64, 
+                            height: 64, 
+                            borderRadius: '50%', 
+                            objectFit: 'cover',
+                            border: `2px solid ${theme.palette.divider}`
+                          }} 
+                        />
+                        <IconButton
+                          onClick={handleRemoveProfileImage}
+                          sx={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            bgcolor: 'error.main',
+                            color: 'white',
+                            width: 24,
+                            height: 24,
+                            '&:hover': { bgcolor: 'error.dark' }
+                          }}
+                          size="small"
+                        >
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                    <Button
+                      component="label"
+                      variant="outlined"
+                      startIcon={<UploadFileIcon />}
+                    >
+                      {profileImageUrl ? 'Cambiar Imagen' : 'Subir Imagen'}
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        ref={profileImageInputRef}
+                        onChange={handleProfileImageChange}
+                      />
+                    </Button>
                   </Stack>
+                  {profileImageError && (
+                    <Alert severity="error" variant="standard" sx={{ py: 0.5, mt: 1 }}>
+                      {profileImageError}
+                    </Alert>
+                  )}
+                  <FormHelperText sx={{ mt: 1 }}>
+                    Imagen que aparecerá en el mensaje de bienvenida. Formatos: JPG, PNG, GIF. Máximo 2MB.
+                  </FormHelperText>
                 </Box>
+
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="language-select-label">Idioma</InputLabel>
+                  <Select
+                    labelId="language-select-label" label="Idioma" value={currentLanguageCode}
+                    onChange={(e) => setCurrentLanguageCode(e.target.value as string)}
+                  >
+                    {SUPPORTED_LANGUAGES.map(lang => <MenuItem key={lang.code} value={lang.code}>{lang.flagEmoji} {lang.name} ({lang.abbr})</MenuItem>)}
+                  </Select>
+                  <FormHelperText>El asistente responderá en este idioma.</FormHelperText>
+                </FormControl>
+              </Stack>
+            </ModernCard>
+
+            <ModernCard icon={<LocationOnIcon />} title="Contexto y Restricciones">
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth label="Restringir a Municipio (Opcional)" value={municipalityInputName}
+                  onChange={(e) => setMunicipalityInputName(e.target.value)}
+                  placeholder="Ej: Madrid, Barcelona" variant="outlined"
+                  InputProps={{
+                    endAdornment: municipalityInputName.trim() && (
+                      <IconButton onClick={handleClearRestrictedCity} edge="end" size="small" title="Limpiar municipio">
+                        <ClearIcon />
+                      </IconButton>
+                    )
+                  }}
+                />
+                <TextField
+                  fullWidth label="URL Sede Electrónica (Opcional)" value={sedeElectronicaUrl} type="url"
+                  onChange={(e) => setSedeElectronicaUrl(e.target.value)} placeholder="https://sede.ejemplo.es"
+                  variant="outlined" helperText="Enlace principal a la Sede Electrónica para trámites."
+                />
+              </Stack>
+            </ModernCard>
+
+            <ModernCard icon={<SettingsIcon />} title="Funcionalidades">
+              <FormGroup>
+                <FormControlLabel control={<Switch checked={enableGoogleSearch} onChange={(e) => setEnableGoogleSearch(e.target.checked)} />}
+                  label="Habilitar Búsqueda de Google"
+                />
+                <FormHelperText sx={{ml:4, mt:-0.5}}>Permite buscar en la web (restringido al municipio si está configurado).</FormHelperText>
+
+                <FormControlLabel control={<Switch checked={allowMapDisplay} onChange={(e) => setAllowMapDisplay(e.target.checked)} disabled={!apiKeyForMaps} />}
+                  label="Permitir Mostrar Mapas"
+                />
+                <FormHelperText sx={{ml:4, mt:-0.5}}>Muestra mapas de Google. {!apiKeyForMaps && "(API Key de Mapas no disponible)"}</FormHelperText>
+                
+                <FormControlLabel control={<Switch checked={allowGeolocation} onChange={(e) => setAllowGeolocation(e.target.checked)} />}
+                  label="Habilitar Geolocalización"
+                />
+                <FormHelperText sx={{ml:4, mt:-0.5}}>Usa tu ubicación (con permiso) para contexto.</FormHelperText>
+              </FormGroup>
+            </ModernCard>
+
+            <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
+              <Typography variant="h6" gutterBottom>Personalización Avanzada</Typography>
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth multiline rows={4} label="Instrucciones Adicionales del Sistema"
+                  value={systemInstruction} onChange={(e) => setSystemInstruction(e.target.value)}
+                  placeholder="Ej: Prioriza opciones de bajo costo. Sé amigable." variant="outlined"
+                  helperText="Directrices específicas. Se combinarán con otras configuraciones."
+                />
+                <Typography variant="subtitle1" sx={{mb:-1}}>Áreas de Especialización</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {AVAILABLE_SERVICE_TAGS.map(tag => (
+                    <Chip key={tag} label={tag} clickable
+                      color={selectedServiceTags.includes(tag) ? "primary" : "default"}
+                      onClick={() => handleToggleServiceTag(tag)}
+                      onDelete={selectedServiceTags.includes(tag) ? () => handleToggleServiceTag(tag) : undefined}
+                      deleteIcon={selectedServiceTags.includes(tag) ? <ClearIcon /> : undefined}
+                    />
+                  ))}
+                </Box>
+              </Stack>
+            </Paper>
+            
+            <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
+              <Typography variant="h6" gutterBottom>
+                Prompts Recomendados
+              </Typography>
+              <Stack direction="row" spacing={1} mb={2}>
+                <TextField 
+                  fullWidth 
+                  label="Nuevo Prompt" 
+                  value={newPrompt} 
+                  onChange={(e) => setNewPrompt(e.target.value)} 
+                  size="small" 
+                  variant="outlined"
+                  placeholder="Ej: ¿Dónde está la biblioteca municipal?"
+                />
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', transition: 'all 0.3s', flexShrink: 0 }}>
+                  {React.createElement(getIconComponent(newPromptIcon), { sx: { fontSize: 18 } })}
+                </Avatar>
+                <Button variant="contained" onClick={handleAddPrompt} disabled={!newPrompt.trim()} sx={{flexShrink:0}}>Añadir</Button>
+              </Stack>
+              {recommendedPrompts.length > 0 && (
+                <Stack spacing={1}>
+                  {recommendedPrompts.map((prompt, index) => (
+                    <Stack key={index} direction="row" spacing={1} alignItems="center">
+                      <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                        {React.createElement(getIconComponent(prompt.img), { sx: { fontSize: 18 } })}
+                      </Avatar>
+                      <TextField
+                        value={prompt.text}
+                        size="small"
+                        variant="outlined"
+                        InputProps={{ readOnly: true }}
+                        sx={{ flex: 1 }}
+                      />
+                      <Button color="error" onClick={() => handleRemovePrompt(index)}>Eliminar</Button>
+                    </Stack>
+                  ))}
+                </Stack>
               )}
-              <FormHelperText sx={{textAlign:'center', fontStyle:'italic'}}>Límite de 5MB por PDF. Los PDFs se guardan en el navegador.</FormHelperText>
-            </Stack>
-          </Paper>
-        </Stack>
+            </Paper>
+
+            <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
+              <Typography variant="h6" gutterBottom>Fuentes de Trámites (URLs)</Typography>
+              <Stack direction="row" spacing={1} mb={procedureSourceUrls.length > 0 ? 2 : 0}>
+                <TextField fullWidth label="Nueva URL de Trámite" value={newProcedureUrl} onChange={(e) => setNewProcedureUrl(e.target.value)} type="url" size="small" variant="outlined"/>
+                <Button variant="contained" onClick={handleAddProcedureUrl} disabled={!newProcedureUrl.trim() || !isValidUrl(newProcedureUrl.trim())} sx={{flexShrink:0}}>Añadir URL</Button>
+              </Stack>
+              {procedureSourceUrls.length > 0 && (
+                <Stack spacing={1}>
+                  {procedureSourceUrls.map((url, index) => (
+                    <Chip key={index} label={url} onDelete={() => handleRemoveProcedureUrl(index)} sx={{maxWidth: '100%', '& .MuiChip-label': {overflow: 'hidden', textOverflow: 'ellipsis'}}}/>
+                  ))}
+                </Stack>
+              )}
+            </Paper>
+
+            <Paper elevation={0} variant="outlined" sx={{ p: 2.5 }}>
+              <Typography variant="h6" gutterBottom>Documentos de Trámites (PDF)</Typography>
+              <Stack spacing={2}>
+                <TextField fullWidth label="Nombre del Trámite para PDF" value={currentProcedureNameToUpload} onChange={(e) => setCurrentProcedureNameToUpload(e.target.value)} size="small" variant="outlined"/>
+                <Button component="label" variant="outlined" startIcon={<UploadFileIcon />} fullWidth>
+                  Seleccionar PDF
+                  <input type="file" hidden accept=".pdf" ref={fileInputRef} onChange={handlePdfFileChange} />
+                </Button>
+                {currentPdfFile && <Typography variant="caption" color="text.secondary">Archivo seleccionado: {currentPdfFile.name}</Typography>}
+                {pdfUploadError && <Alert severity="error" variant="standard" sx={{py:0.5}}>{pdfUploadError}</Alert>}
+                <Button variant="contained" onClick={handleAddProcedureDocument} disabled={!currentProcedureNameToUpload.trim() || !currentPdfFile}>Adjuntar PDF al Trámite</Button>
+                {uploadedProcedureDocuments.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{mt:1}}>PDFs adjuntados:</Typography>
+                    <Stack spacing={1} mt={1}>
+                      {uploadedProcedureDocuments.map((doc) => (
+                        <Chip key={doc.procedureName} label={`${doc.procedureName} (${doc.fileName})`} onDelete={() => handleRemoveProcedureDocument(doc.procedureName)} />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+                <FormHelperText sx={{textAlign:'center', fontStyle:'italic'}}>Límite de 5MB por PDF. Los PDFs se guardan en el navegador.</FormHelperText>
+              </Stack>
+            </Paper>
+          </Stack>
+        )}
+
+        {activeTab === 1 && (
+          <Stack spacing={3}>
+            <CityLinkManager />
+          </Stack>
+        )}
       </Container>
-      <Paper square elevation={0} sx={{ p: 2, position: 'sticky', bottom: 0, zIndex: 10, bgcolor: 'background.default', borderTop: `1px solid ${theme.palette.divider}` }}>
-        <Stack direction={{xs: 'column', sm: 'row'}} spacing={2} justifyContent="flex-end">
-          <Button variant="outlined" color="inherit" onClick={onCancel} startIcon={<CancelIcon />}>Cancelar</Button>
-          <Tooltip title="Restablecer a los valores por defecto del Asistente">
-            <Button variant="outlined" color="warning" onClick={handleResetToAppDefaults} startIcon={<RestartAltIcon />}>Restablecer</Button>
-          </Tooltip>
-          <Button variant="contained" color="primary" onClick={() => { handleSave(); if (isMobile) onCancel(); }} startIcon={<SaveIcon />}>Guardar</Button>
-        </Stack>
-      </Paper>
+      
+      {activeTab === 0 && (
+        <Paper square elevation={0} sx={{ p: 2, position: 'sticky', bottom: 0, zIndex: 10, bgcolor: 'background.default', borderTop: `1px solid ${theme.palette.divider}` }}>
+          <Stack direction={{xs: 'column', sm: 'row'}} spacing={2} justifyContent="flex-end">
+            <Button variant="outlined" color="inherit" onClick={onCancel} startIcon={<CancelIcon />}>Cancelar</Button>
+            <Tooltip title="Restablecer a los valores por defecto del Asistente">
+              <Button variant="outlined" color="warning" onClick={handleResetToAppDefaults} startIcon={<RestartAltIcon />}>Restablecer</Button>
+            </Tooltip>
+            <Button variant="contained" color="primary" onClick={handleSaveAndClose} startIcon={<SaveIcon />}>Guardar</Button>
+          </Stack>
+        </Paper>
+      )}
     </Box>
   );
 };

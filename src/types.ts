@@ -124,6 +124,7 @@ export interface City {
   sede_electronica_url?: string;
   restricted_city?: any;
   is_active?: boolean;
+  is_public?: boolean;
   created_at: string;
   updated_at?: string;
 }

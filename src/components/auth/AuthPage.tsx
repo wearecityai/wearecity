@@ -1,15 +1,31 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Button,
+  TextField,
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  Tabs,
+  Tab,
+  Box,
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  InputAdornment,
+  IconButton,
+  Stack
+} from '@mui/material';
+import {
+  Visibility,
+  VisibilityOff,
+  ArrowBack
+} from '@mui/icons-material';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -17,6 +33,7 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -114,165 +131,188 @@ const AuthPage = () => {
     }
   };
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+    setError(null);
+    setSuccess(null);
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-4">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+        bgcolor: 'background.default'
+      }}
+    >
+      <Box sx={{ width: '100%', maxWidth: 400 }}>
         <Button
-          variant="ghost"
+          variant="text"
           onClick={() => navigate('/')}
-          className="mb-4"
+          startIcon={<ArrowBack />}
+          sx={{ mb: 2 }}
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
           Volver al chat
         </Button>
 
         <Card>
-          <CardHeader className="text-center">
-            <CardTitle>Acceso al Sistema</CardTitle>
-            <CardDescription>
-              Inicia sesión o regístrate para guardar tus conversaciones
-            </CardDescription>
-          </CardHeader>
+          <CardHeader
+            title="Acceso al Sistema"
+            subheader="Inicia sesión o regístrate para guardar tus conversaciones"
+            sx={{ textAlign: 'center' }}
+          />
           <CardContent>
-            <Tabs defaultValue="login" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-                <TabsTrigger value="signup">Registrarse</TabsTrigger>
-              </TabsList>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+              <Tabs
+                value={tabValue}
+                onChange={handleTabChange}
+                variant="fullWidth"
+              >
+                <Tab label="Iniciar Sesión" />
+                <Tab label="Registrarse" />
+              </Tabs>
+            </Box>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-              {success && (
-                <Alert>
-                  <AlertDescription>{success}</AlertDescription>
-                </Alert>
-              )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
 
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="tu@email.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Contraseña</Label>
-                    <div className="relative">
-                      <Input
-                        id="login-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+            {tabValue === 0 && (
+              <Box component="form" onSubmit={handleLogin} sx={{ mt: 2 }}>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                    fullWidth
+                  />
+                  <TextField
+                    label="Contraseña"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                    fullWidth
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    disabled={isLoading}
+                    sx={{ mt: 2 }}
+                  >
                     {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                   </Button>
-                </form>
-              </TabsContent>
+                </Stack>
+              </Box>
+            )}
 
-              <TabsContent value="signup">
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first-name">Nombre</Label>
-                      <Input
-                        id="first-name"
-                        placeholder="Nombre"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last-name">Apellido</Label>
-                      <Input
-                        id="last-name"
-                        placeholder="Apellido"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="tu@email.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
+            {tabValue === 1 && (
+              <Box component="form" onSubmit={handleSignup} sx={{ mt: 2 }}>
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      label="Nombre"
+                      placeholder="Nombre"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
                       required
+                      fullWidth
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Contraseña</Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={signupPassword}
-                        onChange={(e) => setSignupPassword(e.target.value)}
-                        required
-                        minLength={6}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Tipo de Usuario</Label>
-                    <Select value={role} onValueChange={(value: 'ciudadano' | 'administrativo') => setRole(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ciudadano">Ciudadano</SelectItem>
-                        <SelectItem value="administrativo">Administrativo</SelectItem>
-                      </SelectContent>
+                    <TextField
+                      label="Apellido"
+                      placeholder="Apellido"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      fullWidth
+                    />
+                  </Box>
+                  <TextField
+                    label="Email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    required
+                    fullWidth
+                  />
+                  <TextField
+                    label="Contraseña"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                    fullWidth
+                    inputProps={{ minLength: 6 }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Tipo de Usuario</InputLabel>
+                    <Select
+                      value={role}
+                      label="Tipo de Usuario"
+                      onChange={(e) => setRole(e.target.value as 'ciudadano' | 'administrativo')}
+                    >
+                      <MenuItem value="ciudadano">Ciudadano</MenuItem>
+                      <MenuItem value="administrativo">Administrativo</MenuItem>
                     </Select>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  </FormControl>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    disabled={isLoading}
+                    sx={{ mt: 2 }}
+                  >
                     {isLoading ? 'Registrando...' : 'Registrarse'}
                   </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                </Stack>
+              </Box>
+            )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

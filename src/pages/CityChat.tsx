@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Users, MessageCircle } from 'lucide-react';
+import { Loader2, MapPin, Users, MessageCircle, Lock } from 'lucide-react';
 import { useCities } from '@/hooks/useCities';
+import { useAuth } from '@/hooks/useAuth';
 import { City } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export const CityChat: React.FC = () => {
   const { citySlug } = useParams<{ citySlug: string }>();
   const { loadCityBySlug } = useCities();
+  const { user, profile } = useAuth();
   
   const [city, setCity] = useState<City | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     const loadCity = async () => {
@@ -23,22 +27,50 @@ export const CityChat: React.FC = () => {
       }
 
       try {
+        // Primero intentar cargar la ciudad sin restricciones
         const cityData = await loadCityBySlug(citySlug);
-        if (cityData) {
-          setCity(cityData);
-        } else {
+        
+        if (!cityData) {
           setError('Ciudad no encontrada');
+          setIsLoading(false);
+          return;
         }
+
+        setCity(cityData);
+
+        // Verificar si la ciudad es pública
+        if (cityData.is_public) {
+          // Si es pública, redirigir al chat público
+          window.location.href = `/chat/${citySlug}`;
+          return;
+        }
+
+        // Si es privada, verificar si el usuario está autenticado y es el admin
+        if (!user) {
+          setError('Esta ciudad es privada. Necesitas iniciar sesión para acceder.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (user.id !== cityData.admin_user_id) {
+          setError('No tienes permisos para acceder a esta ciudad privada.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Usuario autorizado
+        setIsAuthorized(true);
+        setIsLoading(false);
+
       } catch (err) {
         console.error('Error loading city:', err);
         setError('Error al cargar la ciudad');
-      } finally {
         setIsLoading(false);
       }
     };
 
     loadCity();
-  }, [citySlug, loadCityBySlug]);
+  }, [citySlug, loadCityBySlug, user]);
 
   if (!citySlug) {
     return <Navigate to="/404" replace />;
@@ -50,7 +82,7 @@ export const CityChat: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin mr-2" />
-            <span>Cargando información de la ciudad...</span>
+            <span>Verificando acceso...</span>
           </CardContent>
         </Card>
       </div>
@@ -63,13 +95,33 @@ export const CityChat: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="text-center p-8">
             <div className="text-6xl mb-4">🏙️</div>
-            <h2 className="text-2xl font-bold mb-2">Ciudad no encontrada</h2>
+            <h2 className="text-2xl font-bold mb-2">Acceso Denegado</h2>
             <p className="text-muted-foreground mb-4">
-              La ciudad "{citySlug}" no existe o no está disponible.
+              {error || 'La ciudad no existe o no tienes permisos para acceder.'}
             </p>
-            <Button onClick={() => window.location.href = '/'}>
+            {!user && (
+              <Button onClick={() => window.location.href = '/auth'} className="mr-2">
+                Iniciar Sesión
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => window.location.href = '/'}>
               Volver al inicio
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Si el usuario está autorizado, redirigir al chat principal con el contexto de la ciudad
+  if (isAuthorized) {
+    window.location.href = `/?city=${city.slug}`;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin mr-2" />
+            <span>Redirigiendo al chat...</span>
           </CardContent>
         </Card>
       </div>
@@ -88,10 +140,32 @@ export const CityChat: React.FC = () => {
                 Bienvenido a {city.name}
               </CardTitle>
               <p className="text-muted-foreground text-lg">
-                Chatea con el asistente virtual de la ciudad y obtén información 
-                sobre servicios, eventos y lugares de interés.
+                Esta es una ciudad privada. Solo el administrador puede acceder al chat.
               </p>
             </CardHeader>
+          </Card>
+
+          {/* Access Info */}
+          <Card className="mb-8">
+            <CardContent className="text-center p-8">
+              <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-4">
+                Ciudad Privada
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Esta ciudad está configurada como privada. Solo el administrador 
+                puede acceder al chat y modificar la configuración.
+              </p>
+              {!user ? (
+                <Button onClick={() => window.location.href = '/auth'}>
+                  Iniciar Sesión
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => window.location.href = '/'}>
+                  Volver al inicio
+                </Button>
+              )}
+            </CardContent>
           </Card>
 
           {/* Features */}
@@ -127,35 +201,11 @@ export const CityChat: React.FC = () => {
             </Card>
           </div>
 
-          {/* CTA */}
-          <Card>
-            <CardContent className="text-center p-8">
-              <h3 className="text-xl font-semibold mb-4">
-                ¿Listo para empezar?
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Inicia una conversación con el asistente de {city.name} 
-                y descubre todo lo que la ciudad tiene para ofrecerte.
-              </p>
-              <Button 
-                size="lg" 
-                onClick={() => {
-                  // Por ahora redirigir a la página principal con el contexto de la ciudad
-                  window.location.href = `/?city=${city.slug}`;
-                }}
-                className="gap-2"
-              >
-                <MessageCircle className="h-5 w-5" />
-                Iniciar Chat
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* Footer Info */}
           <div className="text-center text-sm text-muted-foreground mt-8">
             <p>
-              Este es el chat público de {city.name}. 
-              No necesitas registrarte para usar el servicio.
+              Esta es la página de información de {city.name}. 
+              El chat está disponible solo para el administrador.
             </p>
           </div>
         </div>
