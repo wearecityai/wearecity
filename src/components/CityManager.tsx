@@ -14,7 +14,7 @@ interface CityManagerProps {
 
 export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
   const { user } = useAuth();
-  const { currentCity, isLoading, error, createCity, generateSlug, setError } = useCities();
+  const { currentCity, isLoading, error, createAdminChat, setError } = useCities();
   
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [cityName, setCityName] = useState('');
@@ -23,11 +23,15 @@ export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
   const [validationError, setValidationError] = useState('');
 
   // Auto-generar slug cuando cambia el nombre
+  const generateSlug = (name: string) => {
+    return name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  };
+
   useEffect(() => {
     if (cityName && !citySlug) {
       setCitySlug(generateSlug(cityName));
     }
-  }, [cityName, citySlug, generateSlug]);
+  }, [cityName, citySlug]);
 
   // Mostrar form de creación si el usuario no tiene ciudad
   useEffect(() => {
@@ -52,7 +56,7 @@ export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
     setError(null);
 
     try {
-      const newCity = await createCity(cityName.trim(), citySlug.trim());
+      const newCity = await createAdminChat(cityName.trim());
       if (newCity) {
         setShowCreateForm(false);
         setCityName('');
