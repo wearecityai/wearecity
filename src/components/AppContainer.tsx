@@ -120,10 +120,9 @@ const AppContainer: React.FC<AppContainerProps> = ({
   });
 
   const { handleOpenFinetuningWithAuth } = useAppAuth({
-  user,
-  profile,
-  onLogin,
-  onAdminPanel,
+    user,
+    profile,
+    onLogin,
     handleOpenFinetuning
   });
 
