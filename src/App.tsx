@@ -6,8 +6,6 @@ import Index from '@/pages/Index';
 import AuthPage from '@/components/auth/AuthPage';
 import { CityChat } from '@/pages/CityChat';
 import { PublicChatPage } from '@/pages/PublicChatPage';
-import { AdminDashboard } from '@/components/AdminDashboard';
-
 const App = () => {
   return (
     <ThemeProvider>
@@ -16,7 +14,6 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/city/:citySlug" element={<CityChat />} />
             <Route path="/chat/:chatSlug" element={<PublicChatPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

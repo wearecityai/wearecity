@@ -1,19 +1,58 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, MessageCircle, ArrowLeft } from 'lucide-react';
 import { usePublicChats } from '@/hooks/usePublicChats';
+import { useAuth } from '@/hooks/useAuth';
+import { useApiInitialization } from '@/hooks/useApiInitialization';
+import { useAppState } from '@/hooks/useAppState';
+import AppContainer from '@/components/AppContainer';
 import { PublicChat } from '@/types';
 
 export const PublicChatPage: React.FC = () => {
   const { chatSlug } = useParams<{ chatSlug: string }>();
-  const { loadChatBySlug } = usePublicChats();
+  const navigate = useNavigate();
+  const { user, profile, isLoading: authLoading } = useAuth();
+  const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
+  const { loadChatBySlug, loadChatConfig } = usePublicChats();
   
   const [chat, setChat] = useState<PublicChat | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
+
+  // App state hooks para el chat funcional
+  const {
+    theme,
+    isMobile,
+    currentView,
+    setCurrentView,
+    chatTitles,
+    selectedChatIndex,
+    setSelectedChatIndex,
+    isMenuOpen,
+    setIsMenuOpen,
+    chatConfig,
+    setChatConfig,
+    saveConfig,
+    userLocation,
+    geolocationStatus,
+    googleMapsScriptLoaded,
+    messages,
+    isLoading: chatIsLoading,
+    handleSendMessage,
+    handleSeeMoreEvents,
+    clearMessages,
+    currentThemeMode,
+    toggleTheme,
+    handleNewChat,
+    conversations,
+    currentConversationId,
+    setCurrentConversationId,
+    deleteConversation,
+    shouldShowChatContainer
+  } = useAppState();
 
   useEffect(() => {
     const loadChat = async () => {
@@ -27,6 +66,27 @@ export const PublicChatPage: React.FC = () => {
         const chatData = await loadChatBySlug(chatSlug);
         if (chatData) {
           setChat(chatData);
+          
+          // Cargar configuración del chat y aplicarla
+          const config = await loadChatConfig(chatData.id);
+          if (config) {
+            const newChatConfig = {
+              assistantName: config.assistant_name,
+              systemInstruction: config.system_instruction,
+              recommendedPrompts: config.recommended_prompts || [],
+              serviceTags: config.service_tags || [],
+              enableGoogleSearch: config.enable_google_search,
+              allowMapDisplay: config.allow_map_display,
+              allowGeolocation: config.allow_geolocation,
+              currentLanguageCode: config.current_language_code,
+              procedureSourceUrls: config.procedure_source_urls || [],
+              uploadedProcedureDocuments: config.uploaded_procedure_documents || {},
+              sedeElectronicaUrl: config.sede_electronica_url,
+              restrictedCity: config.restricted_city,
+              profileImageUrl: undefined
+            };
+            setChatConfig(newChatConfig);
+          }
         } else {
           setError('Chat no encontrado');
         }
@@ -39,13 +99,18 @@ export const PublicChatPage: React.FC = () => {
     };
 
     loadChat();
-  }, [chatSlug, loadChatBySlug]);
+  }, [chatSlug, loadChatBySlug, loadChatConfig, setChatConfig]);
+
+  const handleLogin = () => {
+    navigate('/auth');
+  };
 
   if (!chatSlug) {
     return <Navigate to="/404" replace />;
   }
 
-  if (isLoading) {
+  // Show loading state while auth or chat is initializing
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -77,47 +142,46 @@ export const PublicChatPage: React.FC = () => {
     );
   }
 
+  // Si el chat está listo y se solicita mostrarlo, usar AppContainer completo
   if (showChat) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowChat(false)}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold">{chat.assistant_name}</h1>
-                <p className="text-sm text-muted-foreground">{chat.config_name}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Aquí iría el ChatContainer con la configuración específica */}
-        <div className="container mx-auto px-4 py-8">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <div className="text-4xl mb-4">🚧</div>
-              <h3 className="text-lg font-semibold mb-2">Chat en Desarrollo</h3>
-              <p className="text-muted-foreground">
-                El chat con {chat.assistant_name} estará disponible pronto.
-              </p>
-              <div className="mt-4 p-4 bg-muted rounded-lg text-left">
-                <h4 className="font-medium mb-2">Configuración del Asistente:</h4>
-                <p className="text-sm text-muted-foreground">
-                  {chat.system_instruction}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <AppContainer
+        toggleTheme={toggleTheme}
+        currentThemeMode={currentThemeMode}
+        user={user}
+        profile={profile}
+        onLogin={handleLogin}
+        theme={theme}
+        isMobile={isMobile}
+        isGeminiReady={isGeminiReady}
+        appError={appError}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        chatTitles={chatTitles}
+        selectedChatIndex={selectedChatIndex}
+        setSelectedChatIndex={setSelectedChatIndex}
+        isMenuOpen={isMenuOpen}
+        setIsMenuOpen={setIsMenuOpen}
+        chatConfig={chatConfig}
+        setChatConfig={setChatConfig}
+        saveConfig={saveConfig}
+        userLocation={userLocation}
+        geolocationStatus={geolocationStatus}
+        googleMapsScriptLoaded={googleMapsScriptLoaded}
+        messages={messages}
+        isLoading={chatIsLoading}
+        handleSendMessage={handleSendMessage}
+        handleSeeMoreEvents={handleSeeMoreEvents}
+        clearMessages={clearMessages}
+        setAppError={setAppError}
+        setIsGeminiReady={setIsGeminiReady}
+        handleNewChat={handleNewChat}
+        conversations={conversations}
+        currentConversationId={currentConversationId}
+        setCurrentConversationId={setCurrentConversationId}
+        deleteConversation={deleteConversation}
+        shouldShowChatContainer={shouldShowChatContainer}
+      />
     );
   }
 
