@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useApiInitialization } from '../hooks/useApiInitialization';
 import { useAppState } from '../hooks/useAppState';
 import AppContainer from '../components/AppContainer';
+import SplashScreen from '../components/SplashScreen';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -48,14 +49,7 @@ const Index = () => {
 
   // Show loading state only while auth is initializing AND we don't have a definitive auth state
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   // Always show the main app - authentication is optional
