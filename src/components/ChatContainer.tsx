@@ -258,31 +258,24 @@ export const RecommendedPromptsBar: React.FC<{
         display: 'flex',
         flexWrap: 'nowrap',
         overflowX: 'auto',
-        overflowY: 'hidden',
+        overflowY: 'visible',
+        position: 'relative',
         gap: { xs: 1, sm: 2 },
         justifyContent: shouldCenter ? 'center' : 'flex-start',
-        width: '100%',
-        maxWidth: '100%',
+        width: { xs: '100vw', sm: '100%' },
+        maxWidth: { xs: '100vw', sm: '100%' },
         pb: 1,
-        px: { xs: 1, sm: 2 },
-        WebkitOverflowScrolling: 'touch', // Scroll suave en iOS
-        // Ocultar scrollbar en móvil
-        '&::-webkit-scrollbar': { 
-          display: 'none',
-          height: 0,
-          width: 0
-        },
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-        // Prevenir scroll horizontal
+        px: 0,
+        WebkitOverflowScrolling: 'touch',
         minWidth: 0,
-        // Asegurar que funcione en mobile
         flexShrink: 0,
         '& > *': {
           flexShrink: 0,
         }
       }}
     >
+      {/* Padding visual solo en mobile */}
+      <Box sx={{ minWidth: { xs: 16, sm: 0 }, pointerEvents: 'none' }} />
       {prompts.map((prompt, idx) => {
         const IconComponent = getIconComponent(prompt.img || 'help');
         // Optimizar longitud del texto para diferentes tamaños de pantalla
@@ -297,18 +290,18 @@ export const RecommendedPromptsBar: React.FC<{
               background: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
               color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
               borderRadius: 4,
-              minWidth: { xs: 100, sm: 120, md: 140 },
-              maxWidth: { xs: 180, sm: 200, md: 220 },
+              minWidth: { xs: 180, sm: 200, md: 220 },
+              maxWidth: { xs: 'none', sm: 220, md: 260 },
               minHeight: { xs: 48, sm: 60, md: 70 },
               maxHeight: { xs: 80, sm: 200, md: 300 },
               display: 'flex',
-              flexDirection: { xs: 'row', sm: 'row', md: 'column' }, // Tablet usa layout horizontal como mobile
+              flexDirection: { xs: 'row', sm: 'row', md: 'column' },
               alignItems: 'center',
               fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
               fontWeight: 400,
               px: { xs: 0.75, sm: 1, md: 1.5 },
               py: { xs: 0.5, sm: 0.75, md: 1 },
-              textAlign: { xs: 'left', sm: 'left', md: 'center' }, // Tablet usa alineación izquierda como mobile
+              textAlign: { xs: 'left', sm: 'left', md: 'center' },
               flex: '0 0 auto',
               boxShadow: 'none',
               cursor: 'pointer',
@@ -322,7 +315,6 @@ export const RecommendedPromptsBar: React.FC<{
               mb: 0,
               userSelect: 'none',
               gap: { xs: 0.75, sm: 1.2 },
-              // Prevenir overflow
               overflow: 'hidden',
               wordBreak: 'break-word',
             }}
@@ -360,6 +352,8 @@ export const RecommendedPromptsBar: React.FC<{
           </Box>
         );
       })}
+      {/* Padding visual para que la última tarjeta sobresalga */}
+      <Box sx={{ minWidth: { xs: 16, sm: 0 }, pointerEvents: 'none' }} />
     </Box>
   );
 };
