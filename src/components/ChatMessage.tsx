@@ -104,63 +104,151 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
     <Box sx={{
       display: 'flex',
       justifyContent: isUser ? 'flex-end' : 'flex-start',
-      mb: 2, // Increased margin bottom
-      px: { xs: 0, sm: 0 }, // Remove horizontal padding to allow full width
+      mb: 2,
+      px: { xs: 1, sm: 0 },
       width: '100%',
-      minWidth: 0, // Prevenir overflow
+      minWidth: 0,
+      maxWidth: '100%',
+      overflow: 'hidden',
     }}>
-      <Stack direction={isUser ? "row-reverse" : "row"} spacing={1} sx={{ width: '100%', minWidth: 0 }} alignItems="flex-start">
-        {!isUser && !message.isTyping && (
-            <Avatar sx={{
-                width: 32, height: 32,
-                bgcolor: 'transparent',
-                color: theme.palette.primary.main,
-                alignSelf: 'flex-start',
-                flexShrink: 0, // Prevenir que se encoja
-            }}>
-                <LocationCityIcon fontSize="medium" />
-            </Avatar>
-        )}
-        
-        <Box sx={{ maxWidth: '100%', minWidth: 0, flex: 1 }}> {/* Wrapper for paper and action icons */}
-            <Paper
-            elevation={0} // Flat messages
+      {isUser ? (
+        // Mensaje del usuario - alineado a la derecha
+        <Box sx={{ 
+          maxWidth: { xs: 'calc(100vw - 32px)', sm: '700px' },
+          minWidth: 0,
+          overflow: 'hidden',
+        }}>
+          <Paper
+            elevation={0}
             sx={{
+              px: { xs: 1, sm: 1.5 },
+              pb: { xs: 1, sm: 1.5 },
+              pt: { xs: 1, sm: 1.5 },
+              bgcolor: theme.palette.mode === 'dark' ? '#36383a' : '#f1f3f4',
+              color: theme.palette.mode === 'dark' ? '#fff' : '#222',
+              borderRadius: '20px 4px 20px 20px',
+              minWidth: '60px',
+              width: 'fit-content',
+              overflowWrap: 'break-word',
+              wordWrap: 'break-word',
+              wordBreak: 'break-word',
+              hyphens: 'auto',
+              overflow: 'hidden',
+            }}
+          >
+            {(message.content && message.content.trim() !== "") && (
+              <Typography 
+                variant="body1" 
+                component="div" 
+                sx={{ 
+                  whiteSpace: 'pre-line',
+                  fontSize: { xs: '0.9rem', sm: '1rem' },
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                }}
+              > 
+                {linkifyAndMarkdown(message.content)}
+              </Typography>
+            )}
+          </Paper>
+        </Box>
+      ) : (
+        // Mensaje del asistente - alineado a la izquierda
+        <Stack direction="row" spacing={1} sx={{ 
+          width: '100%', 
+          minWidth: 0,
+          maxWidth: '100%',
+        }} alignItems="flex-start">
+          {!message.isTyping && (
+            <Avatar sx={{
+              width: 32, height: 32,
+              bgcolor: 'transparent',
+              color: theme.palette.primary.main,
+              alignSelf: 'flex-start',
+              flexShrink: 0,
+            }}>
+              <LocationCityIcon fontSize="medium" />
+            </Avatar>
+          )}
+          
+          <Box sx={{ 
+            maxWidth: '100%', 
+            minWidth: 0, 
+            flex: 1,
+            overflow: 'hidden',
+          }}>
+            <Paper
+              elevation={0}
+              sx={{
                 px: { xs: 1, sm: 1.5 },
                 pb: { xs: 1, sm: 1.5 },
-                pt: isUser ? { xs: 1, sm: 1.5 } : { xs: 0.5, sm: 0.75 },
-                bgcolor: isUser
-                  ? (theme.palette.mode === 'dark' ? '#36383a' : '#f1f3f4')
-                  : 'transparent',
-                color: isUser
-                  ? (theme.palette.mode === 'dark' ? '#fff' : '#222')
-                  : theme.palette.text.primary,
-                borderRadius: isUser ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
+                pt: { xs: 0.5, sm: 0.75 },
+                bgcolor: 'transparent',
+                color: theme.palette.text.primary,
+                borderRadius: '4px 20px 20px 20px',
                 minWidth: '60px',
-                maxWidth: { xs: '100%', sm: '700px' },
+                maxWidth: { xs: 'calc(100vw - 32px)', sm: '700px' },
                 width: 'fit-content',
                 overflowWrap: 'break-word',
                 wordWrap: 'break-word',
                 wordBreak: 'break-word',
                 hyphens: 'auto',
-                ...(isUser ? {} : { mt: 0, marginTop: 0 })
-            }}
+                overflow: 'hidden',
+              }}
             >
-            {message.isTyping ? (
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 250 }}>
-                  <Box sx={{ position: 'relative', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {message.isTyping ? (
+                <Stack direction="row" spacing={1} alignItems="center" className="typing-indicator" sx={{ 
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  height: 40,
+                  flexWrap: 'nowrap',
+                  alignItems: 'center',
+                }}>
+                  <Box sx={{ 
+                    position: 'relative', 
+                    width: 32, 
+                    height: 32, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    flexShrink: 0,
+                    overflow: 'visible'
+                  }}>
                     <CircularProgress 
                       size={32} 
                       thickness={4}
-                      sx={{ color: theme.palette.primary.main, position: 'absolute', left: 0, top: 0 }}
+                      sx={{ 
+                        color: theme.palette.primary.main, 
+                        position: 'absolute', 
+                        left: 0, 
+                        top: 0,
+                        overflow: 'visible'
+                      }}
                     />
-                    <LocationCityIcon sx={{ fontSize: 20, color: theme.palette.primary.main, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
+                    <LocationCityIcon sx={{ 
+                      fontSize: 20, 
+                      color: theme.palette.primary.main, 
+                      position: 'absolute', 
+                      left: '50%', 
+                      top: '50%', 
+                      transform: 'translate(-50%, -50%)',
+                      overflow: 'visible'
+                    }} />
                   </Box>
                   <Typography 
                     variant="body2" 
                     sx={{ 
                       color: 'text.secondary',
                       animation: 'fadeInOut 6s infinite',
+                      fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.2,
                       '@keyframes fadeInOut': {
                         '0%, 100%': { opacity: 0.7 },
                         '16%, 84%': { opacity: 1 },
@@ -179,55 +267,74 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     })()}
                   </Typography>
                 </Stack>
-            ) : message.error ? (
-                <Box sx={{ bgcolor: isUser ? 'rgba(0,0,0,0.2)' : theme.palette.error.light, p: 1, borderRadius: 1, color: isUser ? 'inherit' : theme.palette.error.dark }}>
-                <Typography variant="body2" component="p" fontWeight="bold">Error:</Typography>
-                <Typography variant="body2" component="p">{message.error}</Typography>
+              ) : message.error ? (
+                <Box sx={{ bgcolor: theme.palette.error.light, p: 1, borderRadius: 1, color: theme.palette.error.dark }}>
+                  <Typography variant="body2" component="p" fontWeight="bold">Error:</Typography>
+                  <Typography variant="body2" component="p">{message.error}</Typography>
                 </Box>
-            ) : (
+              ) : (
                 <>
-                {(message.content && message.content.trim() !== "") && (
-                  <Typography variant="body1" component="div" sx={{ whiteSpace: 'pre-line' }}> 
+                  {(message.content && message.content.trim() !== "") && (
+                    <Typography 
+                      variant="body1" 
+                      component="div" 
+                      sx={{ 
+                        whiteSpace: 'pre-line',
+                        fontSize: { xs: '0.9rem', sm: '1rem' },
+                        lineHeight: 1.4,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                      }}
+                    > 
                       {linkifyAndMarkdown(message.content)}
-                  </Typography>
-                )}
-                {message.events && message.events.length > 0 && (
-                    <Stack spacing={1} sx={{ mt: 1.5, width: '100%' }}>
-                    {message.events.map((event, index) => (
+                    </Typography>
+                  )}
+                  {message.events && message.events.length > 0 && (
+                    <Stack spacing={1} sx={{ 
+                      mt: 1.5, 
+                      width: '100%',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                    }}>
+                      {message.events.map((event, index) => (
                         <EventCard key={`${message.id}-event-${index}`} event={event} />
-                    ))}
+                      ))}
                     </Stack>
-                )}
-                {message.placeCards && message.placeCards.length > 0 && (
-                    <Stack spacing={1} sx={{ mt: 1.5, width: '100%' }}>
-                    {message.placeCards.map((place) => (
+                  )}
+                  {message.placeCards && message.placeCards.length > 0 && (
+                    <Stack spacing={1} sx={{ 
+                      mt: 1.5, 
+                      width: '100%',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                    }}>
+                      {message.placeCards.map((place) => (
                         <PlaceCard key={`${message.id}-place-${place.id}`} place={place} />
-                    ))}
+                      ))}
                     </Stack>
-                )}
-                {/* Fallback: si no hay nada que mostrar */}
-                {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
-                  <Typography variant="body2" color="text.secondary">Sin respuesta</Typography>
-                )}
+                  )}
+                  {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
+                    <Typography variant="body2" color="text.secondary">Sin respuesta</Typography>
+                  )}
                 </>
-            )}
-            {/* Timestamp removed for Gemini clone visual, can be added back if needed */}
-            {/* {!message.isTyping && (
-                <Typography variant="caption" sx={{ display: 'block', textAlign: 'right', mt: 0.5, opacity: 0.7 }}>
-                {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Typography>
-            )} */}
+              )}
             </Paper>
-            {!isUser && !message.isTyping && !message.error && (
-                <Stack direction="row" spacing={0.5} sx={{mt:0.5, pl:0.5}}>
-                    <IconButton size="small" title="Me gusta" sx={{color: 'text.secondary'}}><ThumbUpOutlinedIcon sx={{fontSize: '1.1rem'}}/></IconButton>
-                    <IconButton size="small" title="No me gusta" sx={{color: 'text.secondary'}}><ThumbDownOutlinedIcon sx={{fontSize: '1.1rem'}}/></IconButton>
-                    <IconButton size="small" title="Copiar" sx={{color: 'text.secondary'}}><ContentCopyIcon sx={{fontSize: '1.1rem'}}/></IconButton>
-                    <IconButton size="small" title="Más opciones" sx={{color: 'text.secondary'}}><MoreVertIcon sx={{fontSize: '1.1rem'}}/></IconButton>
-                </Stack>
+            {!message.isTyping && !message.error && (
+              <Stack direction="row" spacing={0.5} sx={{
+                mt: 0.5, 
+                pl: 0.5,
+                maxWidth: '100%',
+                overflow: 'hidden',
+              }}>
+                <IconButton size="small" title="Me gusta" sx={{color: 'text.secondary'}}><ThumbUpOutlinedIcon sx={{fontSize: '1.1rem'}}/></IconButton>
+                <IconButton size="small" title="No me gusta" sx={{color: 'text.secondary'}}><ThumbDownOutlinedIcon sx={{fontSize: '1.1rem'}}/></IconButton>
+                <IconButton size="small" title="Copiar" sx={{color: 'text.secondary'}}><ContentCopyIcon sx={{fontSize: '1.1rem'}}/></IconButton>
+                <IconButton size="small" title="Más opciones" sx={{color: 'text.secondary'}}><MoreVertIcon sx={{fontSize: '1.1rem'}}/></IconButton>
+              </Stack>
             )}
-        </Box>
-      </Stack>
+          </Box>
+        </Stack>
+      )}
     </Box>
   );
 };

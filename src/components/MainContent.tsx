@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -57,6 +57,7 @@ const MainContent: React.FC<MainContentProps> = ({
   shouldShowChatContainer = true
 }) => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [hasUserSentFirstMessage, setHasUserSentFirstMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollableBoxRef = useRef<HTMLDivElement>(null);
   
@@ -67,6 +68,13 @@ const MainContent: React.FC<MainContentProps> = ({
   const handleUserMenuClose = () => {
     setUserMenuAnchorEl(null);
   };
+
+  // Track if user has sent their first message
+  useEffect(() => {
+    if (messages.length > 0 && messages.some(msg => msg.role === 'user')) {
+      setHasUserSentFirstMessage(true);
+    }
+  }, [messages]);
 
   // Forzar scroll al fondo en modo finetuning
   useEffect(() => {
@@ -108,8 +116,20 @@ const MainContent: React.FC<MainContentProps> = ({
             }}
           >
             {messages.length === 0 && !shouldShowChatContainer && (
-              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4, px: 1 }}>
-                <Box sx={{ width: '100%', maxWidth: '100%' }}>
+              <Box sx={{ 
+                width: '100%', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                pt: 4, 
+                px: { xs: 1, sm: 1 },
+                overflow: 'hidden', // Prevenir scroll horizontal
+              }}>
+                <Box sx={{ 
+                  width: '100%', 
+                  maxWidth: '100%',
+                  overflow: 'hidden', // Prevenir scroll horizontal
+                }}>
                   <ChatContainer
                     messages={[]}
                     isLoading={false}
@@ -124,7 +144,9 @@ const MainContent: React.FC<MainContentProps> = ({
                     onLogin={onLogin}
                   />
                 </Box>
-                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
+                {!isMobile && !hasUserSentFirstMessage && (
+                  <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
+                )}
               </Box>
             )}
             {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
@@ -185,16 +207,30 @@ const MainContent: React.FC<MainContentProps> = ({
             sx={{
               flexGrow: 1,
               overflowY: 'auto',
+              overflowX: 'hidden', // Prevenir scroll horizontal
               height: '100%',
               paddingBottom: { xs: 'calc(120px + env(safe-area-inset-bottom, 0px))', sm: '120px' },
               width: '100%',
               maxWidth: 800,
               margin: '0 auto',
+              minWidth: 0, // Prevenir overflow
             }}
           >
             {messages.length === 0 && !shouldShowChatContainer && (
-              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4, px: 1 }}>
-                <Box sx={{ width: '100%', maxWidth: '100%' }}>
+              <Box sx={{ 
+                width: '100%', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                pt: 4, 
+                px: { xs: 1, sm: 1 },
+                overflow: 'hidden', // Prevenir scroll horizontal
+              }}>
+                <Box sx={{ 
+                  width: '100%', 
+                  maxWidth: '100%',
+                  overflow: 'hidden', // Prevenir scroll horizontal
+                }}>
                   <ChatContainer
                     messages={[]}
                     isLoading={false}
@@ -209,7 +245,7 @@ const MainContent: React.FC<MainContentProps> = ({
                     onLogin={onLogin}
                   />
                 </Box>
-                {!isMobile && (
+                {!isMobile && !hasUserSentFirstMessage && (
                   <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
                 )}
               </Box>
@@ -221,12 +257,12 @@ const MainContent: React.FC<MainContentProps> = ({
                   width: '100%',
                   maxWidth: { sm: '800px' },
                   margin: '0 auto',
-                  padding: { xs: '0 8px', sm: '0 16px' },
+                  padding: { xs: '0 4px', sm: '0 16px' }, // Reducir padding en móvil
                   minHeight: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  // Eliminar margin horizontal que causa scroll
                   mx: 0,
+                  overflow: 'hidden', // Prevenir scroll horizontal
                 }}
               >
                 <ChatContainer
@@ -256,16 +292,28 @@ const MainContent: React.FC<MainContentProps> = ({
               zIndex: 1000,
             }}
           >
+            {/* Contenedor específico para sugerencias en mobile */}
+            {isMobile && !hasUserSentFirstMessage && (
+              <Box sx={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                width: '100vw',
+                overflow: 'visible',
+                zIndex: 1001,
+              }}>
+                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
+              </Box>
+            )}
             <Box
               sx={{
                 width: '100%',
                 maxWidth: { sm: '800px' },
                 margin: '0 auto',
+                pt: isMobile && !hasUserSentFirstMessage ? 8 : 0, // Espacio para las sugerencias
               }}
             >
-              {isMobile && (
-                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
-              )}
               <ChatInput
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}

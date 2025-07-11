@@ -251,6 +251,7 @@ export const RecommendedPromptsBar: React.FC<{
   return (
     <Box
       ref={containerRef}
+      className="allow-horizontal-scroll"
       sx={{
         display: 'flex',
         flexWrap: 'nowrap',
@@ -259,8 +260,10 @@ export const RecommendedPromptsBar: React.FC<{
         gap: { xs: 1, sm: 2 },
         justifyContent: shouldCenter ? 'center' : 'flex-start',
         width: '100%',
+        maxWidth: '100%',
         pb: 1,
         px: { xs: 1, sm: 2 },
+        WebkitOverflowScrolling: 'touch', // Scroll suave en iOS
         // Ocultar scrollbar en móvil
         '&::-webkit-scrollbar': { 
           display: 'none',
@@ -270,8 +273,12 @@ export const RecommendedPromptsBar: React.FC<{
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
         // Prevenir scroll horizontal
-        maxWidth: '100%',
         minWidth: 0,
+        // Asegurar que funcione en mobile
+        flexShrink: 0,
+        '& > *': {
+          flexShrink: 0,
+        }
       }}
     >
       {prompts.map((prompt, idx) => {

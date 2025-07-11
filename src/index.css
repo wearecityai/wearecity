@@ -121,6 +121,30 @@ html, body {
   position: relative;
 }
 
+/* Excepción para scroll horizontal en sugerencias */
+.allow-horizontal-scroll {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.allow-horizontal-scroll::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Excepción para indicador de typing (spinner) */
+.typing-indicator {
+  overflow: visible !important;
+  max-height: none !important;
+  min-height: auto !important;
+}
+
+.typing-indicator .MuiCircularProgress-root {
+  overflow: visible !important;
+}
+
 /* Prevenir zoom en inputs en iOS */
 @media screen and (max-width: 768px) {
   input, textarea, select {
@@ -153,6 +177,21 @@ html, body {
   
   .min-w-0 {
     min-width: 0 !important;
+  }
+  
+  /* Prevenir scroll horizontal en elementos del chat */
+  .MuiBox-root:not(.allow-horizontal-scroll):not(.typing-indicator), 
+  .MuiStack-root:not(.allow-horizontal-scroll):not(.typing-indicator), 
+  .MuiPaper-root:not(.allow-horizontal-scroll):not(.typing-indicator) {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Asegurar que los mensajes no se salgan del viewport */
+  .MuiPaper-root[style*="border-radius"] {
+    max-width: calc(100vw - 32px) !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
   }
 }
 
