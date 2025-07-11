@@ -113,6 +113,49 @@
   }
 }
 
+/* Optimizaciones móviles y prevención de scroll horizontal */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+}
+
+/* Prevenir zoom en inputs en iOS */
+@media screen and (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Mejorar scroll en móvil */
+@media screen and (max-width: 768px) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Prevenir scroll horizontal en contenedores */
+  .overflow-x-hidden {
+    overflow-x: hidden !important;
+  }
+  
+  /* Optimizar texto largo */
+  .text-break {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  
+  /* Prevenir que elementos se salgan del viewport */
+  .max-w-full {
+    max-width: 100% !important;
+  }
+  
+  .min-w-0 {
+    min-width: 0 !important;
+  }
+}
+
 /* Animaciones para geolocalización */
 @keyframes spin {
   from {

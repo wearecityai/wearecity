@@ -256,23 +256,30 @@ export const RecommendedPromptsBar: React.FC<{
         flexWrap: 'nowrap',
         overflowX: 'auto',
         overflowY: 'hidden',
-        gap: 2,
+        gap: { xs: 1, sm: 2 },
         justifyContent: shouldCenter ? 'center' : 'flex-start',
         width: '100%',
         pb: 1,
-        pl: 2,
-        pr: 2,
-        '::-webkit-scrollbar': { display: 'none' },
+        px: { xs: 1, sm: 2 },
+        // Ocultar scrollbar en móvil
+        '&::-webkit-scrollbar': { 
+          display: 'none',
+          height: 0,
+          width: 0
+        },
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
+        // Prevenir scroll horizontal
+        maxWidth: '100%',
+        minWidth: 0,
       }}
     >
       {prompts.map((prompt, idx) => {
         const IconComponent = getIconComponent(prompt.img || 'help');
-        // Limitar el texto del prompt a 60 caracteres
-        const MAX_PROMPT_LENGTH = 60;
-        const promptText = (prompt.text || '').length > MAX_PROMPT_LENGTH
-          ? (prompt.text || '').slice(0, MAX_PROMPT_LENGTH - 1) + '…'
+        // Limitar el texto del prompt a 40 caracteres en móvil
+        const MAX_PROMPT_LENGTH = { xs: 40, sm: 60 };
+        const promptText = (prompt.text || '').length > MAX_PROMPT_LENGTH.xs
+          ? (prompt.text || '').slice(0, MAX_PROMPT_LENGTH.xs - 1) + '…'
           : (prompt.text || '');
         return (
           <Box
@@ -281,16 +288,16 @@ export const RecommendedPromptsBar: React.FC<{
               background: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
               color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
               borderRadius: 4,
-              minWidth: { xs: 110, sm: 140 },
-              maxWidth: { xs: 220, sm: 180 },
-              minHeight: { xs: 56, sm: 70 },
-              maxHeight: { xs: 300, sm: 300 },
+              minWidth: { xs: 100, sm: 140 },
+              maxWidth: { xs: 180, sm: 220 },
+              minHeight: { xs: 48, sm: 70 },
+              maxHeight: { xs: 80, sm: 300 },
               display: 'flex',
               flexDirection: { xs: 'row', sm: 'column' },
               alignItems: 'center',
-              fontSize: { xs: '0.95rem', sm: '0.95rem' },
+              fontSize: { xs: '0.85rem', sm: '0.95rem' },
               fontWeight: 400,
-              px: { xs: 1, sm: 1.5 },
+              px: { xs: 0.75, sm: 1.5 },
               py: { xs: 0.5, sm: 1 },
               textAlign: { xs: 'left', sm: 'center' },
               flex: '0 0 auto',
@@ -302,30 +309,38 @@ export const RecommendedPromptsBar: React.FC<{
               },
               mb: 0,
               userSelect: 'none',
-              gap: 1.2,
+              gap: { xs: 0.75, sm: 1.2 },
+              // Prevenir overflow
+              overflow: 'hidden',
+              wordBreak: 'break-word',
             }}
             onClick={() => onSendMessage(prompt.text)}
           >
             <Avatar sx={{ 
-              width: { xs: 32, sm: 38 }, 
-              height: { xs: 32, sm: 38 }, 
+              width: { xs: 28, sm: 38 }, 
+              height: { xs: 28, sm: 38 }, 
               bgcolor: 'primary.main', 
               color: 'white',
-              mr: { xs: 1, sm: 0 },
+              mr: { xs: 0.75, sm: 0 },
               mb: { xs: 0, sm: 1 },
               flexShrink: 0,
               alignSelf: 'center',
             }}>
-              <IconComponent sx={{ fontSize: { xs: 18, sm: 22 } }} />
+              <IconComponent sx={{ fontSize: { xs: 16, sm: 22 } }} />
             </Avatar>
             <span
               style={{
                 flex: 1,
                 width: '100%',
                 wordBreak: 'break-word',
-                lineHeight: 1.25,
+                lineHeight: 1.2,
                 whiteSpace: 'normal',
-                fontSize: '0.97em',
+                fontSize: '0.9em',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
               }}
             >
               {promptText}

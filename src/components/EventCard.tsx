@@ -127,28 +127,109 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
 
   return (
-    <Card variant="outlined" sx={{ boxShadow: 0, borderRadius: 3, p: 0, minWidth: 0, width: '100%', bgcolor: 'background.paper', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 0 }}>
-      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, pb: { xs: 1, sm: 1.5 }, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-          <EventIcon color="primary" sx={{ fontSize: 22, opacity: 0.7 }} />
-          <Typography variant="subtitle1" fontWeight={500} noWrap title={event.title} sx={{ flexGrow: 1, minWidth: 0, color: 'text.primary' }}>{event.title}</Typography>
+    <Card variant="outlined" sx={{ 
+      boxShadow: 0, 
+      borderRadius: 3, 
+      p: 0, 
+      minWidth: 0, 
+      width: '100%', 
+      bgcolor: 'background.paper', 
+      borderColor: 'divider', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: 0,
+      overflow: 'hidden', // Prevenir overflow
+    }}>
+      <CardContent sx={{ 
+        p: { xs: 1, sm: 2 }, 
+        pb: { xs: 0.75, sm: 1.5 }, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: 1,
+        minWidth: 0, // Prevenir overflow
+      }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5, minWidth: 0 }}>
+          <EventIcon color="primary" sx={{ fontSize: { xs: 20, sm: 22 }, opacity: 0.7, flexShrink: 0 }} />
+          <Typography 
+            variant="subtitle1" 
+            fontWeight={500} 
+            noWrap 
+            title={event.title} 
+            sx={{ 
+              flexGrow: 1, 
+              minWidth: 0, 
+              color: 'text.primary',
+              fontSize: { xs: '0.9rem', sm: '1rem' },
+            }}
+          >
+            {event.title}
+          </Typography>
         </Stack>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ color: 'text.secondary', fontSize: 14, mb: 0.5 }}>
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <AccessTimeIcon sx={{ fontSize: 18, opacity: 0.6 }} />
-            <Typography variant="body2" sx={{ fontSize: 14 }}>{event.time ? formatTime(event.time) : renderDateDisplay()}</Typography>
+        <Stack 
+          direction={{ xs: 'column', sm: 'row' }} 
+          spacing={{ xs: 0.5, sm: 2 }} 
+          alignItems={{ xs: 'flex-start', sm: 'center' }} 
+          sx={{ 
+            color: 'text.secondary', 
+            fontSize: { xs: 13, sm: 14 }, 
+            mb: 0.5,
+            minWidth: 0,
+          }}
+        >
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+            <AccessTimeIcon sx={{ fontSize: { xs: 16, sm: 18 }, opacity: 0.6, flexShrink: 0 }} />
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontSize: { xs: 13, sm: 14 },
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {event.time ? formatTime(event.time) : renderDateDisplay()}
+            </Typography>
           </Stack>
           {event.location && (
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
-              <LocationOnIcon sx={{ fontSize: 18, opacity: 0.6 }} />
-              <Typography variant="body2" sx={{ fontSize: 14, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: { xs: 140, sm: 120 } }}>{event.location}</Typography>
+              <LocationOnIcon sx={{ fontSize: { xs: 16, sm: 18 }, opacity: 0.6, flexShrink: 0 }} />
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: { xs: 13, sm: 14 }, 
+                  textOverflow: 'ellipsis', 
+                  overflow: 'hidden', 
+                  whiteSpace: 'nowrap', 
+                  maxWidth: { xs: '100%', sm: 120 },
+                  minWidth: 0,
+                }}
+              >
+                {event.location}
+              </Typography>
             </Stack>
           )}
         </Stack>
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: 13, mb: 0.5 }}>{renderDateDisplay()}</Typography>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'text.secondary', 
+            fontSize: { xs: 12, sm: 13 }, 
+            mb: 0.5,
+            minWidth: 0,
+          }}
+        >
+          {renderDateDisplay()}
+        </Typography>
       </CardContent>
       {event.sourceUrl && linkStatus !== 'idle' && (
-        <CardActions sx={{ px: { xs: 1.5, sm: 2 }, pb: { xs: 1, sm: 1.5 }, pt: 0, justifyContent: 'flex-end' }}>
+        <CardActions sx={{ 
+          px: { xs: 1, sm: 2 }, 
+          pb: { xs: 0.75, sm: 1.5 }, 
+          pt: 0, 
+          justifyContent: 'flex-end',
+          minWidth: 0,
+        }}>
           <Tooltip title={buttonProps.title} placement="top">
             <span>
               <IconButton

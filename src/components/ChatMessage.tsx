@@ -105,7 +105,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       display: 'flex',
       justifyContent: isUser ? 'flex-end' : 'flex-start',
       mb: 2, // Increased margin bottom
-      px: { xs: 0, sm: 0 } // Remove horizontal padding to allow full width
+      px: { xs: 0, sm: 0 }, // Remove horizontal padding to allow full width
+      width: '100%',
+      minWidth: 0, // Prevenir overflow
     }}>
       <Stack direction={isUser ? "row-reverse" : "row"} spacing={1} sx={{ width: '100%', minWidth: 0 }} alignItems="flex-start">
         {!isUser && !message.isTyping && (
@@ -114,18 +116,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 bgcolor: 'transparent',
                 color: theme.palette.primary.main,
                 alignSelf: 'flex-start',
+                flexShrink: 0, // Prevenir que se encoja
             }}>
                 <LocationCityIcon fontSize="medium" />
             </Avatar>
         )}
         
-        <Box sx={{ maxWidth: '100%', minWidth: 0 }}> {/* Wrapper for paper and action icons */}
+        <Box sx={{ maxWidth: '100%', minWidth: 0, flex: 1 }}> {/* Wrapper for paper and action icons */}
             <Paper
             elevation={0} // Flat messages
             sx={{
-                px: 1.5,
-                pb: 1.5,
-                pt: isUser ? 1.5 : 0.75,
+                px: { xs: 1, sm: 1.5 },
+                pb: { xs: 1, sm: 1.5 },
+                pt: isUser ? { xs: 1, sm: 1.5 } : { xs: 0.5, sm: 0.75 },
                 bgcolor: isUser
                   ? (theme.palette.mode === 'dark' ? '#36383a' : '#f1f3f4')
                   : 'transparent',
@@ -138,6 +141,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 width: 'fit-content',
                 overflowWrap: 'break-word',
                 wordWrap: 'break-word',
+                wordBreak: 'break-word',
                 hyphens: 'auto',
                 ...(isUser ? {} : { mt: 0, marginTop: 0 })
             }}

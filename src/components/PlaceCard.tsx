@@ -126,7 +126,15 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
   
   // TEMPORARY: Use our own card system instead of Web Component for debugging
   return (
-    <Card variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2, display: 'flex', flexDirection: 'column' }}>
+    <Card variant="outlined" sx={{ 
+      width: '100%', 
+      maxWidth: { xs: '100%', sm: 360 }, 
+      borderRadius: 2, 
+      display: 'flex', 
+      flexDirection: 'column',
+      minWidth: 0, // Prevenir overflow
+      overflow: 'hidden', // Prevenir overflow
+    }}>
       {place.photoUrl && (
         <CardMedia
           component="img"
@@ -136,19 +144,30 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
           sx={{ objectFit: 'cover' }}
         />
       )}
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h6" component="h3" fontWeight="medium" noWrap title={place.name} gutterBottom>
+      <CardContent sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Typography 
+          variant="h6" 
+          component="h3" 
+          fontWeight="medium" 
+          noWrap 
+          title={place.name} 
+          gutterBottom
+          sx={{ 
+            fontSize: { xs: '1rem', sm: '1.25rem' },
+            minWidth: 0,
+          }}
+        >
           {place.name}
         </Typography>
 
         {typeof place.rating === 'number' && (
-          <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
+          <Stack direction="row" alignItems="center" spacing={0.5} mb={1} sx={{ minWidth: 0 }}>
             <Rating name="read-only" value={place.rating} precision={0.1} readOnly size="small" />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               ({place.rating.toFixed(1)})
             </Typography>
             {place.userRatingsTotal !== undefined && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                 {place.userRatingsTotal} reseñas
               </Typography>
             )}
@@ -156,9 +175,26 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
         )}
 
         {place.address && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-            <LocationOnIcon fontSize="small" sx={{ mr: 0.5 }} />
-            {place.address}
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            sx={{ 
+              mb: 1, 
+              display: 'flex', 
+              alignItems: 'center',
+              fontSize: { xs: '0.8rem', sm: '0.875rem' },
+              minWidth: 0,
+            }}
+          >
+            <LocationOnIcon fontSize="small" sx={{ mr: 0.5, flexShrink: 0 }} />
+            <span style={{ 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis', 
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+            }}>
+              {place.address}
+            </span>
           </Typography>
         )}
 
@@ -168,12 +204,23 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
             label={place.distance}
             size="small"
             variant="outlined"
-            sx={{ mb: 1 }}
+            sx={{ 
+              mb: 1,
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+            }}
           />
         )}
       </CardContent>
 
-      <CardActions sx={{ px: 2, pb: 2, pt:0, justifyContent: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
+      <CardActions sx={{ 
+        px: { xs: 1, sm: 2 }, 
+        pb: { xs: 1, sm: 2 }, 
+        pt: 0, 
+        justifyContent: 'flex-start', 
+        flexWrap: 'wrap', 
+        gap: { xs: 0.5, sm: 1 },
+        minWidth: 0,
+      }}>
         {place.mapsUrl && (
             <Tooltip title="Ver en Google Maps">
                 <Button
@@ -184,7 +231,11 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
                     size="small"
                     variant="outlined"
                     startIcon={<OpenInNewIcon />}
-                    sx={{ borderRadius: '16px', textTransform: 'none' }}
+                    sx={{ 
+                      borderRadius: '16px', 
+                      textTransform: 'none',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                    }}
                 >
                     Mapa
                 </Button>
@@ -200,7 +251,11 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
                     size="small"
                     variant="outlined"
                     startIcon={<LanguageIcon />}
-                    sx={{ borderRadius: '16px', textTransform: 'none' }}
+                    sx={{ 
+                      borderRadius: '16px', 
+                      textTransform: 'none',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                    }}
                 >
                     Web
                 </Button>
@@ -216,7 +271,11 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
                     size="small"
                     variant="outlined"
                     startIcon={<LocationOnIcon />}
-                    sx={{ borderRadius: '16px', textTransform: 'none' }}
+                    sx={{ 
+                      borderRadius: '16px', 
+                      textTransform: 'none',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                    }}
                 >
                     PlaceID
                 </Button>
@@ -227,7 +286,13 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
         <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ px: 2, pb: 1, fontSize: '0.6rem', textAlign: 'right' }}
+            sx={{ 
+              px: { xs: 1, sm: 2 }, 
+              pb: 1, 
+              fontSize: '0.6rem', 
+              textAlign: 'right',
+              minWidth: 0,
+            }}
             dangerouslySetInnerHTML={{ __html: place.photoAttributions.join(', ') }}
         />
       )}

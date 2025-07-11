@@ -213,14 +213,15 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <Box sx={{ 
       padding: isInFinetuningMode 
-        ? { xs: '4px 12px 8px 12px', sm: '8px 20px 12px 20px' } 
-        : { xs: '8px 16px 24px 16px', sm: '12px 24px 32px 24px' },
+        ? { xs: '4px 8px 8px 8px', sm: '8px 20px 12px 20px' } 
+        : { xs: '8px 12px 24px 12px', sm: '12px 24px 32px 24px' },
       bgcolor: 'background.default',
       maxWidth: '100%',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center'
+      alignItems: 'center',
+      minWidth: 0, // Prevenir overflow
     }}>
       {isRecording && (
         <canvas
@@ -245,12 +246,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
         sx={{
           display: 'flex',
           alignItems: 'center', // Center items vertically
-          p: '4px 8px 4px 4px', // Inner padding
+          p: { xs: '4px 6px 4px 4px', sm: '4px 8px 4px 4px' }, // Inner padding responsive
           borderRadius: '28px', // Highly rounded
           bgcolor: 'background.paper',
           border: `1px solid ${theme.palette.divider}`, // Subtle border like Gemini
           maxWidth: isInFinetuningMode ? '100%' : '800px',
           width: '100%',
+          minWidth: 0, // Prevenir overflow
           '&:focus-within': {
             borderColor: theme.palette.primary.main,
           }
@@ -261,12 +263,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
             disabled={isLoading || isRecording}
             title="Adjuntar archivo o más opciones"
             color="primary"
-            sx={{p: 1.25, color: theme.palette.text.secondary }}
+            sx={{
+              p: { xs: 1, sm: 1.25 }, 
+              color: theme.palette.text.secondary,
+              flexShrink: 0, // Prevenir que se encoja
+            }}
         >
-            <AddIcon />
+            <AddIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
         </IconButton>
         
-        <Stack direction="column" sx={{ flexGrow: 1, mx: 0.5 }}>
+        <Stack direction="column" sx={{ flexGrow: 1, mx: { xs: 0.25, sm: 0.5 }, minWidth: 0 }}>
             <TextField
                 inputRef={textareaRef}
                 fullWidth
@@ -279,9 +285,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     disableUnderline: true,
                     onKeyDown: handleKeyDown,
                     sx: { 
-                        py: '6px', // Fine-tune padding for alignment
-                        fontSize: '0.95rem',
+                        py: { xs: '4px', sm: '6px' }, // Fine-tune padding for alignment
+                        fontSize: { xs: '0.9rem', sm: '0.95rem' },
                         lineHeight: '1.4',
+                        minWidth: 0, // Prevenir overflow
                     }
                 }}
                 disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
@@ -289,29 +296,70 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 sx={{
                     '& .MuiInputBase-root': {
                         backgroundColor: 'transparent', // TextField transparent, Paper provides bg
+                        minWidth: 0, // Prevenir overflow
                     },
+                    minWidth: 0, // Prevenir overflow
                 }}
             />
         </Stack>
        
         {inputValue.trim() || isRecording ? (
             isRecording ? (
-                <IconButton onClick={toggleRecording} color="error" disabled={isLoading} title="Detener Grabación" sx={{p:1.25}}>
-                    <MicOffIcon />
+                <IconButton 
+                  onClick={toggleRecording} 
+                  color="error" 
+                  disabled={isLoading} 
+                  title="Detener Grabación" 
+                  sx={{
+                    p: { xs: 1, sm: 1.25 },
+                    flexShrink: 0, // Prevenir que se encoja
+                  }}
+                >
+                    <MicOffIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
                 </IconButton>
             ) : (
-                <IconButton type="submit" color="primary" onClick={handleSubmit} disabled={isLoading || !inputValue.trim()} title="Enviar Mensaje" sx={{p:1.25}}>
-                    {isLoading ? <CircularProgress size={24} color="inherit" /> : <SendIcon />}
+                <IconButton 
+                  type="submit" 
+                  color="primary" 
+                  onClick={handleSubmit} 
+                  disabled={isLoading || !inputValue.trim()} 
+                  title="Enviar Mensaje" 
+                  sx={{
+                    p: { xs: 1, sm: 1.25 },
+                    flexShrink: 0, // Prevenir que se encoja
+                  }}
+                >
+                    {isLoading ? <CircularProgress size={24} color="inherit" /> : <SendIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
                 </IconButton>
             )
         ) : (
-             <IconButton onClick={toggleRecording} color={isSpeechApiSupported ? "primary" : "default"} disabled={isLoading || !isSpeechApiSupported} title={isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"} sx={{p:1.25, color: theme.palette.text.secondary}}>
-                {isSpeechApiSupported ? <MicIcon /> : <MicOffIcon />}
+             <IconButton 
+               onClick={toggleRecording} 
+               color={isSpeechApiSupported ? "primary" : "default"} 
+               disabled={isLoading || !isSpeechApiSupported} 
+               title={isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"} 
+               sx={{
+                 p: { xs: 1, sm: 1.25 }, 
+                 color: theme.palette.text.secondary,
+                 flexShrink: 0, // Prevenir que se encoja
+               }}
+             >
+                {isSpeechApiSupported ? <MicIcon sx={{ fontSize: { xs: 20, sm: 24 } }} /> : <MicOffIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
             </IconButton>
         )}
       </Paper>
       {isRecording && speechError && (
-        <Typography variant="caption" color={speechError.includes("Error") || speechError.includes("denegado") ? "error" : "text.secondary"} sx={{ display: 'block', textAlign: 'center', mt: 0.5, fontSize:'0.7rem' }}>
+        <Typography 
+          variant="caption" 
+          color={speechError.includes("Error") || speechError.includes("denegado") ? "error" : "text.secondary"} 
+          sx={{ 
+            display: 'block', 
+            textAlign: 'center', 
+            mt: 0.5, 
+            fontSize: { xs: '0.65rem', sm: '0.7rem' },
+            px: 1, // Padding horizontal para evitar que el texto toque los bordes
+          }}
+        >
             {speechError}
         </Typography>
       )}

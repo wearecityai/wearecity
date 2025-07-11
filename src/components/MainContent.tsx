@@ -221,11 +221,12 @@ const MainContent: React.FC<MainContentProps> = ({
                   width: '100%',
                   maxWidth: { sm: '800px' },
                   margin: '0 auto',
-                  padding: { xs: '0 16px', sm: '0 32px' },
+                  padding: { xs: '0 8px', sm: '0 16px' },
                   minHeight: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  mx: '16px',
+                  // Eliminar margin horizontal que causa scroll
+                  mx: 0,
                 }}
               >
                 <ChatContainer
