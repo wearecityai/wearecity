@@ -214,7 +214,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     alignItems: 'center', 
                     justifyContent: 'center', 
                     flexShrink: 0,
-                    overflow: 'visible'
+                    overflow: 'hidden'
                   }}>
                     <CircularProgress 
                       size={32} 
@@ -223,8 +223,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                         color: theme.palette.primary.main, 
                         position: 'absolute', 
                         left: 0, 
-                        top: 0,
-                        overflow: 'visible'
+                        top: 0
                       }}
                     />
                     <LocationCityIcon sx={{ 
@@ -233,8 +232,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       position: 'absolute', 
                       left: '50%', 
                       top: '50%', 
-                      transform: 'translate(-50%, -50%)',
-                      overflow: 'visible'
+                      transform: 'translate(-50%, -50%)'
                     }} />
                   </Box>
                   <Typography 
@@ -249,6 +247,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                       lineHeight: 1.2,
+                      maxWidth: '100%',
                       '@keyframes fadeInOut': {
                         '0%, 100%': { opacity: 0.7 },
                         '16%, 84%': { opacity: 1 },

@@ -48,6 +48,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         overflow: 'hidden',
         position: 'relative',
         width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
         // maxWidth y padding removidos - ahora están en MainContent
       }}
     >
