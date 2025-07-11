@@ -16,6 +16,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Scroll hack para intentar ocultar la barra inferior de Safari en iOS
+function isIosSafari() {
+  const ua = window.navigator.userAgent;
+  return /iP(ad|hone|od)/.test(ua) && /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|mercury/.test(ua);
+}
+
+window.addEventListener('load', () => {
+  if (isIosSafari()) {
+    setTimeout(() => {
+      window.scrollTo(0, 1);
+    }, 150);
+  }
+});
+
 // The city-chat app will handle its own rendering
 // This file is kept for compatibility but the actual app is in city-chat/index.tsx
 
