@@ -257,7 +257,7 @@ const MainContent: React.FC<MainContentProps> = ({
                   width: '100%',
                   maxWidth: { sm: '800px' },
                   margin: '0 auto',
-                  padding: { xs: '0 4px', sm: '0 16px' }, // Reducir padding en móvil
+                  padding: { xs: '0 4px', sm: '0 8px', md: '0 16px' }, // Optimizado para tablet
                   minHeight: '100%',
                   display: 'flex',
                   flexDirection: 'column',

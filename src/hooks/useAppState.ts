@@ -11,7 +11,7 @@ import { MessageRole } from '../types';
 
 export const useAppState = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Incluir tablet como mobile
   
   // Use theme context instead of local state
   const { currentThemeMode, toggleTheme } = useThemeContext();

@@ -285,8 +285,8 @@ export const RecommendedPromptsBar: React.FC<{
     >
       {prompts.map((prompt, idx) => {
         const IconComponent = getIconComponent(prompt.img || 'help');
-        // Limitar el texto del prompt a 40 caracteres en móvil
-        const MAX_PROMPT_LENGTH = { xs: 40, sm: 60 };
+        // Optimizar longitud del texto para diferentes tamaños de pantalla
+        const MAX_PROMPT_LENGTH = { xs: 40, sm: 50, md: 60 };
         const promptText = (prompt.text || '').length > MAX_PROMPT_LENGTH.xs
           ? (prompt.text || '').slice(0, MAX_PROMPT_LENGTH.xs - 1) + '…'
           : (prompt.text || '');
@@ -297,18 +297,18 @@ export const RecommendedPromptsBar: React.FC<{
               background: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
               color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
               borderRadius: 4,
-              minWidth: { xs: 100, sm: 140 },
-              maxWidth: { xs: 180, sm: 220 },
-              minHeight: { xs: 48, sm: 70 },
-              maxHeight: { xs: 80, sm: 300 },
+              minWidth: { xs: 100, sm: 120, md: 140 },
+              maxWidth: { xs: 180, sm: 200, md: 220 },
+              minHeight: { xs: 48, sm: 60, md: 70 },
+              maxHeight: { xs: 80, sm: 200, md: 300 },
               display: 'flex',
-              flexDirection: { xs: 'row', sm: 'column' },
+              flexDirection: { xs: 'row', sm: 'row', md: 'column' }, // Tablet usa layout horizontal como mobile
               alignItems: 'center',
-              fontSize: { xs: '0.85rem', sm: '0.95rem' },
+              fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
               fontWeight: 400,
-              px: { xs: 0.75, sm: 1.5 },
-              py: { xs: 0.5, sm: 1 },
-              textAlign: { xs: 'left', sm: 'center' },
+              px: { xs: 0.75, sm: 1, md: 1.5 },
+              py: { xs: 0.5, sm: 0.75, md: 1 },
+              textAlign: { xs: 'left', sm: 'left', md: 'center' }, // Tablet usa alineación izquierda como mobile
               flex: '0 0 auto',
               boxShadow: 'none',
               cursor: 'pointer',
@@ -326,16 +326,16 @@ export const RecommendedPromptsBar: React.FC<{
             onClick={() => onSendMessage(prompt.text)}
           >
             <Avatar sx={{ 
-              width: { xs: 28, sm: 38 }, 
-              height: { xs: 28, sm: 38 }, 
+              width: { xs: 28, sm: 32, md: 38 }, 
+              height: { xs: 28, sm: 32, md: 38 }, 
               bgcolor: 'primary.main', 
               color: 'white',
-              mr: { xs: 0.75, sm: 0 },
-              mb: { xs: 0, sm: 1 },
+              mr: { xs: 0.75, sm: 0.75, md: 0 }, // Tablet mantiene margen derecho como mobile
+              mb: { xs: 0, sm: 0, md: 1 },
               flexShrink: 0,
               alignSelf: 'center',
             }}>
-              <IconComponent sx={{ fontSize: { xs: 16, sm: 22 } }} />
+              <IconComponent sx={{ fontSize: { xs: 16, sm: 18, md: 22 } }} />
             </Avatar>
             <span
               style={{

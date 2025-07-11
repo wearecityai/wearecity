@@ -122,7 +122,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
   const setActiveTab = onTabChange || setInternalActiveTab;
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Incluir tablet como mobile
 
   // Solo sincronizar el estado local si cambia la ciudad base (o un id único de config)
   const lastCityRef = useRef<string | undefined>(currentConfig.restrictedCity?.name);
