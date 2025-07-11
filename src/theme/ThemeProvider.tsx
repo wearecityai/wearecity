@@ -89,7 +89,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           MuiCssBaseline: {
             styleOverrides: {
               body: {
-                backgroundColor: theme.palette.background.default,
+                backgroundColor: currentThemeMode === 'light' ? '#ffffff' : '#121212',
                 scrollbarColor: currentThemeMode === 'dark' ? '#6b6b6b #2b2b2b' : '#c1c1c1 #f1f1f1',
                 '&::-webkit-scrollbar, & *::-webkit-scrollbar': {
                   backgroundColor: currentThemeMode === 'dark' ? '#2b2b2b' : '#f1f1f1',
