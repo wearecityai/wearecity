@@ -314,7 +314,10 @@ export const RecommendedPromptsBar: React.FC<{
               cursor: 'pointer',
               transition: 'background 0.18s',
               '&:hover': {
-                background: theme => theme.palette.mode === 'dark' ? '#292a2e' : '#e0e0e0',
+                background: {
+                  xs: 'inherit',
+                  sm: theme => theme.palette.mode === 'dark' ? '#292a2e' : '#e0e0e0',
+                },
               },
               mb: 0,
               userSelect: 'none',

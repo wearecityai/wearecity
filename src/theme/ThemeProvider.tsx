@@ -38,6 +38,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, [prefersDarkMode]);
 
+  // Actualiza el meta theme-color según el modo
+  useEffect(() => {
+    const color = currentThemeMode === 'dark' ? '#121212' : '#ffffff';
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', color);
+  }, [currentThemeMode]);
+
   const toggleTheme = () => {
     const newMode = currentThemeMode === 'light' ? 'dark' : 'light';
     setCurrentThemeMode(newMode);

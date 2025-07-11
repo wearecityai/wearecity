@@ -171,6 +171,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         minHeight: '64px',
         bgcolor: 'background.default',
         color: 'text.primary',
+        py: { xs: 1, sm: 2 }, // padding vertical 8px en mobile, 16px en desktop
       }}
     >
       {isMobile && (
