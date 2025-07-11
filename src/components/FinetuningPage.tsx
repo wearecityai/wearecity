@@ -106,15 +106,15 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
   const [newPrompt, setNewPrompt] = useState('');
   const [newPromptIcon, setNewPromptIcon] = useState('help');
   const [currentLanguageCode, setCurrentLanguageCode] = useState<string>(currentConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE);
-  const [municipalityInputName, setMunicipalityInputName] = useState<string>('');
-  const [procedureSourceUrls, setProcedureSourceUrls] = useState<string[]>([]);
+  const [municipalityInputName, setMunicipalityInputName] = useState<string>(currentConfig.restrictedCity?.name || '');
+  const [procedureSourceUrls, setProcedureSourceUrls] = useState<string[]>(Array.isArray(currentConfig.procedureSourceUrls) ? currentConfig.procedureSourceUrls : []);
   const [newProcedureUrl, setNewProcedureUrl] = useState<string>('');
-  const [uploadedProcedureDocuments, setUploadedProcedureDocuments] = useState<UploadedProcedureDocument[]>([]);
+  const [uploadedProcedureDocuments, setUploadedProcedureDocuments] = useState<UploadedProcedureDocument[]>(Array.isArray(currentConfig.uploadedProcedureDocuments) ? currentConfig.uploadedProcedureDocuments : []);
   const [currentPdfFile, setCurrentPdfFile] = useState<File | null>(null);
   const [currentProcedureNameToUpload, setCurrentProcedureNameToUpload] = useState<string>('');
   const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [sedeElectronicaUrl, setSedeElectronicaUrl] = useState<string>('');
+  const [sedeElectronicaUrl, setSedeElectronicaUrl] = useState<string>(currentConfig.sedeElectronicaUrl || '');
   const [profileImageUrl, setProfileImageUrl] = useState<string>(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
@@ -126,6 +126,8 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
 
   // Solo sincronizar el estado local si cambia la ciudad base (o un id único de config)
   const lastCityRef = useRef<string | undefined>(currentConfig.restrictedCity?.name);
+  console.log('🔍 FinetuningPage - currentConfig.restrictedCity:', currentConfig.restrictedCity);
+  console.log('🔍 FinetuningPage - municipalityInputName initial:', municipalityInputName);
   useEffect(() => {
     if (lastCityRef.current !== currentConfig.restrictedCity?.name) {
       setAssistantName(currentConfig.assistantName || DEFAULT_CHAT_CONFIG.assistantName);

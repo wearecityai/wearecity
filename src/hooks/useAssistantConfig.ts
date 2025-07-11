@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { CustomChatConfig } from '../types';
+import { CustomChatConfig, RecommendedPrompt, UploadedProcedureDocument } from '../types';
 import { DEFAULT_CHAT_CONFIG } from '../constants';
 
 export const useAssistantConfig = () => {
@@ -10,8 +10,8 @@ export const useAssistantConfig = () => {
   const [config, setConfig] = useState<CustomChatConfig>(DEFAULT_CHAT_CONFIG);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper function to safely parse JSON arrays
-  const safeParseJsonArray = (value: any, fallback: string[]): string[] => {
+  // Helper function to safely parse JSON arrays (genérico)
+  const safeParseJsonArray = <T>(value: any, fallback: T[]): T[] => {
     if (Array.isArray(value)) return value;
     if (typeof value === 'string') {
       try {
@@ -92,20 +92,25 @@ export const useAssistantConfig = () => {
       }
 
       const data = cityData;
+      console.log('🔍 Datos crudos de Supabase:', data);
 
       if (data) {
+        console.log('🔍 restricted_city raw from Supabase:', data.restricted_city);
+        console.log('🔍 restricted_city type:', typeof data.restricted_city);
+        console.log('🔍 restricted_city parsed:', safeParseJsonObject(data.restricted_city, DEFAULT_CHAT_CONFIG.restrictedCity));
+        console.log('🔍 DEFAULT_CHAT_CONFIG.restrictedCity:', DEFAULT_CHAT_CONFIG.restrictedCity);
         // Convertir datos de Supabase al formato CustomChatConfig
         const loadedConfig: CustomChatConfig = {
           assistantName: data.assistant_name || DEFAULT_CHAT_CONFIG.assistantName,
           systemInstruction: data.system_instruction || DEFAULT_CHAT_CONFIG.systemInstruction,
-          recommendedPrompts: safeParseRecommendedPrompts(data.recommended_prompts, DEFAULT_CHAT_CONFIG.recommendedPrompts),
-          serviceTags: safeParseJsonArray(data.service_tags, DEFAULT_CHAT_CONFIG.serviceTags),
+          recommendedPrompts: safeParseJsonArray<RecommendedPrompt>(data.recommended_prompts, DEFAULT_CHAT_CONFIG.recommendedPrompts),
+          serviceTags: safeParseJsonArray<string>(data.service_tags, DEFAULT_CHAT_CONFIG.serviceTags),
           enableGoogleSearch: data.enable_google_search ?? DEFAULT_CHAT_CONFIG.enableGoogleSearch,
           allowMapDisplay: data.allow_map_display ?? DEFAULT_CHAT_CONFIG.allowMapDisplay,
           allowGeolocation: data.allow_geolocation ?? DEFAULT_CHAT_CONFIG.allowGeolocation,
           currentLanguageCode: data.current_language_code || DEFAULT_CHAT_CONFIG.currentLanguageCode,
-          procedureSourceUrls: safeParseJsonArray(data.procedure_source_urls, DEFAULT_CHAT_CONFIG.procedureSourceUrls),
-          uploadedProcedureDocuments: safeParseJsonObject(data.uploaded_procedure_documents, DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments),
+          procedureSourceUrls: safeParseJsonArray<string>(data.procedure_source_urls, DEFAULT_CHAT_CONFIG.procedureSourceUrls),
+          uploadedProcedureDocuments: safeParseJsonArray<UploadedProcedureDocument>(data.uploaded_procedure_documents, DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments),
           restrictedCity: safeParseJsonObject(data.restricted_city, DEFAULT_CHAT_CONFIG.restrictedCity),
           sedeElectronicaUrl: data.sede_electronica_url || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl,
           profileImageUrl: (data as any).profile_image_url || DEFAULT_CHAT_CONFIG.profileImageUrl, // Safe access with fallback
