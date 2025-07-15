@@ -17,42 +17,72 @@ export type Database = {
       cities: {
         Row: {
           admin_user_id: string | null
+          allow_geolocation: boolean | null
+          allow_map_display: boolean | null
           assistant_name: string | null
-          chat_id: string | null
           created_at: string | null
+          current_language_code: string | null
+          enable_google_search: boolean | null
           id: string
           is_active: boolean | null
           is_public: boolean | null
           name: string
+          procedure_source_urls: Json | null
           profile_image_url: string | null
+          recommended_prompts: Json | null
+          restricted_city: Json | null
+          sede_electronica_url: string | null
+          service_tags: Json | null
           slug: string
+          system_instruction: string | null
           updated_at: string | null
+          uploaded_procedure_documents: Json | null
         }
         Insert: {
           admin_user_id?: string | null
+          allow_geolocation?: boolean | null
+          allow_map_display?: boolean | null
           assistant_name?: string | null
-          chat_id?: string | null
           created_at?: string | null
+          current_language_code?: string | null
+          enable_google_search?: boolean | null
           id?: string
           is_active?: boolean | null
           is_public?: boolean | null
           name: string
+          procedure_source_urls?: Json | null
           profile_image_url?: string | null
+          recommended_prompts?: Json | null
+          restricted_city?: Json | null
+          sede_electronica_url?: string | null
+          service_tags?: Json | null
           slug: string
+          system_instruction?: string | null
           updated_at?: string | null
+          uploaded_procedure_documents?: Json | null
         }
         Update: {
           admin_user_id?: string | null
+          allow_geolocation?: boolean | null
+          allow_map_display?: boolean | null
           assistant_name?: string | null
-          chat_id?: string | null
           created_at?: string | null
+          current_language_code?: string | null
+          enable_google_search?: boolean | null
           id?: string
           is_active?: boolean | null
           is_public?: boolean | null
           name?: string
+          procedure_source_urls?: Json | null
           profile_image_url?: string | null
+          recommended_prompts?: Json | null
+          restricted_city?: Json | null
+          sede_electronica_url?: string | null
+          service_tags?: Json | null
           slug?: string
+          system_instruction?: string | null
           updated_at?: string | null
+          uploaded_procedure_documents?: Json | null
         }
         Relationships: []
       }
