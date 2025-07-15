@@ -176,6 +176,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generate_unique_slug: {
+        Args: { base_name: string }
+        Returns: string
+      }
       get_cities: {
         Args: Record<PropertyKey, never>
         Returns: {
