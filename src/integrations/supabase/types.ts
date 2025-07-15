@@ -16,106 +16,77 @@ export type Database = {
     Tables: {
       cities: {
         Row: {
-          admin_user_id: string
-          allow_geolocation: boolean | null
-          allow_map_display: boolean | null
-          assistant_name: string | null
+          admin_user_id: string | null
           chat_id: string | null
           created_at: string | null
-          current_language_code: string | null
-          enable_google_search: boolean | null
           id: string
-          is_active: boolean | null
           is_public: boolean | null
           name: string
-          procedure_source_urls: Json | null
           profile_image_url: string | null
-          recommended_prompts: Json | null
-          restricted_city: Json | null
-          sede_electronica_url: string | null
-          service_tags: Json | null
           slug: string
-          system_instruction: string | null
           updated_at: string | null
-          uploaded_procedure_documents: Json | null
         }
         Insert: {
-          admin_user_id: string
-          allow_geolocation?: boolean | null
-          allow_map_display?: boolean | null
-          assistant_name?: string | null
+          admin_user_id?: string | null
           chat_id?: string | null
           created_at?: string | null
-          current_language_code?: string | null
-          enable_google_search?: boolean | null
           id?: string
-          is_active?: boolean | null
           is_public?: boolean | null
           name: string
-          procedure_source_urls?: Json | null
           profile_image_url?: string | null
-          recommended_prompts?: Json | null
-          restricted_city?: Json | null
-          sede_electronica_url?: string | null
-          service_tags?: Json | null
           slug: string
-          system_instruction?: string | null
           updated_at?: string | null
-          uploaded_procedure_documents?: Json | null
         }
         Update: {
-          admin_user_id?: string
-          allow_geolocation?: boolean | null
-          allow_map_display?: boolean | null
-          assistant_name?: string | null
+          admin_user_id?: string | null
           chat_id?: string | null
           created_at?: string | null
-          current_language_code?: string | null
-          enable_google_search?: boolean | null
           id?: string
-          is_active?: boolean | null
           is_public?: boolean | null
           name?: string
-          procedure_source_urls?: Json | null
           profile_image_url?: string | null
-          recommended_prompts?: Json | null
-          restricted_city?: Json | null
-          sede_electronica_url?: string | null
-          service_tags?: Json | null
           slug?: string
-          system_instruction?: string | null
           updated_at?: string | null
-          uploaded_procedure_documents?: Json | null
         }
         Relationships: []
       }
       conversations: {
         Row: {
-          created_at: string | null
+          city_slug: string | null
+          created_at: string
           id: string
           title: string
-          updated_at: string | null
+          updated_at: string
           user_id: string | null
         }
         Insert: {
-          created_at?: string | null
+          city_slug?: string | null
+          created_at?: string
           id?: string
-          title?: string
-          updated_at?: string | null
+          title: string
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
-          created_at?: string | null
+          city_slug?: string | null
+          created_at?: string
           id?: string
           title?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversations_city_slug_fkey"
+            columns: ["city_slug"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       messages: {
         Row: {
-          city_id: string | null
           content: string
           conversation_id: string
           created_at: string | null
@@ -124,7 +95,6 @@ export type Database = {
           role: string
         }
         Insert: {
-          city_id?: string | null
           content: string
           conversation_id: string
           created_at?: string | null
@@ -133,7 +103,6 @@ export type Database = {
           role: string
         }
         Update: {
-          city_id?: string | null
           content?: string
           conversation_id?: string
           created_at?: string | null
@@ -142,13 +111,6 @@ export type Database = {
           role?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "messages_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "cities"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -193,133 +155,61 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_admin_chat: {
-        Args: { chat_name_param?: string; is_public_param?: boolean }
-        Returns: {
-          id: string
-          chat_slug: string
-          chat_name: string
-          is_public: boolean
-        }[]
-      }
-      create_city_for_admin: {
-        Args: { admin_user_id_param: string }
+      create_city: {
+        Args: { city_name: string; city_slug: string; admin_id: string }
         Returns: {
           id: string
           name: string
           slug: string
           admin_user_id: string
+          created_at: string
+          updated_at: string
         }[]
-      }
-      generate_admin_chat_slug: {
-        Args: Record<PropertyKey, never>
-        Returns: string
       }
       generate_city_slug: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      generate_provisional_city_name: {
+      get_cities: {
         Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_unique_slug: {
-        Args: { base_text: string }
-        Returns: string
-      }
-      get_admin_chat_by_slug: {
-        Args: { chat_slug_param: string }
-        Returns: {
-          id: string
-          chat_name: string
-          chat_slug: string
-          is_public: boolean
-          admin_user_id: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      get_admin_chats: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          chat_name: string
-          chat_slug: string
-          is_public: boolean
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      get_admin_city: {
-        Args: { admin_user_id_param: string }
         Returns: {
           id: string
           name: string
           slug: string
           admin_user_id: string
-          chat_id: string
           created_at: string
           updated_at: string
         }[]
       }
-      get_admin_finetuning_config: {
-        Args: { chat_id_param: string }
+      get_city_by_slug: {
+        Args: { city_slug: string }
         Returns: {
           id: string
-          config_name: string
-          assistant_name: string
-          system_instruction: string
-          recommended_prompts: Json
-          service_tags: Json
-          enable_google_search: boolean
-          allow_map_display: boolean
-          allow_geolocation: boolean
-          current_language_code: string
-          procedure_source_urls: Json
-          uploaded_procedure_documents: Json
-          sede_electronica_url: string
-          restricted_city: Json
+          name: string
+          slug: string
+          admin_user_id: string
+          created_at: string
+          updated_at: string
         }[]
       }
-      get_all_system_instructions: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          instruction_key: string
-          instruction_value: string
-          description: string
-        }[]
-      }
-      get_system_instruction: {
-        Args: { instruction_key_param: string }
-        Returns: string
-      }
-      search_scraped_content: {
-        Args: {
-          search_query: string
-          user_id_param: string
-          limit_param?: number
-        }
+      get_user_city: {
+        Args: { user_id: string }
         Returns: {
           id: string
-          title: string
-          content: string
-          url: string
-          website_name: string
-          content_type: string
-          rank: number
+          name: string
+          slug: string
+          admin_user_id: string
+          created_at: string
+          updated_at: string
         }[]
       }
-      update_admin_finetuning_config: {
-        Args: { chat_id_param: string; config_data: Json }
-        Returns: boolean
-      }
-      update_city_name_from_chat: {
-        Args: { chat_id_param: string; new_chat_name: string }
+      is_slug_available: {
+        Args: { city_slug: string }
         Returns: boolean
       }
     }
     Enums: {
-      user_role: "ciudadano" | "administrativo"
+      user_role: "admin" | "citizen"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -447,7 +337,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      user_role: ["ciudadano", "administrativo"],
+      user_role: ["admin", "citizen"],
     },
   },
 } as const
