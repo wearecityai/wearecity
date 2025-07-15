@@ -165,7 +165,7 @@ export const PublicChatPage: React.FC = () => {
     };
 
     loadCity();
-  }, [chatSlug, setChatConfig]);
+  }, [chatSlug, setChatConfig]); // Añadir setChatConfig como dependencia
 
   const handleLogin = () => {
     window.location.href = '/auth';

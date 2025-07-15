@@ -7,8 +7,9 @@ import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
 import { useAssistantConfig } from './useAssistantConfig';
 import { useConversations } from './useConversations';
-import { MessageRole } from '../types';
+import { MessageRole, CustomChatConfig } from '../types';
 import { supabase } from '../integrations/supabase/client';
+import { DEFAULT_CHAT_CONFIG } from '../constants';
 
 export const useAppState = (citySlug?: string) => {
   const theme = useTheme();
@@ -27,8 +28,21 @@ export const useAppState = (citySlug?: string) => {
 
   const { isGeminiReady, setIsGeminiReady, appError, setAppError } = useApiInitialization();
   
-  // Usar el nuevo hook de configuración
-  const { config: chatConfig, setConfig: setChatConfig, saveConfig } = useAssistantConfig();
+  // Gestión de configuración: usar hook para admin o estado local para chats públicos
+  const assistantConfigHook = useAssistantConfig();
+  const [publicChatConfig, setPublicChatConfig] = useState<CustomChatConfig>(DEFAULT_CHAT_CONFIG);
+  
+  // Decidir qué configuración usar según si es chat público o no
+  const chatConfig = citySlug ? publicChatConfig : assistantConfigHook.config;
+  const setChatConfig = citySlug ? setPublicChatConfig : assistantConfigHook.setConfig;
+  const saveConfig = citySlug ? 
+    // Para chats públicos, solo guardar en localStorage
+    async (config: CustomChatConfig) => {
+      localStorage.setItem('chatConfig', JSON.stringify(config));
+      setPublicChatConfig(config);
+      return true;
+    } : 
+    assistantConfigHook.saveConfig;
 
   const { userLocation, geolocationError, geolocationStatus } = useGeolocation(chatConfig.allowGeolocation);
 
