@@ -202,12 +202,9 @@ export const useConversations = (citySlug?: string) => {
   };
 
   useEffect(() => {
-    if (user) {
-      loadConversations();
-    } else {
-      loadConversations();
-    }
-  }, [user]);
+    console.log('useConversations useEffect triggered - user:', !!user, 'citySlug:', citySlug);
+    loadConversations();
+  }, [user, citySlug]);
 
   return {
     conversations,
