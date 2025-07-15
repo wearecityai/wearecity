@@ -17,9 +17,11 @@ export type Database = {
       cities: {
         Row: {
           admin_user_id: string | null
+          assistant_name: string | null
           chat_id: string | null
           created_at: string | null
           id: string
+          is_active: boolean | null
           is_public: boolean | null
           name: string
           profile_image_url: string | null
@@ -28,9 +30,11 @@ export type Database = {
         }
         Insert: {
           admin_user_id?: string | null
+          assistant_name?: string | null
           chat_id?: string | null
           created_at?: string | null
           id?: string
+          is_active?: boolean | null
           is_public?: boolean | null
           name: string
           profile_image_url?: string | null
@@ -39,9 +43,11 @@ export type Database = {
         }
         Update: {
           admin_user_id?: string | null
+          assistant_name?: string | null
           chat_id?: string | null
           created_at?: string | null
           id?: string
+          is_active?: boolean | null
           is_public?: boolean | null
           name?: string
           profile_image_url?: string | null
