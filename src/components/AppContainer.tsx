@@ -55,6 +55,7 @@ interface AppContainerProps {
   deleteConversation: (conversationId: string) => Promise<void>;
   shouldShowChatContainer: boolean;
   isPublicChat?: boolean;
+  handleToggleLocation: (enabled: boolean) => Promise<void>;
 }
 
 const AppContainer: React.FC<AppContainerProps> = ({ 
@@ -93,7 +94,8 @@ const AppContainer: React.FC<AppContainerProps> = ({
   setCurrentConversationId,
   deleteConversation,
   shouldShowChatContainer,
-  isPublicChat = false
+  isPublicChat = false,
+  handleToggleLocation
 }) => {
   const {
     handleNewChat: handleNewChatClick,
@@ -172,6 +174,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
       deleteConversation={deleteConversation}
       shouldShowChatContainer={shouldShowChatContainer}
       isPublicChat={isPublicChat}
+      handleToggleLocation={handleToggleLocation}
     />
   );
 };

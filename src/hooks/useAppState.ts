@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { useThemeContext } from '../theme/ThemeProvider';
 import { useGeolocation } from './useGeolocation';
@@ -8,17 +8,22 @@ import { useChatManager } from './useChatManager';
 import { useAssistantConfig } from './useAssistantConfig';
 import { useConversations } from './useConversations';
 import { MessageRole } from '../types';
+import { supabase } from '../integrations/supabase/client';
 
-export const useAppState = () => {
+export const useAppState = (citySlug?: string) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Incluir tablet como mobile
   
   // Use theme context instead of local state
   const { currentThemeMode, toggleTheme } = useThemeContext();
   
+  // Track processed place cards to prevent infinite loops
+  const processedCardsRef = useRef<Set<string>>(new Set());
+  
   const [currentView, setCurrentView] = useState<'chat' | 'finetuning'>('chat');
   const [selectedChatIndex, setSelectedChatIndex] = useState<number>(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string | null>(null);
 
   const { isGeminiReady, setIsGeminiReady, appError, setAppError } = useApiInitialization();
   
@@ -27,24 +32,70 @@ export const useAppState = () => {
 
   const { userLocation, geolocationError, geolocationStatus } = useGeolocation(chatConfig.allowGeolocation);
 
-  const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, loadGoogleMapsScript } = useGoogleMaps(
+  const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, loadGoogleMapsScript, placesServiceRef, testGooglePlacesAPI } = useGoogleMaps(
     userLocation,
     chatConfig.currentLanguageCode || 'es',
     setAppError
   );
 
+  // Fetch Google Maps API key from backend
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      try {
+        // Get the API key from the backend edge function
+        const response = await fetch('https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userMessage: 'test',
+            requestType: 'get_api_key'
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.apiKey) {
+            console.log('✅ Retrieved Google Maps API key from backend');
+            setGoogleMapsApiKey(data.apiKey);
+            return;
+          }
+        }
+        
+        console.warn('⚠️ Could not retrieve API key from backend, using fallback');
+        setGoogleMapsApiKey('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g');
+      } catch (error) {
+        console.error('❌ Error fetching API key:', error);
+        setGoogleMapsApiKey('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g');
+      }
+    };
+
+    if (!googleMapsApiKey) {
+      fetchApiKey();
+    }
+  }, [googleMapsApiKey]);
+
   // Load Google Maps script on app initialization
   useEffect(() => {
-    const apiKey = 'AIzaSyC8UkMJYtp0_Whz4lmWw4CtEQ8u5nMzUoI'; // Google Maps API Key from Supabase
-    if (apiKey && !googleMapsScriptLoaded) {
-      console.log('🔍 Loading Google Maps script with API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NO API KEY');
-      loadGoogleMapsScript(apiKey);
-    } else if (!apiKey) {
+    if (googleMapsApiKey && !googleMapsScriptLoaded) {
+      console.log('🔍 Loading Google Maps script with API key:', googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'NO API KEY');
+      loadGoogleMapsScript(googleMapsApiKey);
+    } else if (!googleMapsApiKey) {
       console.warn('❌ Google Maps API key not found');
     }
-  }, [loadGoogleMapsScript, googleMapsScriptLoaded]);
+  }, [loadGoogleMapsScript, googleMapsScriptLoaded, googleMapsApiKey]);
 
-  // Use conversations hook directly here
+  // Test Google Places API when script is loaded
+  useEffect(() => {
+    if (googleMapsScriptLoaded) {
+      console.log('🔍 Google Maps script loaded, testing Places API...');
+      // Delay the test to ensure everything is initialized
+      setTimeout(() => {
+        testGooglePlacesAPI();
+      }, 1000);
+    }
+  }, [googleMapsScriptLoaded, testGooglePlacesAPI]);
+
+  // Use conversations hook directly here with citySlug
   const { 
     conversations, 
     currentConversationId, 
@@ -53,7 +104,7 @@ export const useAppState = () => {
     updateConversationTitle,
     deleteConversation,
     loadConversations
-  } = useConversations();
+  } = useConversations(citySlug);
 
   const { 
     messages, 
@@ -79,6 +130,14 @@ export const useAppState = () => {
     }
   );
 
+  // Clear processed cards when starting a new conversation
+  useEffect(() => {
+    if (messages.length === 0) {
+      processedCardsRef.current.clear();
+      console.log('🧹 Cleared processed cards cache - new conversation started');
+    }
+  }, [messages.length]);
+
   // Handle menu overflow effect
   useEffect(() => {
     if (isMenuOpen && isMobile) {
@@ -89,11 +148,12 @@ export const useAppState = () => {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isMenuOpen, isMobile]);
 
-  // Handle place cards loading
+  // Handle place cards loading - Fixed to prevent infinite loops
   useEffect(() => {
     console.log('🔍 Place cards useEffect triggered:', {
       googleMapsScriptLoaded,
-      messagesCount: messages.length
+      messagesCount: messages.length,
+      placesServiceAvailable: !!placesServiceRef.current
     });
     
     if (!googleMapsScriptLoaded) {
@@ -101,33 +161,60 @@ export const useAppState = () => {
       return;
     }
     
+    if (!placesServiceRef.current) {
+      console.log('❌ Google Places service not initialized');
+      return;
+    }
+    
+    // Clear processed cards when messages change significantly
+    if (messages.length === 0) {
+      processedCardsRef.current.clear();
+      return;
+    }
+    
     messages.forEach((msg, msgIndex) => {
       if (msg.role === 'model' && msg.placeCards) {
         console.log(`🔍 Message ${msgIndex} has ${msg.placeCards.length} place cards`);
         msg.placeCards.forEach((card, cardIndex) => {
+          // Create a unique identifier for this card
+          const cardKey = `${msg.id}-${card.id}`;
+          
           console.log(`🔍 Place card ${cardIndex}:`, {
             name: card.name,
             placeId: card.placeId,
             searchQuery: card.searchQuery,
             isLoadingDetails: card.isLoadingDetails,
             errorDetails: card.errorDetails,
-            photoUrl: card.photoUrl
+            photoUrl: card.photoUrl,
+            rating: card.rating,
+            address: card.address,
+            cardKey,
+            alreadyProcessed: processedCardsRef.current.has(cardKey)
           });
           
-          if (card.isLoadingDetails && (card.placeId || card.searchQuery)) {
-            if (!card.errorDetails && !card.photoUrl) {
-              console.log(`✅ Calling fetchPlaceDetailsAndUpdateMessage for card: ${card.name}`);
-              fetchPlaceDetailsAndUpdateMessage(msg.id, card.id, card.placeId, card.searchQuery, setMessages);
-            } else {
-              console.log(`⚠️ Skipping card ${card.name} - already has errorDetails or photoUrl`);
-            }
+          // Solo cargar si:
+          // 1. Está en estado de carga
+          // 2. Tiene placeId o searchQuery
+          // 3. NO ha sido procesada antes
+          // 4. NO tiene datos ya cargados
+          if (card.isLoadingDetails && 
+              (card.placeId || card.searchQuery) && 
+              !processedCardsRef.current.has(cardKey) &&
+              !card.rating && 
+              !card.address && 
+              !card.errorDetails) {
+            
+            console.log(`✅ Processing card for first time: ${card.name} (${cardKey})`);
+            processedCardsRef.current.add(cardKey);
+            
+            fetchPlaceDetailsAndUpdateMessage(msg.id, card.id, card.placeId, card.searchQuery, setMessages);
           } else {
-            console.log(`⚠️ Skipping card ${card.name} - not loading or missing placeId/searchQuery`);
+            console.log(`⚠️ Skipping card ${card.name} - already processed or has data`);
           }
         });
       }
     });
-  }, [messages, googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, setMessages]);
+  }, [messages, googleMapsScriptLoaded]); // Removed problematic dependencies
 
   // Update selectedChatIndex when currentConversationId changes
   useEffect(() => {
@@ -172,6 +259,13 @@ export const useAppState = () => {
   };
   // --- FIN: Estado para controlar la visibilidad del ChatContainer ---
 
+  // Función para manejar el toggle de geolocalización
+  const handleToggleLocation = async (enabled: boolean) => {
+    const updatedConfig = { ...chatConfig, allowGeolocation: enabled };
+    setChatConfig(updatedConfig);
+    await saveConfig(updatedConfig);
+  };
+
   return {
     theme,
     isMobile,
@@ -206,6 +300,7 @@ export const useAppState = () => {
     currentConversationId,
     setCurrentConversationId,
     deleteConversation,
-    shouldShowChatContainer
+    shouldShowChatContainer,
+    handleToggleLocation
   };
 };

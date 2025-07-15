@@ -7,56 +7,20 @@ import NearMeIcon from '@mui/icons-material/NearMe'; // For distance
 
 import { PlaceCardInfo } from '../types';
 
-const GOOGLE_PLACES_UIKIT_URL = "https://www.gstatic.com/maps/embed/place_component/v1/place_component.js";
-
-function loadPlacesUiKit() {
-  if (!document.getElementById('google-places-uikit')) {
-    const script = document.createElement('script');
-    script.id = 'google-places-uikit';
-    script.src = GOOGLE_PLACES_UIKIT_URL;
-    script.async = true;
-    document.body.appendChild(script);
-  }
-}
-
 interface PlaceCardProps {
   place: PlaceCardInfo;
 }
 
-// Declarar el Web Component para TypeScript/JSX
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'gmpx-place-overview': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { 'place-id': string, language?: string };
-    }
-  }
-}
-
 const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const apiKey = 'AIzaSyC8UkMJYtp0_Whz4lmWw4CtEQ8u5nMzUoI'; // Google Maps API Key from Supabase
-
   console.log('🔍 PlaceCard rendered with:', {
     name: place.name,
     placeId: place.placeId,
     searchQuery: place.searchQuery,
     isLoadingDetails: place.isLoadingDetails,
     errorDetails: place.errorDetails,
-    apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'NO API KEY'
+    rating: place.rating,
+    address: place.address
   });
-
-  useEffect(() => {
-    console.log('🔍 PlaceCard useEffect - Loading Places UI Kit');
-    loadPlacesUiKit();
-    // Set the API key globally for the Web Component
-    if (apiKey && (window as any).gmpxApiKey !== apiKey) {
-      console.log('🔍 Setting global API key for Web Component');
-      (window as any).gmpxApiKey = apiKey;
-    } else if (!apiKey) {
-      console.error('❌ No API key available for Google Places Web Component');
-    }
-  }, [apiKey]);
 
   if (place.isLoadingDetails) {
     console.log('🔍 Showing loading state for place:', place.name);
@@ -84,8 +48,9 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
     );
   }
 
-  if (!place.placeId) {
-    console.log('🔍 No placeId available for place:', place.name);
+  // Si no hay datos cargados pero tampoco hay error, mostrar estado de "no disponible"
+  if (!place.rating && !place.address && !place.photoUrl) {
+    console.log('🔍 No data available for place:', place.name);
     // Si no hay placeId pero hay searchQuery, mostrar una tarjeta básica con enlace a Google Maps
     if (place.searchQuery) {
       const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(place.searchQuery)}`;
@@ -122,9 +87,9 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
     );
   }
 
-  console.log('🔍 Rendering Web Component for place:', place.name, 'with placeId:', place.placeId);
+  console.log('🔍 Rendering card with data for place:', place.name);
   
-  // TEMPORARY: Use our own card system instead of Web Component for debugging
+  // Renderizar tarjeta con datos cargados
   return (
     <Card variant="outlined" sx={{ 
       width: '100%', 
@@ -261,11 +226,11 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
                 </Button>
             </Tooltip>
         )}
-        {place.placeId && (
-            <Tooltip title="Ver en Google Maps (placeId)">
+        {!place.mapsUrl && place.searchQuery && (
+            <Tooltip title="Buscar en Google Maps">
                 <Button
                     component={Link}
-                    href={`https://www.google.com/maps/place/?q=place_id:${place.placeId}`}
+                    href={`https://www.google.com/maps/search/${encodeURIComponent(place.searchQuery)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     size="small"
@@ -277,25 +242,11 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
                       fontSize: { xs: '0.7rem', sm: '0.75rem' },
                     }}
                 >
-                    PlaceID
+                    Buscar
                 </Button>
             </Tooltip>
         )}
       </CardActions>
-      {place.photoAttributions && place.photoAttributions.length > 0 && (
-        <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ 
-              px: { xs: 1, sm: 2 }, 
-              pb: 1, 
-              fontSize: '0.6rem', 
-              textAlign: 'right',
-              minWidth: 0,
-            }}
-            dangerouslySetInnerHTML={{ __html: place.photoAttributions.join(', ') }}
-        />
-      )}
     </Card>
   );
 };

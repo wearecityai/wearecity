@@ -7,19 +7,20 @@ interface Conversation {
   title: string;
   created_at: string;
   updated_at: string;
+  city_slug?: string; // Añadir campo para identificar la ciudad
 }
 
-export const useConversations = () => {
+export const useConversations = (citySlug?: string) => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Cargar conversaciones del usuario
+  // Cargar conversaciones del usuario para una ciudad específica
   const loadConversations = async () => {
     if (!user) {
-      // Cargar conversaciones de localStorage
-      const local = localStorage.getItem('chat_conversations');
+      // Cargar conversaciones de localStorage filtradas por ciudad
+      const local = localStorage.getItem(`chat_conversations_${citySlug || 'general'}`);
       let localConvs: Conversation[] = [];
       if (local) {
         try {
@@ -28,12 +29,12 @@ export const useConversations = () => {
       }
       setConversations(localConvs);
       // Seleccionar la última conversación activa si existe
-      const lastId = localStorage.getItem('chat_current_conversation_id');
+      const lastId = localStorage.getItem(`chat_current_conversation_id_${citySlug || 'general'}`);
       setCurrentConversationId(lastId || (localConvs[0]?.id ?? null));
       return;
     }
     
-    console.log('Loading conversations for user:', user.id);
+    console.log('Loading conversations for user:', user.id, 'in city:', citySlug);
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -47,8 +48,17 @@ export const useConversations = () => {
         return;
       }
 
-      console.log('Loaded conversations:', data);
-      setConversations(data || []);
+      console.log('Loaded conversations:', data, 'for city:', citySlug);
+      
+      // Filtrar por ciudad después de obtener los datos
+      let filteredData = (data || []) as Conversation[];
+      if (citySlug) {
+        filteredData = filteredData.filter(conv => conv.city_slug === citySlug);
+      } else {
+        filteredData = filteredData.filter(conv => !conv.city_slug);
+      }
+      
+      setConversations(filteredData);
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
@@ -56,31 +66,45 @@ export const useConversations = () => {
     }
   };
 
-  // Crear nueva conversación
+  // Crear nueva conversación para una ciudad específica
   const createConversation = async (title: string = 'Consulta general') => {
     if (!user) {
       // Crear conversación local
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
-      const newConv: Conversation = { id, title, created_at: now, updated_at: now };
+      const newConv: Conversation = { 
+        id, 
+        title, 
+        created_at: now, 
+        updated_at: now,
+        city_slug: citySlug 
+      };
       setConversations(prev => {
         const updated = [newConv, ...prev];
-        localStorage.setItem('chat_conversations', JSON.stringify(updated));
-        localStorage.setItem('chat_current_conversation_id', id);
+        const storageKey = `chat_conversations_${citySlug || 'general'}`;
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+        localStorage.setItem(`chat_current_conversation_id_${citySlug || 'general'}`, id);
         return updated;
       });
       setCurrentConversationId(id);
       return newConv;
     }
 
-    console.log('Creating conversation for user:', user.id, 'with title:', title);
+    console.log('Creating conversation for user:', user.id, 'in city:', citySlug, 'with title:', title);
     try {
+      const conversationData: any = {
+        user_id: user.id,
+        title,
+      };
+      
+      // Añadir city_slug si se especifica
+      if (citySlug) {
+        conversationData.city_slug = citySlug;
+      }
+      
       const { data, error } = await supabase
         .from('conversations')
-        .insert([{
-          user_id: user.id,
-          title,
-        }])
+        .insert([conversationData])
         .select()
         .single();
 

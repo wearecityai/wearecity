@@ -65,6 +65,7 @@ interface AppLayoutProps {
   deleteConversation: (conversationId: string) => Promise<void>;
   shouldShowChatContainer: boolean;
   isPublicChat?: boolean;
+  handleToggleLocation: (enabled: boolean) => Promise<void>;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = (props) => {
@@ -102,7 +103,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     conversations,
     deleteConversation,
     shouldShowChatContainer,
-    isPublicChat = false
+    isPublicChat = false,
+    handleToggleLocation
   } = props;
 
   // Use conversation data from props instead of duplicating the hook
@@ -185,10 +187,38 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           <MenuIcon />
         </IconButton>
       )}
-      <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'white', letterSpacing: 1.5, fontSize: '1rem', flexGrow: 1 }}>
-        CityCore
-      </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      {/* Título CityCore centrado absolutamente */}
+      <Box sx={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <Typography
+          variant="h6"
+          noWrap
+          component="div"
+          sx={{
+            bgcolor: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
+            borderRadius: 4,
+            px: 3,
+            py: 1.2,
+            color: 'transparent',
+            backgroundImage: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 50%, #90caf9 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 800,
+            letterSpacing: 2,
+            fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.35rem' },
+            pointerEvents: 'auto',
+            display: 'inline-block',
+            transition: 'transform 0.2s',
+            '&:hover': {
+              transform: 'scale(1.04)',
+            },
+          }}
+        >
+          CityCore
+        </Typography>
+      </Box>
+      {/* Fin título centrado */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
         {user ? (
           <UserButton />
         ) : (
@@ -423,6 +453,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                   handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
                   isInFinetuningMode={true}
                   shouldShowChatContainer={shouldShowChatContainer}
+                  handleToggleLocation={handleToggleLocation}
                 />
               </Box>
             </Box>
@@ -478,6 +509,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           handleSeeMoreEvents={handleSeeMoreEvents}
           handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
           shouldShowChatContainer={shouldShowChatContainer}
+          handleToggleLocation={handleToggleLocation}
         />
       </Box>
       

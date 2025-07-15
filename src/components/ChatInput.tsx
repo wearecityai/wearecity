@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Box, TextField, IconButton, Paper, Stack, Menu, MenuItem, Button, Typography, CircularProgress, useTheme, ListItemIcon, ListItemText } from '@mui/material';
+import { Box, TextField, IconButton, Paper, Stack, Menu, MenuItem, Button, Typography, CircularProgress, useTheme, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import AddIcon from '@mui/icons-material/Add'; // For the "+" button
 import CheckIcon from '@mui/icons-material/Check';
+import LanguageIcon from '@mui/icons-material/Language';
+import NearMeIcon from '@mui/icons-material/NearMe';
+import Tooltip from '@mui/material/Tooltip';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE_CODE } from '../constants';
 import { SupportedLanguage } from '../types';
@@ -16,6 +20,8 @@ interface ChatInputProps {
   currentLanguageCode: string;
   onSetLanguageCode: (code: string) => void; // Keep for settings menu
   isInFinetuningMode?: boolean; // Nueva prop para ajustar el padding en modo finetuning
+  onToggleLocation?: (enabled: boolean) => void; // Nueva prop para manejar la geolocalización
+  chatConfig?: any; // Prop para acceder al estado global de configuración
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -24,7 +30,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
   recommendedPrompts,
   currentLanguageCode,
   onSetLanguageCode, // Retained for settings, not used directly in this input bar
-  isInFinetuningMode = false
+  isInFinetuningMode = false,
+  onToggleLocation,
+  chatConfig
 }) => {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -44,6 +52,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const animationFrameIdRef = useRef<number | null>(null);
   const waveformDataArrayRef = useRef<Uint8Array | null>(null);
   const stopDelayTimerRef = useRef<number | null>(null); 
+  const [isLocationEnabled, setIsLocationEnabled] = useState(false);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -58,6 +67,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
       fullCleanupAndStopVisualizer();
     };
   }, []);
+
+  // Sincronizar el estado local con el estado global
+  useEffect(() => {
+    setIsLocationEnabled(chatConfig?.allowGeolocation || false);
+  }, [chatConfig?.allowGeolocation]);
 
   useLayoutEffect(() => {
     if (isRecording && canvasRef.current) {
@@ -210,6 +224,85 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const toggleRecording = () => { if (isLoading) return; if (isRecording) stopRecording(); else startRecording(); };
 
+  const locationToggleButton = (
+    <ListItemButton
+      onClick={() => {
+        const newEnabled = !isLocationEnabled;
+        setIsLocationEnabled(newEnabled);
+        if (typeof onToggleLocation === 'function') onToggleLocation(newEnabled);
+      }}
+      selected={isLocationEnabled}
+      sx={{
+        borderRadius: 999,
+        minHeight: { xs: 28, sm: 36 },
+        px: { xs: 1, sm: 1.5 },
+        py: { xs: 0.25, sm: 0.5 },
+        color: isLocationEnabled ? 'primary.main' : 'text.secondary',
+        '& .MuiListItemIcon-root': {
+          minWidth: { xs: 24, sm: 32 },
+          color: isLocationEnabled ? 'primary.main' : 'text.secondary',
+        },
+        '&:hover': {
+          bgcolor: 'action.hover',
+        },
+        '@media (max-width: 768px)': {
+          bgcolor: 'action.hover',
+        },
+        transition: 'color 0.2s, background 0.2s',
+      }}
+    >
+      <ListItemIcon>
+        <NearMeIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+      </ListItemIcon>
+      <ListItemText
+        primary="Ubicación"
+        primaryTypographyProps={{
+          fontWeight: isLocationEnabled ? 700 : 500,
+          fontSize: { xs: '0.95em', sm: '1em' },
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      />
+    </ListItemButton>
+  );
+
+  const languageButton = (
+    <ListItemButton
+      sx={{
+        borderRadius: 999,
+        minHeight: { xs: 28, sm: 36 },
+        px: { xs: 1, sm: 1.5 },
+        py: { xs: 0.25, sm: 0.5 },
+        color: 'text.secondary',
+        '& .MuiListItemIcon-root': {
+          minWidth: { xs: 24, sm: 32 },
+          color: 'text.secondary',
+        },
+        '&:hover': {
+          bgcolor: 'action.hover',
+        },
+        '@media (max-width: 768px)': {
+          bgcolor: 'action.hover',
+        },
+        transition: 'color 0.2s, background 0.2s',
+      }}
+      aria-label="Seleccionar idioma"
+    >
+      <ListItemIcon>
+        <LanguageIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+      </ListItemIcon>
+      <ListItemText
+        primary={SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
+        primaryTypographyProps={{
+          fontWeight: 500,
+          fontSize: { xs: '0.95em', sm: '1em' },
+        }}
+      />
+      <ExpandMoreIcon sx={{ ml: 0.5, fontSize: { xs: 18, sm: 20 }, color: 'text.secondary' }} />
+    </ListItemButton>
+  );
+
   return (
     <Box sx={{ 
       padding: isInFinetuningMode 
@@ -242,111 +335,115 @@ const ChatInput: React.FC<ChatInputProps> = ({
         />
       )}
       <Paper
-        elevation={0} // Flat like Gemini
+        elevation={0}
         sx={{
           display: 'flex',
-          alignItems: 'center', // Center items vertically
-          p: { xs: '4px 6px 4px 4px', sm: '4px 8px 4px 4px' }, // Inner padding responsive
-          borderRadius: '28px', // Highly rounded
+          flexDirection: 'column',
+          justifyContent: 'center',
+          p: 0,
+          borderRadius: '28px',
           bgcolor: 'background.paper',
-          border: `1px solid ${theme.palette.divider}`, // Subtle border like Gemini
+          border: `1px solid ${theme.palette.divider}`,
           maxWidth: isInFinetuningMode ? '100%' : '800px',
           width: '100%',
-          minWidth: 0, // Prevenir overflow
-          '&:focus-within': {
-            borderColor: theme.palette.primary.main,
-          }
+          minWidth: 0,
+          // '&:focus-within': {
+          //   borderColor: theme.palette.primary.main,
+          // },
         }}
       >
-        <IconButton
-            onClick={() => console.log("Add button clicked")} // Placeholder
-            disabled={isLoading || isRecording}
-            title="Adjuntar archivo o más opciones"
-            color="primary"
-            sx={{
-              p: { xs: 1, sm: 1.25 }, 
-              color: theme.palette.text.secondary,
-              flexShrink: 0, // Prevenir que se encoja
-            }}
-        >
-            <AddIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-        </IconButton>
-        
-        <Stack direction="column" sx={{ flexGrow: 1, mx: { xs: 0.25, sm: 0.5 }, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minHeight: 80 }}>
+          <Stack direction="column" sx={{ flexGrow: 1, minWidth: 0 }}>
             <TextField
-                inputRef={textareaRef}
-                fullWidth
-                multiline
-                maxRows={5}
-                placeholder={isRecording ? (speechError || "Escuchando...") : "Escribir una consulta"}
-                value={inputValue}
-                onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
-                InputProps={{
-                    disableUnderline: true,
-                    onKeyDown: handleKeyDown,
-                    sx: { 
-                        py: { xs: '4px', sm: '6px' }, // Fine-tune padding for alignment
-                        fontSize: { xs: '0.9rem', sm: '0.95rem' },
-                        lineHeight: '1.4',
-                        minWidth: 0, // Prevenir overflow
-                    }
-                }}
-                disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
-                variant="standard" // No border from TextField itself
-                sx={{
-                    '& .MuiInputBase-root': {
-                        backgroundColor: 'transparent', // TextField transparent, Paper provides bg
-                        minWidth: 0, // Prevenir overflow
-                    },
-                    minWidth: 0, // Prevenir overflow
-                }}
+              inputRef={textareaRef}
+              fullWidth
+              multiline
+              maxRows={5}
+              placeholder={
+                isRecording
+                  ? (speechError || `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`)
+                  : `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`
+              }
+              value={inputValue}
+              onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
+              InputProps={{
+                disableUnderline: true,
+                onKeyDown: handleKeyDown,
+                sx: {
+                  py: 0,
+                  fontSize: { xs: '1.1rem', sm: '1.15rem' },
+                  lineHeight: '1.4',
+                  minWidth: 0,
+                },
+              }}
+              disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
+              variant="standard"
+              sx={{
+                '& .MuiInputBase-root': {
+                  backgroundColor: 'transparent',
+                  minWidth: 0,
+                },
+                minWidth: 0,
+                fontWeight: 500,
+                color: 'text.primary',
+              }}
             />
-        </Stack>
-       
-        {inputValue.trim() || isRecording ? (
-            isRecording ? (
+            {/* Fila de acciones (idioma y ubicación) */}
+            <Box
+              sx={{
+                mt: 2.5,
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                color: 'text.secondary',
+                fontSize: '1rem',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                {languageButton}
+                {locationToggleButton}
+              </Box>
+            </Box>
+          </Stack>
+          {/* Mueve el micrófono aquí, alineado con la fila de botones de abajo */}
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', pl: 2, alignSelf: 'flex-end' }}>
+            {inputValue.trim() || isRecording ? (
+              isRecording ? (
                 <IconButton 
                   onClick={toggleRecording} 
                   color="error" 
                   disabled={isLoading} 
                   title="Detener Grabación" 
-                  sx={{
-                    p: { xs: 1, sm: 1.25 },
-                    flexShrink: 0, // Prevenir que se encoja
-                  }}
+                  sx={{ p: 1.25 }}
                 >
-                    <MicOffIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                  <MicOffIcon sx={{ fontSize: 24 }} />
                 </IconButton>
-            ) : (
+              ) : (
                 <IconButton 
                   type="submit" 
                   color="primary" 
                   onClick={handleSubmit} 
                   disabled={isLoading || !inputValue.trim()} 
                   title="Enviar Mensaje" 
-                  sx={{
-                    p: { xs: 1, sm: 1.25 },
-                    flexShrink: 0, // Prevenir que se encoja
-                  }}
+                  sx={{ p: 1.25 }}
                 >
-                    {isLoading ? <CircularProgress size={24} color="inherit" /> : <SendIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
+                  {isLoading ? <CircularProgress size={24} color="inherit" /> : <SendIcon sx={{ fontSize: 24 }} />}
                 </IconButton>
-            )
-        ) : (
-             <IconButton 
-               onClick={toggleRecording} 
-               color={isSpeechApiSupported ? "primary" : "default"} 
-               disabled={isLoading || !isSpeechApiSupported} 
-               title={isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"} 
-               sx={{
-                 p: { xs: 1, sm: 1.25 }, 
-                 color: theme.palette.text.secondary,
-                 flexShrink: 0, // Prevenir que se encoja
-               }}
-             >
-                {isSpeechApiSupported ? <MicIcon sx={{ fontSize: { xs: 20, sm: 24 } }} /> : <MicOffIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
-            </IconButton>
-        )}
+              )
+            ) : (
+              <IconButton 
+                onClick={toggleRecording} 
+                color={isSpeechApiSupported ? "primary" : "default"} 
+                disabled={isLoading || !isSpeechApiSupported} 
+                title={isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"} 
+                sx={{ p: 1.25 }}
+              >
+                {isSpeechApiSupported ? <MicIcon sx={{ fontSize: 24 }} /> : <MicOffIcon sx={{ fontSize: 24 }} />}
+              </IconButton>
+            )}
+          </Box>
+        </Box>
       </Paper>
       {isRecording && speechError && (
         <Typography 

@@ -33,6 +33,7 @@ interface MainContentProps {
   handleSetCurrentLanguageCode: (langCode: string) => void;
   isInFinetuningMode?: boolean; // Nueva prop para detectar si está en modo finetuning
   shouldShowChatContainer?: boolean; // Nueva prop para controlar la visibilidad del ChatContainer
+  handleToggleLocation: (enabled: boolean) => Promise<void>;
 }
 
 const MainContent: React.FC<MainContentProps> = ({
@@ -54,7 +55,8 @@ const MainContent: React.FC<MainContentProps> = ({
   handleSeeMoreEvents,
   handleSetCurrentLanguageCode,
   isInFinetuningMode = false,
-  shouldShowChatContainer = true
+  shouldShowChatContainer = true,
+  handleToggleLocation
 }) => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const [hasUserSentFirstMessage, setHasUserSentFirstMessage] = useState(false);
@@ -190,14 +192,16 @@ const MainContent: React.FC<MainContentProps> = ({
             bottom: 0,
             zIndex: 1
           }}>
-            <ChatInput
-              onSendMessage={handleSendMessage}
-              isLoading={isLoading}
-              recommendedPrompts={chatConfig.recommendedPrompts}
-              currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
-              onSetLanguageCode={handleSetCurrentLanguageCode}
-              isInFinetuningMode={true}
-            />
+                          <ChatInput
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                recommendedPrompts={chatConfig.recommendedPrompts}
+                currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
+                onSetLanguageCode={handleSetCurrentLanguageCode}
+                isInFinetuningMode={true}
+                onToggleLocation={handleToggleLocation}
+                chatConfig={chatConfig}
+              />
           </Box>
         </Box>
       ) : (
@@ -320,6 +324,8 @@ const MainContent: React.FC<MainContentProps> = ({
                 recommendedPrompts={chatConfig.recommendedPrompts}
                 currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
                 onSetLanguageCode={handleSetCurrentLanguageCode}
+                onToggleLocation={handleToggleLocation}
+                chatConfig={chatConfig}
               />
             </Box>
           </Box>

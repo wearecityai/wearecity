@@ -7,6 +7,7 @@ import { useApiInitialization } from '@/hooks/useApiInitialization';
 import { useAppState } from '@/hooks/useAppState';
 import AppContainer from '@/components/AppContainer';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 
 export const PublicChatPage: React.FC = () => {
@@ -47,8 +48,9 @@ export const PublicChatPage: React.FC = () => {
     currentConversationId,
     setCurrentConversationId,
     deleteConversation,
-    shouldShowChatContainer
-  } = useAppState();
+    shouldShowChatContainer,
+    handleToggleLocation
+  } = useAppState(chatSlug); // Pasar el citySlug al hook
 
   useEffect(() => {
     const loadCity = async () => {
@@ -59,7 +61,9 @@ export const PublicChatPage: React.FC = () => {
       }
 
       try {
-        console.log('🔍 Buscando ciudad con slug:', chatSlug);
+        console.log('🔍 [PublicChatPage] Buscando ciudad con slug:', chatSlug);
+        console.log('🔍 [PublicChatPage] Usuario autenticado:', !!user);
+        console.log('🔍 [PublicChatPage] Estado de carga de auth:', authLoading);
         
         // Cargar ciudad por slug directamente desde la tabla cities
         const { data: cityData, error: cityError } = await supabase
@@ -70,16 +74,28 @@ export const PublicChatPage: React.FC = () => {
           .eq('is_public', true)
           .maybeSingle();
 
-        console.log('📊 Resultado de la búsqueda:', { cityData, cityError });
+        console.log('📊 [PublicChatPage] Resultado de la búsqueda:', { 
+          cityData, 
+          cityError,
+          hasData: !!cityData,
+          errorMessage: cityError?.message,
+          errorCode: cityError?.code
+        });
 
         if (cityError) {
-          console.error('Error loading city:', cityError);
-          setError('Error al cargar la ciudad');
+          console.error('❌ [PublicChatPage] Error loading city:', cityError);
+          setError(`Error al cargar la ciudad: ${cityError.message}`);
           return;
         }
 
         if (cityData) {
-          console.log('✅ Ciudad encontrada:', cityData);
+          console.log('✅ [PublicChatPage] Ciudad encontrada:', {
+            id: cityData.id,
+            slug: cityData.slug,
+            assistant_name: cityData.assistant_name,
+            is_active: cityData.is_active,
+            is_public: cityData.is_public
+          });
           setCity(cityData);
           
           // Helper functions para parsear datos JSON
@@ -155,10 +171,6 @@ export const PublicChatPage: React.FC = () => {
     window.location.href = '/auth';
   };
 
-  if (!chatSlug) {
-    return <Navigate to="/404" replace />;
-  }
-
   // Show loading state while auth or chat is initializing
   if (authLoading || isLoading) {
     return (
@@ -167,6 +179,26 @@ export const PublicChatPage: React.FC = () => {
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin mr-2" />
             <span>Cargando chat...</span>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle missing chatSlug more gracefully
+  if (!chatSlug) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="text-center p-8">
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-2xl font-bold mb-2">Slug de chat no válido</h2>
+            <p className="text-muted-foreground mb-4">
+              La URL del chat no es válida. Verifica que el enlace sea correcto.
+            </p>
+            <Button onClick={() => window.location.href = '/'} variant="outline">
+              Volver al inicio
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -183,6 +215,9 @@ export const PublicChatPage: React.FC = () => {
             <p className="text-muted-foreground mb-4">
               La ciudad "{chatSlug}" no existe o no está disponible públicamente.
             </p>
+            <Button onClick={() => window.location.href = '/'} variant="outline">
+              Volver al inicio
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -228,6 +263,7 @@ export const PublicChatPage: React.FC = () => {
       deleteConversation={deleteConversation}
       shouldShowChatContainer={shouldShowChatContainer}
       isPublicChat={true}
+      handleToggleLocation={handleToggleLocation}
     />
   );
 }; 

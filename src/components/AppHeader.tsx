@@ -74,7 +74,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <>
       <AppBar position="static" sx={{ bgcolor: 'background.default', color: 'text.primary' }}>
-        <Toolbar sx={{ minHeight: '56px!important', px: 2 }}>
+        <Toolbar sx={{ minHeight: '56px!important', px: 2, position: 'relative' }}>
           {isMobile && (
             <IconButton
               edge="start"
@@ -86,67 +86,71 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <MenuIcon />
             </IconButton>
           )}
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500 }}>
-            Gemini
-          </Typography>
-          <Button
-            size="small"
-            color="inherit"
-            endIcon={<ArrowDropDownIcon />}
-            sx={{ ml: 1, mr: 'auto', textTransform: 'none', color: 'text.secondary', borderRadius: '16px', '&:hover': {bgcolor: 'action.hover'} }}
-          >
-            2.5 Flash
-          </Button>
-
-          {/* Indicador de Geolocalización */}
-          <Tooltip title={getLocationText()} arrow>
-            <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-              {getLocationIcon()}
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  ml: 0.5, 
-                  color: getLocationColor(),
-                  display: { xs: 'none', md: 'block' },
-                  maxWidth: '200px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {userLocation ? `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}` : 'Sin ubicación'}
-              </Typography>
-              {chatConfig.allowGeolocation && geolocationStatus !== 'pending' && (
-                <IconButton
-                  size="small"
-                  onClick={refreshLocation}
-                  sx={{ ml: 0.5, p: 0.5 }}
-                  title="Actualizar ubicación"
+          {/* Espacio para alinear el centro */}
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'absolute', left: 0, right: 0, pointerEvents: 'none' }}>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, letterSpacing: 1, color: 'primary.main', textAlign: 'center', pointerEvents: 'auto' }}>
+              CityCore
+            </Typography>
+          </Box>
+          {/* Resto de elementos alineados a la derecha */}
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <Button
+              size="small"
+              color="inherit"
+              endIcon={<ArrowDropDownIcon />}
+              sx={{ ml: 1, mr: 'auto', textTransform: 'none', color: 'text.secondary', borderRadius: '16px', '&:hover': {bgcolor: 'action.hover'} }}
+            >
+              2.5 Flash
+            </Button>
+            {/* Indicador de Geolocalización */}
+            <Tooltip title={getLocationText()} arrow>
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+                {getLocationIcon()}
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    ml: 0.5, 
+                    color: getLocationColor(),
+                    display: { xs: 'none', md: 'block' },
+                    maxWidth: '200px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
                 >
-                  <RefreshIcon fontSize="small" />
-                </IconButton>
-              )}
-            </Box>
-          </Tooltip>
-
-          <Chip
-            label="Probar"
-            icon={<ScienceOutlinedIcon sx={{fontSize: '1.1rem !important'}}/>}
-            onClick={() => console.log("Probar clicked")}
-            size="small"
-            sx={{
-              mr: 1.5, borderRadius: '8px',
-              bgcolor: theme.palette.mode === 'dark' ? '#303134' : '#e8f0fe',
-              color: theme.palette.mode === 'dark' ? '#e8eaed' : '#1967d2',
-              '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#3c4043' : '#d2e3fc'},
-              display: {xs: 'none', sm: 'flex'}
-            }}
-          />
-          <IconButton onClick={handleUserMenuClick} size="small">
-            <Avatar sx={{ bgcolor: 'secondary.main' }}>
-              <PersonIcon fontSize="small"/>
-            </Avatar>
-          </IconButton>
+                  {userLocation ? `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}` : 'Sin ubicación'}
+                </Typography>
+                {chatConfig.allowGeolocation && geolocationStatus !== 'pending' && (
+                  <IconButton
+                    size="small"
+                    onClick={refreshLocation}
+                    sx={{ ml: 0.5, p: 0.5 }}
+                    title="Actualizar ubicación"
+                  >
+                    <RefreshIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
+            </Tooltip>
+            <Chip
+              label="Probar"
+              icon={<ScienceOutlinedIcon sx={{fontSize: '1.1rem !important'}}/>}
+              onClick={() => console.log("Probar clicked")}
+              size="small"
+              sx={{
+                mr: 1.5, borderRadius: '8px',
+                bgcolor: theme.palette.mode === 'dark' ? '#303134' : '#e8f0fe',
+                color: theme.palette.mode === 'dark' ? '#e8eaed' : '#1967d2',
+                '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#3c4043' : '#d2e3fc'},
+                display: {xs: 'none', sm: 'flex'}
+              }}
+            />
+            <IconButton onClick={handleUserMenuClick} size="small">
+              <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                <PersonIcon fontSize="small"/>
+              </Avatar>
+            </IconButton>
+          </Box>
         </Toolbar>
       </AppBar>
       <UserMenu

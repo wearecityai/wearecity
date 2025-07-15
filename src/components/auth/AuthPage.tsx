@@ -67,7 +67,35 @@ const AuthPage = () => {
         }
       } else {
         console.log('Login successful:', data);
-        navigate('/');
+        
+        // Check user role to determine redirect
+        if (data.user) {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', data.user.id)
+              .single();
+
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+              // Default to landing page if profile fetch fails
+              navigate('/');
+            } else if (profile && profile.role === 'administrativo') {
+              console.log('User is admin, redirecting to /admin');
+              navigate('/admin');
+            } else {
+              console.log('User is citizen, redirecting to landing page');
+              navigate('/');
+            }
+          } catch (profileErr) {
+            console.error('Error checking user role:', profileErr);
+            // Default to landing page if role check fails
+            navigate('/');
+          }
+        } else {
+          navigate('/');
+        }
       }
     } catch (err) {
       console.error('Login catch error:', err);

@@ -35,7 +35,12 @@ export const useGoogleMaps = (
     if (googleMapsScriptLoaded || (typeof google !== 'undefined' && google.maps && google.maps.places)) {
       setGoogleMapsScriptLoaded(true);
       if (typeof google !== 'undefined' && google.maps && google.maps.places && !placesServiceRef.current) {
-        placesServiceRef.current = new google.maps.places.PlacesService(document.createElement('div'));
+        // Crear un elemento real del DOM para el servicio
+        const mapDiv = document.createElement('div');
+        mapDiv.style.display = 'none';
+        document.body.appendChild(mapDiv);
+        placesServiceRef.current = new google.maps.places.PlacesService(mapDiv);
+        console.log('✅ Google Places service initialized with real DOM element');
       }
       return;
     }
@@ -52,9 +57,17 @@ export const useGoogleMaps = (
     script.async = true;
     script.defer = true;
     script.onload = () => {
+      console.log('✅ Google Maps script loaded successfully');
       setGoogleMapsScriptLoaded(true);
       if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-        placesServiceRef.current = new google.maps.places.PlacesService(document.createElement('div'));
+        // Crear un elemento real del DOM para el servicio
+        const mapDiv = document.createElement('div');
+        mapDiv.style.display = 'none';
+        document.body.appendChild(mapDiv);
+        placesServiceRef.current = new google.maps.places.PlacesService(mapDiv);
+        console.log('✅ Google Places service initialized with real DOM element');
+      } else {
+        console.error('❌ Google Maps API not available after script load');
       }
     };
     script.onerror = () => {
@@ -96,6 +109,7 @@ export const useGoogleMaps = (
     if (!setMessages) return;
     
     if (!googleMapsScriptLoaded || !placesServiceRef.current) {
+      console.log('❌ Google Maps service not available');
       updatePlaceCardInMessage(messageId, placeCardId, { 
         isLoadingDetails: false, 
         errorDetails: "Servicio de Google Places no disponible." 
@@ -103,9 +117,13 @@ export const useGoogleMaps = (
       return;
     }
 
+    console.log(`🔍 Fetching details for place card ${placeCardId}:`, { placeId, searchQuery });
+
     const requestFields = ['name', 'place_id', 'formatted_address', 'photo', 'rating', 'user_ratings_total', 'url', 'geometry', 'website'];
     
     const processPlaceResult = (place: google.maps.places.PlaceResult | null, status: google.maps.places.PlacesServiceStatus) => {
+      console.log(`🔍 Process place result for ${placeCardId}:`, { status, placeName: place?.name });
+      
       if (status === google.maps.places.PlacesServiceStatus.OK && place) {
         let photoUrl: string | undefined = undefined;
         let photoAttributions: string[] | undefined = undefined;
@@ -124,6 +142,13 @@ export const useGoogleMaps = (
           if (distInMeters < 1000) distanceString = `${Math.round(distInMeters)} m`;
           else distanceString = `${(distInMeters / 1000).toFixed(1)} km`;
         }
+        
+        console.log(`✅ Successfully loaded details for ${placeCardId}:`, {
+          name: place.name,
+          rating: place.rating,
+          address: place.formatted_address,
+          photoUrl: photoUrl ? 'available' : 'none'
+        });
         
         updatePlaceCardInMessage(messageId, placeCardId, {
           isLoadingDetails: false, 
@@ -168,6 +193,7 @@ export const useGoogleMaps = (
           return; // Don't update with error immediately, wait for fallback
         }
         
+        console.log(`❌ Failed to load details for ${placeCardId}: ${status}`);
         updatePlaceCardInMessage(messageId, placeCardId, { 
           isLoadingDetails: false, 
           errorDetails: `No se encontraron detalles (${status}).` 
@@ -176,12 +202,14 @@ export const useGoogleMaps = (
     };
 
     if (placeId) {
+      console.log(`🔍 Fetching details by placeId: ${placeId}`);
       placesServiceRef.current.getDetails({ 
         placeId, 
         fields: requestFields, 
         language: currentLanguageCode || DEFAULT_LANGUAGE_CODE 
       }, processPlaceResult);
     } else if (searchQuery) {
+      console.log(`🔍 Searching by query: ${searchQuery}`);
       placesServiceRef.current.textSearch({ 
         query: searchQuery, 
         fields: requestFields, 
@@ -196,6 +224,7 @@ export const useGoogleMaps = (
             }, processPlaceResult);
           } else processPlaceResult(results[0], status);
         } else {
+          console.log(`❌ Text search failed for ${searchQuery}: ${status}`);
           updatePlaceCardInMessage(messageId, placeCardId, { 
             isLoadingDetails: false, 
             errorDetails: `Lugar no encontrado (${status}).` 
@@ -203,6 +232,7 @@ export const useGoogleMaps = (
         }
       });
     } else {
+      console.log(`❌ No placeId or searchQuery provided for ${placeCardId}`);
       updatePlaceCardInMessage(messageId, placeCardId, { 
         isLoadingDetails: false, 
         errorDetails: "Falta ID o consulta." 
@@ -210,11 +240,30 @@ export const useGoogleMaps = (
     }
   }, [userLocation, updatePlaceCardInMessage, currentLanguageCode, googleMapsScriptLoaded]);
 
+  const testGooglePlacesAPI = useCallback(() => {
+    if (!googleMapsScriptLoaded || !placesServiceRef.current) {
+      console.log('❌ Google Places API not available for testing');
+      return;
+    }
+    
+    console.log('🧪 Testing Google Places API...');
+    
+    // Test with a simple search
+    placesServiceRef.current.textSearch({ 
+      query: 'Pizzería La Famiglia Finestrat', 
+      fields: ['name', 'place_id', 'formatted_address'], 
+      language: currentLanguageCode || 'es' 
+    }, (results, status) => {
+      console.log('🧪 Test search result:', { status, resultsCount: results?.length, firstResult: results?.[0] });
+    });
+  }, [googleMapsScriptLoaded, currentLanguageCode]);
+
   return {
     googleMapsScriptLoaded,
     placesServiceRef,
     loadGoogleMapsScript,
     fetchPlaceDetailsAndUpdateMessage,
-    updatePlaceCardInMessage
+    updatePlaceCardInMessage,
+    testGooglePlacesAPI
   };
 };

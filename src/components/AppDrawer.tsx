@@ -7,9 +7,10 @@ import MenuIcon from '@mui/icons-material/Menu';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import LocationCityIcon from '@mui/icons-material/LocationCity';
 import HistoryIcon from '@mui/icons-material/History';
+import SettingsIcon from '@mui/icons-material/Settings';
 import TuneIcon from '@mui/icons-material/Tune';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
+import NearMeIcon from '@mui/icons-material/NearMe';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { CustomChatConfig } from '../types';
 
@@ -128,6 +129,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
 
   const refreshLocation = () => {
     if (chatConfig.allowGeolocation && navigator.geolocation) {
+      setLocationInfo(prev => ({ ...prev, loading: true }));
       navigator.geolocation.getCurrentPosition(
         (position) => {
           getLocationInfo(position.coords.latitude, position.coords.longitude);
@@ -349,11 +351,11 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
       </List>
 
       {/* Bottom Drawer Section */}
-      <List sx={{ pb: 1, px: 0, py: 0 }}>
+      <List sx={{ pb: { xs: 3, sm: 4 }, px: 0, py: 0 }}>
         <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
         <ListItemButton 
-          onClick={() => console.log("Actividad clicked")}
-          title={!isMenuOpen ? "Actividad" : undefined}
+          onClick={() => console.log("Ajustes clicked")}
+          title={!isMenuOpen ? "Ajustes" : undefined}
           sx={{
             minHeight: BUTTON_HEIGHT,
             justifyContent: 'center',
@@ -370,9 +372,9 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <HistoryIcon sx={{ fontSize: ICON_SIZE }} />
+              <SettingsIcon sx={{ fontSize: ICON_SIZE }} />
             </ListItemIcon>
-            {isMenuOpen && <ListItemText primary="Actividad" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
+            {isMenuOpen && <ListItemText primary="Ajustes" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
         </ListItemButton>
         {!isPublicChat && (
           <ListItemButton 
@@ -402,6 +404,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
         <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
         
         {/* Location Section - Mejorada */}
+        {chatConfig.allowGeolocation && (
         <ListItem
             sx={{
                 display: 'flex',
@@ -427,13 +430,13 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                     justifyContent: 'center',
                 }}
             >
-                <LocationOnIcon sx={{ fontSize: ICON_SIZE }} />
+                <NearMeIcon sx={{ fontSize: ICON_SIZE }} />
             </ListItemIcon>
             {isMenuOpen && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexGrow: 1 }}>
                      {/* Nombre del municipio/ciudad */}
                      <Typography variant="body2" sx={{ fontWeight: '500', lineHeight: 1.2, fontSize: '0.875rem' }}>
-                        {getDisplayCity()}
+                        {userLocation ? getDisplayCity() : 'Geolocalización activa'}
                      </Typography>
                      
                      {/* Dirección postal detectada por coordenadas */}
@@ -451,14 +454,17 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                           textOverflow: 'ellipsis'
                         }}
                      >
-                        {locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress()}
+                        {userLocation 
+                          ? (locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress())
+                          : 'Esperando ubicación...'
+                        }
                      </Typography>
                      
                      <Button
                         variant="text"
                         size="small"
                         onClick={refreshLocation}
-                        disabled={!chatConfig.allowGeolocation || locationInfo.loading}
+                        disabled={locationInfo.loading}
                         sx={{
                           p: 0, 
                           justifyContent: 'flex-start', 
@@ -478,6 +484,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                 </Box>
             )}
         </ListItem>
+        )}
       </List>
     </Box>
   );

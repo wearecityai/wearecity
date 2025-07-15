@@ -81,6 +81,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const profileData = await fetchProfile(session.user.id);
             setProfile(profileData);
             setIsLoading(false);
+            if (!profileData) {
+              await supabase.auth.signOut();
+              window.location.href = '/auth';
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -96,9 +100,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id).then((profileData) => {
+        fetchProfile(session.user.id).then(async (profileData) => {
           setProfile(profileData);
           setIsLoading(false);
+          if (!profileData) {
+            await supabase.auth.signOut();
+            window.location.href = '/auth';
+          }
         });
       } else {
         setIsLoading(false);

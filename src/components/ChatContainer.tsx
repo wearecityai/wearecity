@@ -290,17 +290,18 @@ export const RecommendedPromptsBar: React.FC<{
               background: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
               color: theme => theme.palette.mode === 'dark' ? '#fff' : '#222',
               borderRadius: 4,
-              minWidth: { xs: 180, sm: 200, md: 220 },
-              maxWidth: { xs: 'none', sm: 220, md: 260 },
-              minHeight: { xs: 48, sm: 60, md: 70 },
-              maxHeight: { xs: 80, sm: 200, md: 300 },
+              minWidth: { xs: 140, sm: 160, md: 120, lg: 120 }, // más estrecho en desktop
+              maxWidth: { xs: 'none', sm: 180, md: 140, lg: 140 }, // más estrecho en desktop
+              minHeight: { xs: 48, sm: 60, md: 160, lg: 180 }, // altura intermedia en desktop
+              maxHeight: { xs: 80, sm: 200, md: 220, lg: 240 }, // altura intermedia en desktop
               display: 'flex',
               flexDirection: { xs: 'row', sm: 'row', md: 'column' },
               alignItems: 'center',
               fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
               fontWeight: 400,
               px: { xs: 0.75, sm: 1, md: 1.5 },
-              py: { xs: 0.5, sm: 0.75, md: 1 },
+              py: { xs: 0.5, sm: 0.75, md: 1.5 }, // más padding superior en desktop
+              pt: { xs: 0.5, sm: 0.75, md: 2 }, // padding top extra en desktop
               textAlign: { xs: 'left', sm: 'left', md: 'center' },
               flex: '0 0 auto',
               boxShadow: 'none',

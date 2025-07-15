@@ -5,6 +5,18 @@ import { fetchChatIA } from '../../services/chatIA';
 import { useAuth } from '../useAuth';
 import { useGeolocation } from '../useGeolocation';
 
+// Utility function to generate city slug from assistant name
+const generateCitySlug = (assistantName: string): string => {
+  return assistantName
+    .toLowerCase()
+    .normalize('NFD') // Decompose unicode
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-'); // Replace multiple hyphens with single
+};
+
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
   onError: (error: string) => void,
@@ -70,11 +82,21 @@ export const useMessageHandler = (
         lng: userLocation.longitude
       } : undefined;
       
+      // Generar city slug desde el assistant name
+      const citySlug = generateCitySlug(chatConfig.assistantName);
+      
+      console.log('🔍 DEBUG - Enviando city slug a chat-ia:', {
+        citySlug: citySlug,
+        assistantName: chatConfig.assistantName,
+        restrictedCity: chatConfig.restrictedCity,
+        restrictedCityName: chatConfig.restrictedCity?.name
+      });
+      
       const responseText = await fetchChatIA(inputText, { 
         allowMapDisplay: chatConfig.allowMapDisplay,
         userId: user?.id,
         userLocation: userLocationData,
-        chatConfig: chatConfig // Enviar la configuración completa al edge function
+        citySlug: citySlug // Enviar solo el slug en lugar de la configuración completa
       });
       
       const aiMessage: ChatMessage = {

@@ -3,7 +3,7 @@ export async function fetchChatIA(userMessage: string, options?: {
   customSystemInstruction?: string, 
   userId?: string,
   userLocation?: { lat: number, lng: number },
-  chatConfig?: any // Añadir la configuración completa
+  citySlug?: string // Cambiar chatConfig por citySlug
 }) {
   const res = await fetch("https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia", {
     method: "POST",
@@ -14,7 +14,7 @@ export async function fetchChatIA(userMessage: string, options?: {
       userLocation: options?.userLocation,
       allowMapDisplay: options?.allowMapDisplay ?? false,
       customSystemInstruction: options?.customSystemInstruction ?? "",
-      chatConfig: options?.chatConfig // Enviar la configuración completa
+      citySlug: options?.citySlug // Enviar el slug en lugar de la configuración completa
     })
   });
   const data = await res.json();

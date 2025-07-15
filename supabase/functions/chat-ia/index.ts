@@ -58,9 +58,9 @@ Cuando recomiendes un lugar específico (restaurante, tienda, museo, hotel, etc.
 ${PLACE_CARD_START_MARKER}{"name": "Nombre Oficial del Lugar", "placeId": "IDdeGooglePlaceDelLugar", "searchQuery": "Nombre del Lugar, Ciudad"}${PLACE_CARD_END_MARKER}
 
 **EJEMPLO CORRECTO:**
-"Te recomiendo **Restaurante El Posit** porque es uno de los establecimientos más emblemáticos de La Vila Joiosa, especializado en cocina mediterránea con productos frescos del mar. Su ubicación privilegiada frente al puerto le permite ofrecer pescado y marisco de máxima calidad, y es especialmente conocido por su arroz con bogavante y sus tapas tradicionales. El ambiente es acogedor y familiar, perfecto para disfrutar de una comida auténtica con vistas al mar.
+"Te recomiendo **Restaurante Genérico** porque es un establecimiento muy valorado en la ciudad configurada, conocido por su excelente cocina y ambiente acogedor. Es ideal para disfrutar de una comida especial en [CIUDAD].
 
-${PLACE_CARD_START_MARKER}{"name": "Restaurante El Posit", "placeId": "ChIJW2uQ4CSuEmsR54C1Jqz8mBA", "searchQuery": "Restaurante El Posit, La Vila Joiosa"}${PLACE_CARD_END_MARKER}"
+${PLACE_CARD_START_MARKER}{"name": "Restaurante Genérico", "placeId": "ID_DE_EJEMPLO", "searchQuery": "Restaurante Genérico, [CIUDAD]"}${PLACE_CARD_END_MARKER}"
 
 **REGLAS INQUEBRANTABLES:**
 - ✅ SIEMPRE explica POR QUÉ recomiendas el lugar ANTES de mostrar la place card
@@ -127,15 +127,16 @@ async function loadAssistantConfig(userId: string | null | undefined) {
     
     console.log(`Cargando configuración para usuario: ${userId}`);
     
+    // Cambiado: leer de la tabla 'cities' usando admin_user_id
     const { data, error } = await supabase
-      .from('assistant_config')
+      .from('cities')
       .select('*')
-      .eq('user_id', userId)
+      .eq('admin_user_id', userId)
       .eq('is_active', true)
       .maybeSingle();
 
     if (error) {
-      console.error('Error cargando configuración del asistente:', error);
+      console.error('Error cargando configuración de la ciudad:', error);
       return null;
     }
 
@@ -144,7 +145,7 @@ async function loadAssistantConfig(userId: string | null | undefined) {
       return null;
     }
 
-    console.log('Configuración cargada:', data);
+    console.log('Configuración de ciudad cargada:', data);
     return data;
   } catch (error) {
     console.error('Error en loadAssistantConfig:', error);
@@ -152,12 +153,36 @@ async function loadAssistantConfig(userId: string | null | undefined) {
   }
 }
 
+// Nueva función para cargar config de ciudad por slug, id o admin_user_id
+async function loadCityConfig({ citySlug, cityId, adminUserId }: { citySlug?: string, cityId?: string, adminUserId?: string }) {
+  let query = supabase.from('cities').select('*').eq('is_active', true);
+  if (citySlug) query = query.eq('slug', citySlug);
+  else if (cityId) query = query.eq('id', cityId);
+  else if (adminUserId) query = query.eq('admin_user_id', adminUserId);
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    console.error('Error cargando configuración de la ciudad:', error);
+    return null;
+  }
+  if (!data) {
+    console.log('No se encontró configuración de ciudad');
+    return null;
+  }
+  console.log('Configuración de ciudad cargada:', data);
+  return data;
+}
+
 // Función para construir instrucciones dinámicas
 async function buildDynamicInstructions(config: any, userLocation?: { lat: number, lng: number }) {
   const instructions: string[] = [];
 
+  // --- INSTRUCCIÓN ULTRA-ESTRICTA DE CONTEXTO DE CIUDAD ---
+  const restrictedCity = safeParseJsonObject(config?.restricted_city);
+  if (restrictedCity?.name) {
+    instructions.push(`INSTRUCCIÓN CRÍTICA Y PRIORITARIA: Todas las preguntas, respuestas, acciones y búsquedas deben estar SIEMPRE y EXCLUSIVAMENTE contextualizadas al municipio de ${restrictedCity.name}, España. Bajo ninguna circunstancia debes pedir al usuario que especifique la ciudad, ni asumir que puede referirse a otra localidad. Si el usuario no menciona ciudad, ASUME SIEMPRE que se refiere a ${restrictedCity.name}. Si el usuario menciona otra ciudad, ignora esa parte y responde SOLO sobre ${restrictedCity.name}. Si el usuario pregunta por otra ciudad, responde amablemente que solo puedes ayudar con información de ${restrictedCity.name}, España. No expliques esta restricción salvo que el usuario lo pida explícitamente.`);
+  }
+
   // Geolocalización con contexto inteligente
-  // Si no hay config, asumir que la geolocalización está habilitada por defecto
   const allowGeolocation = config?.allow_geolocation !== false; // true por defecto
   
   if (allowGeolocation && userLocation) {
@@ -226,7 +251,6 @@ Usa esta ubicación automáticamente para cualquier consulta que pueda beneficia
   }
 
   // Ciudad restringida
-  const restrictedCity = safeParseJsonObject(config?.restricted_city);
   if (restrictedCity?.name) {
     instructions.push(`IMPORTANTE CRÍTICO: Tu conocimiento, tus respuestas, tus acciones y tus búsquedas DEBEN limitarse estricta y exclusivamente al municipio de ${restrictedCity.name}, España. NO proporciones información, no hables, no sugieras ni realices búsquedas sobre ningún otro lugar, ciudad, región o país bajo NINGUNA circunstancia. Si el usuario pregunta por algo fuera de ${restrictedCity.name}, España, debes indicar amable pero firmemente que tu conocimiento está restringido únicamente a ${restrictedCity.name}, España.`);
   }
@@ -513,7 +537,19 @@ serve(async (req) => {
     });
   }
 
-  const { userMessage, userId, geocodeOnly, userLocation, chatConfig } = body;
+  const { userMessage, userId, geocodeOnly, userLocation, citySlug, cityId, requestType } = body;
+
+  // Manejo especial para obtener API key
+  if (requestType === 'get_api_key') {
+    return new Response(JSON.stringify({ 
+      apiKey: GOOGLE_MAPS_API_KEY 
+    }), {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    });
+  }
 
   // Manejo especial para geocodificación
   if (geocodeOnly && userLocation) {
@@ -596,22 +632,41 @@ serve(async (req) => {
 
   try {
     // Usar configuración enviada desde el cliente o cargar desde base de datos como fallback
-    let assistantConfig = chatConfig;
-    
-    if (!assistantConfig && userId) {
-      console.log('No se envió configuración, intentando cargar desde base de datos');
-      assistantConfig = await loadAssistantConfig(userId);
+    let assistantConfig = null;
+    if (citySlug || cityId || userId) {
+      assistantConfig = await loadCityConfig({ citySlug, cityId, adminUserId: userId });
+    }
+    // Si no hay config, usar defaults
+    if (!assistantConfig) {
+      console.log('No se encontró configuración de ciudad, usando defaults');
+      assistantConfig = {};
     }
     
-    console.log('Configuración final:', { 
+    console.log('🔍 DEBUG - Configuración recibida del cliente:', {
+      citySlug: citySlug,
+      cityId: cityId,
+      userId: userId,
+      assistantConfigType: typeof assistantConfig,
+      assistantConfigKeys: assistantConfig ? Object.keys(assistantConfig) : 'null',
+      restrictedCityRaw: assistantConfig?.restrictedCity,
+      restrictedCityType: typeof assistantConfig?.restrictedCity,
+      restrictedCityName: assistantConfig?.restrictedCity?.name
+    });
+    
+    console.log('🔍 DEBUG - Configuración final:', { 
       hasConfig: !!assistantConfig,
-      restrictedCity: assistantConfig?.restrictedCity?.name || 'no restringida',
+      assistantConfigType: typeof assistantConfig,
+      assistantConfigKeys: assistantConfig ? Object.keys(assistantConfig) : 'null',
+      restrictedCity: assistantConfig?.restrictedCity,
+      restrictedCityType: typeof assistantConfig?.restrictedCity,
+      restrictedCityName: assistantConfig?.restrictedCity?.name || 'no restringida',
       systemInstruction: assistantConfig?.systemInstruction ? 'sí' : 'no'
     });
 
     // Construir el prompt del sistema
     const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation);
-    console.log("Sistema de instrucciones construido:", systemInstruction);
+    console.log("🔍 DEBUG - Sistema de instrucciones construido (primeras 500 chars):", systemInstruction.substring(0, 500));
+    console.log("🔍 DEBUG - Sistema de instrucciones construido (últimas 500 chars):", systemInstruction.substring(Math.max(0, systemInstruction.length - 500)));
 
     // Llamar a Gemini
     let responseText: string;
