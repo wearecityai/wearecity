@@ -1,38 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
-  Container, 
-  Grid, 
-  Card, 
-  CardContent, 
-  CardMedia, 
-  Stack, 
-  Chip, 
-  IconButton, 
-  AppBar, 
-  Toolbar,
-  InputAdornment,
-  Autocomplete,
-  Paper,
-  Divider
-} from '@mui/material';
-import { 
-  Search as SearchIcon, 
-  LocationOn as LocationIcon,
-  Chat as ChatIcon,
-  SmartToy as AIIcon,
-  Public as PublicIcon,
-  Security as SecurityIcon,
-  Speed as SpeedIcon
-} from '@mui/icons-material';
+import { Search, MapPin, MessageSquare, Bot, Globe, Shield, Zap, ArrowRight, Clock, Users, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@mui/material/styles';
 import { supabase } from '@/integrations/supabase/client';
-
 
 interface City {
   id: string;
@@ -43,13 +17,12 @@ interface City {
 
 const Index = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const { user, profile } = useAuth();
   
   const [cities, setCities] = useState<City[]>([]);
   const [searchValue, setSearchValue] = useState<string>('');
-  const [selectedCity, setSelectedCity] = useState<City | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<City[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Cargar ciudades disponibles
   useEffect(() => {
@@ -76,11 +49,22 @@ const Index = () => {
     loadCities();
   }, []);
 
-  const handleCitySelect = (city: City | null) => {
-    setSelectedCity(city);
-    if (city) {
-      navigate(`/chat/${city.slug}`);
+  // Filtrar ciudades basado en búsqueda
+  useEffect(() => {
+    if (searchValue.trim()) {
+      const filtered = cities.filter(city =>
+        city.name.toLowerCase().includes(searchValue.toLowerCase())
+      );
+      setFilteredCities(filtered);
+      setShowSuggestions(true);
+    } else {
+      setFilteredCities([]);
+      setShowSuggestions(false);
     }
+  }, [searchValue, cities]);
+
+  const handleCitySelect = (city: City) => {
+    navigate(`/chat/${city.slug}`);
   };
 
   const handleLogin = () => {
@@ -89,293 +73,299 @@ const Index = () => {
 
   const features = [
     {
-      icon: <AIIcon sx={{ fontSize: 40 }} />,
+      icon: <Bot className="w-6 h-6" />,
       title: 'IA Especializada',
-      description: 'Cada ciudad tiene su propio asistente IA entrenado con información local específica.'
+      description: 'Cada ciudad tiene su asistente IA personalizado, entrenado con información local específica y actualizada.',
+      color: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
     },
     {
-      icon: <LocationIcon sx={{ fontSize: 40 }} />,
+      icon: <MapPin className="w-6 h-6" />,
       title: 'Información Local',
-      description: 'Accede a información actualizada sobre servicios, eventos y procedimientos de tu ciudad.'
+      description: 'Accede a servicios municipales, eventos, procedimientos administrativos y datos actualizados de tu ciudad.',
+      color: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
     },
     {
-      icon: <ChatIcon sx={{ fontSize: 40 }} />,
+      icon: <MessageSquare className="w-6 h-6" />,
       title: 'Conversación Natural',
-      description: 'Pregunta de forma natural y obtén respuestas precisas sobre tu ciudad.'
+      description: 'Pregunta como le harías a un vecino. Nuestro asistente entiende el lenguaje natural y el contexto local.',
+      color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800'
     },
     {
-      icon: <SecurityIcon sx={{ fontSize: 40 }} />,
-      title: 'Datos Seguros',
-      description: 'Tus conversaciones están protegidas y los datos se manejan con total seguridad.'
+      icon: <Shield className="w-6 h-6" />,
+      title: 'Privacidad Garantizada',
+      description: 'Tus conversaciones están protegidas. No almacenamos datos personales sin tu consentimiento.',
+      color: 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
     },
     {
-      icon: <SpeedIcon sx={{ fontSize: 40 }} />,
-      title: 'Respuesta Rápida',
-      description: 'Obtén respuestas instantáneas a tus consultas sobre servicios municipales.'
+      icon: <Zap className="w-6 h-6" />,
+      title: 'Respuestas Instantáneas',
+      description: 'Obtén información precisa al instante, sin esperas ni formularios complicados.',
+      color: 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800'
     },
     {
-      icon: <PublicIcon sx={{ fontSize: 40 }} />,
-      title: 'Acceso Público',
-      description: 'Disponible para todos los ciudadanos sin necesidad de registro.'
+      icon: <Globe className="w-6 h-6" />,
+      title: 'Acceso Libre',
+      description: 'Disponible para todos los ciudadanos, sin registro obligatorio. Democratizando el acceso a la información.',
+      color: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800'
     }
   ];
 
-
+  const useCases = [
+    {
+      icon: <Clock className="w-5 h-5" />,
+      title: 'Horarios y Servicios',
+      example: '"¿A qué hora abre el ayuntamiento?"'
+    },
+    {
+      icon: <Users className="w-5 h-5" />,
+      title: 'Trámites y Procedimientos',
+      example: '"¿Cómo solicito el empadronamiento?"'
+    },
+    {
+      icon: <Star className="w-5 h-5" />,
+      title: 'Eventos y Actividades',
+      example: '"¿Qué eventos hay este fin de semana?"'
+    }
+  ];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'background.paper' }}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-            CityChat
-          </Typography>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <IconButton size="small">
-              <SearchIcon />
-            </IconButton>
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Bot className="w-8 h-8 text-primary" />
+            <span className="text-xl font-bold">CityChat</span>
+          </div>
+          <div className="flex items-center space-x-4">
             {user ? (
               profile?.role === 'administrativo' ? (
-                <Button 
-                  variant="outlined" 
-                  onClick={() => navigate('/admin')}
-                  sx={{ borderRadius: 2 }}
-                >
+                <Button variant="outline" onClick={() => navigate('/admin')}>
                   Panel Admin
                 </Button>
               ) : (
-                <Button 
-                  variant="outlined" 
-                  onClick={() => navigate('/chat/finestrat')}
-                  sx={{ borderRadius: 2 }}
-                >
+                <Button variant="outline" onClick={() => navigate('/chat/finestrat')}>
                   Ir al Chat
                 </Button>
               )
             ) : (
-              <Button 
-                variant="outlined" 
-                onClick={handleLogin}
-                sx={{ borderRadius: 2 }}
-              >
+              <Button variant="outline" onClick={handleLogin}>
                 Iniciar sesión
               </Button>
             )}
-          </Stack>
-        </Toolbar>
-      </AppBar>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
-          <Typography 
-            variant="h2" 
-            component="h1" 
-            sx={{ 
-              fontWeight: 'bold', 
-              mb: 3,
-              fontSize: { xs: '2.5rem', md: '3.5rem' }
-            }}
-          >
-            Tu Asistente de Ciudad
-          </Typography>
-          <Typography 
-            variant="h5" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 6,
-              maxWidth: 600,
-              mx: 'auto',
-              fontSize: { xs: '1.1rem', md: '1.3rem' }
-            }}
-          >
-            Descubre información local, servicios municipales y todo lo que necesitas saber sobre tu ciudad a través de una conversación natural con IA.
-          </Typography>
+      <section className="relative py-20 px-4">
+        <div className="container mx-auto max-w-4xl text-center">
+          <Badge variant="secondary" className="mb-6">
+            🚀 Revolucionando la comunicación ciudadana
+          </Badge>
+          
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            ¿En qué puedo ayudarte?
+          </h1>
+          
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+            Tu asistente de ciudad inteligente. Obtén información local, servicios municipales 
+            y respuestas instantáneas a través de conversaciones naturales con IA.
+          </p>
 
-          {/* Buscador de Ciudades */}
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              maxWidth: 600, 
-              mx: 'auto', 
-              p: 3, 
-              borderRadius: 3,
-              bgcolor: 'background.paper'
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium' }}>
-              ¿En qué ciudad te encuentras?
-            </Typography>
-            <Autocomplete
-              options={cities}
-              getOptionLabel={(option) => option.name}
-              value={selectedCity}
-              onChange={(_, newValue) => handleCitySelect(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Busca tu ciudad..."
-                  variant="outlined"
-                  fullWidth
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                    }
-                  }}
-                />
-              )}
-              renderOption={(props, option) => (
-                <Box component="li" {...props}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <LocationIcon color="action" />
-                    <Box>
-                      <Typography variant="body1" fontWeight="medium">
-                        {option.name}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-              )}
-            />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-              Selecciona tu ciudad para comenzar a chatear con el asistente local
-            </Typography>
-          </Paper>
-        </Box>
+          {/* Search Input */}
+          <div className="relative max-w-2xl mx-auto mb-12">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+              <Input
+                placeholder="Busca tu ciudad para comenzar..."
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                className="pl-12 pr-12 h-14 text-lg rounded-full border-2 focus:border-primary"
+              />
+              <ArrowRight className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            </div>
+            
+            {/* City Suggestions */}
+            {showSuggestions && (
+              <Card className="absolute top-full left-0 right-0 mt-2 z-50 max-h-60 overflow-y-auto">
+                <CardContent className="p-0">
+                  {filteredCities.length > 0 ? (
+                    filteredCities.map((city) => (
+                      <button
+                        key={city.id}
+                        onClick={() => handleCitySelect(city)}
+                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center space-x-3 border-b last:border-b-0"
+                      >
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{city.name}</div>
+                          <div className="text-sm text-muted-foreground">{city.assistant_name}</div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-muted-foreground">
+                      No se encontraron ciudades
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-        {/* Características */}
-        <Box sx={{ py: 8 }}>
-          <Typography 
-            variant="h3" 
-            component="h2" 
-            sx={{ 
-              textAlign: 'center', 
-              mb: 6,
-              fontWeight: 'bold',
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
-            ¿Por qué CityChat?
-          </Typography>
-          <Grid container spacing={4}>
-            {features.map((feature, index) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-                <Card 
-                  elevation={2} 
-                  sx={{ 
-                    height: '100%', 
-                    borderRadius: 3,
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: theme.shadows[8],
-                    }
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', p: 4 }}>
-                    <Box sx={{ color: 'primary.main', mb: 2 }}>
-                      {feature.icon}
-                    </Box>
-                    <Typography variant="h6" component="h3" sx={{ mb: 2, fontWeight: 'medium' }}>
-                      {feature.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {feature.description}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+          {/* Use Cases */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-16">
+            {useCases.map((useCase, index) => (
+              <Card key={index} className="p-4 hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary/20">
+                <CardContent className="p-0">
+                  <div className="flex items-center space-x-2 mb-2">
+                    {useCase.icon}
+                    <span className="font-medium text-sm">{useCase.title}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground italic">{useCase.example}</p>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
-        </Box>
+          </div>
+        </div>
+      </section>
 
-        {/* CTA Section */}
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography 
-            variant="h4" 
-            component="h2" 
-            sx={{ 
-              mb: 3,
-              fontWeight: 'bold',
-              fontSize: { xs: '1.8rem', md: '2.2rem' }
-            }}
-          >
-            ¿Listo para empezar?
-          </Typography>
-          <Typography 
-            variant="h6" 
-            color="text.secondary" 
-            sx={{ mb: 4, maxWidth: 500, mx: 'auto' }}
-          >
-            Selecciona tu ciudad arriba y comienza a explorar todo lo que tu asistente local puede hacer por ti.
-          </Typography>
+      {/* Features Section */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              ¿Por qué elegir CityChat?
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Una nueva forma de interactuar con tu ciudad, diseñada para ser intuitiva, 
+              segura y accesible para todos los ciudadanos.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <Card key={index} className={`p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${feature.color}`}>
+                <CardContent className="p-0">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      {feature.icon}
+                    </div>
+                    <h3 className="text-lg font-semibold">{feature.title}</h3>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Así de simple funciona
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Tres pasos para obtener la información que necesitas
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xl font-bold mx-auto mb-4">
+                1
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Selecciona tu ciudad</h3>
+              <p className="text-muted-foreground">Busca y selecciona tu ciudad en el campo de búsqueda</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xl font-bold mx-auto mb-4">
+                2
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Haz tu pregunta</h3>
+              <p className="text-muted-foreground">Escribe tu consulta de forma natural, como le preguntarías a un amigo</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xl font-bold mx-auto mb-4">
+                3
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Obtén respuestas</h3>
+              <p className="text-muted-foreground">Recibe información precisa y actualizada sobre tu ciudad al instante</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 bg-primary text-primary-foreground">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            ¿Listo para comenzar?
+          </h2>
+          <p className="text-xl mb-8 opacity-90">
+            Únete a miles de ciudadanos que ya están usando CityChat para obtener información local
+          </p>
           <Button 
-            variant="contained" 
-            size="large"
-            onClick={() => document.getElementById('city-search')?.scrollIntoView({ behavior: 'smooth' })}
-            sx={{ 
-              borderRadius: 3, 
-              px: 4, 
-              py: 1.5,
-              fontSize: '1.1rem'
-            }}
+            size="lg" 
+            variant="secondary"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="px-8 py-3 text-lg"
           >
             Buscar mi Ciudad
+            <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
-        </Box>
-      </Container>
+        </div>
+      </section>
 
       {/* Footer */}
-      <Box sx={{ bgcolor: 'background.paper', py: 4, mt: 8 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                CityChat
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tu asistente de ciudad inteligente. Información local, servicios municipales y más, todo en un solo lugar.
-              </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Enlaces Útiles
-              </Typography>
-              <Stack spacing={1}>
-                <Button 
-                  variant="text" 
-                  size="small" 
-                  onClick={() => navigate('/auth')}
-                  sx={{ justifyContent: 'flex-start' }}
-                >
+      <footer className="bg-muted/50 py-12 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <Bot className="w-6 h-6 text-primary" />
+                <span className="text-lg font-bold">CityChat</span>
+              </div>
+              <p className="text-muted-foreground">
+                Democratizando el acceso a la información municipal a través de 
+                inteligencia artificial conversacional.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-4">Enlaces Útiles</h3>
+              <div className="space-y-2">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/auth')} className="justify-start p-0 h-auto">
                   Iniciar Sesión
                 </Button>
-                <Button 
-                  variant="text" 
-                  size="small" 
-                  onClick={() => navigate('/chat/finestrat')}
-                  sx={{ justifyContent: 'flex-start' }}
-                >
+                <br />
+                <Button variant="ghost" size="sm" onClick={() => navigate('/chat/finestrat')} className="justify-start p-0 h-auto">
                   Chat de Ejemplo
                 </Button>
-              </Stack>
-            </Grid>
-          </Grid>
-          <Divider sx={{ my: 3 }} />
-          <Typography variant="body2" color="text.secondary" textAlign="center">
-            © 2024 CityChat. Todos los derechos reservados.
-          </Typography>
-        </Container>
-      </Box>
-    </Box>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-4">Sobre el Proyecto</h3>
+              <p className="text-sm text-muted-foreground">
+                CityChat es una iniciativa para mejorar la comunicación entre 
+                ciudadanos y administraciones locales usando tecnología de IA.
+              </p>
+            </div>
+          </div>
+          
+          <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
+            © 2024 CityChat. Construyendo ciudades más conectadas.
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };
 
