@@ -30,7 +30,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const mapRole = (role: string): 'ciudadano' | 'administrativo' => {
+    switch (role) {
+      case 'admin':
+      case 'administrativo':
+        return 'administrativo';
+      case 'citizen':
+      case 'ciudadano':
+      default:
+        return 'ciudadano';
+    }
+  };
+
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
       console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
@@ -44,8 +56,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      console.log('Profile fetched:', data);
-      return data;
+      if (!data) {
+        return null;
+      }
+
+      // Map the role to ensure type compatibility
+      const mappedProfile: Profile = {
+        ...data,
+        role: mapRole(data.role)
+      };
+
+      console.log('Profile fetched:', mappedProfile);
+      return mappedProfile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;

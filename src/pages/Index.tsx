@@ -267,7 +267,7 @@ const Index = () => {
           </Typography>
           <Grid container spacing={4}>
             {features.map((feature, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                 <Card 
                   elevation={2} 
                   sx={{ 
@@ -337,7 +337,7 @@ const Index = () => {
       <Box sx={{ bgcolor: 'background.paper', py: 4, mt: 8 }}>
         <Container maxWidth="lg">
           <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 CityChat
               </Typography>
@@ -345,7 +345,7 @@ const Index = () => {
                 Tu asistente de ciudad inteligente. Información local, servicios municipales y más, todo en un solo lugar.
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Enlaces Útiles
               </Typography>
