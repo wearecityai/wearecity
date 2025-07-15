@@ -67,12 +67,18 @@ export const useChatManager = (
 
   const handleSendMessage = async (inputText: string) => {
     const callId = crypto.randomUUID();
+    
+    // Prevenir múltiples llamadas simultáneas
+    if (isLoading) {
+      console.log('Message sending already in progress, ignoring duplicate call');
+      return;
+    }
+    
     try {
       console.log(`=== Starting handleSendMessage [${callId}] ===`);
       console.log('Input text:', inputText);
       console.log('Current conversation ID:', currentConversationId);
       console.log('Available conversations:', conversations.map(c => c.id));
-      console.log('Stack trace:', new Error().stack);
 
       // Step 1: Determine or create the target conversation
       let targetConversationId = currentConversationId;

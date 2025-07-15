@@ -148,27 +148,36 @@ export const useMessageHandler = (
         role: MessageRole.Model,
         content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
         timestamp: new Date(),
-        error: error instanceof Error ? error.message : 'Error desconocido'
+        error: error instanceof Error ? error.message : 'Error de conexión'
       };
       
       // Reemplazar el spinner con el mensaje de error
       setMessages((prev: ChatMessage[]) => {
         const typingIndex = prev.findIndex(msg => msg.id === typingMessageId);
         if (typingIndex === -1) {
+          console.log('Spinner not found for error, adding error message at the end');
           return [...prev, errorMessage];
         }
         const newMessages = [...prev];
         newMessages.splice(typingIndex, 1, errorMessage);
+        console.log('Replaced spinner with error message at index:', typingIndex);
         return newMessages;
       });
       
+      // Intentar guardar el mensaje de error, pero no fallar si no se puede
       try {
         await saveMessageOnly(errorMessage, targetConversationId);
-      } catch {}
-        onError('Error al procesar el mensaje. Intenta de nuevo.');
+      } catch (saveError) {
+        console.error('Failed to save error message:', saveError);
+      }
+      
+      // No llamar onError aquí para evitar mensajes duplicados
     } finally {
       setIsLoading(false);
-      lastProcessedMessageRef.current = null;
+      // Mantener la referencia hasta el final para evitar reprocesamiento
+      setTimeout(() => {
+        lastProcessedMessageRef.current = null;
+      }, 1000);
     }
   }, [parseAIResponse, onError, chatConfig, user?.id, userLocation]);
 
