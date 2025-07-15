@@ -1,6 +1,6 @@
 export enum MessageRole {
   User = 'user',
-  Model = 'model',
+  Model = 'assistant',
 }
 
 export interface WebSource {

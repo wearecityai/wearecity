@@ -15,7 +15,7 @@ export const useMessages = (conversationId: string | null) => {
 
   // Helper function to convert MessageRole to database role
   const convertToDatabaseRole = (role: MessageRole): string => {
-    return role === MessageRole.User ? 'user' : 'model';
+    return role === MessageRole.User ? 'user' : 'assistant';
   };
 
   // Helper function to safely serialize metadata for database storage

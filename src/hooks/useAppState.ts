@@ -173,7 +173,7 @@ export const useAppState = (citySlug?: string) => {
     }
     
     messages.forEach((msg, msgIndex) => {
-      if (msg.role === 'model' && msg.placeCards) {
+      if (msg.role === MessageRole.Model && msg.placeCards) {
         console.log(`🔍 Message ${msgIndex} has ${msg.placeCards.length} place cards`);
         msg.placeCards.forEach((card, cardIndex) => {
           // Create a unique identifier for this card
