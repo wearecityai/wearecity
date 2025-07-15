@@ -1,12 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, MessageSquare, Bot, Globe, Shield, Zap, ArrowRight, Clock, Users, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { 
+  Box, 
+  Typography, 
+  TextField, 
+  Container,
+  Grid, 
+  Card, 
+  CardContent, 
+  Stack, 
+  Chip, 
+  Paper,
+  Divider,
+  Button,
+  InputAdornment,
+  Autocomplete,
+  Fade,
+  Slide,
+  IconButton,
+  Avatar,
+  Tooltip,
+  Fab
+} from '@mui/material';
+import { 
+  Search as SearchIcon, 
+  LocationOn as LocationIcon,
+  Chat as ChatIcon,
+  SmartToy as AIIcon,
+  Public as PublicIcon,
+  Security as SecurityIcon,
+  Speed as SpeedIcon,
+  ArrowForward as ArrowForwardIcon,
+  Schedule as ScheduleIcon,
+  Group as GroupIcon,
+  Star as StarIcon,
+  KeyboardArrowUp as KeyboardArrowUpIcon,
+  Person as PersonIcon,
+  ScienceOutlined as ScienceOutlinedIcon,
+  ArrowDropDown as ArrowDropDownIcon
+} from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@mui/material/styles';
 import { supabase } from '@/integrations/supabase/client';
+import AppHeader from '@/components/AppHeader';
 
 interface City {
   id: string;
@@ -17,12 +53,14 @@ interface City {
 
 const Index = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { user, profile } = useAuth();
   
   const [cities, setCities] = useState<City[]>([]);
   const [searchValue, setSearchValue] = useState<string>('');
-  const [filteredCities, setFilteredCities] = useState<City[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Cargar ciudades disponibles
   useEffect(() => {
@@ -49,323 +87,555 @@ const Index = () => {
     loadCities();
   }, []);
 
-  // Filtrar ciudades basado en búsqueda
+  // Scroll detection
   useEffect(() => {
-    if (searchValue.trim()) {
-      const filtered = cities.filter(city =>
-        city.name.toLowerCase().includes(searchValue.toLowerCase())
-      );
-      setFilteredCities(filtered);
-      setShowSuggestions(true);
-    } else {
-      setFilteredCities([]);
-      setShowSuggestions(false);
-    }
-  }, [searchValue, cities]);
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
 
-  const handleCitySelect = (city: City) => {
-    navigate(`/chat/${city.slug}`);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleCitySelect = (city: City | null) => {
+    setSelectedCity(city);
+    if (city) {
+      navigate(`/chat/${city.slug}`);
+    }
   };
 
   const handleLogin = () => {
     navigate('/auth');
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const features = [
     {
-      icon: <Bot className="w-6 h-6" />,
+      icon: <AIIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
       title: 'IA Especializada',
-      description: 'Cada ciudad tiene su asistente IA personalizado, entrenado con información local específica y actualizada.',
-      color: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
+      description: 'Cada ciudad tiene su asistente IA personalizado, entrenado con información local específica y actualizada en tiempo real.',
+      color: theme.palette.primary.main,
+      gradient: `linear-gradient(135deg, ${theme.palette.primary.main}20, ${theme.palette.primary.main}10)`
     },
     {
-      icon: <MapPin className="w-6 h-6" />,
+      icon: <LocationIcon sx={{ fontSize: 48, color: 'success.main' }} />,
       title: 'Información Local',
-      description: 'Accede a servicios municipales, eventos, procedimientos administrativos y datos actualizados de tu ciudad.',
-      color: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+      description: 'Accede a servicios municipales, eventos, procedimientos administrativos y datos precisos de tu ciudad.',
+      color: theme.palette.success.main,
+      gradient: `linear-gradient(135deg, ${theme.palette.success.main}20, ${theme.palette.success.main}10)`
     },
     {
-      icon: <MessageSquare className="w-6 h-6" />,
+      icon: <ChatIcon sx={{ fontSize: 48, color: 'secondary.main' }} />,
       title: 'Conversación Natural',
       description: 'Pregunta como le harías a un vecino. Nuestro asistente entiende el lenguaje natural y el contexto local.',
-      color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800'
+      color: theme.palette.secondary.main,
+      gradient: `linear-gradient(135deg, ${theme.palette.secondary.main}20, ${theme.palette.secondary.main}10)`
     },
     {
-      icon: <Shield className="w-6 h-6" />,
+      icon: <SecurityIcon sx={{ fontSize: 48, color: 'error.main' }} />,
       title: 'Privacidad Garantizada',
-      description: 'Tus conversaciones están protegidas. No almacenamos datos personales sin tu consentimiento.',
-      color: 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+      description: 'Tus conversaciones están protegidas con encriptación de extremo a extremo. Tu privacidad es nuestra prioridad.',
+      color: theme.palette.error.main,
+      gradient: `linear-gradient(135deg, ${theme.palette.error.main}20, ${theme.palette.error.main}10)`
     },
     {
-      icon: <Zap className="w-6 h-6" />,
+      icon: <SpeedIcon sx={{ fontSize: 48, color: 'warning.main' }} />,
       title: 'Respuestas Instantáneas',
-      description: 'Obtén información precisa al instante, sin esperas ni formularios complicados.',
-      color: 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800'
+      description: 'Obtén información precisa al instante, sin esperas ni formularios complicados. La eficiencia que mereces.',
+      color: theme.palette.warning.main,
+      gradient: `linear-gradient(135deg, ${theme.palette.warning.main}20, ${theme.palette.warning.main}10)`
     },
     {
-      icon: <Globe className="w-6 h-6" />,
-      title: 'Acceso Libre',
-      description: 'Disponible para todos los ciudadanos, sin registro obligatorio. Democratizando el acceso a la información.',
-      color: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800'
+      icon: <PublicIcon sx={{ fontSize: 48, color: 'info.main' }} />,
+      title: 'Acceso Universal',
+      description: 'Disponible para todos los ciudadanos, sin registro obligatorio. Democratizando el acceso a la información pública.',
+      color: theme.palette.info.main,
+      gradient: `linear-gradient(135deg, ${theme.palette.info.main}20, ${theme.palette.info.main}10)`
     }
   ];
 
   const useCases = [
     {
-      icon: <Clock className="w-5 h-5" />,
+      icon: <ScheduleIcon sx={{ color: 'primary.main' }} />,
       title: 'Horarios y Servicios',
-      example: '"¿A qué hora abre el ayuntamiento?"'
+      example: '"¿A qué hora abre el ayuntamiento el lunes?"',
+      color: 'primary'
     },
     {
-      icon: <Users className="w-5 h-5" />,
+      icon: <GroupIcon sx={{ color: 'secondary.main' }} />,
       title: 'Trámites y Procedimientos',
-      example: '"¿Cómo solicito el empadronamiento?"'
+      example: '"¿Cómo solicito el certificado de empadronamiento?"',
+      color: 'secondary'
     },
     {
-      icon: <Star className="w-5 h-5" />,
+      icon: <StarIcon sx={{ color: 'warning.main' }} />,
       title: 'Eventos y Actividades',
-      example: '"¿Qué eventos hay este fin de semana?"'
+      example: '"¿Qué eventos culturales hay este fin de semana?"',
+      color: 'warning'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Bot className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold">CityChat</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            {user ? (
-              profile?.role === 'administrativo' ? (
-                <Button variant="outline" onClick={() => navigate('/admin')}>
-                  Panel Admin
-                </Button>
-              ) : (
-                <Button variant="outline" onClick={() => navigate('/chat/finestrat')}>
-                  Ir al Chat
-                </Button>
-              )
-            ) : (
-              <Button variant="outline" onClick={handleLogin}>
-                Iniciar sesión
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Header usando el mismo componente del chat */}
+      <AppHeader
+        isMobile={false}
+        onMenuToggle={() => {}}
+        currentThemeMode={theme.palette.mode}
+        onToggleTheme={() => {}}
+        onOpenSettings={() => {}}
+        isAuthenticated={!!user}
+        onLogin={handleLogin}
+      />
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4">
-        <div className="container mx-auto max-w-4xl text-center">
-          <Badge variant="secondary" className="mb-6">
-            🚀 Revolucionando la comunicación ciudadana
-          </Badge>
-          
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            ¿En qué puedo ayudarte?
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-            Tu asistente de ciudad inteligente. Obtén información local, servicios municipales 
-            y respuestas instantáneas a través de conversaciones naturales con IA.
-          </p>
-
-          {/* Search Input */}
-          <div className="relative max-w-2xl mx-auto mb-12">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-              <Input
-                placeholder="Busca tu ciudad para comenzar..."
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                className="pl-12 pr-12 h-14 text-lg rounded-full border-2 focus:border-primary"
-              />
-              <ArrowRight className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-            </div>
+      <Container maxWidth="lg" sx={{ pt: 8, pb: 4 }}>
+        <Fade in timeout={1000}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Chip 
+              label="🚀 Revolucionando la comunicación ciudadana" 
+              sx={{ 
+                mb: 4, 
+                fontSize: '0.9rem',
+                background: `linear-gradient(135deg, ${theme.palette.primary.main}20, ${theme.palette.secondary.main}20)`,
+                border: `1px solid ${theme.palette.primary.main}30`
+              }} 
+            />
             
-            {/* City Suggestions */}
-            {showSuggestions && (
-              <Card className="absolute top-full left-0 right-0 mt-2 z-50 max-h-60 overflow-y-auto">
-                <CardContent className="p-0">
-                  {filteredCities.length > 0 ? (
-                    filteredCities.map((city) => (
-                      <button
-                        key={city.id}
-                        onClick={() => handleCitySelect(city)}
-                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center space-x-3 border-b last:border-b-0"
-                      >
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{city.name}</div>
-                          <div className="text-sm text-muted-foreground">{city.assistant_name}</div>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-4 py-3 text-muted-foreground">
-                      No se encontraron ciudades
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+            <Typography 
+              variant="h1" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 800,
+                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem' },
+                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 3,
+                lineHeight: 1.1
+              }}
+            >
+              ¿En qué puedo ayudarte?
+            </Typography>
+            
+            <Typography 
+              variant="h4" 
+              color="text.secondary" 
+              sx={{ 
+                mb: 6,
+                maxWidth: 700,
+                mx: 'auto',
+                fontWeight: 400,
+                lineHeight: 1.5,
+                fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' }
+              }}
+            >
+              Tu asistente de ciudad inteligente. Obtén información local, servicios municipales 
+              y respuestas instantáneas a través de conversaciones naturales con IA.
+            </Typography>
 
-          {/* Use Cases */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-16">
-            {useCases.map((useCase, index) => (
-              <Card key={index} className="p-4 hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary/20">
-                <CardContent className="p-0">
-                  <div className="flex items-center space-x-2 mb-2">
-                    {useCase.icon}
-                    <span className="font-medium text-sm">{useCase.title}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground italic">{useCase.example}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+            {/* Buscador de Ciudades Mejorado */}
+            <Paper 
+              elevation={8} 
+              sx={{ 
+                maxWidth: 650, 
+                mx: 'auto', 
+                p: 4, 
+                borderRadius: 4,
+                background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${theme.palette.background.paper}90)`,
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${theme.palette.divider}`,
+                mb: 8
+              }}
+            >
+              <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}>
+                Selecciona tu ciudad para comenzar
+              </Typography>
+              <Autocomplete
+                options={cities}
+                getOptionLabel={(option) => option.name}
+                value={selectedCity}
+                onChange={(_, newValue) => handleCitySelect(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Busca tu ciudad..."
+                    variant="outlined"
+                    fullWidth
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="primary" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 3,
+                        fontSize: '1.1rem',
+                        '& fieldset': {
+                          borderWidth: 2,
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      }
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <LocationIcon color="action" />
+                      <Box>
+                        <Typography variant="body1" fontWeight="medium">
+                          {option.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.assistant_name}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                )}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                Conecta con el asistente especializado de tu ciudad
+              </Typography>
+            </Paper>
+
+            {/* Casos de Uso */}
+            <Grid container spacing={3} sx={{ maxWidth: 900, mx: 'auto', mb: 8 }}>
+              {useCases.map((useCase, index) => (
+                <Grid size={{ xs: 12, md: 4 }} key={index}>
+                  <Slide in timeout={1000 + index * 200} direction="up">
+                    <Card 
+                      elevation={3}
+                      sx={{ 
+                        p: 3, 
+                        height: '100%',
+                        borderRadius: 3,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        borderLeft: `4px solid`,
+                        borderLeftColor: `${useCase.color}.main`,
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: theme.shadows[12],
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: '0!important' }}>
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                          {useCase.icon}
+                          <Typography variant="h6" fontWeight="600">
+                            {useCase.title}
+                          </Typography>
+                        </Stack>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            fontStyle: 'italic',
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          {useCase.example}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Slide>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        </Fade>
+      </Container>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+      <Box sx={{ 
+        py: 10, 
+        background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${theme.palette.grey[50]})`,
+        borderTop: `1px solid ${theme.palette.divider}`,
+        borderBottom: `1px solid ${theme.palette.divider}`
+      }}>
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Typography 
+              variant="h2" 
+              component="h2" 
+              sx={{ 
+                fontWeight: 700, 
+                mb: 3,
+                fontSize: { xs: '2rem', md: '3rem' },
+                color: 'text.primary'
+              }}
+            >
               ¿Por qué elegir CityChat?
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            </Typography>
+            <Typography 
+              variant="h5" 
+              color="text.secondary" 
+              sx={{ 
+                maxWidth: 600, 
+                mx: 'auto',
+                lineHeight: 1.6
+              }}
+            >
               Una nueva forma de interactuar con tu ciudad, diseñada para ser intuitiva, 
               segura y accesible para todos los ciudadanos.
-            </p>
-          </div>
+            </Typography>
+          </Box>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Grid container spacing={4}>
             {features.map((feature, index) => (
-              <Card key={index} className={`p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${feature.color}`}>
-                <CardContent className="p-0">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      {feature.icon}
-                    </div>
-                    <h3 className="text-lg font-semibold">{feature.title}</h3>
-                  </div>
-                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
+              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={index}>
+                <Fade in timeout={1200 + index * 150}>
+                  <Card 
+                    elevation={4}
+                    sx={{ 
+                      height: '100%',
+                      borderRadius: 4,
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      background: feature.gradient,
+                      border: `1px solid ${feature.color}20`,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        transform: 'translateY(-12px) scale(1.02)',
+                        boxShadow: `0 20px 40px ${feature.color}20`,
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ mb: 3 }}>
+                        <Box sx={{ 
+                          display: 'inline-flex',
+                          p: 2,
+                          borderRadius: 2,
+                          background: `${feature.color}15`,
+                          mb: 2
+                        }}>
+                          {feature.icon}
+                        </Box>
+                        <Typography variant="h5" component="h3" sx={{ fontWeight: 600, mb: 2 }}>
+                          {feature.title}
+                        </Typography>
+                      </Box>
+                      <Typography 
+                        variant="body1" 
+                        color="text.secondary" 
+                        sx={{ 
+                          lineHeight: 1.7,
+                          flexGrow: 1
+                        }}
+                      >
+                        {feature.description}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Fade>
+              </Grid>
             ))}
-          </div>
-        </div>
-      </section>
+          </Grid>
+        </Container>
+      </Box>
 
       {/* How it Works */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Así de simple funciona
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Tres pasos para obtener la información que necesitas
-            </p>
-          </div>
+      <Container maxWidth="lg" sx={{ py: 10 }}>
+        <Box sx={{ textAlign: 'center', mb: 8 }}>
+          <Typography 
+            variant="h2" 
+            component="h2" 
+            sx={{ 
+              fontWeight: 700, 
+              mb: 3,
+              fontSize: { xs: '2rem', md: '3rem' }
+            }}
+          >
+            Así de simple funciona
+          </Typography>
+          <Typography variant="h5" color="text.secondary">
+            Tres pasos para obtener la información que necesitas
+          </Typography>
+        </Box>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xl font-bold mx-auto mb-4">
-                1
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Selecciona tu ciudad</h3>
-              <p className="text-muted-foreground">Busca y selecciona tu ciudad en el campo de búsqueda</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xl font-bold mx-auto mb-4">
-                2
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Haz tu pregunta</h3>
-              <p className="text-muted-foreground">Escribe tu consulta de forma natural, como le preguntarías a un amigo</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xl font-bold mx-auto mb-4">
-                3
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Obtén respuestas</h3>
-              <p className="text-muted-foreground">Recibe información precisa y actualizada sobre tu ciudad al instante</p>
-            </div>
-          </div>
-        </div>
-      </section>
+        <Grid container spacing={6} alignItems="center">
+          {[
+            {
+              step: '1',
+              title: 'Selecciona tu ciudad',
+              description: 'Busca y selecciona tu ciudad en el campo de búsqueda inteligente'
+            },
+            {
+              step: '2', 
+              title: 'Haz tu pregunta',
+              description: 'Escribe tu consulta de forma natural, como le preguntarías a un vecino'
+            },
+            {
+              step: '3',
+              title: 'Obtén respuestas',
+              description: 'Recibe información precisa y actualizada sobre tu ciudad al instante'
+            }
+          ].map((item, index) => (
+            <Grid size={{ xs: 12, md: 4 }} key={index}>
+              <Fade in timeout={1500 + index * 300}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Avatar 
+                    sx={{ 
+                      width: 80, 
+                      height: 80, 
+                      bgcolor: 'primary.main',
+                      mx: 'auto', 
+                      mb: 3,
+                      fontSize: '2rem',
+                      fontWeight: 'bold',
+                      boxShadow: theme.shadows[8]
+                    }}
+                  >
+                    {item.step}
+                  </Avatar>
+                  <Typography variant="h4" component="h3" sx={{ mb: 2, fontWeight: 600 }}>
+                    {item.title}
+                  </Typography>
+                  <Typography 
+                    variant="body1" 
+                    color="text.secondary" 
+                    sx={{ lineHeight: 1.6, maxWidth: 280, mx: 'auto' }}
+                  >
+                    {item.description}
+                  </Typography>
+                </Box>
+              </Fade>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-primary text-primary-foreground">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+      <Box sx={{ 
+        py: 10, 
+        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+        color: 'white',
+        textAlign: 'center'
+      }}>
+        <Container maxWidth="md">
+          <Typography 
+            variant="h2" 
+            component="h2" 
+            sx={{ 
+              fontWeight: 700, 
+              mb: 3,
+              fontSize: { xs: '2rem', md: '3rem' }
+            }}
+          >
             ¿Listo para comenzar?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
+          </Typography>
+          <Typography variant="h5" sx={{ mb: 6, opacity: 0.9 }}>
             Únete a miles de ciudadanos que ya están usando CityChat para obtener información local
-          </p>
+          </Typography>
           <Button 
-            size="lg" 
-            variant="secondary"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="px-8 py-3 text-lg"
+            variant="contained" 
+            size="large"
+            onClick={scrollToTop}
+            endIcon={<ArrowForwardIcon />}
+            sx={{ 
+              borderRadius: 3, 
+              px: 6, 
+              py: 2,
+              fontSize: '1.2rem',
+              bgcolor: 'white',
+              color: 'primary.main',
+              '&:hover': {
+                bgcolor: 'grey.100',
+                transform: 'translateY(-2px)',
+                boxShadow: theme.shadows[12]
+              }
+            }}
           >
             Buscar mi Ciudad
-            <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
-        </div>
-      </section>
+        </Container>
+      </Box>
 
       {/* Footer */}
-      <footer className="bg-muted/50 py-12 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Bot className="w-6 h-6 text-primary" />
-                <span className="text-lg font-bold">CityChat</span>
-              </div>
-              <p className="text-muted-foreground">
+      <Box sx={{ bgcolor: 'background.paper', py: 8, borderTop: `1px solid ${theme.palette.divider}` }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={6}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, color: 'primary.main' }}>
+                CityChat
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7 }}>
                 Democratizando el acceso a la información municipal a través de 
-                inteligencia artificial conversacional.
-              </p>
-            </div>
+                inteligencia artificial conversacional. Construyendo ciudades más conectadas.
+              </Typography>
+            </Grid>
             
-            <div>
-              <h3 className="font-semibold mb-4">Enlaces Útiles</h3>
-              <div className="space-y-2">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/auth')} className="justify-start p-0 h-auto">
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Enlaces Útiles
+              </Typography>
+              <Stack spacing={2}>
+                <Button 
+                  variant="text" 
+                  onClick={handleLogin}
+                  sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+                >
                   Iniciar Sesión
                 </Button>
-                <br />
-                <Button variant="ghost" size="sm" onClick={() => navigate('/chat/finestrat')} className="justify-start p-0 h-auto">
+                <Button 
+                  variant="text" 
+                  onClick={() => navigate('/chat/finestrat')}
+                  sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+                >
                   Chat de Ejemplo
                 </Button>
-              </div>
-            </div>
+              </Stack>
+            </Grid>
             
-            <div>
-              <h3 className="font-semibold mb-4">Sobre el Proyecto</h3>
-              <p className="text-sm text-muted-foreground">
-                CityChat es una iniciativa para mejorar la comunicación entre 
-                ciudadanos y administraciones locales usando tecnología de IA.
-              </p>
-            </div>
-          </div>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Sobre el Proyecto
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                CityChat es una iniciativa innovadora para mejorar la comunicación entre 
+                ciudadanos y administraciones locales usando tecnología de IA de vanguardia.
+              </Typography>
+            </Grid>
+          </Grid>
           
-          <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-            © 2024 CityChat. Construyendo ciudades más conectadas.
-          </div>
-        </div>
-      </footer>
-    </div>
+          <Divider sx={{ my: 4 }} />
+          <Typography variant="body2" color="text.secondary" textAlign="center">
+            © 2024 CityChat. Construyendo el futuro de la administración digital.
+          </Typography>
+        </Container>
+      </Box>
+
+      {/* Scroll to Top FAB */}
+      <Fade in={showScrollTop}>
+        <Fab 
+          color="primary" 
+          size="medium"
+          onClick={scrollToTop}
+          sx={{ 
+            position: 'fixed', 
+            bottom: 32, 
+            right: 32,
+            zIndex: 1000
+          }}
+        >
+          <KeyboardArrowUpIcon />
+        </Fab>
+      </Fade>
+    </Box>
   );
 };
 
