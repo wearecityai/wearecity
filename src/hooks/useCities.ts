@@ -65,7 +65,11 @@ export const useCities = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .rpc('get_admin_city', { admin_user_id_param: user.id });
+        .from('cities')
+        .select('*')
+        .eq('admin_user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
 
       if (error) {
         console.error('Error loading user city:', error);
@@ -73,11 +77,7 @@ export const useCities = () => {
         return;
       }
 
-      if (data && data.length > 0) {
-        setCurrentCity(data[0]);
-      } else {
-        setCurrentCity(null);
-      }
+      setCurrentCity(data as City);
     } catch (error) {
       console.error('Error loading user city:', error);
       setError('Error al cargar la ciudad del usuario');
@@ -86,7 +86,7 @@ export const useCities = () => {
     }
   };
 
-  // Crear nuevo chat de admin (que automáticamente crea la ciudad)
+  // Crear ciudad para admin (si no tiene una ya)
   const createAdminChat = async (chatName: string = 'Mi Chat'): Promise<boolean> => {
     if (!user || profile?.role !== 'administrativo') {
       setError('Solo los administradores pueden crear chats');
@@ -96,19 +96,8 @@ export const useCities = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
-        .rpc('create_admin_chat', { 
-          chat_name_param: chatName,
-          is_public_param: true 
-        });
-
-      if (error) {
-        console.error('Error creating admin chat:', error);
-        setError('Error al crear el chat');
-        return false;
-      }
-
-      // Recargar la ciudad del usuario
+      // Esta función debería ser llamada automáticamente por el trigger cuando se crea el perfil admin
+      // Si no existe ciudad, la creamos manualmente
       await loadUserCity();
       return true;
     } catch (error) {
@@ -125,19 +114,55 @@ export const useCities = () => {
     return currentCity?.id === cityId && user?.id === currentCity?.admin_user_id;
   };
 
+  // Actualizar configuración completa de la ciudad
+  const updateCityConfig = async (config: Partial<City>): Promise<boolean> => {
+    if (!user || profile?.role !== 'administrativo' || !currentCity) {
+      setError('Solo los administradores pueden actualizar ciudades');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('cities')
+        .update({
+          ...config,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentCity.id)
+        .eq('admin_user_id', user.id);
+
+      if (error) {
+        console.error('Error updating city config:', error);
+        setError('Error al actualizar la configuración de la ciudad');
+        return false;
+      }
+
+      // Recargar la ciudad del usuario
+      await loadUserCity();
+      return true;
+    } catch (error) {
+      console.error('Error updating city config:', error);
+      setError('Error al actualizar la configuración de la ciudad');
+      return false;
+    }
+  };
+
   // Actualizar nombre de la ciudad
-  const updateCityName = async (chatId: string, newName: string): Promise<boolean> => {
+  const updateCityName = async (cityId: string, newName: string): Promise<boolean> => {
     if (!user || profile?.role !== 'administrativo') {
       setError('Solo los administradores pueden actualizar ciudades');
       return false;
     }
 
     try {
-      const { data, error } = await supabase
-        .rpc('update_city_name_from_chat', {
-          chat_id_param: chatId,
-          new_chat_name: newName
-        });
+      const { error } = await supabase
+        .from('cities')
+        .update({ 
+          name: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cityId)
+        .eq('admin_user_id', user.id);
 
       if (error) {
         console.error('Error updating city name:', error);
@@ -147,7 +172,7 @@ export const useCities = () => {
 
       // Recargar la ciudad del usuario
       await loadUserCity();
-      return data;
+      return true;
     } catch (error) {
       console.error('Error updating city name:', error);
       setError('Error al actualizar el nombre de la ciudad');
@@ -175,6 +200,7 @@ export const useCities = () => {
     generateSlug: (name: string) => name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     isAdminOfCity,
     updateCityName,
+    updateCityConfig,
     setError
   };
 };
