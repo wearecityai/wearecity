@@ -127,6 +127,8 @@ export interface City {
   is_public?: boolean;
   created_at: string;
   updated_at?: string;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface CityConfig extends CustomChatConfig {

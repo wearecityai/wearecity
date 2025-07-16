@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Drawer, IconButton, Typography, Button, List, ListItem, ListItemButton, 
   ListItemIcon, ListItemText, CircularProgress, useTheme, useMediaQuery, Divider
@@ -54,6 +55,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
   const [locationInfo, setLocationInfo] = useState<{
     city: string;
     address: string;
@@ -240,7 +242,10 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
       </Box>
       <List sx={{ flexGrow: 1, px: 0, py: 0 }}>
         <ListItemButton 
-          onClick={() => console.log("Descubrir ciudades clicked")}
+          onClick={() => {
+            navigate('/?focus=search');
+            if (isMobile) onMenuToggle();
+          }}
           title={!isMenuOpen ? "Descubrir ciudades" : undefined}
           sx={{
             minHeight: BUTTON_HEIGHT,

@@ -78,8 +78,6 @@ export const useMessages = (conversationId: string | null) => {
         return;
       }
       
-      console.log('Loaded messages:', data?.length || 0, 'for conversation:', conversationId);
-      
       // Convert database messages to ChatMessage format
       const chatMessages: ChatMessage[] = (data || []).map(msg => {
         const deserializedMetadata = deserializeMetadata(msg.metadata);
@@ -107,7 +105,6 @@ export const useMessages = (conversationId: string | null) => {
     const conversationIdToUse = targetConversationId || conversationId;
     
     if (!user) {
-      console.log('No user available, saving to localStorage instead. User:', !!user);
       // For unauthenticated users, save to localStorage
       if (conversationIdToUse) {
         const existing = localStorage.getItem(`chat_messages_${conversationIdToUse}`);
@@ -119,16 +116,12 @@ export const useMessages = (conversationId: string | null) => {
     }
 
     if (!conversationIdToUse) {
-      console.log('No conversationId available, cannot save message. ConversationId:', conversationIdToUse);
       throw new Error('No conversation ID available');
     }
 
-    console.log('Saving message to database only:', message.id, 'to conversation:', conversationIdToUse, 'with role:', message.role);
     try {
       const serializedMetadata = serializeMetadata(message);
       const databaseRole = convertToDatabaseRole(message.role);
-      
-      console.log('Database role for message:', databaseRole);
       
       const { data, error } = await supabase
         .from('messages')
@@ -147,8 +140,6 @@ export const useMessages = (conversationId: string | null) => {
         console.error('Error saving message:', error);
         throw error;
       }
-      
-      console.log('Message saved successfully to database:', data);
     } catch (error) {
       console.error('Error saving message:', error);
       throw error;
@@ -173,7 +164,6 @@ export const useMessages = (conversationId: string | null) => {
       });
       return;
     }
-    console.log('Adding message locally and saving to database:', message.id, 'with role:', message.role, 'to conversation:', conversationIdToUse);
     
     // Save to database first
     await saveMessageOnly(message, conversationIdToUse);
@@ -181,17 +171,14 @@ export const useMessages = (conversationId: string | null) => {
     // Always add to local state when we have a targetConversationId
     // This ensures consistent behavior for the first message in a conversation
     if (targetConversationId) {
-      console.log('Adding message to local state (targetConversationId provided):', message.id);
       setMessages(prev => [...prev, message]);
     } else if (conversationIdToUse === conversationId) {
-      console.log('Adding message to local state (current conversation):', message.id);
       setMessages(prev => [...prev, message]);
     }
   };
 
   // Update existing message
   const updateMessage = async (messageId: string, updates: Partial<ChatMessage>) => {
-    console.log('Updating message:', messageId);
     setMessages(prev => 
       prev.map(msg => 
         msg.id === messageId 
@@ -236,7 +223,6 @@ export const useMessages = (conversationId: string | null) => {
 
   // React to conversation ID changes
   useEffect(() => {
-    console.log('useMessages: conversationId changed to:', conversationId);
     loadMessages();
   }, [conversationId, user]);
 

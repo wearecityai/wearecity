@@ -35,13 +35,6 @@ const UserMenu: React.FC<UserMenuProps> = ({
   
   // Use actual authentication state from useAuth hook
   const actuallyAuthenticated = !!user;
-  
-  console.log('UserMenu props:', { 
-    isAuthenticated, 
-    actuallyAuthenticated, 
-    hasOnLogin: !!onLogin,
-    hasUser: !!user 
-  });
 
   const handleToggleTheme = () => {
     onToggleTheme();

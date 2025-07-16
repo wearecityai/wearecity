@@ -14,10 +14,12 @@ interface UseGeolocationReturn {
   geolocationError: string | null;
   geolocationStatus: GeolocationStatus;
   refreshLocation: () => void;
+  startLocationTracking: () => void;
+  stopLocationTracking: () => void;
   isWatching: boolean;
 }
 
-export const useGeolocation = (allowGeolocation: boolean): UseGeolocationReturn => {
+export const useGeolocation = (): UseGeolocationReturn => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [geolocationStatus, setGeolocationStatus] = useState<GeolocationStatus>('idle');
@@ -36,13 +38,18 @@ export const useGeolocation = (allowGeolocation: boolean): UseGeolocationReturn 
     setGeolocationError(null);
     setGeolocationStatus('success');
     
-    console.log('📍 Ubicación actualizada:', {
-      lat: newLocation.latitude,
-      lng: newLocation.longitude,
-      accuracy: newLocation.accuracy,
-      timestamp: new Date(newLocation.timestamp || Date.now()).toLocaleString()
-    });
-  }, []);
+    // Only log the first successful location or significant changes
+    if (!userLocation || 
+        Math.abs(userLocation.latitude - newLocation.latitude) > 0.001 ||
+        Math.abs(userLocation.longitude - newLocation.longitude) > 0.001) {
+      console.log('📍 Ubicación actualizada:', {
+        lat: newLocation.latitude,
+        lng: newLocation.longitude,
+        accuracy: newLocation.accuracy,
+        timestamp: new Date(newLocation.timestamp || Date.now()).toLocaleString()
+      });
+    }
+  }, [userLocation]);
 
   const handleLocationError = useCallback((error: GeolocationPositionError) => {
     console.error("❌ Error de geolocalización:", error);
@@ -65,7 +72,7 @@ export const useGeolocation = (allowGeolocation: boolean): UseGeolocationReturn 
     setGeolocationStatus('error');
   }, []);
 
-  const startWatching = useCallback(() => {
+  const startLocationTracking = useCallback(() => {
     if (!navigator.geolocation) {
       setGeolocationError("Geolocalización no soportada por este navegador.");
       setGeolocationStatus('error');
@@ -101,20 +108,20 @@ export const useGeolocation = (allowGeolocation: boolean): UseGeolocationReturn 
       }
     );
 
-    console.log('🎯 Iniciando seguimiento de ubicación con ID:', watchIdRef.current);
+    console.log('🎯 Geolocalización iniciada manualmente');
   }, [handleLocationSuccess, handleLocationError]);
 
-  const stopWatching = useCallback(() => {
+  const stopLocationTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
       setIsWatching(false);
-      console.log('⏹️ Deteniendo seguimiento de ubicación');
+      console.log('⏹️ Geolocalización detenida');
     }
   }, []);
 
   const refreshLocation = useCallback(() => {
-    if (allowGeolocation && navigator.geolocation) {
+    if (navigator.geolocation) {
       setGeolocationStatus('pending');
       setGeolocationError("Actualizando ubicación...");
       
@@ -128,28 +135,22 @@ export const useGeolocation = (allowGeolocation: boolean): UseGeolocationReturn 
         }
       );
     }
-  }, [allowGeolocation, handleLocationSuccess, handleLocationError]);
+  }, [handleLocationSuccess, handleLocationError]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    if (allowGeolocation) {
-      startWatching();
-    } else {
-      stopWatching();
-      setUserLocation(null);
-      setGeolocationError("Geolocalización desactivada.");
-      setGeolocationStatus('idle');
-    }
-
     return () => {
-      stopWatching();
+      stopLocationTracking();
     };
-  }, [allowGeolocation, startWatching, stopWatching]);
+  }, [stopLocationTracking]);
 
   return {
     userLocation,
     geolocationError,
     geolocationStatus,
     refreshLocation,
+    startLocationTracking,
+    stopLocationTracking,
     isWatching
   };
 };

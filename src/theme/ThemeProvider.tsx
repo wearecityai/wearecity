@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ThemeProvider as MUIThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { omitLovProps } from '../lib/omitLovProps';
 
 interface ThemeContextType {
   currentThemeMode: 'light' | 'dark';
@@ -131,7 +130,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   return (
     <ThemeContext.Provider value={{ currentThemeMode, toggleTheme }}>
-      <MUIThemeProvider {...omitLovProps({ theme })}>
+      <MUIThemeProvider theme={theme}>
         <CssBaseline />
         {children}
       </MUIThemeProvider>

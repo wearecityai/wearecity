@@ -34,6 +34,7 @@ import {
   DEFAULT_LANGUAGE_CODE,
 } from '../constants';
 import { CityLinkManager } from './CityLinkManager';
+import CityGoogleAutocomplete from './CityGoogleAutocomplete';
 
 // Componente de tarjeta moderna fuera del componente principal para evitar re-renders
 const ModernCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = React.memo(({ icon, title, children, ...props }) => {
@@ -575,18 +576,33 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({ currentConfig, onSave, 
 
             <ModernCard icon={<LocationOnIcon />} title="Contexto y Restricciones">
               <Stack spacing={2}>
-                <TextField
-                  fullWidth label="Restringir a Municipio (Opcional)" value={municipalityInputName}
-                  onChange={(e) => setMunicipalityInputName(e.target.value)}
-                  placeholder="Ej: Madrid, Barcelona" variant="outlined"
-                  InputProps={{
-                    endAdornment: municipalityInputName.trim() && (
-                      <IconButton onClick={handleClearRestrictedCity} edge="end" size="small" title="Limpiar municipio">
-                        <ClearIcon />
-                      </IconButton>
-                    )
-                  }}
-                />
+                {/* Reemplazo del TextField manual por CityGoogleAutocomplete */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Restringir a Municipio (Opcional)</Typography>
+                  {currentConfig.restrictedCity ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Typography variant="body1">
+                        {currentConfig.restrictedCity.name}
+                      </Typography>
+                      <Button size="small" variant="outlined" color="secondary" onClick={() => {
+                        setMunicipalityInputName('');
+                        // Limpiar el objeto restringido
+                        onSave({ ...currentConfig, restrictedCity: null });
+                      }}>
+                        Cambiar ciudad
+                      </Button>
+                    </Box>
+                  ) : (
+                    <CityGoogleAutocomplete
+                      onSelect={(cityObj) => {
+                        setMunicipalityInputName(cityObj.name);
+                        // Guardar el objeto completo en el config temporal
+                        onSave({ ...currentConfig, restrictedCity: cityObj });
+                      }}
+                      disabled={false}
+                    />
+                  )}
+                </Box>
                 <TextField
                   fullWidth label="URL Sede Electrónica (Opcional)" value={sedeElectronicaUrl} type="url"
                   onChange={(e) => setSedeElectronicaUrl(e.target.value)} placeholder="https://sede.ejemplo.es"

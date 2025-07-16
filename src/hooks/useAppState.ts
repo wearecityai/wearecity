@@ -44,7 +44,7 @@ export const useAppState = (citySlug?: string) => {
     } : 
     assistantConfigHook.saveConfig;
 
-  const { userLocation, geolocationError, geolocationStatus } = useGeolocation(chatConfig.allowGeolocation);
+  const { userLocation, geolocationError, geolocationStatus, startLocationTracking, stopLocationTracking } = useGeolocation();
 
   const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, loadGoogleMapsScript, placesServiceRef, testGooglePlacesAPI } = useGoogleMaps(
     userLocation,
@@ -86,7 +86,7 @@ export const useAppState = (citySlug?: string) => {
     if (!googleMapsApiKey) {
       fetchApiKey();
     }
-  }, [googleMapsApiKey]);
+  }, []); // Remove googleMapsApiKey dependency to prevent infinite loops
 
   // Load Google Maps script on app initialization
   useEffect(() => {
@@ -94,9 +94,9 @@ export const useAppState = (citySlug?: string) => {
       console.log('🔍 Loading Google Maps script with API key:', googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'NO API KEY');
       loadGoogleMapsScript(googleMapsApiKey);
     } else if (!googleMapsApiKey) {
-      console.warn('❌ Google Maps API key not found');
+      console.log('⏳ Waiting for Google Maps API key...');
     }
-  }, [loadGoogleMapsScript, googleMapsScriptLoaded, googleMapsApiKey]);
+  }, [googleMapsApiKey, googleMapsScriptLoaded, loadGoogleMapsScript]);
 
   // Test Google Places API when script is loaded
   useEffect(() => {
@@ -148,7 +148,6 @@ export const useAppState = (citySlug?: string) => {
   useEffect(() => {
     if (messages.length === 0) {
       processedCardsRef.current.clear();
-      console.log('🧹 Cleared processed cards cache - new conversation started');
     }
   }, [messages.length]);
 
@@ -164,19 +163,11 @@ export const useAppState = (citySlug?: string) => {
 
   // Handle place cards loading - Fixed to prevent infinite loops
   useEffect(() => {
-    console.log('🔍 Place cards useEffect triggered:', {
-      googleMapsScriptLoaded,
-      messagesCount: messages.length,
-      placesServiceAvailable: !!placesServiceRef.current
-    });
-    
     if (!googleMapsScriptLoaded) {
-      console.log('❌ Google Maps script not loaded yet');
       return;
     }
     
     if (!placesServiceRef.current) {
-      console.log('❌ Google Places service not initialized');
       return;
     }
     
@@ -188,23 +179,9 @@ export const useAppState = (citySlug?: string) => {
     
     messages.forEach((msg, msgIndex) => {
       if (msg.role === MessageRole.Model && msg.placeCards) {
-        console.log(`🔍 Message ${msgIndex} has ${msg.placeCards.length} place cards`);
         msg.placeCards.forEach((card, cardIndex) => {
           // Create a unique identifier for this card
           const cardKey = `${msg.id}-${card.id}`;
-          
-          console.log(`🔍 Place card ${cardIndex}:`, {
-            name: card.name,
-            placeId: card.placeId,
-            searchQuery: card.searchQuery,
-            isLoadingDetails: card.isLoadingDetails,
-            errorDetails: card.errorDetails,
-            photoUrl: card.photoUrl,
-            rating: card.rating,
-            address: card.address,
-            cardKey,
-            alreadyProcessed: processedCardsRef.current.has(cardKey)
-          });
           
           // Solo cargar si:
           // 1. Está en estado de carga
@@ -218,12 +195,10 @@ export const useAppState = (citySlug?: string) => {
               !card.address && 
               !card.errorDetails) {
             
-            console.log(`✅ Processing card for first time: ${card.name} (${cardKey})`);
+            console.log(`✅ Processing place card: ${card.name}`);
             processedCardsRef.current.add(cardKey);
             
             fetchPlaceDetailsAndUpdateMessage(msg.id, card.id, card.placeId, card.searchQuery, setMessages);
-          } else {
-            console.log(`⚠️ Skipping card ${card.name} - already processed or has data`);
           }
         });
       }
@@ -235,7 +210,6 @@ export const useAppState = (citySlug?: string) => {
     if (currentConversationId) {
       const index = conversations.findIndex(c => c.id === currentConversationId);
       if (index !== -1 && index !== selectedChatIndex) {
-        console.log('Updating selectedChatIndex to:', index, 'for conversation:', currentConversationId);
         setSelectedChatIndex(index);
       }
     }
@@ -255,7 +229,6 @@ export const useAppState = (citySlug?: string) => {
   const handleSendMessageWithTyping = async (inputText: string) => {
     // Si es el primer mensaje, activar inmediatamente el ChatContainer
     if (messages.length === 0) {
-      console.log('First message detected, showing ChatContainer immediately');
       setShouldShowChatContainer(true);
     }
     
@@ -277,6 +250,13 @@ export const useAppState = (citySlug?: string) => {
   const handleToggleLocation = async (enabled: boolean) => {
     const updatedConfig = { ...chatConfig, allowGeolocation: enabled };
     setChatConfig(updatedConfig);
+    
+    if (enabled) {
+      startLocationTracking();
+    } else {
+      stopLocationTracking();
+    }
+    
     await saveConfig(updatedConfig);
   };
 

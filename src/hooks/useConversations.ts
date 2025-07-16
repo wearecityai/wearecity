@@ -48,8 +48,6 @@ export const useConversations = (citySlug?: string) => {
         return;
       }
 
-      console.log('Loaded conversations:', data, 'for city:', citySlug);
-      
       // Filtrar por ciudad después de obtener los datos
       let filteredData = (data || []) as Conversation[];
       if (citySlug) {
@@ -113,12 +111,10 @@ export const useConversations = (citySlug?: string) => {
         return null;
       }
       
-      console.log('Created conversation:', data);
       // Update local state immediately
       setConversations(prev => [data, ...prev]);
       // Set as current conversation immediately
       setCurrentConversationId(data.id);
-      console.log('Conversation added to state and set as current:', data.id);
       return data;
     } catch (error) {
       console.error('Error creating conversation:', error);
@@ -158,7 +154,6 @@ export const useConversations = (citySlug?: string) => {
             : conv
         )
       );
-      console.log('Conversation title updated in state:', conversationId, title);
     } catch (error) {
       console.error('Error updating conversation title:', error);
     }
@@ -202,7 +197,6 @@ export const useConversations = (citySlug?: string) => {
   };
 
   useEffect(() => {
-    console.log('useConversations useEffect triggered - user:', !!user, 'citySlug:', citySlug);
     loadConversations();
   }, [user, citySlug]);
 

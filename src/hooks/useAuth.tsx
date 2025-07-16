@@ -51,7 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -83,20 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async () => {
     if (user) {
-      console.log('Refreshing profile for user:', user.id);
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
     }
   };
 
   const signOut = async () => {
-    console.log('Signing out user');
     await supabase.auth.signOut();
   };
 
   useEffect(() => {
-    console.log('Setting up auth state listener');
-    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -143,7 +138,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
-      console.log('Unsubscribing from auth state changes');
       subscription.unsubscribe();
     };
   }, []);
