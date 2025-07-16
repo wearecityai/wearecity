@@ -7,7 +7,7 @@ import { useAppState } from '../hooks/useAppState';
 
 export const GeolocationDebug: React.FC = () => {
   const { chatConfig } = useAppState();
-  const { userLocation, geolocationStatus, geolocationError, refreshLocation, isWatching } = useGeolocation();
+  const { userLocation, geolocationStatus, geolocationError, refreshLocation, isWatching } = useGeolocation(chatConfig.allowGeolocation);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Debug: Mostrar información de geolocalización en consola
