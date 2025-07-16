@@ -382,15 +382,15 @@ const Index = () => {
 
       <Container maxWidth="lg" sx={{ pt: 8, pb: 12, position: 'relative', zIndex: 2, minHeight: '100vh' }}>
         {/* Hero Section */}
-        <Box sx={{ textAlign: 'center', mb: 12 }}>
+        <Box sx={{ textAlign: 'center', mb: 16 }}>
           <Typography 
             variant="h1" 
             component="h1" 
             sx={{ 
-              fontWeight: 300,
-              mb: 3,
+              fontWeight: 400,
+              mb: 4,
               color: '#ffffff',
-              fontSize: { xs: '3rem', md: '4.5rem' },
+              fontSize: { xs: '4rem', md: '6rem' },
               letterSpacing: '-0.02em',
               lineHeight: 1.1
             }}
@@ -401,36 +401,19 @@ const Index = () => {
           <Typography 
             variant="h4" 
             sx={{ 
-              mb: 6,
+              mb: 8,
               fontWeight: 400,
-              color: '#e8eaed',
+              color: '#9aa0a6',
               maxWidth: 800,
               mx: 'auto',
               fontSize: { xs: '1.5rem', md: '2rem' },
               lineHeight: 1.4
             }}
           >
-            Tu asistente de ciudad inteligente
+            Tu asistente municipal más inteligente
           </Typography>
 
-
-        </Box>
-
-        {/* City Selector Section */}
-        <Box id="city-selector" sx={{ mb: 8 }}>
-          <Typography 
-            variant="h3" 
-            sx={{ 
-              textAlign: 'center',
-              mb: 6,
-              fontWeight: 400,
-              color: '#ffffff',
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
-            Selecciona tu ciudad
-          </Typography>
-          
+          {/* City Search Input */}
           <Paper
             elevation={0}
             sx={{
@@ -446,10 +429,10 @@ const Index = () => {
               width: '100%',
               minWidth: 0,
               mx: 'auto',
-              mb: 4
+              mb: 6
             }}
           >
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minWidth: 0 }}>
               <Stack direction="column" sx={{ flexGrow: 1, minWidth: 0 }}>
                 <TextField
                   inputRef={searchInputRef}
@@ -501,173 +484,243 @@ const Index = () => {
                   }}
                 />
                 
-                {/* Sugerencias integradas dentro del input */}
+                {/* City suggestions */}
                 {inputValue && filteredCities.length > 0 && (
                   <Box sx={{ 
-                    mt: 1, 
-                    bgcolor: 'rgba(15, 15, 15, 0.95)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    backdropFilter: 'blur(20px)',
-                    overflow: 'hidden',
-                    maxHeight: 300,
+                    borderRadius: 2,
+                    pt: 2,
+                    maxHeight: 200,
                     overflowY: 'auto'
                   }}>
-                    {filteredCities.map((city, index) => (
-                      <Box
+                    {filteredCities.slice(0, 5).map((city) => (
+                      <Button
                         key={city.id}
+                        fullWidth
+                        variant="text"
                         onClick={() => handleCitySelect(city)}
                         sx={{
-                          py: 2,
-                          px: 3,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          borderBottom: index < filteredCities.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                          justifyContent: 'flex-start',
+                          px: 2,
+                          py: 1.5,
+                          borderRadius: 1,
+                          color: '#ffffff',
+                          fontWeight: 400,
+                          textTransform: 'none',
+                          fontSize: '1rem',
                           '&:hover': {
-                            bgcolor: 'rgba(66, 133, 244, 0.1)',
-                            borderLeft: '3px solid #4285f4'
-                          },
-                          '&:last-child': {
-                            borderBottom: 'none'
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
                           }
                         }}
                       >
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Avatar 
-                            src={city.profile_image_url || undefined}
-                            sx={{ 
-                              width: 32, 
-                              height: 32, 
-                              bgcolor: city.profile_image_url ? 'transparent' : 'rgba(66, 133, 244, 0.2)',
-                              color: '#4285f4'
-                            }}
-                          >
-                            {!city.profile_image_url && <LocationIcon sx={{ fontSize: 18 }} />}
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="body1" fontWeight="500" sx={{ color: '#ffffff', mb: 0 }}>
-                              {city.name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                              {formatCityName(city)}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </Box>
+                        <LocationIcon sx={{ mr: 2, color: '#4285f4', fontSize: 18 }} />
+                        {formatCityName(city)}
+                      </Button>
                     ))}
                   </Box>
                 )}
-                {/* Fila de acciones (geolocalización) */}
-                <Box
-                  sx={{
-                    mt: 2.5,
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 3,
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    fontSize: '1rem',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Button
-                      onClick={handleManualLocation}
-                      disabled={isManualLocationLoading}
-                      startIcon={isManualLocationLoading ? null : <MyLocationIcon />}
-                      sx={{
-                        borderRadius: 999,
-                        minHeight: { xs: 28, sm: 36 },
-                        px: { xs: 1, sm: 1.5 },
-                        py: { xs: 0.25, sm: 0.5 },
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        bgcolor: 'transparent',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        textTransform: 'none',
-                        fontSize: { xs: '0.95em', sm: '1em' },
-                        fontWeight: 500,
-                        '&:hover': {
-                          bgcolor: 'rgba(255, 255, 255, 0.1)',
-                          borderColor: 'rgba(255, 255, 255, 0.3)'
-                        },
-                        '& .MuiButton-startIcon': {
-                          color: 'rgba(255, 255, 255, 0.8)',
-                        }
-                      }}
-                    >
-                      {isManualLocationLoading ? 'Localizando...' : 'Localizar mi ciudad'}
-                    </Button>
-                  </Box>
-                  
-                  {/* Botón de ir al chat */}
-                  <Button
-                    onClick={() => {
-                      if (selectedCity) {
-                        navigate(`/chat/${selectedCity.slug}`);
-                      }
-                    }}
-                    disabled={!selectedCity}
-                    sx={{
-                      borderRadius: 999,
-                      minHeight: { xs: 28, sm: 36 },
-                      px: { xs: 1, sm: 1.5 },
-                      py: { xs: 0.25, sm: 0.5 },
-                      color: selectedCity ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
-                      bgcolor: selectedCity ? '#4285f4' : 'transparent',
-                      border: selectedCity ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
-                      textTransform: 'none',
-                      fontSize: { xs: '0.95em', sm: '1em' },
-                      fontWeight: 500,
-                      '&:hover': {
-                        bgcolor: selectedCity ? '#3367d6' : 'rgba(255, 255, 255, 0.1)',
-                        borderColor: selectedCity ? 'none' : 'rgba(255, 255, 255, 0.3)'
-                      }
-                    }}
-                    endIcon={<ArrowForwardIcon sx={{ fontSize: 20 }} />}
-                  >
-                    Ir al chat
-                  </Button>
-                </Box>
               </Stack>
+              
+              {/* Geolocation button */}
+              <Button
+                variant="text"
+                onClick={handleManualLocation}
+                disabled={isManualLocationLoading}
+                sx={{
+                  minWidth: 'auto',
+                  p: 1.5,
+                  borderRadius: 2,
+                  color: '#4285f4',
+                  '&:hover': {
+                    bgcolor: 'rgba(66, 133, 244, 0.1)',
+                  },
+                  '&:disabled': {
+                    color: 'rgba(66, 133, 244, 0.5)',
+                  }
+                }}
+              >
+                <MyLocationIcon sx={{ fontSize: 24 }} />
+              </Button>
             </Box>
           </Paper>
 
-
-
-
-
-          {/* Location Error */}
+          {/* Error message */}
           {locationError && (
-            <Card 
+            <Typography 
+              variant="body2" 
               sx={{ 
-                p: 3, 
+                color: '#ea4335',
+                textAlign: 'center',
                 mb: 4,
-                borderRadius: 3,
-                bgcolor: 'rgba(234, 67, 53, 0.1)',
-                border: '1px solid rgba(234, 67, 53, 0.3)',
-                backdropFilter: 'blur(10px)'
+                px: 2
               }}
             >
-              <Typography variant="body2" sx={{ color: '#ea4335', textAlign: 'center' }}>
-                {locationError}
-              </Typography>
-            </Card>
+              {locationError}
+            </Typography>
           )}
+
+          {/* Action buttons */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+            {selectedCity ? (
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleChatStart}
+                sx={{
+                  borderRadius: '24px',
+                  px: 6,
+                  py: 2,
+                  bgcolor: '#4285f4',
+                  color: '#ffffff',
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  boxShadow: '0 4px 20px rgba(66, 133, 244, 0.3)',
+                  '&:hover': {
+                    bgcolor: '#3367d6',
+                    boxShadow: '0 6px 24px rgba(66, 133, 244, 0.4)',
+                  }
+                }}
+                endIcon={<ArrowForwardIcon />}
+              >
+                Chatear con {selectedCity.assistant_name || selectedCity.name}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => {
+                    const element = document.getElementById('features-section');
+                    if (element) {
+                      element.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                      });
+                    }
+                  }}
+                  sx={{
+                    borderRadius: '24px',
+                    px: 6,
+                    py: 2,
+                    bgcolor: '#4285f4',
+                    color: '#ffffff',
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    fontSize: '1.1rem',
+                    boxShadow: '0 4px 20px rgba(66, 133, 244, 0.3)',
+                    '&:hover': {
+                      bgcolor: '#3367d6',
+                      boxShadow: '0 6px 24px rgba(66, 133, 244, 0.4)',
+                    }
+                  }}
+                  endIcon={<ArrowForwardIcon />}
+                >
+                  Explorar CityChat
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={handleLogin}
+                  sx={{
+                    borderRadius: '24px',
+                    px: 6,
+                    py: 2,
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    color: '#ffffff',
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    fontSize: '1.1rem',
+                    '&:hover': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                      bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    }
+                  }}
+                >
+                  Iniciar Sesión
+                </Button>
+              </>
+            )}
+          </Stack>
         </Box>
 
-        {/* Features Section */}
-        <Box sx={{ mb: 12 }}>
+        {/* Description Section */}
+        <Box sx={{ textAlign: 'center', mb: 16 }}>
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              fontWeight: 400,
+              mb: 6,
+              color: '#ffffff',
+              fontSize: { xs: '2.5rem', md: '3.5rem' },
+              lineHeight: 1.2,
+              maxWidth: 1000,
+              mx: 'auto'
+            }}
+          >
+            CityChat es capaz de entender y responder a consultas específicas de tu municipio, 
+            proporcionando información precisa y actualizada.
+          </Typography>
+          
+          {/* Navigation tabs */}
+          <Stack 
+            direction="row" 
+            spacing={1} 
+            justifyContent="center" 
+            sx={{ mb: 8, flexWrap: 'wrap', gap: 1 }}
+          >
+            {['Servicios', 'Trámites', 'Eventos', 'Información', 'Contacto'].map((tab, index) => (
+              <Button
+                key={tab}
+                variant={index === 0 ? "contained" : "text"}
+                sx={{
+                  borderRadius: '20px',
+                  px: 3,
+                  py: 1,
+                  bgcolor: index === 0 ? '#4285f4' : 'transparent',
+                  color: index === 0 ? '#ffffff' : '#9aa0a6',
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  '&:hover': {
+                    bgcolor: index === 0 ? '#3367d6' : 'rgba(255, 255, 255, 0.05)',
+                  }
+                }}
+              >
+                {tab}
+              </Button>
+            ))}
+          </Stack>
+        </Box>
+
+        {/* Model Family Section */}
+        <Box id="features-section" sx={{ mb: 16 }}>
           <Typography 
             variant="h3" 
             sx={{ 
               textAlign: 'center',
-              mb: 8,
+              mb: 4,
               fontWeight: 400,
               color: '#ffffff',
-              fontSize: { xs: '2rem', md: '2.5rem' }
+              fontSize: { xs: '2.5rem', md: '3rem' }
             }}
           >
-            Características principales
+            Familia de Asistentes
+          </Typography>
+          
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              textAlign: 'center',
+              mb: 8,
+              fontWeight: 400,
+              color: '#9aa0a6',
+              fontSize: { xs: '1.2rem', md: '1.4rem' },
+              maxWidth: 800,
+              mx: 'auto'
+            }}
+          >
+            CityChat se adapta a las necesidades específicas de cada municipio con 
+            tecnología de vanguardia y conocimiento local especializado.
           </Typography>
           
           <Stack 
@@ -679,7 +732,156 @@ const Index = () => {
               gap: 4
             }}
           >
-            {features.map((feature, index) => (
+            {[
+              {
+                title: "CityChat Pro",
+                subtitle: "DISPONIBILIDAD GENERAL",
+                description: "Ideal para ciudades grandes y consultas complejas de administración municipal",
+                icon: <PublicIcon sx={{ fontSize: 60, color: '#4285f4' }} />,
+                selected: true
+              },
+              {
+                title: "CityChat Express",
+                subtitle: "DISPONIBILIDAD GENERAL", 
+                description: "Perfecto para respuestas rápidas sobre servicios básicos y trámites cotidianos",
+                icon: <SpeedIcon sx={{ fontSize: 60, color: '#4285f4' }} />,
+                selected: false
+              },
+              {
+                title: "CityChat Lite",
+                subtitle: "VISTA PREVIA",
+                description: "Optimizado para municipios pequeños con funcionalidades esenciales",
+                icon: <SecurityIcon sx={{ fontSize: 60, color: '#4285f4' }} />,
+                selected: false
+              }
+            ].map((model, index) => (
+              <Card 
+                key={index}
+                sx={{ 
+                  p: 4,
+                  height: '100%',
+                  borderRadius: 3,
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  border: model.selected ? '2px solid #4285f4' : '1px solid rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                    borderColor: '#4285f4'
+                  }
+                }}
+              >
+                <Box sx={{ textAlign: 'center', mb: 4 }}>
+                  {model.icon}
+                </Box>
+                
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    display: 'block',
+                    textAlign: 'center',
+                    color: '#9aa0a6',
+                    fontWeight: 500,
+                    mb: 2,
+                    letterSpacing: '0.1em'
+                  }}
+                >
+                  {model.subtitle}
+                </Typography>
+                
+                <Typography 
+                  variant="h5" 
+                  fontWeight="500" 
+                  sx={{ 
+                    mb: 3, 
+                    textAlign: 'center',
+                    color: '#ffffff'
+                  }}
+                >
+                  {model.title}
+                </Typography>
+                
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    textAlign: 'center',
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    lineHeight: 1.6
+                  }}
+                >
+                  {model.description}
+                </Typography>
+              </Card>
+            ))}
+          </Stack>
+        </Box>
+
+        {/* Adaptive Section */}
+        <Box sx={{ mb: 16 }}>
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              textAlign: 'center',
+              mb: 4,
+              fontWeight: 400,
+              color: '#ffffff',
+              fontSize: { xs: '2.5rem', md: '3rem' }
+            }}
+          >
+            Adaptación inteligente y gestión eficiente
+          </Typography>
+          
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              textAlign: 'center',
+              mb: 8,
+              fontWeight: 400,
+              color: '#9aa0a6',
+              fontSize: { xs: '1.2rem', md: '1.4rem' },
+              maxWidth: 800,
+              mx: 'auto'
+            }}
+          >
+            Controles adaptativos y presupuestos de procesamiento ajustables 
+            te permiten equilibrar rendimiento y costes.
+          </Typography>
+          
+          <Stack 
+            direction={{ xs: 'column', md: 'row' }} 
+            spacing={4}
+            sx={{ 
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+              gap: 4
+            }}
+          >
+            {[
+              {
+                title: "Calibrado",
+                description: "El modelo explora diversas estrategias de consulta, llevando a respuestas más precisas y relevantes.",
+                icon: <Box sx={{ width: 60, height: 60, border: '2px solid #4285f4', borderRadius: 2, borderStyle: 'dashed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 20, height: 20, bgcolor: '#4285f4', borderRadius: '50%' }} />
+                </Box>
+              },
+              {
+                title: "Controlable", 
+                description: "Los administradores tienen control detallado sobre el proceso de respuesta del modelo, permitiendo gestionar el uso de recursos.",
+                icon: <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  {[1, 2, 3].map(i => (
+                    <Box key={i} sx={{ width: 40, height: 8, bgcolor: i === 2 ? '#4285f4' : 'rgba(66, 133, 244, 0.3)', borderRadius: 1 }} />
+                  ))}
+                </Box>
+              },
+              {
+                title: "Adaptativo",
+                description: "Cuando no se establece presupuesto de procesamiento, el modelo evalúa la complejidad de la consulta y calibra el procesamiento.",
+                icon: <Box sx={{ width: 60, height: 60, border: '2px solid #4285f4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ArrowForwardIcon sx={{ color: '#4285f4', fontSize: 30 }} />
+                </Box>
+              }
+            ].map((feature, index) => (
               <Card 
                 key={index}
                 sx={{ 
@@ -693,24 +895,26 @@ const Index = () => {
                   '&:hover': {
                     transform: 'translateY(-4px)',
                     boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-                    borderColor: feature.color
+                    borderColor: '#4285f4'
                   }
                 }}
               >
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
+                <Box sx={{ textAlign: 'center', mb: 4 }}>
                   {feature.icon}
                 </Box>
+                
                 <Typography 
                   variant="h6" 
                   fontWeight="500" 
                   sx={{ 
-                    mb: 2, 
+                    mb: 3, 
                     textAlign: 'center',
                     color: '#ffffff'
                   }}
                 >
                   {feature.title}
                 </Typography>
+                
                 <Typography 
                   variant="body2" 
                   sx={{ 
@@ -726,53 +930,105 @@ const Index = () => {
           </Stack>
         </Box>
 
-        {/* Bottom CTA */}
+        {/* Performance Section */}
+        <Box sx={{ textAlign: 'center', mb: 16 }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              color: '#9aa0a6',
+              fontWeight: 500,
+              mb: 4,
+              letterSpacing: '0.1em'
+            }}
+          >
+            RENDIMIENTO
+          </Typography>
+          
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              fontWeight: 400,
+              mb: 6,
+              color: '#ffffff',
+              fontSize: { xs: '2.5rem', md: '3.5rem' },
+              lineHeight: 1.2,
+              maxWidth: 900,
+              mx: 'auto'
+            }}
+          >
+            CityChat es estado del arte en una amplia gama de métricas municipales.
+          </Typography>
+          
+          <Button
+            variant="outlined"
+            sx={{
+              borderRadius: '24px',
+              px: 4,
+              py: 1.5,
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              color: '#ffffff',
+              fontWeight: 500,
+              textTransform: 'none',
+              fontSize: '1rem',
+              '&:hover': {
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+              }
+            }}
+            endIcon={<ArrowForwardIcon />}
+          >
+            Ver reporte técnico
+          </Button>
+        </Box>
+
+        {/* CTA Section */}
         <Box sx={{ textAlign: 'center' }}>
           <Card 
             sx={{ 
-              p: 6,
-              borderRadius: 3,
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
+              p: 8,
+              borderRadius: 4,
+              bgcolor: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.1), rgba(52, 168, 83, 0.1))'
+              backdropFilter: 'blur(10px)'
             }}
           >
             <Typography 
               variant="h4" 
               sx={{ 
-                mb: 3, 
+                mb: 3,
                 fontWeight: 400,
-                color: '#ffffff'
+                color: '#ffffff',
+                fontSize: { xs: '1.8rem', md: '2.2rem' }
               }}
             >
-              ¿Listo para comenzar?
+              ¿Listo para transformar la atención ciudadana?
             </Typography>
             <Typography 
               variant="body1" 
               sx={{ 
-                mb: 4, 
+                mb: 4,
                 color: 'rgba(255, 255, 255, 0.8)',
+                fontSize: '1.1rem',
+                lineHeight: 1.6,
                 maxWidth: 600,
                 mx: 'auto'
               }}
             >
-              Únete a miles de ciudadanos que ya están usando CityChat para obtener información local instantánea
+              Únete a los municipios que ya están utilizando CityChat para ofrecer 
+              un servicio ciudadano más eficiente y accesible las 24 horas del día.
             </Typography>
             <Button 
               variant="contained" 
               size="large"
               onClick={() => {
-                const element = document.getElementById('city-selector');
-                if (element) {
-                  element.scrollIntoView({ 
-                    behavior: 'smooth',
-                    block: 'start'
-                  });
-                }
+                window.scrollTo({ 
+                  top: 0,
+                  behavior: 'smooth'
+                });
               }}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: '24px',
                 px: 6,
                 py: 2,
                 bgcolor: '#4285f4',
@@ -780,13 +1036,15 @@ const Index = () => {
                 fontWeight: 500,
                 textTransform: 'none',
                 fontSize: '1.1rem',
+                boxShadow: '0 4px 20px rgba(66, 133, 244, 0.3)',
                 '&:hover': {
-                  bgcolor: '#3367d6'
+                  bgcolor: '#3367d6',
+                  boxShadow: '0 6px 24px rgba(66, 133, 244, 0.4)',
                 }
               }}
               endIcon={<ArrowForwardIcon />}
             >
-              Buscar mi Ciudad
+              Comenzar ahora
             </Button>
           </Card>
         </Box>
