@@ -60,6 +60,20 @@ const Index = () => {
   const [inputValue, setInputValue] = useState('');
   const [isManualLocationLoading, setIsManualLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  
+  // Typing animation state
+  const [typingText, setTypingText] = useState('');
+  const [typingIndex, setTypingIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(true);
+  
+  const typingCities = [
+    'Valencia, España',
+    'Barcelona, España', 
+    'La Vila Joiosa, España',
+    'Madrid, España',
+    'Sevilla, España',
+    'Bilbao, España'
+  ];
 
   // Función para formatear el nombre de la ciudad
   const formatCityName = (city: City) => {
@@ -210,6 +224,47 @@ const Index = () => {
     }
   }, [location.search]);
 
+  // Typing animation effect
+  useEffect(() => {
+    if (!isTyping) return;
+
+    const currentCity = typingCities[typingIndex];
+    
+    if (typingText.length < currentCity.length) {
+      // Typing forward
+      const timer = setTimeout(() => {
+        setTypingText(currentCity.slice(0, typingText.length + 1));
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      // Finished typing current city, wait then start deleting
+      const waitTimer = setTimeout(() => {
+        setIsTyping(false);
+      }, 2000);
+      return () => clearTimeout(waitTimer);
+    }
+  }, [typingText, typingIndex, isTyping]);
+
+  // Delete animation effect
+  useEffect(() => {
+    if (isTyping) return;
+
+    if (typingText.length > 0) {
+      // Deleting backward
+      const timer = setTimeout(() => {
+        setTypingText(typingText.slice(0, -1));
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      // Finished deleting, move to next city
+      const nextTimer = setTimeout(() => {
+        setTypingIndex((prev) => (prev + 1) % typingCities.length);
+        setIsTyping(true);
+      }, 500);
+      return () => clearTimeout(nextTimer);
+    }
+  }, [typingText, isTyping, typingIndex]);
+
   // Cargar ciudades disponibles
   useEffect(() => {
     const loadCities = async () => {
@@ -311,7 +366,7 @@ const Index = () => {
         }}
       >
         {/* Título CityCore centrado absolutamente */}
-        <Box sx={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <Box sx={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', pointerEvents: 'none', pl: 3 }}>
           <Typography
             variant="h6"
             noWrap
@@ -374,414 +429,794 @@ const Index = () => {
         </Box>
       </Box>
 
-      <Container maxWidth="lg" sx={{ pt: 8, pb: 12, position: 'relative', zIndex: 2, minHeight: '100vh' }}>
-        {/* Hero Section */}
-        <Box sx={{ textAlign: 'center', mb: 12 }}>
+      <Container maxWidth="lg" sx={{ pt: 8, pb: 0, position: 'relative', zIndex: 2 }}>
+        {/* Main Value Proposition - Primera sección principal */}
+        <Box sx={{ 
+          textAlign: 'center', 
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          py: 0
+        }}>
           <Typography 
-            variant="h1" 
-            component="h1" 
+            variant="h2" 
             sx={{ 
-              fontWeight: 300,
-              mb: 3,
+              fontWeight: 700,
+              mb: 6,
               color: '#ffffff',
-              fontSize: { xs: '3rem', md: '4.5rem' },
+              fontSize: { xs: '2.5rem', md: '4rem', lg: '5rem' },
               letterSpacing: '-0.02em',
-              lineHeight: 1.1
+              lineHeight: 1.1,
+              maxWidth: 1000,
+              textAlign: 'center'
             }}
           >
-            CityChat
+            Todo sobre tu <Box component="span" sx={{ color: '#4285f4' }}>ciudad</Box>,<br />en un solo chat
           </Typography>
           
           <Typography 
-            variant="h4" 
+            variant="h6" 
             sx={{ 
-              mb: 6,
-              fontWeight: 400,
-              color: '#e8eaed',
+              mb: 8,
+              fontWeight: 300,
+              color: 'rgba(255, 255, 255, 0.8)',
               maxWidth: 800,
               mx: 'auto',
-              fontSize: { xs: '1.5rem', md: '2rem' },
-              lineHeight: 1.4
+              fontSize: { xs: '1.1rem', md: '1.25rem' },
+              lineHeight: 1.6,
+              textAlign: 'center'
             }}
           >
-            Tu asistente de ciudad inteligente
+            Consulta trámites, descubre eventos, encuentra lugares y recibe ayuda sin esperas.
           </Typography>
 
-
-        </Box>
-
-        {/* City Selector Section */}
-        <Box id="city-selector" sx={{ mb: 8 }}>
-          <Typography 
-            variant="h3" 
-            sx={{ 
-              textAlign: 'center',
-              mb: 6,
-              fontWeight: 400,
-              color: '#ffffff',
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
-            Selecciona tu ciudad
-          </Typography>
-          
-          <Paper
-            elevation={0}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              p: 0,
-              borderRadius: '28px',
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              maxWidth: '600px',
-              width: '100%',
-              minWidth: 0,
-              mx: 'auto',
-              mb: 4
-            }}
-          >
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minWidth: 0 }}>
-              <Stack direction="column" sx={{ flexGrow: 1, minWidth: 0 }}>
-                <TextField
-                  inputRef={searchInputRef}
-                  placeholder="Busca tu ciudad..."
-                  variant="standard"
-                  fullWidth
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  InputProps={{
-                    disableUnderline: true,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ color: '#4285f4', fontSize: 24 }} />
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      py: 0,
-                      fontSize: { xs: '1.1rem', sm: '1.15rem' },
-                      lineHeight: '1.4',
-                      minWidth: 0,
-                    },
-                  }}
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      backgroundColor: 'transparent',
+          {/* City Selector integrado en hero section */}
+          <Box sx={{ maxWidth: 600, width: '100%' }}>
+            <Paper
+              elevation={0}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                p: 0,
+                borderRadius: '28px',
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+                width: '100%',
+                minWidth: 0,
+                mb: 4
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minWidth: 0 }}>
+                <Stack direction="column" sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <TextField
+                    inputRef={searchInputRef}
+                    placeholder={inputValue ? "Busca tu ciudad..." : typingText + "|"}
+                    variant="standard"
+                    fullWidth
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    autoComplete="off"
+                    InputProps={{
+                      disableUnderline: true,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ color: '#4285f4', fontSize: 24 }} />
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        py: 0,
+                        fontSize: { xs: '1.1rem', sm: '1.15rem' },
+                        lineHeight: '1.4',
+                        minWidth: 0,
+                      },
+                    }}
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        minWidth: 0,
+                        width: '100%',
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                      },
                       minWidth: 0,
                       width: '100%',
                       flex: 1,
+                      fontWeight: 500,
+                      color: '#ffffff',
+                      '& input': {
+                        color: '#ffffff',
+                        width: '100%',
+                        minWidth: 0,
+                        flex: 1,
+                        textOverflow: 'clip',
+                        overflow: 'visible',
+                        '&::placeholder': {
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          opacity: 1
+                        }
+                      }
+                    }}
+                  />
+                  
+                  {/* Sugerencias integradas dentro del input */}
+                  {inputValue && filteredCities.length > 0 && (
+                    <Box sx={{ 
+                      mt: 1, 
+                      bgcolor: 'rgba(15, 15, 15, 0.95)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '12px',
+                      backdropFilter: 'blur(20px)',
+                      overflow: 'hidden',
+                      maxHeight: 300,
+                      overflowY: 'auto'
+                    }}>
+                      {filteredCities.map((city, index) => (
+                        <Box
+                          key={city.id}
+                          onClick={() => handleCitySelect(city)}
+                          sx={{
+                            py: 2,
+                            px: 3,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            borderBottom: index < filteredCities.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                            '&:hover': {
+                              bgcolor: 'rgba(66, 133, 244, 0.1)',
+                              borderLeft: '3px solid #4285f4'
+                            },
+                            '&:last-child': {
+                              borderBottom: 'none'
+                            }
+                          }}
+                        >
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Avatar 
+                              src={city.profile_image_url || undefined}
+                              sx={{ 
+                                width: 32, 
+                                height: 32, 
+                                bgcolor: city.profile_image_url ? 'transparent' : 'rgba(66, 133, 244, 0.2)',
+                                color: '#4285f4'
+                              }}
+                            >
+                              {!city.profile_image_url && <LocationIcon sx={{ fontSize: 18 }} />}
+                            </Avatar>
+                            <Box sx={{ flex: 1, textAlign: 'left' }}>
+                              <Typography variant="body1" fontWeight="500" sx={{ color: '#ffffff', mb: 0, textAlign: 'left' }}>
+                                {city.name}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', textAlign: 'left' }}>
+                                {formatCityName(city)}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                  {/* Fila de acciones (geolocalización) */}
+                  <Box
+                    sx={{
+                      mt: 2.5,
+                      width: '100%',
                       display: 'flex',
                       alignItems: 'center',
-                    },
-                    minWidth: 0,
-                    width: '100%',
-                    flex: 1,
-                    fontWeight: 500,
-                    color: '#ffffff',
-                    '& input': {
-                      color: '#ffffff',
-                      width: '100%',
-                      minWidth: 0,
-                      flex: 1,
-                      textOverflow: 'clip',
-                      overflow: 'visible',
-                      '&::placeholder': {
-                        color: 'rgba(255, 255, 255, 0.6)',
-                        opacity: 1
-                      }
-                    }
-                  }}
-                />
-                
-                {/* Sugerencias integradas dentro del input */}
-                {inputValue && filteredCities.length > 0 && (
-                  <Box sx={{ 
-                    mt: 1, 
-                    bgcolor: 'rgba(15, 15, 15, 0.95)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    backdropFilter: 'blur(20px)',
-                    overflow: 'hidden',
-                    maxHeight: 300,
-                    overflowY: 'auto'
-                  }}>
-                    {filteredCities.map((city, index) => (
-                      <Box
-                        key={city.id}
-                        onClick={() => handleCitySelect(city)}
+                      justifyContent: 'space-between',
+                      gap: 3,
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Button
+                        onClick={handleManualLocation}
+                        disabled={isManualLocationLoading}
+                        startIcon={isManualLocationLoading ? null : <MyLocationIcon />}
                         sx={{
-                          py: 2,
-                          px: 3,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          borderBottom: index < filteredCities.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                          borderRadius: 999,
+                          minHeight: { xs: 28, sm: 36 },
+                          px: { xs: 1, sm: 1.5 },
+                          py: { xs: 0.25, sm: 0.5 },
+                          color: 'rgba(255, 255, 255, 0.8)',
+                          bgcolor: 'transparent',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          textTransform: 'none',
+                          fontSize: { xs: '0.95em', sm: '1em' },
+                          fontWeight: 500,
                           '&:hover': {
-                            bgcolor: 'rgba(66, 133, 244, 0.1)',
-                            borderLeft: '3px solid #4285f4'
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                            borderColor: 'rgba(255, 255, 255, 0.3)'
                           },
-                          '&:last-child': {
-                            borderBottom: 'none'
+                          '& .MuiButton-startIcon': {
+                            color: 'rgba(255, 255, 255, 0.8)',
                           }
                         }}
                       >
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Avatar 
-                            src={city.profile_image_url || undefined}
-                            sx={{ 
-                              width: 32, 
-                              height: 32, 
-                              bgcolor: city.profile_image_url ? 'transparent' : 'rgba(66, 133, 244, 0.2)',
-                              color: '#4285f4'
-                            }}
-                          >
-                            {!city.profile_image_url && <LocationIcon sx={{ fontSize: 18 }} />}
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="body1" fontWeight="500" sx={{ color: '#ffffff', mb: 0 }}>
-                              {city.name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                              {formatCityName(city)}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-                {/* Fila de acciones (geolocalización) */}
-                <Box
-                  sx={{
-                    mt: 2.5,
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 3,
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    fontSize: '1rem',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        {isManualLocationLoading ? 'Localizando...' : 'Localizar mi ciudad'}
+                      </Button>
+                    </Box>
+                    
+                    {/* Botón de ir al chat */}
                     <Button
-                      onClick={handleManualLocation}
-                      disabled={isManualLocationLoading}
-                      startIcon={isManualLocationLoading ? null : <MyLocationIcon />}
+                      onClick={() => {
+                        if (selectedCity) {
+                          navigate(`/chat/${selectedCity.slug}`);
+                        }
+                      }}
+                      disabled={!selectedCity}
                       sx={{
                         borderRadius: 999,
                         minHeight: { xs: 28, sm: 36 },
                         px: { xs: 1, sm: 1.5 },
                         py: { xs: 0.25, sm: 0.5 },
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        bgcolor: 'transparent',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: selectedCity ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
+                        bgcolor: selectedCity ? '#4285f4' : 'transparent',
+                        border: selectedCity ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
                         textTransform: 'none',
                         fontSize: { xs: '0.95em', sm: '1em' },
                         fontWeight: 500,
                         '&:hover': {
-                          bgcolor: 'rgba(255, 255, 255, 0.1)',
-                          borderColor: 'rgba(255, 255, 255, 0.3)'
-                        },
-                        '& .MuiButton-startIcon': {
-                          color: 'rgba(255, 255, 255, 0.8)',
+                          bgcolor: selectedCity ? '#3367d6' : 'rgba(255, 255, 255, 0.1)',
+                          borderColor: selectedCity ? 'none' : 'rgba(255, 255, 255, 0.3)'
                         }
                       }}
+                      endIcon={<ArrowForwardIcon sx={{ fontSize: 20 }} />}
                     >
-                      {isManualLocationLoading ? 'Localizando...' : 'Localizar mi ciudad'}
+                      Ir al chat
                     </Button>
                   </Box>
-                  
-                  {/* Botón de ir al chat */}
-                  <Button
-                    onClick={() => {
-                      if (selectedCity) {
-                        navigate(`/chat/${selectedCity.slug}`);
-                      }
-                    }}
-                    disabled={!selectedCity}
-                    sx={{
-                      borderRadius: 999,
-                      minHeight: { xs: 28, sm: 36 },
-                      px: { xs: 1, sm: 1.5 },
-                      py: { xs: 0.25, sm: 0.5 },
-                      color: selectedCity ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
-                      bgcolor: selectedCity ? '#4285f4' : 'transparent',
-                      border: selectedCity ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
-                      textTransform: 'none',
-                      fontSize: { xs: '0.95em', sm: '1em' },
-                      fontWeight: 500,
-                      '&:hover': {
-                        bgcolor: selectedCity ? '#3367d6' : 'rgba(255, 255, 255, 0.1)',
-                        borderColor: selectedCity ? 'none' : 'rgba(255, 255, 255, 0.3)'
-                      }
-                    }}
-                    endIcon={<ArrowForwardIcon sx={{ fontSize: 20 }} />}
-                  >
-                    Ir al chat
-                  </Button>
-                </Box>
-              </Stack>
-            </Box>
-          </Paper>
+                </Stack>
+              </Box>
+            </Paper>
 
-
-
-
-
-          {/* Location Error */}
-          {locationError && (
-            <Card 
-              sx={{ 
-                p: 3, 
-                mb: 4,
-                borderRadius: 3,
-                bgcolor: 'rgba(234, 67, 53, 0.1)',
-                border: '1px solid rgba(234, 67, 53, 0.3)',
-                backdropFilter: 'blur(10px)'
-              }}
-            >
-              <Typography variant="body2" sx={{ color: '#ea4335', textAlign: 'center' }}>
-                {locationError}
-              </Typography>
-            </Card>
-          )}
-        </Box>
-
-        {/* Features Section */}
-        <Box sx={{ mb: 12 }}>
-          <Typography 
-            variant="h3" 
-            sx={{ 
-              textAlign: 'center',
-              mb: 8,
-              fontWeight: 400,
-              color: '#ffffff',
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
-            Características principales
-          </Typography>
-          
-          <Stack 
-            direction={{ xs: 'column', md: 'row' }} 
-            spacing={4}
-            sx={{ 
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-              gap: 4
-            }}
-          >
-            {features.map((feature, index) => (
+            {/* Location Error */}
+            {locationError && (
               <Card 
-                key={index}
                 sx={{ 
-                  p: 4,
-                  height: '100%',
+                  p: 3, 
+                  mb: 4,
                   borderRadius: 3,
-                  bgcolor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-                    borderColor: feature.color
-                  }
+                  bgcolor: 'rgba(234, 67, 53, 0.1)',
+                  border: '1px solid rgba(234, 67, 53, 0.3)',
+                  backdropFilter: 'blur(10px)'
                 }}
               >
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
-                  {feature.icon}
-                </Box>
-                <Typography 
-                  variant="h6" 
-                  fontWeight="500" 
-                  sx={{ 
-                    mb: 2, 
-                    textAlign: 'center',
-                    color: '#ffffff'
-                  }}
-                >
-                  {feature.title}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    textAlign: 'center',
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    lineHeight: 1.6
-                  }}
-                >
-                  {feature.description}
+                <Typography variant="body2" sx={{ color: '#ea4335', textAlign: 'center' }}>
+                  {locationError}
                 </Typography>
               </Card>
-            ))}
-          </Stack>
+            )}
+          </Box>
+
+        </Box>
+      </Container>
+
+      <Container maxWidth="lg" sx={{ pt: 0, pb: 12, position: 'relative', zIndex: 2 }}>
+
+        {/* Hero Content Card - Similar to Gemini showcase */}
+        <Box sx={{ 
+          mb: 20, 
+          display: 'flex', 
+          justifyContent: 'center',
+          px: { xs: 2, md: 0 }
+        }}>
+          <Card
+            sx={{
+              maxWidth: 900,
+              width: '100%',
+              bgcolor: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '20px',
+              backdropFilter: 'blur(20px)',
+              p: { xs: 3, md: 6 },
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Typography variant="caption" sx={{ 
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                fontWeight: 500,
+                mb: 2,
+                display: 'block'
+              }}>
+                CIUDADES
+              </Typography>
+              <Typography variant="h5" sx={{ 
+                color: '#ffffff',
+                fontWeight: 300,
+                mb: 2,
+                fontSize: { xs: '1.5rem', md: '2rem' }
+              }}>
+                Conexión inteligente con tu municipio
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: 'rgba(255, 255, 255, 0.8)',
+                lineHeight: 1.6,
+                maxWidth: 600,
+                mx: 'auto'
+              }}>
+                Cada ciudad tiene su propia personalidad digital. CityCore comprende el contexto único de tu municipio y te conecta con información hiperlocal de manera intuitiva.
+              </Typography>
+            </Box>
+            
+            {/* Visual indicator dots like Gemini */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              gap: 1,
+              mb: 4
+            }}>
+              {[0, 1, 2].map((dot, index) => (
+                <Box key={index} sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: index === 1 ? '#4285f4' : 'rgba(255, 255, 255, 0.3)',
+                  transition: 'all 0.3s ease'
+                }} />
+              ))}
+            </Box>
+          </Card>
+        </Box>
+
+        {/* Navigation Tabs Section - Like Gemini */}
+        <Box id="features" sx={{ mb: 20 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            mb: 8,
+            px: { xs: 2, md: 0 }
+          }}>
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              spacing={0}
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '50px',
+                p: 1,
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              {['Inteligencia', 'Experiencia', 'Rendimiento', 'Seguridad', 'Evolución'].map((tab, index) => (
+                <Button
+                  key={tab}
+                  sx={{
+                    borderRadius: '50px',
+                    px: 4,
+                    py: 1.5,
+                    textTransform: 'none',
+                    fontWeight: 400,
+                    color: index === 0 ? '#000000' : 'rgba(255, 255, 255, 0.8)',
+                    bgcolor: index === 0 ? '#4285f4' : 'transparent',
+                    minWidth: { xs: '100%', sm: 'auto' },
+                    '&:hover': {
+                      bgcolor: index === 0 ? '#3367d6' : 'rgba(255, 255, 255, 0.1)'
+                    }
+                  }}
+                >
+                  {tab}
+                </Button>
+              ))}
+            </Stack>
+          </Box>
+
+          {/* Main Content Area */}
+          <Box sx={{ textAlign: 'center', mb: 12 }}>
+            <Typography 
+              variant="h2" 
+              sx={{ 
+                fontWeight: 300,
+                mb: 6,
+                color: '#ffffff',
+                fontSize: { xs: '2.5rem', md: '4rem' },
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                maxWidth: 1200,
+                mx: 'auto'
+              }}
+            >
+              Familia de productos municipales
+            </Typography>
+            
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 300,
+                color: 'rgba(255, 255, 255, 0.8)',
+                maxWidth: 800,
+                mx: 'auto',
+                fontSize: { xs: '1.1rem', md: '1.25rem' },
+                lineHeight: 1.6,
+                mb: 8
+              }}
+            >
+              CityCore evoluciona constantemente, integrando las mejores prácticas de gestión municipal con tecnología de vanguardia y un diseño centrado en el ciudadano.
+            </Typography>
+
+            {/* Product Cards Grid */}
+            <Stack 
+              direction={{ xs: 'column', md: 'row' }} 
+              spacing={4}
+              sx={{ 
+                maxWidth: 1200,
+                mx: 'auto',
+                px: { xs: 2, md: 0 }
+              }}
+            >
+              {[
+                {
+                  title: 'CityCore Pro',
+                  subtitle: 'DISPONIBILIDAD GENERAL',
+                  description: 'Ideal para administraciones y tareas municipales complejas',
+                  highlight: false
+                },
+                {
+                  title: 'CityCore Ciudadano',
+                  subtitle: 'DISPONIBILIDAD GENERAL', 
+                  description: 'Perfecto para consultas rápidas y gestiones cotidianas',
+                  highlight: false
+                },
+                {
+                  title: 'CityCore Turismo',
+                  subtitle: 'VISTA PREVIA',
+                  description: 'Optimizado para visitantes y promoción territorial',
+                  highlight: true
+                }
+              ].map((product, index) => (
+                <Card
+                  key={index}
+                  sx={{
+                    flex: 1,
+                    p: 4,
+                    bgcolor: 'rgba(255, 255, 255, 0.08)',
+                    border: product.highlight ? '2px solid #4285f4' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '20px',
+                    backdropFilter: 'blur(20px)',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-8px)',
+                      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
+                    }
+                  }}
+                >
+                  {/* Product Icon */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    mb: 4,
+                    height: 120,
+                    alignItems: 'center'
+                  }}>
+                    <Box
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(66, 133, 244, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative'
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 1,
+                          bgcolor: '#4285f4',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            bgcolor: '#ffffff'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Typography variant="caption" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    fontWeight: 500,
+                    mb: 2,
+                    display: 'block'
+                  }}>
+                    {product.subtitle}
+                  </Typography>
+
+                  <Typography variant="h5" sx={{ 
+                    color: '#ffffff',
+                    fontWeight: 400,
+                    mb: 2
+                  }}>
+                    {product.title}
+                  </Typography>
+
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    lineHeight: 1.6
+                  }}>
+                    {product.description}
+                  </Typography>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
+        </Box>
+
+        {/* Performance Section - Like Gemini */}
+        <Box sx={{ mb: 20 }}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Typography 
+              variant="h2" 
+              sx={{ 
+                fontWeight: 300,
+                mb: 6,
+                color: '#ffffff',
+                fontSize: { xs: '2.5rem', md: '4rem' },
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                maxWidth: 1000,
+                mx: 'auto'
+              }}
+            >
+              CityCore alcanza el máximo rendimiento en una amplia gama de casos de uso municipales
+            </Typography>
+            
+            <Button
+              variant="outlined"
+              sx={{
+                borderRadius: '50px',
+                px: 4,
+                py: 1.5,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                color: '#ffffff',
+                textTransform: 'none',
+                fontWeight: 400,
+                '&:hover': {
+                  borderColor: 'rgba(255, 255, 255, 0.5)',
+                  bgcolor: 'rgba(255, 255, 255, 0.05)'
+                }
+              }}
+              endIcon={<ArrowForwardIcon />}
+            >
+              Ver informe técnico
+            </Button>
+          </Box>
+
+          {/* Performance Grid */}
+          <Box sx={{ 
+            position: 'relative',
+            maxWidth: 1200,
+            mx: 'auto',
+            px: { xs: 2, md: 0 }
+          }}>
+            {/* Background grid effect */}
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `
+                linear-gradient(90deg, rgba(66, 133, 244, 0.1) 1px, transparent 1px),
+                linear-gradient(rgba(66, 133, 244, 0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '50px 50px',
+              opacity: 0.3,
+              zIndex: 0
+            }} />
+            
+            {/* Curved line element */}
+            <Box sx={{
+              position: 'absolute',
+              top: '20%',
+              right: '10%',
+              width: 200,
+              height: 200,
+              border: '2px solid #4285f4',
+              borderRadius: '50%',
+              opacity: 0.3,
+              zIndex: 1
+            }} />
+
+            <Stack 
+              direction={{ xs: 'column', md: 'row' }} 
+              spacing={4}
+              sx={{ position: 'relative', zIndex: 2 }}
+            >
+              {[
+                {
+                  title: 'Respuesta Inteligente',
+                  description: 'El sistema comprende consultas complejas y proporciona respuestas contextualizadas que van más allá de la información básica.'
+                },
+                {
+                  title: 'Gestión Adaptativa',
+                  description: 'CityCore se adapta a las necesidades específicas de cada municipio, aprendiendo de patrones de uso y optimizando respuestas.'
+                },
+                {
+                  title: 'Integración Perfecta',
+                  description: 'Cuando no se establece presupuesto de procesamiento, el sistema evalúa automáticamente la complejidad y calibra la respuesta apropiada.'
+                }
+              ].map((item, index) => (
+                <Card
+                  key={index}
+                  sx={{
+                    flex: 1,
+                    p: 4,
+                    bgcolor: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '20px',
+                    backdropFilter: 'blur(20px)',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 12px 24px rgba(0, 0, 0, 0.3)'
+                    }
+                  }}
+                >
+                  {/* Icon */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    mb: 3
+                  }}>
+                    <Box
+                      sx={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(66, 133, 244, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {index === 0 && <AutoAwesomeIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
+                      {index === 1 && <SpeedIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
+                      {index === 2 && <SecurityIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
+                    </Box>
+                  </Box>
+
+                  <Typography variant="h6" sx={{ 
+                    color: '#ffffff',
+                    fontWeight: 400,
+                    mb: 2,
+                    textAlign: 'center'
+                  }}>
+                    {item.title}
+                  </Typography>
+
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    lineHeight: 1.6,
+                    textAlign: 'center'
+                  }}>
+                    {item.description}
+                  </Typography>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
         </Box>
 
         {/* Bottom CTA */}
         <Box sx={{ textAlign: 'center' }}>
           <Card 
             sx={{ 
-              p: 6,
-              borderRadius: 3,
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.1), rgba(52, 168, 83, 0.1))'
+              p: 8,
+              borderRadius: '24px',
+              bgcolor: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              backdropFilter: 'blur(20px)',
+              maxWidth: 800,
+              mx: 'auto'
             }}
           >
             <Typography 
-              variant="h4" 
+              variant="h3" 
               sx={{ 
-                mb: 3, 
-                fontWeight: 400,
-                color: '#ffffff'
+                mb: 4,
+                fontWeight: 300,
+                color: '#ffffff',
+                fontSize: { xs: '2rem', md: '2.5rem' },
+                lineHeight: 1.2
               }}
             >
-              ¿Listo para comenzar?
+              El futuro de la administración municipal está aquí
             </Typography>
+            
             <Typography 
-              variant="body1" 
+              variant="h6" 
               sx={{ 
-                mb: 4, 
+                mb: 6,
                 color: 'rgba(255, 255, 255, 0.8)',
                 maxWidth: 600,
-                mx: 'auto'
+                mx: 'auto',
+                lineHeight: 1.6,
+                fontWeight: 300
               }}
             >
-              Únete a miles de ciudadanos que ya están usando CityChat para obtener información local instantánea
+              Únete a la nueva generación de ciudades inteligentes que priorizan la experiencia del ciudadano y la eficiencia administrativa.
             </Typography>
-            <Button 
-              variant="contained" 
-              size="large"
-              onClick={() => {
-                const element = document.getElementById('city-selector');
-                if (element) {
-                  element.scrollIntoView({ 
-                    behavior: 'smooth',
-                    block: 'start'
-                  });
-                }
-              }}
-              sx={{ 
-                borderRadius: 2,
-                px: 6,
-                py: 2,
-                bgcolor: '#4285f4',
-                color: '#ffffff',
-                fontWeight: 500,
-                textTransform: 'none',
-                fontSize: '1.1rem',
-                '&:hover': {
-                  bgcolor: '#3367d6'
-                }
-              }}
-              endIcon={<ArrowForwardIcon />}
+            
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              spacing={3} 
+              justifyContent="center"
             >
-              Buscar mi Ciudad
-            </Button>
+              <Button 
+                variant="contained" 
+                size="large"
+                onClick={() => {
+                  const element = document.getElementById('city-selector');
+                  if (element) {
+                    element.scrollIntoView({ 
+                      behavior: 'smooth',
+                      block: 'start'
+                    });
+                  }
+                }}
+                sx={{ 
+                  borderRadius: '50px',
+                  px: 6,
+                  py: 2.5,
+                  bgcolor: '#4285f4',
+                  color: '#ffffff',
+                  fontWeight: 400,
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  '&:hover': {
+                    bgcolor: '#3367d6'
+                  }
+                }}
+                endIcon={<ArrowForwardIcon />}
+              >
+                Comenzar ahora
+              </Button>
+              
+              <Button 
+                variant="outlined" 
+                size="large"
+                onClick={handleLogin}
+                sx={{ 
+                  borderRadius: '50px',
+                  px: 6,
+                  py: 2.5,
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  color: '#ffffff',
+                  fontWeight: 400,
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  '&:hover': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    bgcolor: 'rgba(255, 255, 255, 0.05)'
+                  }
+                }}
+                endIcon={<PersonIcon />}
+              >
+                Acceso administrativo
+              </Button>
+            </Stack>
           </Card>
         </Box>
       </Container>
