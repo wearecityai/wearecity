@@ -326,7 +326,14 @@ const Index = () => {
     <Box sx={{ 
       minHeight: '100vh', 
       bgcolor: '#0f0f0f',
-      background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)',
+      background: `
+        linear-gradient(rgba(15, 15, 15, 0.4), rgba(15, 15, 15, 0.4)),
+        url('/lovable-uploads/4c349cf3-97bc-4a5f-98fc-a3b7c56d82c4.png')
+      `,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
       position: 'relative',
       overflowY: 'auto',
       overflowX: 'hidden'

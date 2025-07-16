@@ -26,6 +26,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_public: boolean | null
+          lat: number | null
+          lng: number | null
           name: string
           procedure_source_urls: Json | null
           profile_image_url: string | null
@@ -49,6 +51,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_public?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name: string
           procedure_source_urls?: Json | null
           profile_image_url?: string | null
@@ -72,6 +76,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_public?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name?: string
           procedure_source_urls?: Json | null
           profile_image_url?: string | null
