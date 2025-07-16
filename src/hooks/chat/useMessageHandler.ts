@@ -25,7 +25,7 @@ export const useMessageHandler = (
   const [isLoading, setIsLoading] = useState(false);
   const { parseAIResponse } = useMessageParser();
   const { user } = useAuth();
-  const { userLocation } = useGeolocation(chatConfig.allowGeolocation);
+  const { userLocation } = useGeolocation();
   const lastProcessedMessageRef = useRef<string | null>(null);
 
   const processMessage = useCallback(async (
