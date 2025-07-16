@@ -37,7 +37,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, [prefersDarkMode]);
 
-  // Actualiza el meta theme-color según el modo
+  // Actualiza el meta theme-color y la clase dark en el documento según el modo
   useEffect(() => {
     const color = currentThemeMode === 'dark' ? '#121212' : '#ffffff';
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -47,6 +47,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       document.head.appendChild(meta);
     }
     meta.setAttribute('content', color);
+
+    // Aplicar/remover la clase 'dark' al elemento html para activar los estilos CSS de modo oscuro
+    const htmlElement = document.documentElement;
+    if (currentThemeMode === 'dark') {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
   }, [currentThemeMode]);
 
   const toggleTheme = () => {
