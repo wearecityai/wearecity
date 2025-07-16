@@ -38,6 +38,7 @@ import { IconButton, Avatar } from '@mui/material';
 import { Menu as MenuIcon, AccountCircle as AccountCircleIcon } from '@mui/icons-material';
 import UserButton from '@/components/auth/UserButton';
 import { findNearestCity } from '@/utils/locationUtils';
+import { useThemeContext } from '@/theme/ThemeProvider';
 
 interface City {
   id: string;
@@ -53,6 +54,7 @@ const Index = () => {
   const location = useLocation();
   const theme = useTheme();
   const { user, profile } = useAuth();
+  const { currentThemeMode } = useThemeContext();
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   const [cities, setCities] = useState<City[]>([]);
@@ -325,11 +327,16 @@ const Index = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh', 
-      bgcolor: '#0f0f0f',
-      background: `
-        linear-gradient(rgba(15, 15, 15, 0.4), rgba(15, 15, 15, 0.4)),
-        url('/lovable-uploads/4c349cf3-97bc-4a5f-98fc-a3b7c56d82c4.png')
-      `,
+      bgcolor: currentThemeMode === 'dark' ? '#0f0f0f' : '#f8f9fa',
+      background: currentThemeMode === 'dark' 
+        ? `
+          linear-gradient(rgba(15, 15, 15, 0.4), rgba(15, 15, 15, 0.4)),
+          url('/lovable-uploads/4c349cf3-97bc-4a5f-98fc-a3b7c56d82c4.png')
+        `
+        : `
+          linear-gradient(rgba(248, 249, 250, 0.8), rgba(248, 249, 250, 0.8)),
+          url('/lovable-uploads/cafc4d2c-3e56-4c90-9405-00dc2cd1cf4c.png')
+        `,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
@@ -345,11 +352,17 @@ const Index = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: `
-          radial-gradient(circle at 20% 20%, rgba(66, 133, 244, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(52, 168, 83, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 40% 60%, rgba(234, 67, 53, 0.05) 0%, transparent 50%)
-        `,
+        background: currentThemeMode === 'dark'
+          ? `
+            radial-gradient(circle at 20% 20%, rgba(66, 133, 244, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(52, 168, 83, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 40% 60%, rgba(234, 67, 53, 0.05) 0%, transparent 50%)
+          `
+          : `
+            radial-gradient(circle at 20% 20%, rgba(66, 133, 244, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(52, 168, 83, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 40% 60%, rgba(234, 67, 53, 0.03) 0%, transparent 50%)
+          `,
         pointerEvents: 'none',
         zIndex: 0
       }} />
@@ -447,56 +460,60 @@ const Index = () => {
           alignItems: 'center',
           py: 0
         }}>
-          <Typography 
-            variant="h2" 
-            sx={{ 
-              fontWeight: 700,
-              mb: 6,
-              color: '#ffffff',
-              fontSize: { xs: '2.5rem', md: '4rem', lg: '5rem' },
-              letterSpacing: '-0.02em',
-              lineHeight: 1.1,
-              maxWidth: 1000,
-              textAlign: 'center'
-            }}
-          >
-            Todo sobre tu <Box component="span" sx={{ color: '#4285f4' }}>ciudad</Box>,<br />en un solo chat
-          </Typography>
-          
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              mb: 8,
-              fontWeight: 300,
-              color: 'rgba(255, 255, 255, 0.8)',
-              maxWidth: 800,
-              mx: 'auto',
-              fontSize: { xs: '1.1rem', md: '1.25rem' },
-              lineHeight: 1.6,
-              textAlign: 'center'
-            }}
-          >
+           <Typography 
+             variant="h2" 
+             sx={{ 
+               fontWeight: 700,
+               mb: 6,
+               color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+               fontSize: { xs: '2.5rem', md: '4rem', lg: '5rem' },
+               letterSpacing: '-0.02em',
+               lineHeight: 1.1,
+               maxWidth: 1000,
+               textAlign: 'center'
+             }}
+           >
+             Todo sobre tu <Box component="span" sx={{ color: '#4285f4' }}>ciudad</Box>,<br />en un solo chat
+           </Typography>
+           
+           <Typography 
+             variant="h6" 
+             sx={{ 
+               mb: 8,
+               fontWeight: 300,
+               color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(33, 33, 33, 0.8)',
+               maxWidth: 800,
+               mx: 'auto',
+               fontSize: { xs: '1.1rem', md: '1.25rem' },
+               lineHeight: 1.6,
+               textAlign: 'center'
+             }}
+           >
             Consulta trámites, descubre eventos, encuentra lugares y recibe ayuda sin esperas.
           </Typography>
 
           {/* City Selector integrado en hero section */}
           <Box sx={{ maxWidth: 600, width: '100%' }}>
-            <Paper
-              elevation={0}
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                p: 0,
-                borderRadius: '28px',
-                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-                width: '100%',
-                minWidth: 0,
-                mb: 4
-              }}
-            >
+             <Paper
+               elevation={0}
+               sx={{
+                 display: 'flex',
+                 flexDirection: 'column',
+                 justifyContent: 'center',
+                 p: 0,
+                 borderRadius: '28px',
+                 bgcolor: currentThemeMode === 'dark' 
+                   ? 'rgba(255, 255, 255, 0.05)' 
+                   : 'rgba(255, 255, 255, 0.9)',
+                 border: currentThemeMode === 'dark' 
+                   ? '1px solid rgba(255, 255, 255, 0.1)' 
+                   : '1px solid rgba(0, 0, 0, 0.1)',
+                 backdropFilter: 'blur(10px)',
+                 width: '100%',
+                 minWidth: 0,
+                 mb: 4
+               }}
+             >
               <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minWidth: 0 }}>
                 <Stack direction="column" sx={{ flexGrow: 1, minWidth: 0 }}>
                   <TextField
@@ -533,20 +550,20 @@ const Index = () => {
                       minWidth: 0,
                       width: '100%',
                       flex: 1,
-                      fontWeight: 500,
-                      color: '#ffffff',
-                      '& input': {
-                        color: '#ffffff',
-                        width: '100%',
-                        minWidth: 0,
-                        flex: 1,
-                        textOverflow: 'clip',
-                        overflow: 'visible',
-                        '&::placeholder': {
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          opacity: 1
-                        }
-                      }
+                       fontWeight: 500,
+                       color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                       '& input': {
+                         color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                         width: '100%',
+                         minWidth: 0,
+                         flex: 1,
+                         textOverflow: 'clip',
+                         overflow: 'visible',
+                         '&::placeholder': {
+                           color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(33, 33, 33, 0.6)',
+                           opacity: 1
+                         }
+                       }
                     }}
                   />
                   
@@ -554,8 +571,12 @@ const Index = () => {
                   {inputValue && filteredCities.length > 0 && (
                     <Box sx={{ 
                       mt: 1, 
-                      bgcolor: 'rgba(15, 15, 15, 0.95)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      bgcolor: currentThemeMode === 'dark' 
+                        ? 'rgba(15, 15, 15, 0.95)' 
+                        : 'rgba(255, 255, 255, 0.95)',
+                      border: currentThemeMode === 'dark' 
+                        ? '1px solid rgba(255, 255, 255, 0.1)' 
+                        : '1px solid rgba(0, 0, 0, 0.1)',
                       borderRadius: '12px',
                       backdropFilter: 'blur(20px)',
                       overflow: 'hidden',
@@ -571,7 +592,11 @@ const Index = () => {
                             px: 3,
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
-                            borderBottom: index < filteredCities.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                            borderBottom: index < filteredCities.length - 1 
+                              ? currentThemeMode === 'dark' 
+                                ? '1px solid rgba(255, 255, 255, 0.05)' 
+                                : '1px solid rgba(0, 0, 0, 0.05)'
+                              : 'none',
                             '&:hover': {
                               bgcolor: 'rgba(66, 133, 244, 0.1)',
                               borderLeft: '3px solid #4285f4'
@@ -594,10 +619,19 @@ const Index = () => {
                               {!city.profile_image_url && <LocationIcon sx={{ fontSize: 18 }} />}
                             </Avatar>
                             <Box sx={{ flex: 1, textAlign: 'left' }}>
-                              <Typography variant="body1" fontWeight="500" sx={{ color: '#ffffff', mb: 0, textAlign: 'left' }}>
+                              <Typography variant="body1" fontWeight="500" sx={{ 
+                                color: currentThemeMode === 'dark' ? '#ffffff' : '#212121', 
+                                mb: 0, 
+                                textAlign: 'left' 
+                              }}>
                                 {city.name}
                               </Typography>
-                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', textAlign: 'left' }}>
+                              <Typography variant="caption" sx={{ 
+                                color: currentThemeMode === 'dark' 
+                                  ? 'rgba(255, 255, 255, 0.6)' 
+                                  : 'rgba(33, 33, 33, 0.6)', 
+                                textAlign: 'left' 
+                              }}>
                                 {formatCityName(city)}
                               </Typography>
                             </Box>
@@ -615,35 +649,47 @@ const Index = () => {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: 3,
-                      color: 'rgba(255, 255, 255, 0.8)',
+                      color: currentThemeMode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.8)' 
+                        : 'rgba(33, 33, 33, 0.8)',
                       fontSize: '1rem',
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Button
-                        onClick={handleManualLocation}
-                        disabled={isManualLocationLoading}
-                        startIcon={isManualLocationLoading ? null : <MyLocationIcon />}
-                        sx={{
-                          borderRadius: 999,
-                          minHeight: { xs: 28, sm: 36 },
-                          px: { xs: 1, sm: 1.5 },
-                          py: { xs: 0.25, sm: 0.5 },
-                          color: 'rgba(255, 255, 255, 0.8)',
-                          bgcolor: 'transparent',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          textTransform: 'none',
-                          fontSize: { xs: '0.95em', sm: '1em' },
-                          fontWeight: 500,
-                          '&:hover': {
-                            bgcolor: 'rgba(255, 255, 255, 0.1)',
-                            borderColor: 'rgba(255, 255, 255, 0.3)'
-                          },
-                          '& .MuiButton-startIcon': {
-                            color: 'rgba(255, 255, 255, 0.8)',
-                          }
-                        }}
-                      >
+                       <Button
+                         onClick={handleManualLocation}
+                         disabled={isManualLocationLoading}
+                         startIcon={isManualLocationLoading ? null : <MyLocationIcon />}
+                         sx={{
+                           borderRadius: 999,
+                           minHeight: { xs: 28, sm: 36 },
+                           px: { xs: 1, sm: 1.5 },
+                           py: { xs: 0.25, sm: 0.5 },
+                           color: currentThemeMode === 'dark' 
+                             ? 'rgba(255, 255, 255, 0.8)' 
+                             : 'rgba(33, 33, 33, 0.8)',
+                           bgcolor: 'transparent',
+                           border: currentThemeMode === 'dark' 
+                             ? '1px solid rgba(255, 255, 255, 0.2)' 
+                             : '1px solid rgba(33, 33, 33, 0.2)',
+                           textTransform: 'none',
+                           fontSize: { xs: '0.95em', sm: '1em' },
+                           fontWeight: 500,
+                           '&:hover': {
+                             bgcolor: currentThemeMode === 'dark' 
+                               ? 'rgba(255, 255, 255, 0.1)' 
+                               : 'rgba(33, 33, 33, 0.1)',
+                             borderColor: currentThemeMode === 'dark' 
+                               ? 'rgba(255, 255, 255, 0.3)' 
+                               : 'rgba(33, 33, 33, 0.3)'
+                           },
+                           '& .MuiButton-startIcon': {
+                             color: currentThemeMode === 'dark' 
+                               ? 'rgba(255, 255, 255, 0.8)' 
+                               : 'rgba(33, 33, 33, 0.8)',
+                           }
+                         }}
+                       >
                         {isManualLocationLoading ? 'Localizando...' : 'Localizar mi ciudad'}
                       </Button>
                     </Box>
@@ -656,22 +702,30 @@ const Index = () => {
                         }
                       }}
                       disabled={!selectedCity}
-                      sx={{
-                        borderRadius: 999,
-                        minHeight: { xs: 28, sm: 36 },
-                        px: { xs: 1, sm: 1.5 },
-                        py: { xs: 0.25, sm: 0.5 },
-                        color: selectedCity ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
-                        bgcolor: selectedCity ? '#4285f4' : 'transparent',
-                        border: selectedCity ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
-                        textTransform: 'none',
-                        fontSize: { xs: '0.95em', sm: '1em' },
-                        fontWeight: 500,
-                        '&:hover': {
-                          bgcolor: selectedCity ? '#3367d6' : 'rgba(255, 255, 255, 0.1)',
-                          borderColor: selectedCity ? 'none' : 'rgba(255, 255, 255, 0.3)'
-                        }
-                      }}
+                       sx={{
+                         borderRadius: 999,
+                         minHeight: { xs: 28, sm: 36 },
+                         px: { xs: 1, sm: 1.5 },
+                         py: { xs: 0.25, sm: 0.5 },
+                         color: selectedCity ? '#ffffff' : (currentThemeMode === 'dark' 
+                           ? 'rgba(255, 255, 255, 0.4)' 
+                           : 'rgba(33, 33, 33, 0.4)'),
+                         bgcolor: selectedCity ? '#4285f4' : 'transparent',
+                         border: selectedCity ? 'none' : (currentThemeMode === 'dark' 
+                           ? '1px solid rgba(255, 255, 255, 0.2)' 
+                           : '1px solid rgba(33, 33, 33, 0.2)'),
+                         textTransform: 'none',
+                         fontSize: { xs: '0.95em', sm: '1em' },
+                         fontWeight: 500,
+                         '&:hover': {
+                           bgcolor: selectedCity ? '#3367d6' : (currentThemeMode === 'dark' 
+                             ? 'rgba(255, 255, 255, 0.1)' 
+                             : 'rgba(33, 33, 33, 0.1)'),
+                           borderColor: selectedCity ? 'none' : (currentThemeMode === 'dark' 
+                             ? 'rgba(255, 255, 255, 0.3)' 
+                             : 'rgba(33, 33, 33, 0.3)')
+                         }
+                       }}
                       endIcon={<ArrowForwardIcon sx={{ fontSize: 20 }} />}
                     >
                       Ir al chat
@@ -716,8 +770,12 @@ const Index = () => {
             sx={{
               maxWidth: 900,
               width: '100%',
-              bgcolor: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              bgcolor: currentThemeMode === 'dark' 
+                ? 'rgba(255, 255, 255, 0.08)' 
+                : 'rgba(255, 255, 255, 0.9)',
+              border: currentThemeMode === 'dark' 
+                ? '1px solid rgba(255, 255, 255, 0.12)' 
+                : '1px solid rgba(0, 0, 0, 0.1)',
               borderRadius: '20px',
               backdropFilter: 'blur(20px)',
               p: { xs: 3, md: 6 },
@@ -727,7 +785,9 @@ const Index = () => {
           >
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Typography variant="caption" sx={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
+                color: currentThemeMode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.6)' 
+                  : 'rgba(33, 33, 33, 0.6)',
                 fontSize: '0.75rem',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
@@ -738,7 +798,7 @@ const Index = () => {
                 CIUDADES
               </Typography>
               <Typography variant="h5" sx={{ 
-                color: '#ffffff',
+                color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
                 fontWeight: 300,
                 mb: 2,
                 fontSize: { xs: '1.5rem', md: '2rem' }
@@ -746,7 +806,9 @@ const Index = () => {
                 Conexión inteligente con tu municipio
               </Typography>
               <Typography variant="body1" sx={{ 
-                color: 'rgba(255, 255, 255, 0.8)',
+                color: currentThemeMode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.8)' 
+                  : 'rgba(33, 33, 33, 0.8)',
                 lineHeight: 1.6,
                 maxWidth: 600,
                 mx: 'auto'
@@ -767,7 +829,9 @@ const Index = () => {
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  bgcolor: index === 1 ? '#4285f4' : 'rgba(255, 255, 255, 0.3)',
+                  bgcolor: index === 1 ? '#4285f4' : (currentThemeMode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.3)' 
+                    : 'rgba(33, 33, 33, 0.3)'),
                   transition: 'all 0.3s ease'
                 }} />
               ))}
