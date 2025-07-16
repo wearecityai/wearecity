@@ -246,6 +246,12 @@ const Index = () => {
     navigate('/auth');
   };
 
+  const handleChatStart = () => {
+    if (selectedCity) {
+      navigate(`/public-chat/${selectedCity.slug}`);
+    }
+  };
+
   const features = [
     {
       icon: <AutoAwesomeIcon sx={{ fontSize: 40, color: '#4285f4' }} />,
