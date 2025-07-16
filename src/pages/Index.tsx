@@ -850,30 +850,38 @@ const Index = () => {
             <Stack 
               direction={{ xs: 'column', sm: 'row' }} 
               spacing={0}
-              sx={{
-                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '50px',
-                p: 1,
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-              }}
-            >
-              {['Inteligencia', 'Experiencia', 'Rendimiento', 'Seguridad', 'Evolución'].map((tab, index) => (
-                <Button
-                  key={tab}
-                  sx={{
-                    borderRadius: '50px',
-                    px: 4,
-                    py: 1.5,
-                    textTransform: 'none',
-                    fontWeight: 400,
-                    color: index === 0 ? '#000000' : 'rgba(255, 255, 255, 0.8)',
-                    bgcolor: index === 0 ? '#4285f4' : 'transparent',
-                    minWidth: { xs: '100%', sm: 'auto' },
-                    '&:hover': {
-                      bgcolor: index === 0 ? '#3367d6' : 'rgba(255, 255, 255, 0.1)'
-                    }
-                  }}
-                >
+               sx={{
+                 bgcolor: currentThemeMode === 'dark' 
+                   ? 'rgba(255, 255, 255, 0.05)' 
+                   : 'rgba(255, 255, 255, 0.9)',
+                 borderRadius: '50px',
+                 p: 1,
+                 border: currentThemeMode === 'dark' 
+                   ? '1px solid rgba(255, 255, 255, 0.1)' 
+                   : '1px solid rgba(0, 0, 0, 0.1)'
+               }}
+             >
+               {['Inteligencia', 'Experiencia', 'Rendimiento', 'Seguridad', 'Evolución'].map((tab, index) => (
+                 <Button
+                   key={tab}
+                   sx={{
+                     borderRadius: '50px',
+                     px: 4,
+                     py: 1.5,
+                     textTransform: 'none',
+                     fontWeight: 400,
+                     color: index === 0 ? '#ffffff' : (currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.8)' 
+                       : 'rgba(33, 33, 33, 0.8)'),
+                     bgcolor: index === 0 ? '#4285f4' : 'transparent',
+                     minWidth: { xs: '100%', sm: 'auto' },
+                     '&:hover': {
+                       bgcolor: index === 0 ? '#3367d6' : (currentThemeMode === 'dark' 
+                         ? 'rgba(255, 255, 255, 0.1)' 
+                         : 'rgba(33, 33, 33, 0.1)')
+                     }
+                   }}
+                 >
                   {tab}
                 </Button>
               ))}
@@ -885,14 +893,14 @@ const Index = () => {
             <Typography 
               variant="h2" 
               sx={{ 
-                fontWeight: 300,
-                mb: 6,
-                color: '#ffffff',
-                fontSize: { xs: '2.5rem', md: '4rem' },
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1,
-                maxWidth: 1200,
-                mx: 'auto'
+                 fontWeight: 300,
+                 mb: 6,
+                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                 fontSize: { xs: '2.5rem', md: '4rem' },
+                 letterSpacing: '-0.02em',
+                 lineHeight: 1.1,
+                 maxWidth: 1200,
+                 mx: 'auto'
               }}
             >
               Familia de productos municipales
@@ -901,8 +909,10 @@ const Index = () => {
             <Typography 
               variant="h6" 
               sx={{ 
-                fontWeight: 300,
-                color: 'rgba(255, 255, 255, 0.8)',
+                 fontWeight: 300,
+                 color: currentThemeMode === 'dark' 
+                   ? 'rgba(255, 255, 255, 0.8)' 
+                   : 'rgba(33, 33, 33, 0.8)',
                 maxWidth: 800,
                 mx: 'auto',
                 fontSize: { xs: '1.1rem', md: '1.25rem' },
@@ -948,15 +958,23 @@ const Index = () => {
                   sx={{
                     flex: 1,
                     p: 4,
-                    bgcolor: 'rgba(255, 255, 255, 0.08)',
-                    border: product.highlight ? '2px solid #4285f4' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '20px',
-                    backdropFilter: 'blur(20px)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
-                    }
+                     bgcolor: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.08)' 
+                       : 'rgba(255, 255, 255, 0.9)',
+                     border: product.highlight 
+                       ? '2px solid #4285f4' 
+                       : currentThemeMode === 'dark' 
+                         ? '1px solid rgba(255, 255, 255, 0.12)' 
+                         : '1px solid rgba(0, 0, 0, 0.1)',
+                     borderRadius: '20px',
+                     backdropFilter: 'blur(20px)',
+                     transition: 'all 0.3s ease',
+                     '&:hover': {
+                       transform: 'translateY(-8px)',
+                       boxShadow: currentThemeMode === 'dark' 
+                         ? '0 20px 40px rgba(0, 0, 0, 0.4)' 
+                         : '0 20px 40px rgba(0, 0, 0, 0.1)'
+                     }
                   }}
                 >
                   {/* Product Icon */}
@@ -1002,32 +1020,36 @@ const Index = () => {
                     </Box>
                   </Box>
 
-                  <Typography variant="caption" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                    fontWeight: 500,
-                    mb: 2,
-                    display: 'block'
-                  }}>
-                    {product.subtitle}
-                  </Typography>
+                   <Typography variant="caption" sx={{ 
+                     color: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.6)' 
+                       : 'rgba(33, 33, 33, 0.6)',
+                     fontSize: '0.75rem',
+                     textTransform: 'uppercase',
+                     letterSpacing: '1px',
+                     fontWeight: 500,
+                     mb: 2,
+                     display: 'block'
+                   }}>
+                     {product.subtitle}
+                   </Typography>
 
-                  <Typography variant="h5" sx={{ 
-                    color: '#ffffff',
-                    fontWeight: 400,
-                    mb: 2
-                  }}>
-                    {product.title}
-                  </Typography>
+                   <Typography variant="h5" sx={{ 
+                     color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                     fontWeight: 400,
+                     mb: 2
+                   }}>
+                     {product.title}
+                   </Typography>
 
-                  <Typography variant="body2" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    lineHeight: 1.6
-                  }}>
-                    {product.description}
-                  </Typography>
+                   <Typography variant="body2" sx={{ 
+                     color: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.8)' 
+                       : 'rgba(33, 33, 33, 0.8)',
+                     lineHeight: 1.6
+                   }}>
+                     {product.description}
+                   </Typography>
                 </Card>
               ))}
             </Stack>
@@ -1040,34 +1062,40 @@ const Index = () => {
             <Typography 
               variant="h2" 
               sx={{ 
-                fontWeight: 300,
-                mb: 6,
-                color: '#ffffff',
-                fontSize: { xs: '2.5rem', md: '4rem' },
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1,
-                maxWidth: 1000,
-                mx: 'auto'
-              }}
-            >
-              CityCore alcanza el máximo rendimiento en una amplia gama de casos de uso municipales
-            </Typography>
-            
-            <Button
-              variant="outlined"
-              sx={{
-                borderRadius: '50px',
-                px: 4,
-                py: 1.5,
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                color: '#ffffff',
-                textTransform: 'none',
-                fontWeight: 400,
-                '&:hover': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                  bgcolor: 'rgba(255, 255, 255, 0.05)'
-                }
-              }}
+                 fontWeight: 300,
+                 mb: 6,
+                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                 fontSize: { xs: '2.5rem', md: '4rem' },
+                 letterSpacing: '-0.02em',
+                 lineHeight: 1.1,
+                 maxWidth: 1000,
+                 mx: 'auto'
+               }}
+             >
+               CityCore alcanza el máximo rendimiento en una amplia gama de casos de uso municipales
+             </Typography>
+             
+             <Button
+               variant="outlined"
+               sx={{
+                 borderRadius: '50px',
+                 px: 4,
+                 py: 1.5,
+                 borderColor: currentThemeMode === 'dark' 
+                   ? 'rgba(255, 255, 255, 0.3)' 
+                   : 'rgba(33, 33, 33, 0.3)',
+                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                 textTransform: 'none',
+                 fontWeight: 400,
+                 '&:hover': {
+                   borderColor: currentThemeMode === 'dark' 
+                     ? 'rgba(255, 255, 255, 0.5)' 
+                     : 'rgba(33, 33, 33, 0.5)',
+                   bgcolor: currentThemeMode === 'dark' 
+                     ? 'rgba(255, 255, 255, 0.05)' 
+                     : 'rgba(33, 33, 33, 0.05)'
+                 }
+               }}
               endIcon={<ArrowForwardIcon />}
             >
               Ver informe técnico
@@ -1134,56 +1162,64 @@ const Index = () => {
                   sx={{
                     flex: 1,
                     p: 4,
-                    bgcolor: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '20px',
-                    backdropFilter: 'blur(20px)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 24px rgba(0, 0, 0, 0.3)'
-                    }
-                  }}
-                >
-                  {/* Icon */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    mb: 3
-                  }}>
-                    <Box
-                      sx={{
-                        width: 60,
-                        height: 60,
-                        borderRadius: 2,
-                        bgcolor: 'rgba(66, 133, 244, 0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {index === 0 && <AutoAwesomeIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
-                      {index === 1 && <SpeedIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
-                      {index === 2 && <SecurityIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
-                    </Box>
-                  </Box>
+                     bgcolor: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.08)' 
+                       : 'rgba(255, 255, 255, 0.9)',
+                     border: currentThemeMode === 'dark' 
+                       ? '1px solid rgba(255, 255, 255, 0.12)' 
+                       : '1px solid rgba(0, 0, 0, 0.1)',
+                     borderRadius: '20px',
+                     backdropFilter: 'blur(20px)',
+                     transition: 'all 0.3s ease',
+                     '&:hover': {
+                       transform: 'translateY(-4px)',
+                       boxShadow: currentThemeMode === 'dark' 
+                         ? '0 12px 24px rgba(0, 0, 0, 0.3)' 
+                         : '0 12px 24px rgba(0, 0, 0, 0.1)'
+                     }
+                   }}
+                 >
+                   {/* Icon */}
+                   <Box sx={{ 
+                     display: 'flex', 
+                     justifyContent: 'center', 
+                     mb: 3
+                   }}>
+                     <Box
+                       sx={{
+                         width: 60,
+                         height: 60,
+                         borderRadius: 2,
+                         bgcolor: 'rgba(66, 133, 244, 0.2)',
+                         display: 'flex',
+                         alignItems: 'center',
+                         justifyContent: 'center'
+                       }}
+                     >
+                       {index === 0 && <AutoAwesomeIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
+                       {index === 1 && <SpeedIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
+                       {index === 2 && <SecurityIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
+                     </Box>
+                   </Box>
 
-                  <Typography variant="h6" sx={{ 
-                    color: '#ffffff',
-                    fontWeight: 400,
-                    mb: 2,
-                    textAlign: 'center'
-                  }}>
-                    {item.title}
-                  </Typography>
+                   <Typography variant="h6" sx={{ 
+                     color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                     fontWeight: 400,
+                     mb: 2,
+                     textAlign: 'center'
+                   }}>
+                     {item.title}
+                   </Typography>
 
-                  <Typography variant="body2" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    lineHeight: 1.6,
-                    textAlign: 'center'
-                  }}>
-                    {item.description}
-                  </Typography>
+                   <Typography variant="body2" sx={{ 
+                     color: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.8)' 
+                       : 'rgba(33, 33, 33, 0.8)',
+                     lineHeight: 1.6,
+                     textAlign: 'center'
+                   }}>
+                     {item.description}
+                   </Typography>
                 </Card>
               ))}
             </Stack>
@@ -1196,37 +1232,43 @@ const Index = () => {
             sx={{ 
               p: 8,
               borderRadius: '24px',
-              bgcolor: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              backdropFilter: 'blur(20px)',
-              maxWidth: 800,
-              mx: 'auto'
-            }}
-          >
-            <Typography 
-              variant="h3" 
-              sx={{ 
-                mb: 4,
-                fontWeight: 300,
-                color: '#ffffff',
-                fontSize: { xs: '2rem', md: '2.5rem' },
-                lineHeight: 1.2
-              }}
-            >
-              El futuro de la administración municipal está aquí
-            </Typography>
-            
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                mb: 6,
-                color: 'rgba(255, 255, 255, 0.8)',
-                maxWidth: 600,
-                mx: 'auto',
-                lineHeight: 1.6,
-                fontWeight: 300
-              }}
-            >
+               bgcolor: currentThemeMode === 'dark' 
+                 ? 'rgba(255, 255, 255, 0.08)' 
+                 : 'rgba(255, 255, 255, 0.9)',
+               border: currentThemeMode === 'dark' 
+                 ? '1px solid rgba(255, 255, 255, 0.12)' 
+                 : '1px solid rgba(0, 0, 0, 0.1)',
+               backdropFilter: 'blur(20px)',
+               maxWidth: 800,
+               mx: 'auto'
+             }}
+           >
+             <Typography 
+               variant="h3" 
+               sx={{ 
+                 mb: 4,
+                 fontWeight: 300,
+                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                 fontSize: { xs: '2rem', md: '2.5rem' },
+                 lineHeight: 1.2
+               }}
+             >
+               El futuro de la administración municipal está aquí
+             </Typography>
+             
+             <Typography 
+               variant="h6" 
+               sx={{ 
+                 mb: 6,
+                 color: currentThemeMode === 'dark' 
+                   ? 'rgba(255, 255, 255, 0.8)' 
+                   : 'rgba(33, 33, 33, 0.8)',
+                 maxWidth: 600,
+                 mx: 'auto',
+                 lineHeight: 1.6,
+                 fontWeight: 300
+               }}
+             >
               Únete a la nueva generación de ciudades inteligentes que priorizan la experiencia del ciudadano y la eficiencia administrativa.
             </Typography>
             
@@ -1273,15 +1315,21 @@ const Index = () => {
                   borderRadius: '50px',
                   px: 6,
                   py: 2.5,
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  color: '#ffffff',
-                  fontWeight: 400,
-                  textTransform: 'none',
-                  fontSize: '1.1rem',
-                  '&:hover': {
-                    borderColor: 'rgba(255, 255, 255, 0.5)',
-                    bgcolor: 'rgba(255, 255, 255, 0.05)'
-                  }
+                   borderColor: currentThemeMode === 'dark' 
+                     ? 'rgba(255, 255, 255, 0.3)' 
+                     : 'rgba(33, 33, 33, 0.3)',
+                   color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                   fontWeight: 400,
+                   textTransform: 'none',
+                   fontSize: '1.1rem',
+                   '&:hover': {
+                     borderColor: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.5)' 
+                       : 'rgba(33, 33, 33, 0.5)',
+                     bgcolor: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.05)' 
+                       : 'rgba(33, 33, 33, 0.05)'
+                   }
                 }}
                 endIcon={<PersonIcon />}
               >
