@@ -313,6 +313,10 @@ const Index = () => {
         setHasAutoScrolled(false);
       }
       
+
+      
+
+      
       // Scroll reveal effect for the second section title
       const fullText = "Una plataforma conversacional que transforma la relación entre los ciudadanos y su administración.";
       const words = fullText.split(' ');
@@ -391,7 +395,9 @@ const Index = () => {
     };
 
     loadCities();
-  }, []);
+    }, []);
+
+
 
   const handleCitySelect = (city: City | null) => {
     setSelectedCity(city);
@@ -466,7 +472,7 @@ const Index = () => {
         zIndex: 0
       }} />
       
-      {/* Background image that fades with scroll */}
+      {/* Background image with thumbnail */}
       <Box
         sx={{
           position: 'fixed',
@@ -476,19 +482,19 @@ const Index = () => {
           bottom: 0,
           background: currentThemeMode === 'dark' 
             ? `
-              linear-gradient(rgba(15, 15, 15, 0.4), rgba(15, 15, 15, 0.4)),
-              url('/lovable-uploads/4c349cf3-97bc-4a5f-98fc-a3b7c56d82c4.png')
+              linear-gradient(rgba(15, 15, 15, 0.5), rgba(15, 15, 15, 0.5)),
+              url('/lovable-uploads/ciudadmoderna.png')
             `
             : `
-              linear-gradient(rgba(248, 249, 250, 0.3), rgba(248, 249, 250, 0.3)),
-              url('/lovable-uploads/cafc4d2c-3e56-4c90-9405-00dc2cd1cf4c.png')
+              linear-gradient(rgba(248, 249, 250, 0.4), rgba(248, 249, 250, 0.4)),
+              url('/lovable-uploads/ciudadmoderna.png')
             `,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
           backgroundAttachment: 'fixed',
-          opacity: Math.max(0, 1 - (scrollY / 500)), // Fade out over 500px of scroll
-          transition: 'opacity 0.3s ease',
+          opacity: Math.max(0, 1 - Math.max(0, (scrollY - 200) / 300)), // Start fading at 200px, fade out over 300px
+          transition: 'opacity 0.2s ease',
           pointerEvents: 'none',
           zIndex: 1
         }}
@@ -532,7 +538,7 @@ const Index = () => {
         }}
       >
         {/* Título CityCore centrado absolutamente */}
-        <Box sx={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', pointerEvents: 'none', pl: 3 }}>
+        <Box sx={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', pointerEvents: 'none' }}>
           <Typography
             variant="h6"
             noWrap
@@ -568,31 +574,27 @@ const Index = () => {
           {user ? (
             <UserButton />
           ) : (
-            <>
-              <IconButton
-                color="inherit"
-                aria-label="user account"
-                onClick={handleLogin}
-                id="user-avatar-button"
-                sx={{ p: 0 }}
-              >
-                <Avatar
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    bgcolor: theme => theme.palette.background.paper,
-                    color: theme => theme.palette.text.primary,
-                    fontSize: 28,
-                    border: `1px solid ${theme => theme.palette.divider}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <AccountCircleIcon sx={{ fontSize: 32 }} />
-                </Avatar>
-              </IconButton>
-            </>
+            <Avatar
+              onClick={handleLogin}
+              sx={{
+                width: 40,
+                height: 40,
+                bgcolor: 'transparent',
+                color: theme => theme.palette.text.primary,
+                fontSize: 28,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  opacity: 0.8
+                }
+              }}
+            >
+              <AccountCircleIcon sx={{ fontSize: 32 }} />
+            </Avatar>
           )}
         </Box>
       </Box>
@@ -609,14 +611,14 @@ const Index = () => {
             justifyContent: 'center',
             alignItems: 'center',
             py: 0,
-            pb: 4
+            pb: 2
           }}
         >
            <Typography 
              variant="h2" 
              sx={{ 
                fontWeight: 700,
-               mb: 6,
+               mb: 4,
                color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
                fontSize: { xs: '2.5rem', md: '4rem', lg: '5rem' },
                letterSpacing: '-0.02em',
@@ -634,9 +636,9 @@ const Index = () => {
            <Typography 
              variant="h6" 
              sx={{ 
-               mb: 8,
-               fontWeight: 300,
-               color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(33, 33, 33, 0.8)',
+               mb: 5,
+               fontWeight: 500,
+               color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(33, 33, 33, 0.9)',
                maxWidth: 800,
                mx: 'auto',
                fontSize: { xs: '1.1rem', md: '1.25rem' },
@@ -675,7 +677,7 @@ const Index = () => {
                  backdropFilter: 'blur(10px)',
                  width: '100%',
                  minWidth: 0,
-                 mb: 4
+                 mb: 3
                }}
              >
               <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minWidth: 0 }}>
@@ -808,11 +810,11 @@ const Index = () => {
                   <Box
                     sx={{
                       mt: 2.5,
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 3,
+                                          width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
                       color: currentThemeMode === 'dark' 
                         ? 'rgba(255, 255, 255, 0.8)' 
                         : 'rgba(33, 33, 33, 0.8)',
@@ -923,7 +925,7 @@ const Index = () => {
 
       {/* Performance Section - Moved right after hero */}
       <Container maxWidth="lg" sx={{ pt: 0, pb: 12, position: 'relative', zIndex: 2 }}>
-        <Box ref={nextSectionRef} sx={{ mb: 8 }}>
+        <Box ref={nextSectionRef} sx={{ mb: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Typography 
               variant="h2" 
