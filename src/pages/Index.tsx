@@ -947,18 +947,25 @@ const Index = () => {
                }}
              >
                {scrollRevealText.split(' ').map((word, index) => (
-                 <Box
+                 <Typography
                    key={index}
                    component="span"
+                   variant="inherit"
                    sx={{
                      opacity: wordOpacities[index] || 0,
                      transition: 'opacity 0.3s ease-out',
-                     mr: 1,
-                     display: 'inline-block'
+                     display: 'inline',
+                     marginRight: '0.5rem',
+                     '&::after': {
+                       content: 'none'
+                     },
+                     '&::before': {
+                       content: 'none'
+                     }
                    }}
                  >
                    {word}
-                 </Box>
+                 </Typography>
                ))}
 
              </Typography>
