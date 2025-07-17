@@ -56,6 +56,9 @@ const Index = () => {
   const { user, profile } = useAuth();
   const { currentThemeMode } = useThemeContext();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const heroSectionRef = useRef<HTMLDivElement>(null);
+  const nextSectionRef = useRef<HTMLDivElement>(null);
   
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
@@ -67,6 +70,16 @@ const Index = () => {
   const [typingText, setTypingText] = useState('');
   const [typingIndex, setTypingIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
+  
+  // Scroll state for header transparency
+  const [scrollY, setScrollY] = useState(0);
+  
+  // Auto-scroll state
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
+  
+  // Scroll reveal state for the second section title
+  const [scrollRevealText, setScrollRevealText] = useState('');
+  const [wordOpacities, setWordOpacities] = useState<number[]>([]);
   
   const typingCities = [
     'Valencia, España',
@@ -267,6 +280,94 @@ const Index = () => {
     }
   }, [typingText, isTyping, typingIndex]);
 
+  // Scroll effect for header transparency and auto-scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      // Try multiple sources for scroll position
+      const currentScrollY = window.scrollY || 
+                            document.documentElement.scrollTop || 
+                            document.body.scrollTop ||
+                            mainContainerRef.current?.scrollTop ||
+                            0;
+      setScrollY(currentScrollY);
+      
+      // Auto-scroll logic: if user scrolls down slightly from hero section, jump to next section
+      if (!hasAutoScrolled && currentScrollY > 100 && currentScrollY < 300) {
+        setHasAutoScrolled(true);
+        if (nextSectionRef.current) {
+          // Scroll to the section with some padding to show the title properly
+          const element = nextSectionRef.current;
+          const elementTop = element.offsetTop;
+          const headerHeight = 80; // Approximate header height
+          const padding = 40; // Extra padding for better visibility
+          
+          window.scrollTo({
+            top: elementTop - headerHeight - padding,
+            behavior: 'smooth'
+          });
+        }
+      }
+      
+      // Reset auto-scroll flag when user scrolls back to top
+      if (currentScrollY < 50) {
+        setHasAutoScrolled(false);
+      }
+      
+      // Scroll reveal effect for the second section title
+      const fullText = "Una plataforma conversacional que transforma la relación entre los ciudadanos y su administración.";
+      const words = fullText.split(' ');
+      const revealStart = 200; // Start revealing at 200px scroll
+      const revealEnd = 500;   // Finish revealing at 500px scroll (faster appearance)
+      
+      if (currentScrollY >= revealStart && currentScrollY <= revealEnd) {
+        const progress = (currentScrollY - revealStart) / (revealEnd - revealStart);
+        const wordProgress = progress * words.length;
+        
+        // Calculate opacity for each word with gradient effect
+        const opacities = words.map((_, index) => {
+          const wordStart = index;
+          const wordEnd = index + 1;
+          
+          if (wordProgress <= wordStart) {
+            return 0; // Word not yet visible
+          } else if (wordProgress >= wordEnd) {
+            return 1; // Word fully visible
+          } else {
+            // Word is partially visible - calculate gradient opacity
+            return wordProgress - wordStart;
+          }
+        });
+        
+        setWordOpacities(opacities);
+        setScrollRevealText(fullText); // Always show full text, control visibility with opacity
+      } else if (currentScrollY > revealEnd) {
+        setWordOpacities(words.map(() => 1)); // All words fully visible
+        setScrollRevealText(fullText);
+      } else if (currentScrollY < revealStart) {
+        setWordOpacities(words.map(() => 0)); // All words hidden
+        setScrollRevealText('');
+      }
+    };
+
+    // Listen to scroll on both window and document
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also listen to scroll on the main container if it exists
+    const mainContainer = mainContainerRef.current;
+    if (mainContainer) {
+      mainContainer.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
+      if (mainContainer) {
+        mainContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [hasAutoScrolled]);
+
   // Cargar ciudades disponibles
   useEffect(() => {
     const loadCities = async () => {
@@ -305,47 +406,44 @@ const Index = () => {
 
   const features = [
     {
-      icon: <AutoAwesomeIcon sx={{ fontSize: 40, color: '#4285f4' }} />,
+      icon: <AutoAwesomeIcon sx={{ fontSize: 40, color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }} />,
       title: "Inteligencia Local",
       description: "Asistente IA especializado con información actualizada de tu ciudad y servicios municipales.",
-      color: '#4285f4'
+      color: currentThemeMode === 'dark' ? '#ffffff' : '#212121'
     },
     {
-      icon: <LocationIcon sx={{ fontSize: 40, color: '#34a853' }} />,
+      icon: <LocationIcon sx={{ fontSize: 40, color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }} />,
       title: "Contexto Geográfico",
       description: "Respuestas precisas basadas en tu ubicación y conocimiento específico de tu municipio.",
-      color: '#34a853'
+      color: currentThemeMode === 'dark' ? '#ffffff' : '#212121'
     },
     {
-      icon: <ChatIcon sx={{ fontSize: 40, color: '#ea4335' }} />,
+      icon: <ChatIcon sx={{ fontSize: 40, color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }} />,
       title: "Conversación Natural",
       description: "Interactúa como si hablaras con un vecino experto. Lenguaje natural y contexto local.",
-      color: '#ea4335'
+      color: currentThemeMode === 'dark' ? '#ffffff' : '#212121'
     }
   ];
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      bgcolor: currentThemeMode === 'dark' ? '#0f0f0f' : '#f8f9fa',
-      background: currentThemeMode === 'dark' 
-        ? `
-          linear-gradient(rgba(15, 15, 15, 0.4), rgba(15, 15, 15, 0.4)),
-          url('/lovable-uploads/4c349cf3-97bc-4a5f-98fc-a3b7c56d82c4.png')
-        `
-        : `
-          linear-gradient(rgba(248, 249, 250, 0.8), rgba(248, 249, 250, 0.8)),
-          url('/lovable-uploads/cafc4d2c-3e56-4c90-9405-00dc2cd1cf4c.png')
-        `,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed',
-      position: 'relative',
-      overflowY: 'auto',
-      overflowX: 'hidden'
-    }}>
-      {/* Background decorative elements */}
+        <Box 
+      ref={mainContainerRef}
+      sx={{ 
+        minHeight: '100vh', 
+        bgcolor: currentThemeMode === 'dark' ? '#0a0a0a' : '#f8f9fa',
+        position: 'relative',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        '@keyframes blink': {
+          '0%, 50%': {
+            opacity: 1,
+          },
+          '51%, 100%': {
+            opacity: 0,
+          },
+        },
+      }}>
+      {/* Background decorative elements - only visible when image is fading */}
       <Box sx={{
         position: 'fixed',
         top: 0,
@@ -363,9 +461,38 @@ const Index = () => {
             radial-gradient(circle at 80% 80%, rgba(52, 168, 83, 0.05) 0%, transparent 50%),
             radial-gradient(circle at 40% 60%, rgba(234, 67, 53, 0.03) 0%, transparent 50%)
           `,
+        opacity: Math.max(0, 1 - (scrollY / 500)), // Same fade as background image
         pointerEvents: 'none',
         zIndex: 0
       }} />
+      
+      {/* Background image that fades with scroll */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: currentThemeMode === 'dark' 
+            ? `
+              linear-gradient(rgba(15, 15, 15, 0.4), rgba(15, 15, 15, 0.4)),
+              url('/lovable-uploads/4c349cf3-97bc-4a5f-98fc-a3b7c56d82c4.png')
+            `
+            : `
+              linear-gradient(rgba(248, 249, 250, 0.3), rgba(248, 249, 250, 0.3)),
+              url('/lovable-uploads/cafc4d2c-3e56-4c90-9405-00dc2cd1cf4c.png')
+            `,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+          opacity: Math.max(0, 1 - (scrollY / 500)), // Fade out over 500px of scroll
+          transition: 'opacity 0.3s ease',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}
+      />
       
       {/* Header exacto como en AppLayout */}
       <Box
@@ -378,11 +505,30 @@ const Index = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          p: 2,
-          minHeight: '64px',
-          bgcolor: 'background.default',
+          p: { xs: 1, sm: 1.5 },
+          minHeight: '48px',
+          willChange: 'background-color, border-bottom, box-shadow',
+          bgcolor:
+            scrollY > 50
+              ? currentThemeMode === 'dark'
+                ? 'rgba(10, 10, 10, 0.95)'
+                : 'rgba(255, 255, 255, 0.95)'
+              : 'transparent',
+          borderBottom:
+            scrollY > 50
+              ? currentThemeMode === 'dark'
+                ? '1px solid rgba(255, 255, 255, 0.08)'
+                : '1px solid rgba(0, 0, 0, 0.08)'
+              : 'none',
+          boxShadow:
+            scrollY > 50
+              ? currentThemeMode === 'dark'
+                ? '0 2px 10px rgba(0, 0, 0, 0.2)'
+                : '0 2px 10px rgba(0, 0, 0, 0.08)'
+              : 'none',
           color: 'text.primary',
-          py: { xs: 1, sm: 2 },
+          py: { xs: 0.5, sm: 1 },
+          transition: 'background-color 0.3s ease, border-bottom 0.3s ease, box-shadow 0.3s ease',
         }}
       >
         {/* Título CityCore centrado absolutamente */}
@@ -397,7 +543,9 @@ const Index = () => {
               px: 3,
               py: 1.2,
               color: 'transparent',
-              backgroundImage: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 50%, #90caf9 100%)',
+              backgroundImage: currentThemeMode === 'dark' 
+                ? 'linear-gradient(90deg, #ffffff 0%, #cccccc 50%, #999999 100%)'
+                : 'linear-gradient(90deg, #212121 0%, #666666 50%, #999999 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -451,15 +599,19 @@ const Index = () => {
 
       <Container maxWidth="lg" sx={{ pt: 8, pb: 0, position: 'relative', zIndex: 2 }}>
         {/* Main Value Proposition - Primera sección principal */}
-        <Box sx={{ 
-          textAlign: 'center', 
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          py: 0
-        }}>
+        <Box 
+          ref={heroSectionRef}
+          sx={{ 
+            textAlign: 'center', 
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            py: 0,
+            pb: 4
+          }}
+        >
            <Typography 
              variant="h2" 
              sx={{ 
@@ -470,10 +622,13 @@ const Index = () => {
                letterSpacing: '-0.02em',
                lineHeight: 1.1,
                maxWidth: 1000,
-               textAlign: 'center'
+               textAlign: 'center',
+               opacity: Math.max(0, 1 - (scrollY / 300)), // Fade out over 300px of scroll
+               transform: `translateY(${Math.min(30, scrollY * 0.05)}px)`, // Slight upward movement
+               transition: 'opacity 0.3s ease, transform 0.3s ease'
              }}
            >
-             Todo sobre tu <Box component="span" sx={{ color: '#4285f4' }}>ciudad</Box>,<br />en un solo chat
+             Todo sobre tu <Box component="span" sx={{ color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }}>ciudad</Box>,<br />en un solo chat
            </Typography>
            
            <Typography 
@@ -486,14 +641,23 @@ const Index = () => {
                mx: 'auto',
                fontSize: { xs: '1.1rem', md: '1.25rem' },
                lineHeight: 1.6,
-               textAlign: 'center'
+               textAlign: 'center',
+               opacity: Math.max(0, 1 - (scrollY / 350)), // Fade out over 350px of scroll
+               transform: `translateY(${Math.min(20, scrollY * 0.03)}px)`, // Slight upward movement
+               transition: 'opacity 0.3s ease, transform 0.3s ease'
              }}
            >
             Consulta trámites, descubre eventos, encuentra lugares y recibe ayuda sin esperas.
           </Typography>
 
           {/* City Selector integrado en hero section */}
-          <Box sx={{ maxWidth: 600, width: '100%' }}>
+          <Box sx={{ 
+            maxWidth: 600, 
+            width: '100%',
+            opacity: Math.max(0, 1 - (scrollY / 400)), // Fade out over 400px of scroll
+            transform: `translateY(${Math.min(50, scrollY * 0.1)}px)`, // Slight upward movement
+            transition: 'opacity 0.3s ease, transform 0.3s ease'
+          }}>
              <Paper
                elevation={0}
                sx={{
@@ -504,7 +668,7 @@ const Index = () => {
                  borderRadius: '28px',
                  bgcolor: currentThemeMode === 'dark' 
                    ? 'rgba(255, 255, 255, 0.05)' 
-                   : 'rgba(255, 255, 255, 0.9)',
+                   : 'rgba(255, 255, 255, 0.3)',
                  border: currentThemeMode === 'dark' 
                    ? '1px solid rgba(255, 255, 255, 0.1)' 
                    : '1px solid rgba(0, 0, 0, 0.1)',
@@ -528,7 +692,7 @@ const Index = () => {
                       disableUnderline: true,
                       startAdornment: (
                         <InputAdornment position="start">
-                          <SearchIcon sx={{ color: '#4285f4', fontSize: 24 }} />
+                          <SearchIcon sx={{ color: currentThemeMode === 'dark' ? '#ffffff' : '#212121', fontSize: 24 }} />
                         </InputAdornment>
                       ),
                       sx: {
@@ -598,8 +762,8 @@ const Index = () => {
                                 : '1px solid rgba(0, 0, 0, 0.05)'
                               : 'none',
                             '&:hover': {
-                              bgcolor: 'rgba(66, 133, 244, 0.1)',
-                              borderLeft: '3px solid #4285f4'
+                              bgcolor: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(33, 33, 33, 0.1)',
+                              borderLeft: currentThemeMode === 'dark' ? '3px solid #ffffff' : '3px solid #212121'
                             },
                             '&:last-child': {
                               borderBottom: 'none'
@@ -612,8 +776,8 @@ const Index = () => {
                               sx={{ 
                                 width: 32, 
                                 height: 32, 
-                                bgcolor: city.profile_image_url ? 'transparent' : 'rgba(66, 133, 244, 0.2)',
-                                color: '#4285f4'
+                                                              bgcolor: city.profile_image_url ? 'transparent' : (currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(33, 33, 33, 0.2)'),
+                              color: currentThemeMode === 'dark' ? '#ffffff' : '#212121'
                               }}
                             >
                               {!city.profile_image_url && <LocationIcon sx={{ fontSize: 18 }} />}
@@ -710,7 +874,7 @@ const Index = () => {
                          color: selectedCity ? '#ffffff' : (currentThemeMode === 'dark' 
                            ? 'rgba(255, 255, 255, 0.4)' 
                            : 'rgba(33, 33, 33, 0.4)'),
-                         bgcolor: selectedCity ? '#4285f4' : 'transparent',
+                         bgcolor: selectedCity ? (currentThemeMode === 'dark' ? '#666666' : '#333333') : 'transparent',
                          border: selectedCity ? 'none' : (currentThemeMode === 'dark' 
                            ? '1px solid rgba(255, 255, 255, 0.2)' 
                            : '1px solid rgba(33, 33, 33, 0.2)'),
@@ -718,9 +882,9 @@ const Index = () => {
                          fontSize: { xs: '0.95em', sm: '1em' },
                          fontWeight: 500,
                          '&:hover': {
-                           bgcolor: selectedCity ? '#3367d6' : (currentThemeMode === 'dark' 
-                             ? 'rgba(255, 255, 255, 0.1)' 
-                             : 'rgba(33, 33, 33, 0.1)'),
+                                                       bgcolor: selectedCity ? (currentThemeMode === 'dark' ? '#555555' : '#222222') : (currentThemeMode === 'dark' 
+                              ? 'rgba(255, 255, 255, 0.1)' 
+                              : 'rgba(33, 33, 33, 0.1)'),
                            borderColor: selectedCity ? 'none' : (currentThemeMode === 'dark' 
                              ? 'rgba(255, 255, 255, 0.3)' 
                              : 'rgba(33, 33, 33, 0.3)')
@@ -754,6 +918,198 @@ const Index = () => {
             )}
           </Box>
 
+        </Box>
+      </Container>
+
+      {/* Performance Section - Moved right after hero */}
+      <Container maxWidth="lg" sx={{ pt: 0, pb: 12, position: 'relative', zIndex: 2 }}>
+        <Box ref={nextSectionRef} sx={{ mb: 8 }}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Typography 
+              variant="h2" 
+              sx={{ 
+                 fontWeight: 300,
+                 mb: 6,
+                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                 fontSize: { xs: '2.5rem', md: '4rem' },
+                 letterSpacing: '-0.02em',
+                 lineHeight: 1.1,
+                 maxWidth: 1000,
+                 mx: 'auto',
+                 minHeight: '4.4rem', // Maintain consistent height
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 flexWrap: 'wrap',
+                 textAlign: 'center'
+               }}
+             >
+               {scrollRevealText.split(' ').map((word, index) => (
+                 <Box
+                   key={index}
+                   component="span"
+                   sx={{
+                     opacity: wordOpacities[index] || 0,
+                     transition: 'opacity 0.3s ease-out',
+                     mr: 1,
+                     display: 'inline-block'
+                   }}
+                 >
+                   {word}
+                 </Box>
+               ))}
+
+             </Typography>
+             
+             <Button
+               variant="outlined"
+               sx={{
+                 borderRadius: '50px',
+                 px: 4,
+                 py: 1.5,
+                 borderColor: currentThemeMode === 'dark' 
+                   ? 'rgba(255, 255, 255, 0.3)' 
+                   : 'rgba(33, 33, 33, 0.3)',
+                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                 textTransform: 'none',
+                 fontWeight: 400,
+                 '&:hover': {
+                   borderColor: currentThemeMode === 'dark' 
+                     ? 'rgba(255, 255, 255, 0.5)' 
+                     : 'rgba(33, 33, 33, 0.5)',
+                   bgcolor: currentThemeMode === 'dark' 
+                     ? 'rgba(255, 255, 255, 0.05)' 
+                     : 'rgba(33, 33, 33, 0.05)'
+                 }
+               }}
+              endIcon={<ArrowForwardIcon />}
+            >
+              Ver informe técnico
+            </Button>
+          </Box>
+
+          {/* Performance Grid */}
+          <Box sx={{ 
+            position: 'relative',
+            maxWidth: 1200,
+            mx: 'auto',
+            px: { xs: 2, md: 0 }
+          }}>
+            {/* Background grid effect */}
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `
+                linear-gradient(90deg, rgba(66, 133, 244, 0.1) 1px, transparent 1px),
+                linear-gradient(rgba(66, 133, 244, 0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '50px 50px',
+              opacity: 0.3,
+              zIndex: 0
+            }} />
+            
+            {/* Curved line element */}
+            <Box sx={{
+              position: 'absolute',
+              top: '20%',
+              right: '10%',
+              width: 200,
+              height: 200,
+              border: currentThemeMode === 'dark' ? '2px solid #ffffff' : '2px solid #212121',
+              borderRadius: '50%',
+              opacity: 0.3,
+              zIndex: 1
+            }} />
+
+            <Stack 
+              direction={{ xs: 'column', md: 'row' }} 
+              spacing={4}
+              sx={{ position: 'relative', zIndex: 2 }}
+            >
+              {[
+                {
+                  title: 'Respuesta Inteligente',
+                  description: 'El sistema comprende consultas complejas y proporciona respuestas contextualizadas que van más allá de la información básica.'
+                },
+                {
+                  title: 'Gestión Adaptativa',
+                  description: 'CityCore se adapta a las necesidades específicas de cada municipio, aprendiendo de patrones de uso y optimizando respuestas.'
+                },
+                {
+                  title: 'Integración Perfecta',
+                  description: 'Cuando no se establece presupuesto de procesamiento, el sistema evalúa automáticamente la complejidad y calibra la respuesta apropiada.'
+                }
+              ].map((item, index) => (
+                <Card
+                  key={index}
+                  sx={{
+                    flex: 1,
+                    p: 4,
+                     bgcolor: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.08)' 
+                       : 'rgba(255, 255, 255, 0.9)',
+                     border: currentThemeMode === 'dark' 
+                       ? '1px solid rgba(255, 255, 255, 0.12)' 
+                       : '1px solid rgba(0, 0, 0, 0.1)',
+                     borderRadius: '20px',
+                     backdropFilter: 'blur(20px)',
+                     transition: 'all 0.3s ease',
+                     '&:hover': {
+                       transform: 'translateY(-4px)',
+                       boxShadow: currentThemeMode === 'dark' 
+                         ? '0 12px 24px rgba(0, 0, 0, 0.3)' 
+                         : '0 12px 24px rgba(0, 0, 0, 0.1)'
+                     }
+                   }}
+                 >
+                   {/* Icon */}
+                   <Box sx={{ 
+                     display: 'flex', 
+                     justifyContent: 'center', 
+                     mb: 3
+                   }}>
+                     <Box
+                       sx={{
+                         width: 60,
+                         height: 60,
+                         borderRadius: 2,
+                         bgcolor: 'rgba(66, 133, 244, 0.2)',
+                         display: 'flex',
+                         alignItems: 'center',
+                         justifyContent: 'center'
+                       }}
+                     >
+                      {index === 0 && <AutoAwesomeIcon sx={{ fontSize: 30, color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }} />}
+                      {index === 1 && <SpeedIcon sx={{ fontSize: 30, color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }} />}
+                      {index === 2 && <SecurityIcon sx={{ fontSize: 30, color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }} />}
+                     </Box>
+                   </Box>
+
+                   <Typography variant="h6" sx={{ 
+                     color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                     fontWeight: 400,
+                     mb: 2,
+                     textAlign: 'center'
+                   }}>
+                     {item.title}
+                   </Typography>
+
+                   <Typography variant="body2" sx={{ 
+                     color: currentThemeMode === 'dark' 
+                       ? 'rgba(255, 255, 255, 0.8)' 
+                       : 'rgba(33, 33, 33, 0.8)',
+                     lineHeight: 1.6,
+                     textAlign: 'center'
+                   }}>
+                     {item.description}
+                   </Typography>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
         </Box>
       </Container>
 
@@ -829,9 +1185,9 @@ const Index = () => {
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  bgcolor: index === 1 ? '#4285f4' : (currentThemeMode === 'dark' 
-                    ? 'rgba(255, 255, 255, 0.3)' 
-                    : 'rgba(33, 33, 33, 0.3)'),
+                                     bgcolor: index === 1 ? (currentThemeMode === 'dark' ? '#ffffff' : '#212121') : (currentThemeMode === 'dark' 
+                     ? 'rgba(255, 255, 255, 0.3)' 
+                     : 'rgba(33, 33, 33, 0.3)'),
                   transition: 'all 0.3s ease'
                 }} />
               ))}
@@ -873,12 +1229,12 @@ const Index = () => {
                      color: index === 0 ? '#ffffff' : (currentThemeMode === 'dark' 
                        ? 'rgba(255, 255, 255, 0.8)' 
                        : 'rgba(33, 33, 33, 0.8)'),
-                     bgcolor: index === 0 ? '#4285f4' : 'transparent',
+                     bgcolor: index === 0 ? (currentThemeMode === 'dark' ? '#666666' : '#333333') : 'transparent',
                      minWidth: { xs: '100%', sm: 'auto' },
                      '&:hover': {
-                       bgcolor: index === 0 ? '#3367d6' : (currentThemeMode === 'dark' 
-                         ? 'rgba(255, 255, 255, 0.1)' 
-                         : 'rgba(33, 33, 33, 0.1)')
+                                               bgcolor: index === 0 ? (currentThemeMode === 'dark' ? '#555555' : '#222222') : (currentThemeMode === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.1)' 
+                          : 'rgba(33, 33, 33, 0.1)')
                      }
                    }}
                  >
@@ -961,11 +1317,11 @@ const Index = () => {
                      bgcolor: currentThemeMode === 'dark' 
                        ? 'rgba(255, 255, 255, 0.08)' 
                        : 'rgba(255, 255, 255, 0.9)',
-                     border: product.highlight 
-                       ? '2px solid #4285f4' 
-                       : currentThemeMode === 'dark' 
-                         ? '1px solid rgba(255, 255, 255, 0.12)' 
-                         : '1px solid rgba(0, 0, 0, 0.1)',
+                                           border: product.highlight 
+                        ? (currentThemeMode === 'dark' ? '2px solid #ffffff' : '2px solid #212121') 
+                        : currentThemeMode === 'dark' 
+                          ? '1px solid rgba(255, 255, 255, 0.12)' 
+                          : '1px solid rgba(0, 0, 0, 0.1)',
                      borderRadius: '20px',
                      backdropFilter: 'blur(20px)',
                      transition: 'all 0.3s ease',
@@ -1002,7 +1358,7 @@ const Index = () => {
                           width: 40,
                           height: 40,
                           borderRadius: 1,
-                          bgcolor: '#4285f4',
+                          bgcolor: currentThemeMode === 'dark' ? '#666666' : '#333333',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
@@ -1056,175 +1412,7 @@ const Index = () => {
           </Box>
         </Box>
 
-        {/* Performance Section - Like Gemini */}
-        <Box sx={{ mb: 20 }}>
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Typography 
-              variant="h2" 
-              sx={{ 
-                 fontWeight: 300,
-                 mb: 6,
-                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
-                 fontSize: { xs: '2.5rem', md: '4rem' },
-                 letterSpacing: '-0.02em',
-                 lineHeight: 1.1,
-                 maxWidth: 1000,
-                 mx: 'auto'
-               }}
-             >
-               CityCore alcanza el máximo rendimiento en una amplia gama de casos de uso municipales
-             </Typography>
-             
-             <Button
-               variant="outlined"
-               sx={{
-                 borderRadius: '50px',
-                 px: 4,
-                 py: 1.5,
-                 borderColor: currentThemeMode === 'dark' 
-                   ? 'rgba(255, 255, 255, 0.3)' 
-                   : 'rgba(33, 33, 33, 0.3)',
-                 color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
-                 textTransform: 'none',
-                 fontWeight: 400,
-                 '&:hover': {
-                   borderColor: currentThemeMode === 'dark' 
-                     ? 'rgba(255, 255, 255, 0.5)' 
-                     : 'rgba(33, 33, 33, 0.5)',
-                   bgcolor: currentThemeMode === 'dark' 
-                     ? 'rgba(255, 255, 255, 0.05)' 
-                     : 'rgba(33, 33, 33, 0.05)'
-                 }
-               }}
-              endIcon={<ArrowForwardIcon />}
-            >
-              Ver informe técnico
-            </Button>
-          </Box>
-
-          {/* Performance Grid */}
-          <Box sx={{ 
-            position: 'relative',
-            maxWidth: 1200,
-            mx: 'auto',
-            px: { xs: 2, md: 0 }
-          }}>
-            {/* Background grid effect */}
-            <Box sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `
-                linear-gradient(90deg, rgba(66, 133, 244, 0.1) 1px, transparent 1px),
-                linear-gradient(rgba(66, 133, 244, 0.1) 1px, transparent 1px)
-              `,
-              backgroundSize: '50px 50px',
-              opacity: 0.3,
-              zIndex: 0
-            }} />
-            
-            {/* Curved line element */}
-            <Box sx={{
-              position: 'absolute',
-              top: '20%',
-              right: '10%',
-              width: 200,
-              height: 200,
-              border: '2px solid #4285f4',
-              borderRadius: '50%',
-              opacity: 0.3,
-              zIndex: 1
-            }} />
-
-            <Stack 
-              direction={{ xs: 'column', md: 'row' }} 
-              spacing={4}
-              sx={{ position: 'relative', zIndex: 2 }}
-            >
-              {[
-                {
-                  title: 'Respuesta Inteligente',
-                  description: 'El sistema comprende consultas complejas y proporciona respuestas contextualizadas que van más allá de la información básica.'
-                },
-                {
-                  title: 'Gestión Adaptativa',
-                  description: 'CityCore se adapta a las necesidades específicas de cada municipio, aprendiendo de patrones de uso y optimizando respuestas.'
-                },
-                {
-                  title: 'Integración Perfecta',
-                  description: 'Cuando no se establece presupuesto de procesamiento, el sistema evalúa automáticamente la complejidad y calibra la respuesta apropiada.'
-                }
-              ].map((item, index) => (
-                <Card
-                  key={index}
-                  sx={{
-                    flex: 1,
-                    p: 4,
-                     bgcolor: currentThemeMode === 'dark' 
-                       ? 'rgba(255, 255, 255, 0.08)' 
-                       : 'rgba(255, 255, 255, 0.9)',
-                     border: currentThemeMode === 'dark' 
-                       ? '1px solid rgba(255, 255, 255, 0.12)' 
-                       : '1px solid rgba(0, 0, 0, 0.1)',
-                     borderRadius: '20px',
-                     backdropFilter: 'blur(20px)',
-                     transition: 'all 0.3s ease',
-                     '&:hover': {
-                       transform: 'translateY(-4px)',
-                       boxShadow: currentThemeMode === 'dark' 
-                         ? '0 12px 24px rgba(0, 0, 0, 0.3)' 
-                         : '0 12px 24px rgba(0, 0, 0, 0.1)'
-                     }
-                   }}
-                 >
-                   {/* Icon */}
-                   <Box sx={{ 
-                     display: 'flex', 
-                     justifyContent: 'center', 
-                     mb: 3
-                   }}>
-                     <Box
-                       sx={{
-                         width: 60,
-                         height: 60,
-                         borderRadius: 2,
-                         bgcolor: 'rgba(66, 133, 244, 0.2)',
-                         display: 'flex',
-                         alignItems: 'center',
-                         justifyContent: 'center'
-                       }}
-                     >
-                       {index === 0 && <AutoAwesomeIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
-                       {index === 1 && <SpeedIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
-                       {index === 2 && <SecurityIcon sx={{ fontSize: 30, color: '#4285f4' }} />}
-                     </Box>
-                   </Box>
-
-                   <Typography variant="h6" sx={{ 
-                     color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
-                     fontWeight: 400,
-                     mb: 2,
-                     textAlign: 'center'
-                   }}>
-                     {item.title}
-                   </Typography>
-
-                   <Typography variant="body2" sx={{ 
-                     color: currentThemeMode === 'dark' 
-                       ? 'rgba(255, 255, 255, 0.8)' 
-                       : 'rgba(33, 33, 33, 0.8)',
-                     lineHeight: 1.6,
-                     textAlign: 'center'
-                   }}>
-                     {item.description}
-                   </Typography>
-                </Card>
-              ))}
-            </Stack>
-          </Box>
-        </Box>
+        
 
         {/* Bottom CTA */}
         <Box sx={{ textAlign: 'center' }}>
@@ -1293,13 +1481,13 @@ const Index = () => {
                   borderRadius: '50px',
                   px: 6,
                   py: 2.5,
-                  bgcolor: '#4285f4',
+                                     bgcolor: currentThemeMode === 'dark' ? '#666666' : '#333333',
                   color: '#ffffff',
                   fontWeight: 400,
                   textTransform: 'none',
                   fontSize: '1.1rem',
                   '&:hover': {
-                    bgcolor: '#3367d6'
+                    bgcolor: currentThemeMode === 'dark' ? '#555555' : '#222222'
                   }
                 }}
                 endIcon={<ArrowForwardIcon />}
