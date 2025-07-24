@@ -142,10 +142,14 @@ const Index = () => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
 
-      // Obtener API key del backend
+      // Obtener API key del backend con mejor manejo de errores
       let apiKey = 'AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g'; // Fallback
       try {
-        const response = await fetch('https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia', {
+        const functionUrl = window.location.hostname === 'localhost' 
+          ? 'http://127.0.0.1:54321/functions/v1/chat-ia'
+          : 'https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia';
+          
+        const response = await fetch(functionUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -161,7 +165,7 @@ const Index = () => {
           }
         }
       } catch (apiError) {
-        console.warn('Could not fetch API key from backend, using fallback');
+        console.warn('Could not fetch API key from backend, using fallback:', apiError);
       }
 
       // Geocodificar las coordenadas
@@ -223,6 +227,8 @@ const Index = () => {
       } else {
         setLocationError('Error al obtener tu ubicación. Inténtalo de nuevo.');
       }
+      // Limpiar el estado de error después de un tiempo para no bloquear la UI
+      setTimeout(() => setLocationError(null), 5000);
     } finally {
       setIsManualLocationLoading(false);
     }
@@ -376,6 +382,7 @@ const Index = () => {
   useEffect(() => {
     const loadCities = async () => {
       try {
+        console.log('Loading cities from Supabase...');
         const { data, error } = await supabase
           .from('cities')
           .select('id, name, slug, assistant_name, profile_image_url, restricted_city')
@@ -385,17 +392,22 @@ const Index = () => {
 
         if (error) {
           console.error('Error loading cities:', error);
+          // No bloquear la aplicación si las ciudades no se cargan
+          setCities([]);
           return;
         }
 
+        console.log('Cities loaded successfully:', data?.length || 0);
         setCities(data || []);
       } catch (error) {
-        console.error('Error loading cities:', error);
+        console.error('Critical error loading cities:', error);
+        // Asegurar que la aplicación no se bloquee
+        setCities([]);
       }
     };
 
     loadCities();
-    }, []);
+  }, []);
 
 
 
