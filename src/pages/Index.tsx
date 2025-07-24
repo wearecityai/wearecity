@@ -601,8 +601,8 @@ const Index = () => {
           ref={heroSectionRef}
           sx={{ 
             textAlign: 'center', 
-            minHeight: '100vh',
-            height: '100vh',
+            minHeight: { xs: '100dvh', md: '100vh' },
+            height: { xs: '100dvh', md: '100vh' },
             pt: { xs: 6, md: 18, lg: 22 },
             pb: 2,
             display: 'flex',
@@ -662,7 +662,7 @@ const Index = () => {
               position: { xs: 'absolute', md: 'static' },
               left: 0,
               right: 0,
-              bottom: { xs: 64, md: 'auto' }, // 64px de margen inferior en mobile
+              bottom: { xs: 'calc(64px + env(safe-area-inset-bottom, 0px))', md: 'auto' },
               mx: 'auto',
               zIndex: 3,
               // En mobile, el input va pegado abajo
