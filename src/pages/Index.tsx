@@ -39,6 +39,7 @@ import { Menu as MenuIcon, AccountCircle as AccountCircleIcon } from '@mui/icons
 import UserButton from '@/components/auth/UserButton';
 import { findNearestCity } from '@/utils/locationUtils';
 import { useThemeContext } from '@/theme/ThemeProvider';
+import { logProduction, logProductionError } from '@/utils/productionLogger';
 
 interface City {
   id: string;
@@ -80,6 +81,9 @@ const Index = () => {
   // Scroll reveal state for the second section title
   const [scrollRevealText, setScrollRevealText] = useState('');
   const [wordOpacities, setWordOpacities] = useState<number[]>([]);
+  
+  // Estado para saber si estamos en cliente con mejor manejo
+  const [isClient, setIsClient] = useState(false);
   
   const typingCities = [
     'Valencia, España',
@@ -378,11 +382,13 @@ const Index = () => {
     };
   }, [hasAutoScrolled]);
 
-  // Cargar ciudades disponibles
+  // Cargar ciudades disponibles con mejor error handling
   useEffect(() => {
     const loadCities = async () => {
       try {
         console.log('Loading cities from Supabase...');
+        
+        // Timeout para la carga de ciudades
         const { data, error } = await supabase
           .from('cities')
           .select('id, name, slug, assistant_name, profile_image_url, restricted_city')
@@ -392,7 +398,6 @@ const Index = () => {
 
         if (error) {
           console.error('Error loading cities:', error);
-          // No bloquear la aplicación si las ciudades no se cargan
           setCities([]);
           return;
         }
@@ -401,17 +406,30 @@ const Index = () => {
         setCities(data || []);
       } catch (error) {
         console.error('Critical error loading cities:', error);
-        // Asegurar que la aplicación no se bloquee
         setCities([]);
+        
+        // En producción, intentar cargar ciudades después de un delay
+        if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+          setTimeout(() => {
+            console.log('Retrying city load...');
+            loadCities();
+          }, 3000);
+        }
       }
     };
 
-    loadCities();
-  }, []);
+    // Solo cargar ciudades si estamos en el cliente
+    if (isClient) {
+      loadCities();
+    }
+  }, [isClient]);
 
-  // Estado para saber si estamos en cliente
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => { setIsClient(true); }, []);
+  // Efecto para establecer el estado del cliente
+  useEffect(() => { 
+    // Evitar errores de hidratación
+    const timer = setTimeout(() => setIsClient(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
 
   const handleCitySelect = (city: City | null) => {

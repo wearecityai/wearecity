@@ -15,6 +15,18 @@ const App = () => {
     <AppErrorBoundary 
       onError={(error, errorInfo) => {
         console.error('App Error Boundary caught an error:', error, errorInfo);
+        
+        // Log production errors with context
+        if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+          console.log('[PROD ERROR BOUNDARY]', {
+            error: error.message,
+            stack: error.stack,
+            componentStack: errorInfo.componentStack,
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+          });
+        }
       }}
     >
       <ThemeProvider>
