@@ -409,6 +409,12 @@ const Index = () => {
     loadCities();
   }, []);
 
+  // Estado para saber si estamos en cliente
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
 
   const handleCitySelect = (city: City | null) => {
@@ -471,7 +477,7 @@ const Index = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundImage: [
+          backgroundImage: isClient ? [
             currentThemeMode === 'dark'
               ? `url('/lovable-uploads/City_dark_mobile.png')`
               : `url('/lovable-uploads/City_light_mobile.png')`,
@@ -484,7 +490,7 @@ const Index = () => {
             currentThemeMode === 'dark'
               ? `url('/lovable-uploads/dark.png')`
               : `url('/lovable-uploads/light.png')`,
-          ],
+          ] : 'none',
           backgroundSize: 'cover', // Cubre todo el ancho y recorta por arriba si hace falta
           backgroundPosition: 'bottom center', // Pegada abajo y centrada
           backgroundRepeat: 'no-repeat', // No repite la imagen
