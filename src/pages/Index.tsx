@@ -411,10 +411,7 @@ const Index = () => {
 
   // Estado para saber si estamos en cliente
   const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  useEffect(() => { setIsClient(true); }, []);
 
 
   const handleCitySelect = (city: City | null) => {
@@ -467,40 +464,40 @@ const Index = () => {
           },
         },
       }}>
-      {/* Background decorative elements - only visible when image is fading */}
-      
-      {/* Background image with thumbnail */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: isClient ? [
-            currentThemeMode === 'dark'
-              ? `url('/lovable-uploads/City_dark_mobile.png')`
-              : `url('/lovable-uploads/City_light_mobile.png')`,
-            currentThemeMode === 'dark'
-              ? `url('/lovable-uploads/City_dark_mobile.png')`
-              : `url('/lovable-uploads/City_light_mobile.png')`,
-            currentThemeMode === 'dark'
-              ? `url('/lovable-uploads/dark.png')`
-              : `url('/lovable-uploads/light.png')`,
-            currentThemeMode === 'dark'
-              ? `url('/lovable-uploads/dark.png')`
-              : `url('/lovable-uploads/light.png')`,
-          ] : 'none',
-          backgroundSize: 'cover', // Cubre todo el ancho y recorta por arriba si hace falta
-          backgroundPosition: 'bottom center', // Pegada abajo y centrada
-          backgroundRepeat: 'no-repeat', // No repite la imagen
-          backgroundAttachment: 'fixed',
-          opacity: Math.max(0, 1 - Math.max(0, (scrollY - 200) / 300)), // Start fading at 200px, fade out over 300px
-          transition: 'opacity 0.2s ease',
-          pointerEvents: 'none',
-          zIndex: 1
-        }}
-      />
+      {/* Background image solo en cliente para evitar errores SSR */}
+      {isClient && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: [
+              currentThemeMode === 'dark'
+                ? `url('/lovable-uploads/City_dark_mobile.png')`
+                : `url('/lovable-uploads/City_light_mobile.png')`,
+              currentThemeMode === 'dark'
+                ? `url('/lovable-uploads/City_dark_mobile.png')`
+                : `url('/lovable-uploads/City_light_mobile.png')`,
+              currentThemeMode === 'dark'
+                ? `url('/lovable-uploads/dark.png')`
+                : `url('/lovable-uploads/light.png')`,
+              currentThemeMode === 'dark'
+                ? `url('/lovable-uploads/dark.png')`
+                : `url('/lovable-uploads/light.png')`,
+            ],
+            backgroundSize: 'cover',
+            backgroundPosition: 'bottom center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
+            opacity: Math.max(0, 1 - Math.max(0, (scrollY - 200) / 300)),
+            transition: 'opacity 0.2s ease',
+            pointerEvents: 'none',
+            zIndex: 1
+          }}
+        />
+      )}
       
       {/* Header exacto como en AppLayout */}
       <Box
