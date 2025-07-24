@@ -450,27 +450,6 @@ const Index = () => {
         },
       }}>
       {/* Background decorative elements - only visible when image is fading */}
-      <Box sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: currentThemeMode === 'dark'
-          ? `
-            radial-gradient(circle at 20% 20%, rgba(66, 133, 244, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(52, 168, 83, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 40% 60%, rgba(234, 67, 53, 0.05) 0%, transparent 50%)
-          `
-          : `
-            radial-gradient(circle at 20% 20%, rgba(66, 133, 244, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(52, 168, 83, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 40% 60%, rgba(234, 67, 53, 0.03) 0%, transparent 50%)
-          `,
-        opacity: Math.max(0, 1 - (scrollY / 500)), // Same fade as background image
-        pointerEvents: 'none',
-        zIndex: 0
-      }} />
       
       {/* Background image with thumbnail */}
       <Box
@@ -480,18 +459,23 @@ const Index = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: currentThemeMode === 'dark' 
-            ? `
-              linear-gradient(rgba(15, 15, 15, 0.5), rgba(15, 15, 15, 0.5)),
-              url('/lovable-uploads/ciudadmoderna.png')
-            `
-            : `
-              linear-gradient(rgba(248, 249, 250, 0.4), rgba(248, 249, 250, 0.4)),
-              url('/lovable-uploads/ciudadmoderna.png')
-            `,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          backgroundImage: [
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/City_dark_mobile.png')`
+              : `url('/lovable-uploads/City_light_mobile.png')`,
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/City_dark_mobile.png')`
+              : `url('/lovable-uploads/City_light_mobile.png')`,
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/dark.png')`
+              : `url('/lovable-uploads/light.png')`,
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/dark.png')`
+              : `url('/lovable-uploads/light.png')`,
+          ],
+          backgroundSize: 'cover', // Cubre todo el ancho y recorta por arriba si hace falta
+          backgroundPosition: 'bottom center', // Pegada abajo y centrada
+          backgroundRepeat: 'no-repeat', // No repite la imagen
           backgroundAttachment: 'fixed',
           opacity: Math.max(0, 1 - Math.max(0, (scrollY - 200) / 300)), // Start fading at 200px, fade out over 300px
           transition: 'opacity 0.2s ease',
@@ -605,47 +589,51 @@ const Index = () => {
           ref={heroSectionRef}
           sx={{ 
             textAlign: 'center', 
+            minHeight: '100vh',
             height: '100vh',
+            pt: { xs: 6, md: 18, lg: 22 },
+            pb: 2,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
+            justifyContent: { xs: 'flex-start', md: 'flex-start' },
             alignItems: 'center',
             py: 0,
-            pb: 2
+            position: 'relative',
           }}
         >
            <Typography 
              variant="h2" 
              sx={{ 
                fontWeight: 700,
-               mb: 4,
-               color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
-               fontSize: { xs: '2.5rem', md: '4rem', lg: '5rem' },
+               mb: { xs: 2.5, sm: 3, md: 4 },
+               color: currentThemeMode === 'dark' ? '#fff' : '#111',
+               fontSize: { xs: '2.1rem', sm: '2.7rem', md: '3.5rem', lg: '4.5rem' },
                letterSpacing: '-0.02em',
-               lineHeight: 1.1,
-               maxWidth: 1000,
+               lineHeight: { xs: 1.13, sm: 1.12, md: 1.1 },
+               maxWidth: 900,
                textAlign: 'center',
-               opacity: Math.max(0, 1 - (scrollY / 300)), // Fade out over 300px of scroll
-               transform: `translateY(${Math.min(30, scrollY * 0.05)}px)`, // Slight upward movement
+               opacity: Math.max(0, 1 - (scrollY / 300)),
                transition: 'opacity 0.3s ease, transform 0.3s ease'
              }}
            >
-             Todo sobre tu <Box component="span" sx={{ color: currentThemeMode === 'dark' ? '#ffffff' : '#212121' }}>ciudad</Box>,<br />en un solo chat
+             Todo sobre tu ciudad<br />
+             <Box component="span" sx={{ color: currentThemeMode === 'dark' ? '#fff' : '#111', fontWeight: 700, display: 'inline' }}>en </Box>
+             <Box component="span" sx={{ color: '#448aff', fontWeight: 800, display: 'inline' }}>CityCore</Box>
            </Typography>
            
            <Typography 
              variant="h6" 
              sx={{ 
-               mb: 5,
-               fontWeight: 500,
-               color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(33, 33, 33, 0.9)',
-               maxWidth: 800,
+               mb: { xs: 4, sm: 5, md: 5 },
+               fontWeight: 400,
+               color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(33, 33, 33, 0.85)',
+               maxWidth: 600,
                mx: 'auto',
-               fontSize: { xs: '1.1rem', md: '1.25rem' },
-               lineHeight: 1.6,
+               fontSize: { xs: '1.15rem', sm: '1.25rem', md: '1.25rem' },
+               lineHeight: { xs: 1.35, sm: 1.5, md: 1.6 },
                textAlign: 'center',
-               opacity: Math.max(0, 1 - (scrollY / 350)), // Fade out over 350px of scroll
-               transform: `translateY(${Math.min(20, scrollY * 0.03)}px)`, // Slight upward movement
+               opacity: Math.max(0, 1 - (scrollY / 350)),
+               transform: `translateY(${Math.min(10, scrollY * 0.02)}px)`,
                transition: 'opacity 0.3s ease, transform 0.3s ease'
              }}
            >
@@ -653,13 +641,23 @@ const Index = () => {
           </Typography>
 
           {/* City Selector integrado en hero section */}
-          <Box sx={{ 
-            maxWidth: 600, 
-            width: '100%',
-            opacity: Math.max(0, 1 - (scrollY / 400)), // Fade out over 400px of scroll
-            transform: `translateY(${Math.min(50, scrollY * 0.1)}px)`, // Slight upward movement
-            transition: 'opacity 0.3s ease, transform 0.3s ease'
-          }}>
+          <Box
+            sx={{
+              maxWidth: 600,
+              width: '100%',
+              opacity: Math.max(0, 1 - (scrollY / 400)),
+              transition: 'opacity 0.3s ease, transform 0.3s ease',
+              position: { xs: 'absolute', md: 'static' },
+              left: 0,
+              right: 0,
+              bottom: { xs: 64, md: 'auto' }, // 64px de margen inferior en mobile
+              mx: 'auto',
+              zIndex: 3,
+              // En mobile, el input va pegado abajo
+              pb: { xs: 0, md: 0 },
+              // En desktop, mantiene el flujo normal
+            }}
+          >
              <Paper
                elevation={0}
                sx={{
@@ -668,13 +666,22 @@ const Index = () => {
                  justifyContent: 'center',
                  p: 0,
                  borderRadius: '28px',
-                 bgcolor: currentThemeMode === 'dark' 
-                   ? 'rgba(255, 255, 255, 0.05)' 
-                   : 'rgba(255, 255, 255, 0.3)',
-                 border: currentThemeMode === 'dark' 
-                   ? '1px solid rgba(255, 255, 255, 0.1)' 
-                   : '1px solid rgba(0, 0, 0, 0.1)',
-                 backdropFilter: 'blur(10px)',
+                 bgcolor: {
+                  xs: currentThemeMode === 'dark' ? '#111' : '#fff',
+                  sm: currentThemeMode === 'dark' ? '#111' : '#fff',
+                  md: currentThemeMode === 'dark' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.92)',
+                },
+                border: {
+                  xs: currentThemeMode === 'dark' ? '1.5px solid #222' : '1.5px solid #e0e0e0',
+                  sm: currentThemeMode === 'dark' ? '1.5px solid #222' : '1.5px solid #e0e0e0',
+                  md: currentThemeMode === 'dark' ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.10)',
+                },
+                boxShadow: {
+                  xs: '0 2px 16px 0 rgba(0,0,0,0.10)',
+                  sm: '0 2px 16px 0 rgba(0,0,0,0.10)',
+                  md: '0 4px 32px 0 rgba(0,0,0,0.08)',
+                },
+                backdropFilter: { md: 'blur(10px)' },
                  width: '100%',
                  minWidth: 0,
                  mb: 3
@@ -694,7 +701,7 @@ const Index = () => {
                       disableUnderline: true,
                       startAdornment: (
                         <InputAdornment position="start">
-                          <SearchIcon sx={{ color: currentThemeMode === 'dark' ? '#ffffff' : '#212121', fontSize: 24 }} />
+                          <SearchIcon sx={{ color: currentThemeMode === 'dark' ? '#fff' : '#111', fontSize: 24 }} />
                         </InputAdornment>
                       ),
                       sx: {
@@ -702,6 +709,8 @@ const Index = () => {
                         fontSize: { xs: '1.1rem', sm: '1.15rem' },
                         lineHeight: '1.4',
                         minWidth: 0,
+                        color: currentThemeMode === 'dark' ? '#fff' : '#111',
+                        backgroundColor: 'transparent',
                       },
                     }}
                     sx={{
@@ -717,19 +726,19 @@ const Index = () => {
                       width: '100%',
                       flex: 1,
                        fontWeight: 500,
-                       color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                       color: currentThemeMode === 'dark' ? '#fff' : '#111',
                        '& input': {
-                         color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+                         color: currentThemeMode === 'dark' ? '#fff' : '#111',
                          width: '100%',
                          minWidth: 0,
                          flex: 1,
                          textOverflow: 'clip',
                          overflow: 'visible',
                          '&::placeholder': {
-                           color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(33, 33, 33, 0.6)',
-                           opacity: 1
-                         }
-                       }
+                           color: currentThemeMode === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(33,33,33,0.7)',
+                            opacity: 1
+                          }
+                        }
                     }}
                   />
                   
