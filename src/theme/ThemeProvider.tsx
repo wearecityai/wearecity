@@ -20,26 +20,9 @@ export const useThemeContext = () => {
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  [key: string]: any; // Allow any additional props
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, ...otherProps }) => {
-  // Filter out ALL Lovable debug props that shouldn't be passed to MUI components
-  const cleanProps = Object.keys(otherProps).reduce((acc, key) => {
-    // Exclude all Lovable debug properties
-    if (!key.startsWith('data-lov-') && 
-        !key.startsWith('data-component-') &&
-        key !== 'data-lov-id' &&
-        key !== 'data-lov-name' &&
-        key !== 'data-component-path' &&
-        key !== 'data-component-line' &&
-        key !== 'data-component-file' &&
-        key !== 'data-component-name' &&
-        key !== 'data-component-content') {
-      acc[key] = otherProps[key];
-    }
-    return acc;
-  }, {} as any);
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [currentThemeMode, setCurrentThemeMode] = useState<'light' | 'dark'>('light');
 
