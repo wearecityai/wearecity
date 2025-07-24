@@ -525,12 +525,7 @@ const Index = () => {
                 ? '1px solid rgba(255, 255, 255, 0.08)'
                 : '1px solid rgba(0, 0, 0, 0.08)'
               : 'none',
-          boxShadow:
-            scrollY > 50
-              ? currentThemeMode === 'dark'
-                ? '0 2px 10px rgba(0, 0, 0, 0.2)'
-                : '0 2px 10px rgba(0, 0, 0, 0.08)'
-              : 'none',
+          boxShadow: 'none',
           color: 'text.primary',
           py: { xs: 0.5, sm: 1 },
           transition: 'background-color 0.3s ease, border-bottom 0.3s ease, box-shadow 0.3s ease',
