@@ -676,11 +676,7 @@ const Index = () => {
                   sm: currentThemeMode === 'dark' ? '1.5px solid #222' : '1.5px solid #e0e0e0',
                   md: currentThemeMode === 'dark' ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.10)',
                 },
-                boxShadow: {
-                  xs: '0 2px 16px 0 rgba(0,0,0,0.10)',
-                  sm: '0 2px 16px 0 rgba(0,0,0,0.10)',
-                  md: '0 4px 32px 0 rgba(0,0,0,0.08)',
-                },
+                boxShadow: 'none',
                 backdropFilter: { md: 'blur(10px)' },
                  width: '100%',
                  minWidth: 0,
