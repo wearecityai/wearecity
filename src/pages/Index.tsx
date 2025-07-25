@@ -30,7 +30,11 @@ import {
   Person as PersonIcon,
   ArrowForward as ArrowForwardIcon,
   Star as StarIcon,
-  AutoAwesome as AutoAwesomeIcon
+  AutoAwesome as AutoAwesomeIcon,
+  Send as SendIcon,
+  Reply as ReplyIcon,
+  Business as BusinessIcon,
+  Check as CheckIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,6 +84,13 @@ const Index = () => {
   // Scroll reveal state for the second section title
   const [scrollRevealText, setScrollRevealText] = useState('');
   const [wordOpacities, setWordOpacities] = useState<number[]>([]);
+  
+  // Estados para la infografía
+  const [step1Visible, setStep1Visible] = useState(false);
+  const [step2Visible, setStep2Visible] = useState(false);
+  const [step3Visible, setStep3Visible] = useState(false);
+  const [line1Visible, setLine1Visible] = useState(false);
+  const [line2Visible, setLine2Visible] = useState(false);
   
   const typingCities = [
     'Valencia, España',
@@ -295,6 +306,9 @@ const Index = () => {
                             document.body.scrollTop ||
                             mainContainerRef.current?.scrollTop ||
                             0;
+      
+
+      
       setScrollY(currentScrollY);
       
       // Auto-scroll logic: if user scrolls down slightly from hero section, jump to next section
@@ -326,8 +340,8 @@ const Index = () => {
       // Scroll reveal effect for the second section title
       const fullText = "Una plataforma conversacional que transforma la relación entre los ciudadanos y su administración.";
       const words = fullText.split(' ');
-      const revealStart = 200; // Start revealing at 200px scroll
-      const revealEnd = 500;   // Finish revealing at 500px scroll (faster appearance)
+      const revealStart = 100; // Start revealing at 100px scroll
+      const revealEnd = 300;   // Finish revealing at 300px scroll (faster appearance)
       
       if (currentScrollY >= revealStart && currentScrollY <= revealEnd) {
         const progress = (currentScrollY - revealStart) / (revealEnd - revealStart);
@@ -357,6 +371,26 @@ const Index = () => {
         setWordOpacities(words.map(() => 0)); // All words hidden
         setScrollRevealText('');
       }
+
+        // Control de aparición progresiva de la infografía basada en scroll con secuencia
+        const step1Start = 200;   // Círculo 1 aparece
+        const line1Start = 220;   // Línea 1 aparece después de completar círculo 1
+        const step2Start = 240;   // Círculo 2 aparece después de completar línea 1
+        const line2Start = 260;   // Línea 2 aparece después de completar círculo 2
+        const step3Start = 280;   // Círculo 3 aparece después de completar línea 2
+        
+        // Secuencia dependiente: evaluar condiciones en tiempo real
+        const shouldShowStep1 = currentScrollY >= step1Start;
+        const shouldShowLine1 = currentScrollY >= line1Start && shouldShowStep1;
+        const shouldShowStep2 = currentScrollY >= step2Start && shouldShowLine1;
+        const shouldShowLine2 = currentScrollY >= line2Start && shouldShowStep2;
+        const shouldShowStep3 = currentScrollY >= step3Start && shouldShowLine2;
+        
+        setStep1Visible(shouldShowStep1);
+        setLine1Visible(shouldShowLine1);
+        setStep2Visible(shouldShowStep2);
+        setLine2Visible(shouldShowLine2);
+        setStep3Visible(shouldShowStep3);
     };
 
     // Listen to scroll on both window and document
@@ -369,12 +403,18 @@ const Index = () => {
       mainContainer.addEventListener('scroll', handleScroll, { passive: true });
     }
     
+    // Additional listeners for mobile
+    document.documentElement.addEventListener('scroll', handleScroll, { passive: true });
+    document.body.addEventListener('scroll', handleScroll, { passive: true });
+    
     return () => {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('scroll', handleScroll);
       if (mainContainer) {
         mainContainer.removeEventListener('scroll', handleScroll);
       }
+      document.documentElement.removeEventListener('scroll', handleScroll);
+      document.body.removeEventListener('scroll', handleScroll);
     };
   }, [hasAutoScrolled]);
 
@@ -414,6 +454,10 @@ const Index = () => {
   useEffect(() => { setIsClient(true); }, []);
 
 
+
+  // Calcular el parallax para el fondo de edificios
+
+
   const handleCitySelect = (city: City | null) => {
     setSelectedCity(city);
     if (city) {
@@ -446,6 +490,8 @@ const Index = () => {
     }
   ];
 
+
+
   return (
         <Box 
       ref={mainContainerRef}
@@ -464,11 +510,11 @@ const Index = () => {
           },
         },
       }}>
-      {/* Background image solo en cliente para evitar errores SSR */}
+      {/* Background estático */}
       {isClient && (
         <Box
           sx={{
-            position: 'fixed',
+            position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
@@ -488,12 +534,16 @@ const Index = () => {
                 : `url('/lovable-uploads/light.png')`,
             ],
             backgroundSize: 'cover',
-            backgroundPosition: 'bottom center',
+            backgroundPosition: [
+              'center 100%', // xs
+              'center 100%', // sm
+              'center 105%', // md
+              'center 105%', // lg
+              'center 105%', // xl
+            ],
             backgroundRepeat: 'no-repeat',
             backgroundAttachment: 'fixed',
-            opacity: Math.max(0, 1 - Math.max(0, (scrollY - 200) / 300)),
-            transition: 'opacity 0.2s ease',
-            pointerEvents: 'none',
+            opacity: 1,
             zIndex: 1
           }}
         />
@@ -601,7 +651,7 @@ const Index = () => {
             textAlign: 'center', 
             minHeight: { xs: '100dvh', md: '100vh' },
             height: { xs: '100dvh', md: '100vh' },
-            pt: { xs: 6, md: 18, lg: 22 },
+            pt: { xs: 6, md: 6, lg: 8, xl: 18 },
             pb: 2,
             display: 'flex',
             flexDirection: 'column',
@@ -615,15 +665,13 @@ const Index = () => {
              variant="h2" 
              sx={{ 
                fontWeight: 700,
-               mb: { xs: 2.5, sm: 3, md: 4 },
+               mb: { xs: 2.5, sm: 3, md: 3, lg: 4 },
                color: currentThemeMode === 'dark' ? '#fff' : '#111',
-               fontSize: { xs: '2.1rem', sm: '2.7rem', md: '3.5rem', lg: '4.5rem' },
+               fontSize: { xs: '2.1rem', sm: '2.7rem', md: '2.3rem', lg: '3.2rem', xl: '4.5rem' },
                letterSpacing: '-0.02em',
                lineHeight: { xs: 1.13, sm: 1.12, md: 1.1 },
                maxWidth: 900,
-               textAlign: 'center',
-               opacity: Math.max(0, 1 - (scrollY / 300)),
-               transition: 'opacity 0.3s ease, transform 0.3s ease'
+               textAlign: 'center'
              }}
            >
              Todo sobre tu ciudad<br />
@@ -634,20 +682,17 @@ const Index = () => {
            <Typography 
              variant="h6" 
              sx={{ 
-               mb: { xs: 4, sm: 5, md: 5 },
+               mb: { xs: 4, sm: 5, md: 4, lg: 5 },
                fontWeight: 400,
                color: currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(33, 33, 33, 0.85)',
                maxWidth: 600,
                mx: 'auto',
-               fontSize: { xs: '1.15rem', sm: '1.25rem', md: '1.25rem' },
-               lineHeight: { xs: 1.35, sm: 1.5, md: 1.6 },
-               textAlign: 'center',
-               opacity: Math.max(0, 1 - (scrollY / 350)),
-               transform: `translateY(${Math.min(10, scrollY * 0.02)}px)`,
-               transition: 'opacity 0.3s ease, transform 0.3s ease'
+               fontSize: { xs: '1.15rem', sm: '1.25rem', md: '1.05rem', lg: '1.15rem', xl: '1.25rem' },
+               lineHeight: { xs: 1.35, sm: 1.5, md: 1.4, lg: 1.5, xl: 1.6 },
+               textAlign: 'center'
              }}
            >
-            Consulta trámites, descubre eventos, encuentra lugares y recibe ayuda sin esperas.
+            Consulta trámites, descubre eventos, encuentra lugares...
           </Typography>
 
           {/* City Selector integrado en hero section */}
@@ -655,8 +700,6 @@ const Index = () => {
             sx={{
               maxWidth: 600,
               width: '100%',
-              opacity: Math.max(0, 1 - (scrollY / 400)),
-              transition: 'opacity 0.3s ease, transform 0.3s ease',
               position: { xs: 'absolute', md: 'static' },
               left: 0,
               right: 0,
@@ -679,7 +722,7 @@ const Index = () => {
                  bgcolor: {
                   xs: currentThemeMode === 'dark' ? '#111' : '#fff',
                   sm: currentThemeMode === 'dark' ? '#111' : '#fff',
-                  md: currentThemeMode === 'dark' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.92)',
+                  md: currentThemeMode === 'dark' ? '#111' : 'rgba(255,255,255,0.92)',
                 },
                 border: {
                   xs: currentThemeMode === 'dark' ? '1.5px solid #222' : '1.5px solid #e0e0e0',
@@ -690,7 +733,8 @@ const Index = () => {
                 backdropFilter: { md: 'blur(10px)' },
                  width: '100%',
                  minWidth: 0,
-                 mb: 3
+                 mb: 3,
+                 fontSize: { xs: '1rem', sm: '1.05rem', md: '0.95rem', lg: '1.05rem', xl: '1.15rem' },
                }}
              >
               <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minWidth: 0 }}>
@@ -938,10 +982,785 @@ const Index = () => {
         </Box>
       </Container>
 
+      {/* Infografía - Separada del hero section en mobile */}
+      <Container maxWidth="lg" sx={{ pt: { xs: 4, md: 0 }, pb: { xs: 8, md: 0 }, position: 'relative', zIndex: 1 }}>
+        {/* Título de la infografía - Mobile */}
+        <Box sx={{
+          display: { xs: 'block', md: 'none' },
+          textAlign: 'center',
+          mb: 6
+        }}>
+          <Typography 
+            variant="h2" 
+            sx={{ 
+              fontWeight: 300,
+              mb: 4,
+              color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+              fontSize: { xs: '2rem', sm: '2.5rem' },
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+              maxWidth: 800,
+              mx: 'auto',
+              minHeight: '2.2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              textAlign: 'center'
+            }}
+          >
+            {"Toda la información en tus manos".split(' ').map((word, index) => (
+              <Typography
+                key={index}
+                component="span"
+                variant="inherit"
+                sx={{
+                  opacity: 1,
+                  transition: 'opacity 0.3s ease-out',
+                  display: 'inline',
+                  marginRight: '0.5rem',
+                  '&::after': {
+                    content: 'none'
+                  },
+                  '&::before': {
+                    content: 'none'
+                  }
+                }}
+              >
+                {word}
+              </Typography>
+            ))}
+          </Typography>
+        </Box>
+
+                <Box sx={{
+          display: { xs: 'flex', md: 'none' },
+          flexDirection: 'column',
+          alignItems: 'center',
+          mb: 4,
+          maxWidth: 400,
+          mx: 'auto'
+        }}>
+          {/* Paso 1 - Círculo */}
+          <Box sx={{
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            background: 'transparent',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            opacity: step1Visible ? 1 : 0,
+            transform: step1Visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.8)',
+            transition: 'opacity 1s ease, transform 1s ease',
+            mb: 2
+          }}>
+            <svg
+              width="60"
+              height="60"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transform: 'rotate(-90deg)'
+              }}
+            >
+              <circle
+                cx="30"
+                cy="30"
+                r="28.5"
+                fill="none"
+                stroke="rgba(0, 0, 0, 0.1)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="30"
+                cy="30"
+                r="28.5"
+                fill="none"
+                stroke="#448aff"
+                strokeWidth="3"
+                strokeDasharray={`${step1Visible ? 2 * Math.PI * 28.5 : 0} ${2 * Math.PI * 28.5}`}
+                strokeDashoffset="0"
+                strokeLinecap="round"
+                style={{
+                  transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transformOrigin: 'center'
+                }}
+              />
+            </svg>
+            <SendIcon sx={{ 
+              fontSize: 24, 
+              color: step1Visible ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
+              transition: 'color 2s ease',
+              zIndex: 1,
+              position: 'relative'
+            }} />
+          </Box>
+
+          {/* Texto paso 1 */}
+          <Box sx={{
+            opacity: step1Visible ? 1 : 0,
+            transition: 'opacity 0.5s ease',
+            mb: 2,
+            textAlign: 'center'
+          }}>
+            <Typography sx={{
+              color: '#ffffff',
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              lineHeight: 1.2
+            }}>
+              Enviar una<br />consulta
+            </Typography>
+          </Box>
+
+          {/* Línea vertical 1 */}
+          <Box sx={{
+            width: 6,
+            height: 56,
+            mb: 2,
+            opacity: line1Visible ? 1 : 0,
+            transition: 'opacity 0.5s ease',
+            overflow: 'visible'
+          }}>
+            <svg width={6} height={56} style={{ overflow: 'visible' }}>
+              <line
+                x1={3}
+                y1={3}
+                x2={3}
+                y2={53}
+                stroke="rgba(0, 0, 0, 0.1)"
+                strokeWidth="6"
+                strokeLinecap="round"
+              />
+              <line
+                x1={3}
+                y1={3}
+                x2={3}
+                y2={53}
+                stroke="#448aff"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={`${line1Visible ? 50 : 0} 50`}
+                strokeDashoffset="0"
+                style={{
+                  transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  filter: line1Visible ? 'drop-shadow(0 0 5px rgba(68, 138, 255, 0.3))' : 'none'
+                }}
+              />
+            </svg>
+          </Box>
+
+          {/* Paso 2 - Círculo */}
+          <Box sx={{
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            background: 'transparent',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            opacity: step2Visible ? 1 : 0,
+            transform: step2Visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.8)',
+            transition: 'opacity 1s ease, transform 1s ease',
+            mb: 2
+          }}>
+            <svg
+              width="60"
+              height="60"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transform: 'rotate(-90deg)'
+              }}
+            >
+              <circle
+                cx="30"
+                cy="30"
+                r="28.5"
+                fill="none"
+                stroke="rgba(0, 0, 0, 0.1)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="30"
+                cy="30"
+                r="28.5"
+                fill="none"
+                stroke="#448aff"
+                strokeWidth="3"
+                strokeDasharray={`${step2Visible ? 2 * Math.PI * 28.5 : 0} ${2 * Math.PI * 28.5}`}
+                strokeDashoffset="0"
+                strokeLinecap="round"
+                style={{
+                  transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transformOrigin: 'center'
+                }}
+              />
+            </svg>
+            <BusinessIcon sx={{ 
+              fontSize: 24, 
+              color: step2Visible ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
+              transition: 'color 2s ease',
+              zIndex: 1,
+              position: 'relative'
+            }} />
+          </Box>
+
+          {/* Texto paso 2 */}
+          <Box sx={{
+            opacity: step2Visible ? 1 : 0,
+            transition: 'opacity 0.5s ease',
+            mb: 2,
+            textAlign: 'center'
+          }}>
+            <Typography sx={{
+              color: '#ffffff',
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              lineHeight: 1.2
+            }}>
+              Procesamiento<br />en City AI
+            </Typography>
+          </Box>
+
+          {/* Línea vertical 2 */}
+          <Box sx={{
+            width: 6,
+            height: 56,
+            mb: 2,
+            opacity: line2Visible ? 1 : 0,
+            transition: 'opacity 0.5s ease',
+            overflow: 'visible'
+          }}>
+            <svg width={6} height={56} style={{ overflow: 'visible' }}>
+              <line
+                x1={3}
+                y1={3}
+                x2={3}
+                y2={53}
+                stroke="rgba(0, 0, 0, 0.1)"
+                strokeWidth="6"
+                strokeLinecap="round"
+              />
+              <line
+                x1={3}
+                y1={3}
+                x2={3}
+                y2={53}
+                stroke="#448aff"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={`${line2Visible ? 50 : 0} 50`}
+                strokeDashoffset="0"
+                style={{
+                  transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  filter: line2Visible ? 'drop-shadow(0 0 5px rgba(68, 138, 255, 0.3))' : 'none'
+                }}
+              />
+            </svg>
+          </Box>
+
+          {/* Paso 3 - Círculo */}
+          <Box sx={{
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            background: 'transparent',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            opacity: step3Visible ? 1 : 0,
+            transform: step3Visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.8)',
+            transition: 'opacity 1s ease, transform 1s ease',
+            mb: 2
+          }}>
+            <svg
+              width="60"
+              height="60"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transform: 'rotate(-90deg)'
+              }}
+            >
+              <circle
+                cx="30"
+                cy="30"
+                r="28.5"
+                fill="none"
+                stroke="rgba(0, 0, 0, 0.1)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="30"
+                cy="30"
+                r="28.5"
+                fill="none"
+                stroke="#448aff"
+                strokeWidth="3"
+                strokeDasharray={`${step3Visible ? 2 * Math.PI * 28.5 : 0} ${2 * Math.PI * 28.5}`}
+                strokeDashoffset="0"
+                strokeLinecap="round"
+                style={{
+                  transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transformOrigin: 'center'
+                }}
+              />
+            </svg>
+            <CheckIcon sx={{ 
+              fontSize: 24, 
+              color: step3Visible ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
+              transition: 'color 2s ease',
+              zIndex: 1,
+              position: 'relative'
+            }} />
+          </Box>
+
+          {/* Texto paso 3 */}
+          <Box sx={{
+            opacity: step3Visible ? 1 : 0,
+            transition: 'opacity 0.5s ease',
+            textAlign: 'center'
+          }}>
+            <Typography sx={{
+              color: '#ffffff',
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              lineHeight: 1.2
+            }}>
+              Consultar<br />respuesta
+            </Typography>
+          </Box>
+        </Box>
+      </Container>
+
+
+
+      {/* Título e Infografía - Desktop (sección 2) */}
+      <Container maxWidth="lg" sx={{ pt: { xs: 0, md: 8 }, pb: { xs: 0, md: 4 }, position: 'relative', zIndex: 1 }}>
+        {/* Título de la infografía - Desktop */}
+        <Box sx={{
+          display: { xs: 'none', md: 'block' },
+          textAlign: 'center',
+          mb: 20
+        }}>
+          <Typography 
+            variant="h2" 
+            sx={{ 
+              fontWeight: 300,
+              mb: 4,
+              color: currentThemeMode === 'dark' ? '#ffffff' : '#212121',
+              fontSize: { md: '2.5rem', lg: '3rem' },
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+              maxWidth: 800,
+              mx: 'auto',
+              minHeight: '3.3rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              textAlign: 'center'
+            }}
+          >
+            {"Toda la información en tus manos".split(' ').map((word, index) => (
+              <Typography
+                key={index}
+                component="span"
+                variant="inherit"
+                sx={{
+                  opacity: 1,
+                  transition: 'opacity 0.3s ease-out',
+                  display: 'inline',
+                  marginRight: '0.5rem',
+                  '&::after': {
+                    content: 'none'
+                  },
+                  '&::before': {
+                    content: 'none'
+                  }
+                }}
+              >
+                {word}
+              </Typography>
+            ))}
+          </Typography>
+        </Box>
+
+        {/* Infografía - Desktop */}
+        <Box sx={{
+          display: { xs: 'none', md: 'flex' },
+          justifyContent: 'center',
+          alignItems: 'center',
+          mb: 8,
+          mt: 4
+        }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 0,
+            maxWidth: 600,
+            px: 2,
+            position: 'relative'
+          }}>
+            {/* Barra de progreso completa */}
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              width: '100%',
+              position: 'relative'
+            }}>
+              {/* Texto del paso 1 */}
+              <Box sx={{
+                position: 'absolute',
+                top: -60,
+                left: 30,
+                transform: 'translateX(-50%)',
+                opacity: step1Visible ? 1 : 0,
+                transition: 'opacity 0.5s ease',
+                zIndex: 100,
+                pointerEvents: 'none'
+              }}>
+                <Typography sx={{
+                  color: currentThemeMode === 'dark' ? '#ffffff' : '#000000',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  lineHeight: 1.2,
+                  textShadow: currentThemeMode === 'dark' ? 'none' : '0 1px 2px rgba(255,255,255,0.8)'
+                }}>
+                  Enviar una<br />consulta
+                </Typography>
+              </Box>
+
+              {/* Primer círculo */}
+              <Box sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: 'transparent',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: step1Visible ? 1 : 0,
+                transform: step1Visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.8)',
+                transition: 'opacity 1s ease, transform 1s ease',
+                position: 'relative'
+              }}>
+                <svg
+                  width="60"
+                  height="60"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    transform: 'rotate(-90deg)'
+                  }}
+                >
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r="28.5"
+                    fill="none"
+                    stroke="rgba(0, 0, 0, 0.1)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r="28.5"
+                    fill="none"
+                    stroke="#448aff"
+                    strokeWidth="3"
+                    strokeDasharray={`${step1Visible ? 2 * Math.PI * 28.5 : 0} ${2 * Math.PI * 28.5}`}
+                    strokeDashoffset="0"
+                    strokeLinecap="round"
+                    style={{
+                      transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transformOrigin: 'center'
+                    }}
+                  />
+                </svg>
+                <SendIcon sx={{ 
+                  fontSize: 24, 
+                  color: step1Visible ? (currentThemeMode === 'dark' ? '#ffffff' : '#333333') : (currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'),
+                  transition: 'color 2s ease',
+                  zIndex: 1,
+                  position: 'relative'
+                }} />
+              </Box>
+              
+              {/* Línea entre círculos 1 y 2 */}
+              <Box sx={{
+                width: 150,
+                height: 3,
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                {/* Línea horizontal */}
+                <Box sx={{ position: 'absolute', top: 0, left: 0 }}>
+                  <svg width={150} height={3}>
+                    <line
+                      x1={0}
+                      y1={1.5}
+                      x2={150}
+                      y2={1.5}
+                      stroke="rgba(0, 0, 0, 0.1)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      opacity={line1Visible ? 1 : 0}
+                      style={{
+                        transition: 'opacity 0.5s ease'
+                      }}
+                    />
+                    <line
+                      x1={0}
+                      y1={1.5}
+                      x2={150}
+                      y2={1.5}
+                      stroke="#448aff"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray={`${line1Visible ? 150 : 0} 150`}
+                      strokeDashoffset="0"
+                      opacity={line1Visible ? 1 : 0}
+                      style={{
+                        transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease',
+                        filter: line1Visible ? 'drop-shadow(0 0 5px rgba(68, 138, 255, 0.3))' : 'none'
+                      }}
+                    />
+                  </svg>
+                </Box>
+              </Box>
+          
+              {/* Texto del paso 2 */}
+              <Box sx={{
+                position: 'absolute',
+                top: -60,
+                left: 240,
+                transform: 'translateX(-50%)',
+                opacity: step2Visible ? 1 : 0,
+                transition: 'opacity 0.5s ease',
+                zIndex: 100,
+                pointerEvents: 'none'
+              }}>
+                <Typography sx={{
+                  color: currentThemeMode === 'dark' ? '#ffffff' : '#000000',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  lineHeight: 1.2,
+                  textShadow: currentThemeMode === 'dark' ? 'none' : '0 1px 2px rgba(255,255,255,0.8)'
+                }}>
+                  Procesamiento<br />en City AI
+                </Typography>
+              </Box>
+
+              {/* Segundo círculo */}
+              <Box sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: 'transparent',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: step2Visible ? 1 : 0,
+                transform: step2Visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.8)',
+                transition: 'opacity 1s ease, transform 1s ease',
+                position: 'relative'
+              }}>
+                <svg
+                  width="60"
+                  height="60"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    transform: 'rotate(-90deg)'
+                  }}
+                >
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r="28.5"
+                    fill="none"
+                    stroke="rgba(0, 0, 0, 0.1)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r="28.5"
+                    fill="none"
+                    stroke="#448aff"
+                    strokeWidth="3"
+                    strokeDasharray={`${step2Visible ? 2 * Math.PI * 28.5 : 0} ${2 * Math.PI * 28.5}`}
+                    strokeDashoffset="0"
+                    strokeLinecap="round"
+                    style={{
+                      transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transformOrigin: 'center'
+                    }}
+                  />
+                </svg>
+                <BusinessIcon sx={{ 
+                  fontSize: 24, 
+                  color: step2Visible ? (currentThemeMode === 'dark' ? '#ffffff' : '#333333') : (currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'),
+                  transition: 'color 2s ease',
+                  zIndex: 1,
+                  position: 'relative'
+                }} />
+              </Box>
+              
+              {/* Línea entre círculos 2 y 3 */}
+              <Box sx={{
+                width: 150,
+                height: 3,
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                {/* Línea horizontal */}
+                <Box sx={{ position: 'absolute', top: 0, left: 0 }}>
+                  <svg width={150} height={3}>
+                    <line
+                      x1={0}
+                      y1={1.5}
+                      x2={150}
+                      y2={1.5}
+                      stroke="rgba(0, 0, 0, 0.1)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      opacity={line2Visible ? 1 : 0}
+                      style={{
+                        transition: 'opacity 0.5s ease'
+                      }}
+                    />
+                    <line
+                      x1={0}
+                      y1={1.5}
+                      x2={150}
+                      y2={1.5}
+                      stroke="#448aff"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray={`${line2Visible ? 150 : 0} 150`}
+                      strokeDashoffset="0"
+                      opacity={line2Visible ? 1 : 0}
+                      style={{
+                        transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease',
+                        filter: line2Visible ? 'drop-shadow(0 0 5px rgba(68, 138, 255, 0.3))' : 'none'
+                      }}
+                    />
+                  </svg>
+                </Box>
+              </Box>
+          
+              {/* Texto del paso 3 */}
+              <Box sx={{
+                position: 'absolute',
+                top: -60,
+                left: 450,
+                transform: 'translateX(-50%)',
+                opacity: step3Visible ? 1 : 0,
+                transition: 'opacity 0.5s ease',
+                zIndex: 100,
+                pointerEvents: 'none'
+              }}>
+                <Typography sx={{
+                  color: currentThemeMode === 'dark' ? '#ffffff' : '#000000',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  lineHeight: 1.2,
+                  textShadow: currentThemeMode === 'dark' ? 'none' : '0 1px 2px rgba(255,255,255,0.8)'
+                }}>
+                  Consultar<br />respuesta
+                </Typography>
+              </Box>
+
+              {/* Tercer círculo */}
+              <Box sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: 'transparent',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: step3Visible ? 1 : 0,
+                transform: step3Visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.8)',
+                transition: 'opacity 1s ease, transform 1s ease',
+                position: 'relative'
+              }}>
+                <svg
+                  width="60"
+                  height="60"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    transform: 'rotate(-90deg)'
+                  }}
+                >
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r="28.5"
+                    fill="none"
+                    stroke="rgba(0, 0, 0, 0.1)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r="28.5"
+                    fill="none"
+                    stroke="#448aff"
+                    strokeWidth="3"
+                    strokeDasharray={`${step3Visible ? 2 * Math.PI * 28.5 : 0} ${2 * Math.PI * 28.5}`}
+                    strokeDashoffset="0"
+                    strokeLinecap="round"
+                    style={{
+                      transition: 'stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transformOrigin: 'center'
+                    }}
+                  />
+                </svg>
+                <CheckIcon sx={{ 
+                  fontSize: 24, 
+                  color: step3Visible ? (currentThemeMode === 'dark' ? '#ffffff' : '#333333') : (currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'),
+                  transition: 'color 2s ease',
+                  zIndex: 1,
+                  position: 'relative'
+                }} />
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Container>
+
       {/* Performance Section - Moved right after hero */}
-      <Container maxWidth="lg" sx={{ pt: 0, pb: 12, position: 'relative', zIndex: 2 }}>
+      <Container maxWidth="lg" sx={{ pt: 0, pb: 12, position: 'relative', zIndex: 1 }}>
         <Box ref={nextSectionRef} sx={{ mb: 4 }}>
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
+          <Box sx={{ textAlign: 'center', mb: 8, mt: { xs: 8, md: 12 } }}>
             <Typography 
               variant="h2" 
               sx={{ 
@@ -1019,8 +1838,8 @@ const Index = () => {
             mx: 'auto',
             px: { xs: 2, md: 0 }
           }}>
-            {/* Background grid effect */}
-            <Box sx={{
+            {/* Background grid effect - removed to avoid covering background */}
+            {/* <Box sx={{
               position: 'absolute',
               top: 0,
               left: 0,
@@ -1033,7 +1852,7 @@ const Index = () => {
               backgroundSize: '50px 50px',
               opacity: 0.3,
               zIndex: 0
-            }} />
+            }} /> */}
             
             {/* Curved line element */}
             <Box sx={{
