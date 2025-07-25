@@ -108,6 +108,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!profileData) {
               await supabase.auth.signOut();
               window.location.href = '/auth';
+            } else {
+              // Check for default chat and redirect if user just signed in
+              if (event === 'SIGNED_IN') {
+                const storageKey = `defaultChat_${session.user.id}`;
+                const defaultChatData = localStorage.getItem(storageKey);
+                if (defaultChatData && window.location.pathname === '/') {
+                  try {
+                    const defaultChat = JSON.parse(defaultChatData);
+                    if (defaultChat.citySlug) {
+                      window.location.href = `/city/${defaultChat.citySlug}`;
+                    }
+                  } catch (error) {
+                    console.error('Error parsing default chat data:', error);
+                  }
+                }
+              }
             }
           }, 0);
         } else {

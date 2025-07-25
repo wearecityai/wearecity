@@ -465,6 +465,24 @@ const Index = () => {
     }
   }, []);
 
+  // Redireccionar al chat predeterminado si el usuario ya está logueado
+  useEffect(() => {
+    if (user && !location.search.includes('focus=search')) {
+      const storageKey = `defaultChat_${user.id}`;
+      const defaultChatData = localStorage.getItem(storageKey);
+      if (defaultChatData) {
+        try {
+          const defaultChat = JSON.parse(defaultChatData);
+          if (defaultChat.citySlug) {
+            navigate(`/city/${defaultChat.citySlug}`);
+          }
+        } catch (error) {
+          console.error('Error parsing default chat data:', error);
+        }
+      }
+    }
+  }, [user, navigate, location.search]);
+
 
 
   // Calcular el parallax para el fondo de edificios

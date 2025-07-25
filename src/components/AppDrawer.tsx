@@ -13,7 +13,10 @@ import TuneIcon from '@mui/icons-material/Tune';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NearMeIcon from '@mui/icons-material/NearMe';
 import DeleteIcon from '@mui/icons-material/Delete';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { CustomChatConfig } from '../types';
+import { useDefaultChat } from '../hooks/useDefaultChat';
 
 interface UserLocation {
   latitude: number;
@@ -56,6 +59,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
+  const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat } = useDefaultChat();
   const [locationInfo, setLocationInfo] = useState<{
     city: string;
     address: string;
@@ -173,6 +177,20 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
       return `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`;
     }
     return "Dirección no disponible";
+  };
+
+  // Función para manejar el toggle del chat predeterminado
+  const handleToggleDefaultChat = () => {
+    const currentChatId = chatIds[selectedChatIndex];
+    const currentChatTitle = chatTitles[selectedChatIndex];
+    
+    if (currentChatId && currentChatTitle) {
+      if (isDefaultChat(currentChatId)) {
+        removeDefaultChat();
+      } else {
+        setDefaultChat(currentChatId, currentChatTitle);
+      }
+    }
   };
 
   const drawerContent = (
@@ -358,6 +376,43 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
       {/* Bottom Drawer Section */}
       <List sx={{ pb: { xs: 3, sm: 4 }, px: 0, py: 0 }}>
         <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
+        
+        {/* Botón Chat Predeterminado */}
+        {chatIds.length > 0 && selectedChatIndex >= 0 && chatIds[selectedChatIndex] && (
+          <ListItemButton 
+            onClick={handleToggleDefaultChat}
+            title={!isMenuOpen ? (isDefaultChat(chatIds[selectedChatIndex]) ? "Quitar chat predeterminado" : "Marcar como predeterminado") : undefined}
+            sx={{
+              minHeight: BUTTON_HEIGHT,
+              justifyContent: 'center',
+              px: isMenuOpen ? PADDING_EXPANDED : 0,
+              mx: isMenuOpen ? 1 : 1.5,
+              my: 0.5,
+              borderRadius: '20px',
+            }}
+          >
+              <ListItemIcon sx={{
+                minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
+                mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                {isDefaultChat(chatIds[selectedChatIndex]) ? (
+                  <StarIcon sx={{ fontSize: ICON_SIZE, color: 'primary.main' }} />
+                ) : (
+                  <StarBorderIcon sx={{ fontSize: ICON_SIZE }} />
+                )}
+              </ListItemIcon>
+              {isMenuOpen && (
+                <ListItemText 
+                  primary={isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado"} 
+                  primaryTypographyProps={{fontSize: '0.875rem'}}
+                />
+              )}
+          </ListItemButton>
+        )}
+        
         <ListItemButton 
           onClick={() => console.log("Ajustes clicked")}
           title={!isMenuOpen ? "Ajustes" : undefined}
