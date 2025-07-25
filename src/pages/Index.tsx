@@ -30,6 +30,7 @@ import {
   Person as PersonIcon,
   ArrowForward as ArrowForwardIcon,
   Star as StarIcon,
+  StarBorder as StarBorderIcon,
   AutoAwesome as AutoAwesomeIcon,
   Send as SendIcon,
   Reply as ReplyIcon,
@@ -91,6 +92,9 @@ const Index = () => {
   const [step3Visible, setStep3Visible] = useState(false);
   const [line1Visible, setLine1Visible] = useState(false);
   const [line2Visible, setLine2Visible] = useState(false);
+  
+  // Estado para ciudad predeterminada
+  const [defaultCity, setDefaultCity] = useState<City | null>(null);
   
   const typingCities = [
     'Valencia, España',
@@ -453,10 +457,40 @@ const Index = () => {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => { setIsClient(true); }, []);
 
+  // Cargar ciudad predeterminada del localStorage
+  useEffect(() => {
+    const storedDefaultCity = getDefaultCityFromStorage();
+    if (storedDefaultCity) {
+      setDefaultCity(storedDefaultCity);
+    }
+  }, []);
+
 
 
   // Calcular el parallax para el fondo de edificios
 
+
+  // Función para establecer ciudad predeterminada
+  const setDefaultCityHandler = (city: City) => {
+    setDefaultCity(city);
+    localStorage.setItem('defaultCity', JSON.stringify(city));
+  };
+
+  // Función para quitar ciudad predeterminada
+  const removeDefaultCity = () => {
+    setDefaultCity(null);
+    localStorage.removeItem('defaultCity');
+  };
+
+  // Función para obtener ciudad predeterminada del localStorage
+  const getDefaultCityFromStorage = (): City | null => {
+    try {
+      const stored = localStorage.getItem('defaultCity');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  };
 
   const handleCitySelect = (city: City | null) => {
     setSelectedCity(city);
@@ -741,7 +775,7 @@ const Index = () => {
                 <Stack direction="column" sx={{ flexGrow: 1, minWidth: 0 }}>
                   <TextField
                     inputRef={searchInputRef}
-                    placeholder={inputValue ? "Busca tu ciudad..." : typingText + "|"}
+                    placeholder={inputValue ? "Busca tu ciudad..." : (defaultCity ? `${defaultCity.name} (predeterminada)` : typingText + "|")}
                     variant="standard"
                     fullWidth
                     value={inputValue}
@@ -860,6 +894,30 @@ const Index = () => {
                                 {formatCityName(city)}
                               </Typography>
                             </Box>
+                            {/* Botón para establecer/quitar ciudad predeterminada */}
+                            <IconButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (defaultCity?.id === city.id) {
+                                  removeDefaultCity();
+                                } else {
+                                  setDefaultCityHandler(city);
+                                }
+                              }}
+                              size="small"
+                              sx={{
+                                color: defaultCity?.id === city.id 
+                                  ? (currentThemeMode === 'dark' ? '#ffd700' : '#f57c00')
+                                  : (currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(33, 33, 33, 0.5)'),
+                                '&:hover': {
+                                  color: defaultCity?.id === city.id 
+                                    ? (currentThemeMode === 'dark' ? '#ffed4e' : '#ff9800')
+                                    : (currentThemeMode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(33, 33, 33, 0.8)'),
+                                }
+                              }}
+                            >
+                              {defaultCity?.id === city.id ? <StarIcon /> : <StarBorderIcon />}
+                            </IconButton>
                           </Stack>
                         </Box>
                       ))}
@@ -951,9 +1009,19 @@ const Index = () => {
                              : 'rgba(33, 33, 33, 0.3)')
                          }
                        }}
-                      endIcon={<ArrowForwardIcon sx={{ fontSize: 20 }} />}
+                      endIcon={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {defaultCity?.id === selectedCity?.id && (
+                            <StarIcon sx={{ 
+                              fontSize: 16, 
+                              color: currentThemeMode === 'dark' ? '#ffd700' : '#f57c00' 
+                            }} />
+                          )}
+                          <ArrowForwardIcon sx={{ fontSize: 20 }} />
+                        </Box>
+                      }
                     >
-                      Ir al chat
+                      {defaultCity?.id === selectedCity?.id ? 'Ir al chat predeterminado' : 'Ir al chat'}
                     </Button>
                   </Box>
                 </Stack>
