@@ -28,5 +28,5 @@ export default defineConfig(({ mode }) => ({
   },
   // Configuración de la ruta base para asegurar que los recursos estáticos se carguen correctamente
   // en entornos de vista previa y producción
-  base: '/',
+  base: process.env.NODE_ENV === 'production' ? './' : '/',
 }));
