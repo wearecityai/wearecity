@@ -22,7 +22,11 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     // Define process.env for browser compatibility
-    'process.env': {}
+    'process.env': {},
+    // Expose Vercel environment variables
+    __APP_ENV__: JSON.stringify(process.env.VITE_VERCEL_ENV || '')
   },
+  // Configuración de la ruta base para asegurar que los recursos estáticos se carguen correctamente
+  // en entornos de vista previa y producción
   base: '/',
 }));

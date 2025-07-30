@@ -443,6 +443,24 @@ const Index = () => {
 
         console.log('Cities loaded successfully:', data?.length || 0);
         setCities(data || []);
+        
+        // Verificar si hay una ciudad predeterminada y redirigir (solo en cliente)
+        if (typeof window !== 'undefined') {
+          const storedDefaultCity = getDefaultCityFromStorage();
+          if (storedDefaultCity && data) {
+            // Verificar que la ciudad predeterminada aún existe en la lista
+            const cityExists = data.find(city => city.id === storedDefaultCity.id);
+            if (cityExists) {
+              setDefaultCity(storedDefaultCity);
+              // Redirigir automáticamente al chat de la ciudad predeterminada
+              navigate(`/chat/${storedDefaultCity.slug}`);
+              return;
+            } else {
+              // La ciudad ya no existe, limpiar el localStorage
+              removeDefaultCity();
+            }
+          }
+        }
       } catch (error) {
         console.error('Critical error loading cities:', error);
         // Asegurar que la aplicación no se bloquee
@@ -451,7 +469,7 @@ const Index = () => {
     };
 
     loadCities();
-  }, []);
+  }, [navigate]);
 
   // Estado para saber si estamos en cliente
   const [isClient, setIsClient] = useState(false);
@@ -491,20 +509,27 @@ const Index = () => {
   // Función para establecer ciudad predeterminada
   const setDefaultCityHandler = (city: City) => {
     setDefaultCity(city);
-    localStorage.setItem('defaultCity', JSON.stringify(city));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('defaultCity', JSON.stringify(city));
+    }
   };
 
   // Función para quitar ciudad predeterminada
   const removeDefaultCity = () => {
     setDefaultCity(null);
-    localStorage.removeItem('defaultCity');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('defaultCity');
+    }
   };
 
   // Función para obtener ciudad predeterminada del localStorage
   const getDefaultCityFromStorage = (): City | null => {
     try {
-      const stored = localStorage.getItem('defaultCity');
-      return stored ? JSON.parse(stored) : null;
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('defaultCity');
+        return stored ? JSON.parse(stored) : null;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -563,43 +588,42 @@ const Index = () => {
         },
       }}>
       {/* Background estático */}
-      {isClient && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: [
-              currentThemeMode === 'dark'
-                ? `url('/lovable-uploads/City_dark_mobile.png')`
-                : `url('/lovable-uploads/City_light_mobile.png')`,
-              currentThemeMode === 'dark'
-                ? `url('/lovable-uploads/City_dark_mobile.png')`
-                : `url('/lovable-uploads/City_light_mobile.png')`,
-              currentThemeMode === 'dark'
-                ? `url('/lovable-uploads/dark.png')`
-                : `url('/lovable-uploads/light.png')`,
-              currentThemeMode === 'dark'
-                ? `url('/lovable-uploads/dark.png')`
-                : `url('/lovable-uploads/light.png')`,
-            ],
-            backgroundSize: 'cover',
-            backgroundPosition: [
-              'center 100%', // xs
-              'center 100%', // sm
-              'center 105%', // md
-              'center 105%', // lg
-              'center 105%', // xl
-            ],
-            backgroundRepeat: 'no-repeat',
-            backgroundAttachment: 'fixed',
-            opacity: 1,
-            zIndex: 1
-          }}
-        />
-      )}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: [
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/City_dark_mobile.png')`
+              : `url('/lovable-uploads/City_light_mobile.png')`,
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/City_dark_mobile.png')`
+              : `url('/lovable-uploads/City_light_mobile.png')`,
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/dark.png')`
+              : `url('/lovable-uploads/light.png')`,
+            currentThemeMode === 'dark'
+              ? `url('/lovable-uploads/dark.png')`
+              : `url('/lovable-uploads/light.png')`,
+          ],
+          backgroundSize: 'cover',
+          backgroundPosition: [
+            'center 100%', // xs
+            'center 100%', // sm
+            'center 105%', // md
+            'center 105%', // lg
+            'center 105%', // xl
+          ],
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+          opacity: isClient ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+          zIndex: 1
+        }}
+      />
       
       {/* Header exacto como en AppLayout */}
       <Box
