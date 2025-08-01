@@ -27,8 +27,8 @@ export default defineConfig(({ mode }) => ({
     __APP_ENV__: JSON.stringify(process.env.VITE_VERCEL_ENV || '')
   },
   // Configuración de la ruta base para asegurar que los recursos estáticos se carguen correctamente
-  // en entornos de vista previa y producción
-  base: mode === 'production' ? './' : '/',
+  // en entornos de vista previa y producción - SIEMPRE usar rutas relativas
+  base: './',
   build: {
     // Asegurar que los assets usen rutas relativas
     assetsDir: 'assets',
