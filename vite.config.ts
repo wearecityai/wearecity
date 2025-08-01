@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => ({
   },
   // Configuración de la ruta base para asegurar que los recursos estáticos se carguen correctamente
   // en entornos de vista previa y producción
-  base: '',
+  base: '/',
   build: {
     rollupOptions: {
       output: {
@@ -45,5 +45,9 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: 'assets/[name]-[hash].js',
       },
     },
+    // Forzar invalidación de caché
+    sourcemap: false,
+    minify: 'esbuild',
+    target: 'es2015',
   },
 }));
