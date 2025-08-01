@@ -28,26 +28,17 @@ export default defineConfig(({ mode }) => ({
   },
   // Configuración de la ruta base para asegurar que los recursos estáticos se carguen correctamente
   // en entornos de vista previa y producción
-  base: '/',
+  base: mode === 'production' ? './' : '/',
   build: {
+    // Asegurar que los assets usen rutas relativas
+    assetsDir: 'assets',
     rollupOptions: {
       output: {
-        assetFileNames: (assetInfo) => {
-          if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
-          const info = assetInfo.name.split('.');
-          const ext = info[info.length - 1];
-          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
-            return `assets/images/[name]-[hash][extname]`;
-          }
-          return `assets/[name]-[hash][extname]`;
-        },
+        // Configurar nombres de archivos para mejor caching
+        assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-      },
-    },
-    // Forzar invalidación de caché
-    sourcemap: false,
-    minify: 'esbuild',
-    target: 'es2015',
-  },
+        entryFileNames: 'assets/[name]-[hash].js'
+      }
+    }
+  }
 }));
