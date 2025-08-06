@@ -121,10 +121,10 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
   const getLinkStatusColor = (): string => {
     switch (linkStatus) {
-      case 'valid': return 'text-green-600';
-      case 'notFound': return 'text-yellow-600';
-      case 'serverError': return 'text-red-600';
-      case 'networkOrCorsError': return 'text-orange-600';
+      case 'valid': return 'text-success';
+      case 'notFound': return 'text-warning-foreground';
+      case 'serverError': return 'text-error';
+      case 'networkOrCorsError': return 'text-warning-foreground';
       case 'loading': return 'text-muted-foreground';
       default: return 'text-primary';
     }

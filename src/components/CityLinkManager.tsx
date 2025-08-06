@@ -238,16 +238,16 @@ export const CityLinkManager: React.FC = () => {
                     <Skeleton className="h-4 w-20" />
                   ) : isPublic ? (
                     <>
-                      <Eye className="h-5 w-5 text-green-600" />
-                      <span className="font-medium">Público</span>
-                      <Badge className="flex items-center gap-1">
-                        <Globe className="h-3 w-3" />
-                        Accesible para todos
-                      </Badge>
-                    </>
-                  ) : (
-                    <>
-                      <EyeOff className="h-5 w-5 text-orange-600" />
+                       <Eye className="h-5 w-5 text-success" />
+                       <span className="font-medium">Público</span>
+                       <Badge className="flex items-center gap-1">
+                         <Globe className="h-3 w-3" />
+                         Accesible para todos
+                       </Badge>
+                     </>
+                   ) : (
+                     <>
+                       <EyeOff className="h-5 w-5 text-warning-foreground" />
                       <span className="font-medium">Privado</span>
                       <Badge variant="outline">Solo para ti</Badge>
                     </>
