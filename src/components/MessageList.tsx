@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../types';
 import ChatMessage from './ChatMessage'; // Ensured relative path
 
@@ -25,27 +25,19 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, onDownlo
   // Loading state for the initial assistant load is handled by App.tsx now for Gemini UI
   // if (isLoading && messages.length === 0) {
   //   return (
-  //     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1, p: 2 }}>
-  //       <CircularProgress />
-  //       <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary' }}>
+  //     <div className="flex flex-col items-center justify-center flex-1 p-4">
+  //       <Loader2 className="animate-spin" />
+  //       <span className="text-sm text-muted-foreground mt-2">
   //         Cargando asistente...
-  //       </Typography>
-  //     </Box>
+  //       </span>
+  //     </div>
   //   );
   // }
   
   if (!messages.length && !isLoading) return null;
 
   return (
-    <Box sx={{ 
-      flexGrow: 1, 
-      py: 2, 
-      bgcolor: 'transparent',
-      width: '100%',
-      maxWidth: '100%',
-      overflow: 'hidden',
-      minWidth: 0
-    }}>
+    <div className="flex-1 py-4 bg-transparent w-full max-w-full overflow-hidden min-w-0">
       {messages.map((msg) => (
         <ChatMessage
           key={msg.id}
@@ -56,7 +48,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, onDownlo
         />
       ))}
       <div ref={messagesEndRef} />
-    </Box>
+    </div>
   );
 };
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Chip, IconButton, Collapse } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { Card, CardContent, CardHeader } from './ui/card';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useAppState } from '../hooks/useAppState';
 
@@ -30,73 +32,63 @@ export const GeolocationDebug: React.FC = () => {
   }
 
   return (
-    <Paper sx={{ m: 1, p: 1, bgcolor: 'background.paper', position: 'fixed', top: 10, right: 10, zIndex: 1000, minWidth: 300 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+    <Card className="fixed top-2 right-2 z-[1000] min-w-[300px] m-2">
+      <CardHeader className="flex flex-row items-center justify-between py-2">
+        <span className="text-xs font-bold">
           🌍 Debug Geolocalización
-        </Typography>
-        <IconButton size="small" onClick={() => setShowDebugPanel(!showDebugPanel)}>
-          {showDebugPanel ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        </IconButton>
-      </Box>
-      
-      <Collapse in={showDebugPanel}>
-        <Box sx={{ mt: 1 }}>
-          <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-            <Chip 
-              label={`Estado: ${geolocationStatus}`} 
-              size="small" 
-              color={geolocationStatus === 'success' ? 'success' : geolocationStatus === 'error' ? 'error' : 'primary'}
-            />
-            <Chip 
-              label={`Habilitado: ${chatConfig.allowGeolocation ? 'Sí' : 'No'}`} 
-              size="small" 
-              color={chatConfig.allowGeolocation ? 'success' : 'default'}
-            />
-            <Chip 
-              label={`Seguimiento: ${isWatching ? 'Activo' : 'Inactivo'}`} 
-              size="small" 
-              color={isWatching ? 'success' : 'default'}
-            />
-          </Box>
+        </span>
+        <Collapsible open={showDebugPanel} onOpenChange={setShowDebugPanel}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm">
+              {showDebugPanel ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
           
-          {userLocation && (
-            <Box sx={{ bgcolor: 'action.hover', p: 1, borderRadius: 1, mb: 1 }}>
-              <Typography variant="caption" component="div">
-                <strong>Coordenadas:</strong> {userLocation.latitude.toFixed(6)}, {userLocation.longitude.toFixed(6)}
-              </Typography>
-              {userLocation.accuracy && (
-                <Typography variant="caption" component="div">
-                  <strong>Precisión:</strong> ±{Math.round(userLocation.accuracy)} metros
-                </Typography>
+          <CollapsibleContent>
+            <CardContent className="pt-2">
+              <div className="flex gap-1 mb-2 flex-wrap">
+                <Badge 
+                  variant={geolocationStatus === 'success' ? 'default' : geolocationStatus === 'error' ? 'destructive' : 'secondary'}
+                >
+                  Estado: {geolocationStatus}
+                </Badge>
+                <Badge variant={chatConfig.allowGeolocation ? 'default' : 'secondary'}>
+                  Habilitado: {chatConfig.allowGeolocation ? 'Sí' : 'No'}
+                </Badge>
+                <Badge variant={isWatching ? 'default' : 'secondary'}>
+                  Seguimiento: {isWatching ? 'Activo' : 'Inactivo'}
+                </Badge>
+              </div>
+              
+              {userLocation && (
+                <div className="bg-muted p-2 rounded mb-2">
+                  <div className="text-xs">
+                    <div><strong>Coordenadas:</strong> {userLocation.latitude.toFixed(6)}, {userLocation.longitude.toFixed(6)}</div>
+                    {userLocation.accuracy && (
+                      <div><strong>Precisión:</strong> ±{Math.round(userLocation.accuracy)} metros</div>
+                    )}
+                    {userLocation.timestamp && (
+                      <div><strong>Última actualización:</strong> {new Date(userLocation.timestamp).toLocaleString()}</div>
+                    )}
+                  </div>
+                </div>
               )}
-              {userLocation.timestamp && (
-                <Typography variant="caption" component="div">
-                  <strong>Última actualización:</strong> {new Date(userLocation.timestamp).toLocaleString()}
-                </Typography>
+              
+              {geolocationError && (
+                <div className="text-xs text-destructive mb-2">
+                  <strong>Error:</strong> {geolocationError}
+                </div>
               )}
-            </Box>
-          )}
-          
-          {geolocationError && (
-            <Typography variant="caption" color="error" component="div">
-              <strong>Error:</strong> {geolocationError}
-            </Typography>
-          )}
-          
-          <Box sx={{ mt: 1 }}>
-            <Typography variant="caption" component="div">
-              <strong>Navegador soporta geolocalización:</strong> {navigator.geolocation ? 'Sí' : 'No'}
-            </Typography>
-            <Typography variant="caption" component="div">
-              <strong>Protocolo:</strong> {window.location.protocol}
-            </Typography>
-            <Typography variant="caption" component="div">
-              <strong>Permisos:</strong> {navigator.permissions ? 'API disponible' : 'API no disponible'}
-            </Typography>
-          </Box>
-        </Box>
-      </Collapse>
-    </Paper>
+              
+              <div className="text-xs space-y-1">
+                <div><strong>Navegador soporta geolocalización:</strong> {navigator.geolocation ? 'Sí' : 'No'}</div>
+                <div><strong>Protocolo:</strong> {window.location.protocol}</div>
+                <div><strong>Permisos:</strong> {navigator.permissions ? 'API disponible' : 'API no disponible'}</div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </CardHeader>
+    </Card>
   );
-}; 
+};
