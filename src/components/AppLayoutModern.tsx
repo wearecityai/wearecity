@@ -3,12 +3,15 @@ import { Sparkles, Menu } from 'lucide-react';
 import { Button } from './ui/button';
 import { DashboardLayout, DashboardHeader, DashboardContent } from './ui/dashboard-layout';
 import { ChatLayout, ChatSidebar, ChatMain } from './ui/chat-layout';
-import { SidebarProvider, SidebarTrigger } from './ui/sidebar';
-import AppDrawer from './AppDrawer';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from './ui/sidebar';
+import { AppSidebar } from './app-sidebar';
+import { NavActions } from './nav-actions';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
 import UserButton from './auth/UserButton';
 import ErrorBoundary from './ErrorBoundary';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from './ui/breadcrumb';
+import { Separator } from './ui/separator';
 
 interface User {
   id: string;
@@ -144,40 +147,45 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
 
   return (
     <SidebarProvider>
-      <ChatLayout>
-        
-        <ChatMain>
-          {!isPublicChat && (
-            <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex h-16 items-center justify-between px-4">
-                <div className="flex items-center gap-3">
-                  <SidebarTrigger />
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                      {chatConfig?.restrictedCity?.name || 'CityCore'}
-                    </h1>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {isMobile && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleMenuToggle}
-                    >
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  )}
-                  <UserButton />
-                </div>
-              </div>
+      <AppSidebar 
+        onNewChat={handleNewChat}
+        onOpenFinetuning={handleOpenFinetuningWithAuth}
+        chatTitles={chatTitles}
+        chatIds={conversations.map(c => c.id)}
+        selectedChatIndex={selectedChatIndex}
+        onSelectChat={handleSelectChat}
+        onDeleteChat={deleteConversation}
+        chatConfig={chatConfig}
+        userLocation={userLocation}
+        geolocationStatus={geolocationStatus}
+        isPublicChat={isPublicChat}
+      />
+      <SidebarInset>
+        {!isPublicChat && (
+          <header className="flex h-14 shrink-0 items-center gap-2">
+            <div className="flex flex-1 items-center gap-2 px-3">
+              <SidebarTrigger />
+              <Separator
+                orientation="vertical"
+                className="mr-2 data-[orientation=vertical]:h-4"
+              />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbPage className="line-clamp-1">
+                      {chatConfig?.restrictedCity?.name || 'CityCore AI Chat'}
+                    </BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
             </div>
-          )}
-          
+            <div className="ml-auto px-3">
+              <NavActions />
+            </div>
+          </header>
+        )}
+        
+        <div className="flex flex-1 flex-col overflow-hidden">
           <MainContent
             theme={theme}
             isMobile={isMobile}
@@ -199,8 +207,8 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
             shouldShowChatContainer={shouldShowChatContainer}
             handleToggleLocation={handleToggleLocation}
           />
-        </ChatMain>
-      </ChatLayout>
+        </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 };
