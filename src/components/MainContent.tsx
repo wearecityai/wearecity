@@ -1,7 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, IconButton } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ChatContainer, { RecommendedPromptsBar } from './ChatContainer';
 import ChatInput from './ChatInput';
 import UserMenu from './UserMenu';
@@ -85,53 +82,32 @@ const MainContent: React.FC<MainContentProps> = ({
     }
   }, [isInFinetuningMode, messages]);
 
+  const drawerWidth = 260;
+  const collapsedDrawerWidth = 72;
+
   return (
-    <Box
-      component="main"
-      sx={{
-        flexGrow: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        height: isInFinetuningMode ? '100%' : { xs: '100dvh', sm: '100vh' },
-        minHeight: 0,
-        maxHeight: isInFinetuningMode ? '100%' : { xs: '100dvh', sm: '100vh' },
-        overflow: 'hidden',
-        bgcolor: 'background.default',
-        ...(isMobile && isMenuOpen && {
-          marginLeft: 0,
-        }),
-        paddingTop: isInFinetuningMode ? 0 : '64px',
-        justifyContent: 'center',
-        alignItems: 'center',
+    <main
+      className={`
+        flex-1 flex flex-col bg-background overflow-hidden justify-center items-center
+        ${isInFinetuningMode 
+          ? 'h-full' 
+          : 'h-screen max-h-screen'
+        }
+        ${isInFinetuningMode ? '' : 'pt-16'}
+      `}
+      style={{
+        marginLeft: isMobile && isMenuOpen ? 0 : undefined,
       }}
     >
       {isInFinetuningMode ? (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, width: '100%', maxWidth: 800, margin: '0 auto' }}>
-          <Box
+        <div className="flex-1 flex flex-col h-full w-full max-w-[800px] mx-auto">
+          <div
             ref={scrollableBoxRef}
-            sx={{
-              flex: 1,
-              overflowY: 'auto',
-              minHeight: 0,
-              height: '100%',
-              paddingBottom: 0,
-            }}
+            className="flex-1 overflow-y-auto h-full pb-0"
           >
             {messages.length === 0 && !shouldShowChatContainer && (
-              <Box sx={{ 
-                width: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                pt: 4, 
-                px: { xs: 1, sm: 1 },
-                overflow: 'hidden', // Prevenir scroll horizontal
-              }}>
-                <Box sx={{ 
-                  width: '100%', 
-                  maxWidth: '100%',
-                  overflow: 'hidden', // Prevenir scroll horizontal
-                }}>
+              <div className="w-full flex flex-col items-center pt-8 px-1 sm:px-1 overflow-hidden">
+                <div className="w-full max-w-full overflow-hidden">
                   <ChatContainer
                     messages={[]}
                     isLoading={false}
@@ -145,26 +121,15 @@ const MainContent: React.FC<MainContentProps> = ({
                     user={user}
                     onLogin={onLogin}
                   />
-                </Box>
+                </div>
                 {!isMobile && !hasUserSentFirstMessage && (
                   <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
                 )}
-              </Box>
+              </div>
             )}
             {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
             {(messages.length > 0 || shouldShowChatContainer) && (
-              <Box
-                sx={{
-                  width: '100%',
-                  maxWidth: '100%',
-                  margin: '0 auto',
-                  padding: { xs: '0 8px', sm: '0 16px' },
-                  minHeight: 0,
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
+              <div className="w-full max-w-full mx-auto px-2 sm:px-4 h-full flex flex-col">
                 <ChatContainer
                   messages={messages}
                   isLoading={isLoading}
@@ -178,63 +143,35 @@ const MainContent: React.FC<MainContentProps> = ({
                   onLogin={onLogin}
                 />
                 <div ref={messagesEndRef} />
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
           {/* Input del chat pegado abajo en modo admin */}
-          <Box sx={{ 
-            width: '100%', 
-            maxWidth: '100%', 
-            margin: '0 auto', 
-            flexShrink: 0, 
-            p: 0,
-            position: 'sticky',
-            bottom: 0,
-            zIndex: 1
-          }}>
-                          <ChatInput
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                recommendedPrompts={chatConfig.recommendedPrompts}
-                currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
-                onSetLanguageCode={handleSetCurrentLanguageCode}
-                isInFinetuningMode={true}
-                onToggleLocation={handleToggleLocation}
-                chatConfig={chatConfig}
-              />
-          </Box>
-        </Box>
+          <div className="w-full max-w-full mx-auto flex-shrink-0 p-0 sticky bottom-0 z-[1]">
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              recommendedPrompts={chatConfig.recommendedPrompts}
+              currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
+              onSetLanguageCode={handleSetCurrentLanguageCode}
+              isInFinetuningMode={true}
+              onToggleLocation={handleToggleLocation}
+              chatConfig={chatConfig}
+            />
+          </div>
+        </div>
       ) : (
         <>
-          <Box
+          <div
             ref={scrollableBoxRef}
-            sx={{
-              flexGrow: 1,
-              overflowY: 'auto',
-              overflowX: 'hidden', // Prevenir scroll horizontal
-              height: '100%',
-              paddingBottom: { xs: 'calc(120px + env(safe-area-inset-bottom, 0px))', sm: '120px' },
-              width: '100%',
-              maxWidth: 800,
-              margin: '0 auto',
-              minWidth: 0, // Prevenir overflow
+            className="flex-1 overflow-y-auto overflow-x-hidden h-full w-full max-w-[800px] mx-auto pb-[120px] sm:pb-[120px] min-w-0"
+            style={{
+              paddingBottom: isMobile ? 'calc(120px + env(safe-area-inset-bottom, 0px))' : '120px'
             }}
           >
             {messages.length === 0 && !shouldShowChatContainer && (
-              <Box sx={{ 
-                width: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                pt: 4, 
-                px: { xs: 1, sm: 1 },
-                overflow: 'hidden', // Prevenir scroll horizontal
-              }}>
-                <Box sx={{ 
-                  width: '100%', 
-                  maxWidth: '100%',
-                  overflow: 'hidden', // Prevenir scroll horizontal
-                }}>
+              <div className="w-full flex flex-col items-center pt-8 px-1 sm:px-1 overflow-hidden">
+                <div className="w-full max-w-full overflow-hidden">
                   <ChatContainer
                     messages={[]}
                     isLoading={false}
@@ -248,27 +185,15 @@ const MainContent: React.FC<MainContentProps> = ({
                     user={user}
                     onLogin={onLogin}
                   />
-                </Box>
+                </div>
                 {!isMobile && !hasUserSentFirstMessage && (
                   <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
                 )}
-              </Box>
+              </div>
             )}
             {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
             {(messages.length > 0 || shouldShowChatContainer) && (
-              <Box
-                sx={{
-                  width: '100%',
-                  maxWidth: { sm: '800px' },
-                  margin: '0 auto',
-                  padding: { xs: '0 4px', sm: '0 8px', md: '0 16px' }, // Optimizado para tablet
-                  minHeight: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  mx: 0,
-                  overflow: 'hidden', // Prevenir scroll horizontal
-                }}
-              >
+              <div className="w-full max-w-full sm:max-w-[800px] mx-auto px-1 sm:px-2 md:px-4 min-h-full flex flex-col overflow-hidden">
                 <ChatContainer
                   messages={messages}
                   isLoading={isLoading}
@@ -282,41 +207,28 @@ const MainContent: React.FC<MainContentProps> = ({
                   onLogin={onLogin}
                 />
                 <div ref={messagesEndRef} />
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
           {/* Fixed Chat Input at the bottom */}
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: { xs: 'env(safe-area-inset-bottom, 0px)', sm: 0 },
-              left: isMobile ? 0 : (isMenuOpen ? 260 : 72),
+          <div
+            className="fixed bg-background z-[1000]"
+            style={{
+              bottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : 0,
+              left: isMobile ? 0 : (isMenuOpen ? drawerWidth : collapsedDrawerWidth),
               right: 0,
-              bgcolor: 'background.default',
-              zIndex: 1000,
             }}
           >
             {/* Contenedor específico para sugerencias en mobile */}
             {isMobile && !hasUserSentFirstMessage && (
-              <Box sx={{ 
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                width: '100vw',
-                overflow: 'visible',
-                zIndex: 1001,
-              }}>
+              <div className="absolute top-0 left-0 right-0 w-screen overflow-visible z-[1001]">
                 <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
-              </Box>
+              </div>
             )}
-            <Box
-              sx={{
-                width: '100%',
-                maxWidth: { sm: '800px' },
-                margin: '0 auto',
-                pt: isMobile && !hasUserSentFirstMessage ? 8 : 0, // Espacio para las sugerencias
-              }}
+            <div 
+              className={`w-full max-w-full sm:max-w-[800px] mx-auto ${
+                isMobile && !hasUserSentFirstMessage ? 'pt-8' : 'pt-0'
+              }`}
             >
               <ChatInput
                 onSendMessage={handleSendMessage}
@@ -327,11 +239,11 @@ const MainContent: React.FC<MainContentProps> = ({
                 onToggleLocation={handleToggleLocation}
                 chatConfig={chatConfig}
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
         </>
       )}
-    </Box>
+    </main>
   );
 };
 
