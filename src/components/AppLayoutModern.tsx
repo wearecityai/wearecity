@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { DashboardLayout, DashboardHeader, DashboardContent } from './ui/dashboard-layout';
 import { ChatLayout, ChatSidebar, ChatMain } from './ui/chat-layout';
 import { SidebarProvider, SidebarTrigger } from './ui/sidebar';
-import AppDrawer from './AppDrawer';
+import { AppSidebar } from './AppSidebar';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
 import UserButton from './auth/UserButton';
@@ -145,6 +145,22 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
   return (
     <SidebarProvider>
       <ChatLayout>
+        {!isPublicChat && (
+          <AppSidebar
+            onNewChat={handleNewChat}
+            conversations={conversations}
+            selectedChatIndex={selectedChatIndex}
+            onSelectChat={handleSelectChat}
+            onDeleteConversation={deleteConversation}
+            chatConfig={chatConfig}
+            userLocation={userLocation}
+            geolocationStatus={geolocationStatus}
+            currentThemeMode={currentThemeMode}
+            onToggleTheme={toggleTheme}
+            onOpenSettings={handleOpenSettings}
+            onOpenFinetuning={handleOpenFinetuningWithAuth}
+          />
+        )}
         
         <ChatMain>
           {!isPublicChat && (
