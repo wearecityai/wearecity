@@ -9,7 +9,8 @@ import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Card, CardContent } from './ui/card';
 import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
-import { Menu, X, Globe, User } from 'lucide-react';
+import { SidebarProvider, SidebarTrigger } from './ui/sidebar';
+import { Menu, X, Globe, User, Sparkles } from 'lucide-react';
 
 interface User {
   id: string;
@@ -154,226 +155,183 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
   // Estado para el toast de compartir
   const [showShareToast, setShowShareToast] = React.useState(false);
 
-  // Header para vista normal (sin panel de configuración)
-  const normalHeader = (
-    <div 
-      className={`fixed top-0 z-50 flex items-center justify-between p-4 min-h-16 bg-background border-b ${
-        isMobile 
-          ? 'left-0 w-full' 
-          : `left-${isMenuOpen ? '[260px]' : '[72px]'} w-[calc(100%-${isMenuOpen ? '260px' : '72px'})]`
-      }`}
-      style={{
-        left: isMobile ? 0 : (isMenuOpen ? drawerWidth : collapsedDrawerWidth),
-        width: isMobile ? '100%' : `calc(100% - ${isMenuOpen ? drawerWidth : collapsedDrawerWidth}px)`,
-      }}
-    >
-      {isMobile && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleMenuToggle}
-          className="mr-2"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      )}
-      
-      {/* Título CityCore centrado absolutamente */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent font-bold text-xl tracking-wider pointer-events-auto transition-transform hover:scale-105 px-6 py-2 rounded-lg bg-muted/50">
-          CityCore
+  // Header mejorado con Shadcn/ui
+  const modernHeader = (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <SidebarTrigger className="mr-4" />
+        
+        {/* Título CityCore centrado */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              CityCore
+            </h1>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {user ? (
+            <UserButton />
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleUserMenuOpen}
+                className="p-0"
+              >
+                <Avatar className="w-10 h-10">
+                  <AvatarFallback>
+                    <User className="h-5 w-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+              <UserMenu
+                anchorEl={userMenuAnchorEl}
+                open={Boolean(userMenuAnchorEl)}
+                onClose={handleUserMenuClose}
+                currentThemeMode={currentThemeMode}
+                onToggleTheme={toggleTheme}
+                onOpenSettings={handleOpenSettings}
+                isAuthenticated={!!user}
+                onLogin={onLogin}
+              />
+            </>
+          )}
         </div>
       </div>
-      
-      <div className="flex items-center gap-2 ml-auto">
-        {user ? (
-          <UserButton />
-        ) : (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleUserMenuOpen}
-              className="p-0"
-            >
-              <Avatar className="w-10 h-10">
-                <AvatarFallback>
-                  <User className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-            <UserMenu
-              anchorEl={userMenuAnchorEl}
-              open={Boolean(userMenuAnchorEl)}
-              onClose={handleUserMenuClose}
-              currentThemeMode={currentThemeMode}
-              onToggleTheme={toggleTheme}
-              onOpenSettings={handleOpenSettings}
-              isAuthenticated={!!user}
-              onLogin={onLogin}
-            />
-          </>
-        )}
-      </div>
-    </div>
+    </header>
   );
 
   if (!isGeminiReady && appError) {
     return <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError} />;
   }
 
-  // MOBILE: panel admin ocupa toda la pantalla
+  // MOBILE: panel admin ocupa toda la pantalla con SidebarProvider
   if (isMobile && currentView === 'finetuning') {
     return (
-      <>
-        {normalHeader}
-        <FinetuningPage
-          currentConfig={chatConfig}
-          onSave={handleSaveCustomizationWithToast}
-          onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
-          googleMapsScriptLoaded={googleMapsScriptLoaded}
-          apiKeyForMaps=""
-          profileImagePreview={profileImagePreview}
-          setProfileImagePreview={setProfileImagePreview}
-          activeTab={finetuningActiveTab}
-          onTabChange={setFinetuningActiveTab}
-        />
-      </>
+      <SidebarProvider>
+        <div className="min-h-screen w-full">
+          {modernHeader}
+          <FinetuningPage
+            currentConfig={chatConfig}
+            onSave={handleSaveCustomizationWithToast}
+            onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+            googleMapsScriptLoaded={googleMapsScriptLoaded}
+            apiKeyForMaps=""
+            profileImagePreview={profileImagePreview}
+            setProfileImagePreview={setProfileImagePreview}
+            activeTab={finetuningActiveTab}
+            onTabChange={setFinetuningActiveTab}
+          />
+        </div>
+      </SidebarProvider>
     );
   }
 
-  // DESKTOP: panel admin y chat lado a lado
+  // DESKTOP: panel admin y chat lado a lado con SidebarProvider
   if (currentView === 'finetuning') {
     return (
-      <div className="h-screen overflow-hidden bg-background flex">
-        {/* Side menu siempre visible */}
-        <AppDrawer
-          isMenuOpen={isMenuOpen}
-          onMenuToggle={handleMenuToggle}
-          onNewChat={handleNewChat}
-          onOpenFinetuning={handleOpenFinetuningWithAuth}
-          chatTitles={chatTitles}
-          chatIds={chatIds}
-          selectedChatIndex={selectedChatIndex}
-          onSelectChat={handleSelectChat}
-          onDeleteChat={deleteConversation}
-          chatConfig={chatConfig}
-          userLocation={userLocation}
-          geolocationStatus={geolocationStatus}
-          isPublicChat={isPublicChat}
-        />
-        
-        {/* Paneles redimensionables: admin y chat */}
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* Panel Izquierdo: Configuración */}
-          <ResizablePanel minSize={30} defaultSize={50}>
-            <div className="flex flex-col h-full">
-              {/* Header del panel de configuración */}
-              <div className="flex items-center justify-between p-4 h-16 bg-background border-b border-r">
-                <h2 className="text-lg font-medium truncate">
-                  Personalizar Asistente
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              {/* Contenido del panel de configuración */}
-              <div className="flex-1 overflow-hidden border-r">
-                <FinetuningPage
-                  currentConfig={chatConfig}
-                  onSave={handleSaveCustomizationWithToast}
-                  onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
-                  googleMapsScriptLoaded={googleMapsScriptLoaded}
-                  apiKeyForMaps=""
-                  profileImagePreview={profileImagePreview}
-                  setProfileImagePreview={setProfileImagePreview}
-                  activeTab={finetuningActiveTab}
-                  onTabChange={setFinetuningActiveTab}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
+      <SidebarProvider>
+        <div className="h-screen overflow-hidden bg-background flex w-full">
+          <AppDrawer
+            isMenuOpen={isMenuOpen}
+            onMenuToggle={handleMenuToggle}
+            onNewChat={handleNewChat}
+            onOpenFinetuning={handleOpenFinetuningWithAuth}
+            chatTitles={chatTitles}
+            chatIds={chatIds}
+            selectedChatIndex={selectedChatIndex}
+            onSelectChat={handleSelectChat}
+            onDeleteChat={deleteConversation}
+            chatConfig={chatConfig}
+            userLocation={userLocation}
+            geolocationStatus={geolocationStatus}
+            isPublicChat={isPublicChat}
+          />
           
-          {/* Panel Derecho: Chat */}
-          <ResizablePanel minSize={30} defaultSize={50}>
-            <div className="flex flex-col h-full">
-              {/* Header del chat */}
-              <div className="flex items-center justify-between p-4 h-16 bg-background border-b">
-                <h2 className="text-lg font-bold text-white tracking-wider">
-                  CityCore
-                </h2>
-                <div className="flex items-center gap-2">
-                  {user ? (
-                    <UserButton />
-                  ) : (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleUserMenuOpen}
-                        className="p-0"
-                      >
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback>
-                            <User className="h-5 w-5" />
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                      <UserMenu
-                        anchorEl={userMenuAnchorEl}
-                        open={Boolean(userMenuAnchorEl)}
-                        onClose={handleUserMenuClose}
-                        currentThemeMode={currentThemeMode}
-                        onToggleTheme={toggleTheme}
-                        onOpenSettings={handleOpenSettings}
-                        isAuthenticated={!!user}
-                        onLogin={onLogin}
-                      />
-                    </>
-                  )}
+          {/* Paneles redimensionables: admin y chat */}
+          <div className="flex-1 flex flex-col">
+            {modernHeader}
+            <ResizablePanelGroup direction="horizontal" className="flex-1">
+              {/* Panel Izquierdo: Configuración */}
+              <ResizablePanel minSize={30} defaultSize={50}>
+                <div className="flex flex-col h-full">
+                  {/* Header del panel de configuración */}
+                  <div className="flex items-center justify-between p-4 h-16 bg-background border-b border-r">
+                    <h2 className="text-lg font-medium truncate">
+                      Personalizar Asistente
+                    </h2>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {/* Contenido del panel de configuración */}
+                  <div className="flex-1 overflow-hidden border-r">
+                    <FinetuningPage
+                      currentConfig={chatConfig}
+                      onSave={handleSaveCustomizationWithToast}
+                      onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+                      googleMapsScriptLoaded={googleMapsScriptLoaded}
+                      apiKeyForMaps=""
+                      profileImagePreview={profileImagePreview}
+                      setProfileImagePreview={setProfileImagePreview}
+                      activeTab={finetuningActiveTab}
+                      onTabChange={setFinetuningActiveTab}
+                    />
+                  </div>
                 </div>
-              </div>
-              {/* Contenido del chat */}
-              <div className="flex-1 overflow-hidden flex flex-col">
-                <MainContent
-                  theme={theme}
-                  isMobile={false}
-                  isMenuOpen={false}
-                  handleMenuToggle={handleMenuToggle}
-                  currentThemeMode={currentThemeMode}
-                  toggleTheme={toggleTheme}
-                  handleOpenSettings={handleOpenSettings}
-                  user={user}
-                  onLogin={onLogin}
-                  messages={messages}
-                  isLoading={isLoading}
-                  appError={appError}
-                  chatConfig={chatConfig}
-                  handleSendMessage={handleSendMessage}
-                  handleDownloadPdf={handleDownloadPdf}
-                  handleSeeMoreEvents={handleSeeMoreEvents}
-                  handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
-                  isInFinetuningMode={true}
-                  shouldShowChatContainer={shouldShowChatContainer}
-                  handleToggleLocation={handleToggleLocation}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+              </ResizablePanel>
+              
+              {/* Panel Derecho: Chat */}
+              <ResizablePanel minSize={30} defaultSize={50}>
+                <div className="flex flex-col h-full">
+                  {/* Contenido del chat */}
+                  <div className="flex-1 overflow-hidden flex flex-col">
+                    <MainContent
+                      theme={theme}
+                      isMobile={false}
+                      isMenuOpen={false}
+                      handleMenuToggle={handleMenuToggle}
+                      currentThemeMode={currentThemeMode}
+                      toggleTheme={toggleTheme}
+                      handleOpenSettings={handleOpenSettings}
+                      user={user}
+                      onLogin={onLogin}
+                      messages={messages}
+                      isLoading={isLoading}
+                      appError={appError}
+                      chatConfig={chatConfig}
+                      handleSendMessage={handleSendMessage}
+                      handleDownloadPdf={handleDownloadPdf}
+                      handleSeeMoreEvents={handleSeeMoreEvents}
+                      handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+                      isInFinetuningMode={true}
+                      shouldShowChatContainer={shouldShowChatContainer}
+                      handleToggleLocation={handleToggleLocation}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </div>
+        </div>
+      </SidebarProvider>
     );
   }
 
-  // Vista normal: header, side menu y chat
+  // Vista normal: header, side menu y chat con SidebarProvider
   return (
-    <div className="h-screen overflow-hidden bg-background flex flex-col">
-      {normalHeader}
-      <div className="flex flex-1 pt-16 sm:pt-16">
+    <SidebarProvider>
+      <div className="h-screen overflow-hidden bg-background flex w-full">
         <AppDrawer
           isMenuOpen={isMenuOpen}
           onMenuToggle={handleMenuToggle}
@@ -389,27 +347,30 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           geolocationStatus={geolocationStatus}
           isPublicChat={isPublicChat}
         />
-        <MainContent
-          theme={theme}
-          isMobile={isMobile}
-          isMenuOpen={isMenuOpen}
-          handleMenuToggle={handleMenuToggle}
-          currentThemeMode={currentThemeMode}
-          toggleTheme={toggleTheme}
-          handleOpenSettings={handleOpenSettings}
-          user={user}
-          onLogin={onLogin}
-          messages={messages}
-          isLoading={isLoading}
-          appError={appError}
-          chatConfig={chatConfig}
-          handleSendMessage={handleSendMessage}
-          handleDownloadPdf={handleDownloadPdf}
-          handleSeeMoreEvents={handleSeeMoreEvents}
-          handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
-          shouldShowChatContainer={shouldShowChatContainer}
-          handleToggleLocation={handleToggleLocation}
-        />
+        <div className="flex-1 flex flex-col">
+          {modernHeader}
+          <MainContent
+            theme={theme}
+            isMobile={isMobile}
+            isMenuOpen={isMenuOpen}
+            handleMenuToggle={handleMenuToggle}
+            currentThemeMode={currentThemeMode}
+            toggleTheme={toggleTheme}
+            handleOpenSettings={handleOpenSettings}
+            user={user}
+            onLogin={onLogin}
+            messages={messages}
+            isLoading={isLoading}
+            appError={appError}
+            chatConfig={chatConfig}
+            handleSendMessage={handleSendMessage}
+            handleDownloadPdf={handleDownloadPdf}
+            handleSeeMoreEvents={handleSeeMoreEvents}
+            handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+            shouldShowChatContainer={shouldShowChatContainer}
+            handleToggleLocation={handleToggleLocation}
+          />
+        </div>
       </div>
       
       {/* Toast de compartir */}
@@ -452,7 +413,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           </Card>
         </div>
       )}
-    </div>
+    </SidebarProvider>
   );
 };
 

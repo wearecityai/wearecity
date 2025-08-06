@@ -4,22 +4,41 @@ import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import { Badge } from './ui/badge';
 import { 
-  Menu,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarTrigger,
+  useSidebar,
+} from './ui/sidebar';
+import { 
   Edit3, 
   MapPin, 
-  History, 
   Settings, 
   Sliders, 
   ChevronDown, 
   Navigation, 
   Trash2, 
   Star,
-  MoreHorizontal
+  MoreHorizontal,
+  Plus,
+  MessageCircle,
+  Home
 } from 'lucide-react';
 import { CustomChatConfig } from '../types';
 import { useDefaultChat } from '../hooks/useDefaultChat';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { StatusBadge } from './ui/status-badge';
 
 interface UserLocation {
   latitude: number;
@@ -59,8 +78,9 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   geolocationStatus,
   isPublicChat = false
 }) => {
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const sidebarContext = useSidebar();
+  const collapsed = sidebarContext?.state === 'collapsed';
   const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat } = useDefaultChat();
   const [locationInfo, setLocationInfo] = useState<{
     city: string;
@@ -189,241 +209,200 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   };
 
   return (
-    <>
-      {/* Mobile overlay */}
-      {isMobile && isMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40" 
-          onClick={onMenuToggle}
-        />
-      )}
-      
-      {/* Drawer */}
-      <div
-        className={cn(
-          "fixed left-0 top-0 h-full bg-background border-r transition-all duration-300 z-50 flex flex-col",
-          isMobile ? (isMenuOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0",
-          isMenuOpen ? "w-[260px]" : "w-[72px]"
-        )}
-      >
-        {/* Header */}
-        <div className={cn(
-          "flex items-center min-h-16",
-          isMenuOpen ? "px-4 justify-start" : "justify-center"
-        )}>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMenuToggle}
-            className={cn("h-12 w-12", isMenuOpen && "mr-3")}
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
-          {isMenuOpen && (
-            <span className="font-medium">Menu</span>
-          )}
-        </div>
-
-        {/* New Chat Button */}
-        <div className={cn(
-          "flex justify-center mb-4",
-          isMenuOpen ? "px-4" : "px-2"
-        )}>
-          <Button
-            variant="outline"
-            onClick={() => onNewChat("Nuevo chat")}
-            className={cn(
-              "rounded-2xl border-none shadow-none",
-              isMenuOpen 
-                ? "w-full h-12 justify-center bg-muted hover:bg-muted/80" 
-                : "h-12 w-12 p-0 bg-muted hover:bg-muted/80"
-            )}
-            title={!isMenuOpen ? "Nuevo chat" : undefined}
-          >
-            {isMenuOpen ? (
-              <>
-                <Edit3 className="h-6 w-6 mr-3" />
-                Nuevo chat
-              </>
-            ) : (
-              <Edit3 className="h-6 w-6" />
-            )}
-          </Button>
-        </div>
-
-        {/* Navigation */}
-        <ScrollArea className="flex-1 px-2">
-          {/* Discover Cities */}
-          <Button
-            variant="ghost"
-            onClick={() => {
-              navigate('/?focus=search');
-              if (isMobile) onMenuToggle();
-            }}
-            className={cn(
-              "rounded-2xl mb-2",
-              isMenuOpen 
-                ? "w-full h-12 justify-start px-4" 
-                : "h-12 w-12 p-0 mx-auto"
-            )}
-            title={!isMenuOpen ? "Descubrir ciudades" : undefined}
-          >
-            <MapPin className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
-            {isMenuOpen && "Descubrir ciudades"}
-          </Button>
-
-          {/* Recent chats section */}
-          {isMenuOpen && (
-            <>
-              <div className="px-3 py-2 mb-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  RECIENTE
-                </span>
-              </div>
-              
-              {chatTitles.map((title, index) => (
-                <div key={index} className="relative group mb-1">
-                  <Button
-                    variant={index === selectedChatIndex ? "secondary" : "ghost"}
-                    onClick={() => {
-                      onSelectChat(index);
-                      if (isMobile) onMenuToggle();
-                    }}
-                    className="w-full h-12 justify-start px-4 pr-12 rounded-2xl text-left overflow-hidden"
-                    title={title}
-                  >
-                    <span className="truncate">{title}</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteChat(chatIds[index]);
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover:opacity-100 sm:opacity-0 xs:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-
-              <Button
-                variant="ghost"
-                onClick={() => console.log("Mostrar más clicked")}
-                className="w-full h-12 justify-start px-4 rounded-2xl"
-              >
-                <ChevronDown className="h-6 w-6 mr-3" />
-                Mostrar más
-              </Button>
-            </>
-          )}
-        </ScrollArea>
-
-        {/* Bottom section */}
-        <div className="p-2 space-y-2">
-          <Separator className={cn("mx-2", !isMenuOpen && "hidden")} />
-          
-          {/* Default chat toggle */}
-          {chatIds.length > 0 && selectedChatIndex >= 0 && chatIds[selectedChatIndex] && (
-            <Button
-              variant="ghost"
-              onClick={handleToggleDefaultChat}
-              className={cn(
-                "rounded-2xl",
-                isMenuOpen 
-                  ? "w-full h-12 justify-start px-4" 
-                  : "h-12 w-12 p-0 mx-auto"
-              )}
-              title={!isMenuOpen ? (isDefaultChat(chatIds[selectedChatIndex]) ? "Quitar chat predeterminado" : "Marcar como predeterminado") : undefined}
-            >
-              {isDefaultChat(chatIds[selectedChatIndex]) ? (
-                <Star className={cn("h-6 w-6 text-primary", isMenuOpen && "mr-3")} />
-              ) : (
-                <Star className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
-              )}
-              {isMenuOpen && (isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado")}
-            </Button>
-          )}
-
-          {/* Settings */}
-          <Button
-            variant="ghost"
-            onClick={() => console.log("Ajustes clicked")}
-            className={cn(
-              "rounded-2xl",
-              isMenuOpen 
-                ? "w-full h-12 justify-start px-4" 
-                : "h-12 w-12 p-0 mx-auto"
-            )}
-            title={!isMenuOpen ? "Ajustes" : undefined}
-          >
-            <Settings className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
-            {isMenuOpen && "Ajustes"}
-          </Button>
-
-          {/* Configure chat */}
-          {!isPublicChat && (
-            <Button
-              variant="ghost"
-              onClick={() => { 
-                onOpenFinetuning(); 
-                if (isMobile) onMenuToggle(); 
-              }}
-              className={cn(
-                "rounded-2xl",
-                isMenuOpen 
-                  ? "w-full h-12 justify-start px-4" 
-                  : "h-12 w-12 p-0 mx-auto"
-              )}
-              title={!isMenuOpen ? "Configurar chat" : undefined}
-            >
-              <Sliders className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
-              {isMenuOpen && "Configurar chat"}
-            </Button>
-          )}
-
-          <Separator className={cn("mx-2", !isMenuOpen && "hidden")} />
-
-          {/* Location section */}
-          {chatConfig.allowGeolocation && (
-            <div
-              className={cn(
-                "rounded-2xl p-3",
-                isMenuOpen ? "w-full" : "w-12 h-12 flex items-center justify-center mx-auto"
-              )}
-              title={!isMenuOpen ? getDisplayCity() : undefined}
-            >
-              <div className={cn("flex", isMenuOpen ? "items-start space-x-3" : "justify-center")}>
-                <Navigation className={cn("h-6 w-6 mt-0.5", !isMenuOpen && "mt-0")} />
-                {isMenuOpen && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {userLocation ? getDisplayCity() : 'Geolocalización activa'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {userLocation 
-                        ? (locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress())
-                        : 'Esperando ubicación...'
-                      }
-                    </p>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      onClick={refreshLocation}
-                      disabled={locationInfo.loading}
-                      className="h-auto p-0 text-xs mt-1"
-                    >
-                      {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
-                    </Button>
-                  </div>
-                )}
-              </div>
+    <Sidebar collapsible="icon" className="border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <MessageCircle className="h-4 w-4" />
+          </div>
+          {!collapsed && (
+            <div>
+              <h2 className="text-lg font-semibold text-sidebar-foreground">CityCore</h2>
+              <p className="text-xs text-sidebar-foreground/60">Chat inteligente</p>
             </div>
           )}
         </div>
-      </div>
-    </>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {/* New Chat */}
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => onNewChat("Nuevo chat")}
+                className="w-full"
+                size="lg"
+              >
+                <Plus className="h-4 w-4" />
+                {!collapsed && <span>Nuevo chat</span>}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Navigation */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Navegación</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate('/')}
+                  tooltip="Inicio"
+                >
+                  <Home className="h-4 w-4" />
+                  <span>Inicio</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate('/?focus=search')}
+                  tooltip="Descubrir ciudades"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span>Descubrir ciudades</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Recent Chats */}
+        {chatTitles.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Conversaciones recientes</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {chatTitles.slice(0, 5).map((title, index) => (
+                  <SidebarMenuItem key={index}>
+                    <SidebarMenuButton
+                      onClick={() => onSelectChat(index)}
+                      isActive={index === selectedChatIndex}
+                      className="group w-full justify-between"
+                      tooltip={title}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <MessageCircle className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{title}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {isDefaultChat(chatIds[index]) && (
+                          <Star className="h-3 w-3 text-primary" />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteChat(chatIds[index]);
+                          }}
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+                {chatTitles.length > 5 && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton>
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span>Ver más ({chatTitles.length - 5})</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border p-4">
+        <SidebarMenu>
+          {/* Default chat toggle */}
+          {chatIds.length > 0 && selectedChatIndex >= 0 && chatIds[selectedChatIndex] && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => {
+                  const currentChatId = chatIds[selectedChatIndex];
+                  const currentChatTitle = chatTitles[selectedChatIndex];
+                  if (currentChatId && currentChatTitle) {
+                    if (isDefaultChat(currentChatId)) {
+                      removeDefaultChat();
+                    } else {
+                      setDefaultChat(currentChatId, currentChatTitle);
+                    }
+                  }
+                }}
+                tooltip={isDefaultChat(chatIds[selectedChatIndex]) ? "Quitar chat predeterminado" : "Marcar como predeterminado"}
+              >
+                <Star className={cn("h-4 w-4", isDefaultChat(chatIds[selectedChatIndex]) && "text-primary")} />
+                <span>{isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado"}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+
+          {/* Settings */}
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Ajustes">
+              <Settings className="h-4 w-4" />
+              <span>Ajustes</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* Configure chat */}
+          {!isPublicChat && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={onOpenFinetuning}
+                tooltip="Configurar chat"
+              >
+                <Sliders className="h-4 w-4" />
+                <span>Configurar chat</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+
+          {/* Location section */}
+          {chatConfig.allowGeolocation && (
+            <>
+              <Separator className="my-2" />
+              <div className="px-2 py-1">
+                <div className="flex items-center gap-3">
+                  <Navigation className="h-4 w-4 text-sidebar-foreground/60" />
+                  {!collapsed && (
+                    <div className="min-w-0 flex-1">
+                      <StatusBadge 
+                        status={geolocationStatus === 'success' ? 'success' : geolocationStatus === 'error' ? 'error' : 'loading'}
+                        className="text-xs"
+                      >
+                        {userLocation ? getDisplayCity() : 'Ubicación'}
+                      </StatusBadge>
+                      {userLocation && (
+                        <p className="text-xs text-sidebar-foreground/60 mt-1 line-clamp-2">
+                          {locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress()}
+                        </p>
+                      )}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={refreshLocation}
+                        disabled={locationInfo.loading}
+                        className="h-auto p-0 text-xs mt-1 text-sidebar-foreground/60"
+                      >
+                        {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
   );
 };
 
