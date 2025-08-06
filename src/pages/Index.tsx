@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, MessageCircle, Sparkles, Users, Shield } from 'lucide-react';
+import { Search, MapPin, MessageCircle, Sparkles, Users, Shield, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Layout, LayoutHeader, LayoutMain, LayoutContainer } from '@/components/ui/layout';
-import { FeatureCard } from '@/components/ui/feature-card';
+import { Hero, HeroContent, HeroTitle, HeroSubtitle, HeroActions } from '@/components/ui/hero';
+import { FeaturesGrid, Feature } from '@/components/ui/features-grid';
+import { Navigation, NavigationItem } from '@/components/ui/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
@@ -24,62 +26,74 @@ const Index = () => {
   return (
     <Layout>
       <LayoutHeader>
-        <LayoutContainer className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
+        <LayoutContainer>
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                CityCore
-              </h1>
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <span className="text-xl font-bold">CityCore</span>
+              </div>
+              <Badge variant="secondary" className="ml-2">
+                Beta
+              </Badge>
             </div>
-            <Badge variant="secondary" className="hidden sm:inline-flex">
-              Beta
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            {user ? (
-              <Button variant="outline" onClick={() => navigate('/auth')}>
-                <Users className="h-4 w-4 mr-2" />
-                Perfil
-              </Button>
-            ) : (
-              <Button variant="ghost" onClick={() => navigate('/auth')}>
-                Iniciar Sesión
-              </Button>
-            )}
+            
+            <Navigation className="hidden md:flex">
+              <NavigationItem href="#features">Características</NavigationItem>
+              <NavigationItem href="#about">Acerca de</NavigationItem>
+            </Navigation>
+            
+            <div className="flex items-center gap-2">
+              {user ? (
+                <Button variant="outline" onClick={() => navigate('/admin')}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+              ) : (
+                <Button onClick={() => navigate('/auth')}>
+                  Iniciar Sesión
+                </Button>
+              )}
+            </div>
           </div>
         </LayoutContainer>
       </LayoutHeader>
 
       <LayoutMain>
-        <LayoutContainer className="py-8">
-          {/* Hero Section */}
-          <div className="text-center space-y-8 py-12">
+        {/* Hero Section */}
+        <Hero className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
+          <HeroContent>
             <div className="space-y-6">
-              <div className="space-y-4">
-                <Badge variant="outline" className="mb-4">
-                  🚀 Potenciado por IA
-                </Badge>
-                <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-                  Tu asistente de ciudad
-                  <span className="block text-primary">inteligente</span>
-                </h1>
-                <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                  Conecta con tu ciudad como nunca antes. Obtén información local, 
-                  descubre servicios y gestiona trámites con inteligencia artificial.
-                </p>
-              </div>
+              <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Potenciado por IA
+              </Badge>
+              
+              <HeroTitle className="bg-gradient-to-br from-foreground via-foreground/80 to-foreground/60 bg-clip-text text-transparent">
+                Tu asistente de ciudad
+                <span className="block bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  inteligente
+                </span>
+              </HeroTitle>
+              
+              <HeroSubtitle>
+                Conecta con tu ciudad como nunca antes. Obtén información local, 
+                descubre servicios y gestiona trámites con inteligencia artificial.
+              </HeroSubtitle>
             </div>
 
-            {/* Search Section */}
-            <div className="max-w-2xl mx-auto">
-              <Card className="shadow-lg border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-left">
+            {/* Search Card */}
+            <div className="mx-auto max-w-2xl">
+              <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl">
+                <CardHeader className="text-center">
+                  <CardTitle className="flex items-center justify-center gap-2">
                     <Search className="h-5 w-5 text-primary" />
                     Buscar tu ciudad
                   </CardTitle>
-                  <CardDescription className="text-left">
+                  <CardDescription>
                     Encuentra el asistente virtual de tu municipio
                   </CardDescription>
                 </CardHeader>
@@ -90,9 +104,9 @@ const Index = () => {
                       value={searchValue}
                       onChange={(e) => setSearchValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="flex-1 text-base"
+                      className="text-base"
                     />
-                    <Button onClick={handleSearch} className="px-6">
+                    <Button onClick={handleSearch} className="shrink-0">
                       <Search className="h-4 w-4 mr-2" />
                       Buscar
                     </Button>
@@ -101,53 +115,93 @@ const Index = () => {
               </Card>
             </div>
 
-            {/* Features Grid */}
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-16">
-              <FeatureCard
-                icon={<MessageCircle className="h-8 w-8 text-primary" />}
-                title="Chat Inteligente"
-                description="Conversa naturalmente con el asistente de tu ciudad para resolver dudas y obtener información"
-              />
-              
-              <FeatureCard
-                icon={<MapPin className="h-8 w-8 text-primary" />}
-                title="Información Local"
-                description="Accede a datos actualizados sobre servicios municipales, eventos y puntos de interés"
-              />
-              
-              <FeatureCard
-                icon={<Shield className="h-8 w-8 text-primary" />}
-                title="Gestión Segura"
-                description="Realiza trámites y consultas oficiales de forma segura y confidencial"
-              />
-            </div>
+            <HeroActions>
+              <Button 
+                size="lg" 
+                onClick={() => navigate('/auth')}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Sparkles className="h-5 w-5 mr-2" />
+                Comenzar ahora
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => navigate('/chat/demo')}
+              >
+                Ver demo
+              </Button>
+            </HeroActions>
+          </HeroContent>
+        </Hero>
 
-            {/* CTA Section */}
-            <div className="mt-16 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        {/* Features Section */}
+        <section id="features" className="py-20">
+          <LayoutContainer>
+            <div className="text-center space-y-4 mb-16">
+              <Badge variant="outline">Características</Badge>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Todo lo que necesitas para conectar con tu ciudad
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Una plataforma completa para la interacción ciudadana moderna
+              </p>
+            </div>
+            
+            <FeaturesGrid>
+              <Feature
+                icon={<MessageCircle className="h-8 w-8" />}
+                title="Chat Inteligente"
+                description="Conversa naturalmente con el asistente de tu ciudad para resolver dudas y obtener información actualizada"
+              />
+              
+              <Feature
+                icon={<MapPin className="h-8 w-8" />}
+                title="Información Local"
+                description="Accede a datos en tiempo real sobre servicios municipales, eventos y puntos de interés de tu ciudad"
+              />
+              
+              <Feature
+                icon={<Shield className="h-8 w-8" />}
+                title="Gestión Segura"
+                description="Realiza trámites y consultas oficiales de forma segura, privada y con validación gubernamental"
+              />
+            </FeaturesGrid>
+          </LayoutContainer>
+        </section>
+
+        {/* CTA Section */}
+        <section className="border-t bg-muted/30 py-16">
+          <LayoutContainer>
+            <div className="text-center space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight">
+                ¿Listo para empezar?
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+                Únete a miles de ciudadanos que ya están usando CityCore para conectar con su ciudad
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
                   size="lg" 
                   onClick={() => navigate('/auth')}
-                  className="px-8 py-3 text-lg"
                 >
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Comenzar ahora
+                  Crear cuenta gratis
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg"
-                  onClick={() => navigate('/chat/demo')}
-                  className="px-8 py-3 text-lg"
+                  onClick={() => navigate('/auth')}
                 >
-                  Ver demo
+                  Saber más
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Gratis para ciudadanos • Seguro y privado
+              <p className="text-xs text-muted-foreground">
+                Gratis para ciudadanos • Seguro y privado • Sin spam
               </p>
             </div>
-          </div>
-        </LayoutContainer>
+          </LayoutContainer>
+        </section>
       </LayoutMain>
     </Layout>
   );

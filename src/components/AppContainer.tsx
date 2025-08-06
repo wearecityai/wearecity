@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppHandlers } from '../hooks/useAppHandlers';
 import { useAppAuth } from '../hooks/useAppAuth';
-import AppLayout from './AppLayout';
+import AppLayoutModern from './AppLayoutModern';
 
 interface User {
   id: string;
@@ -138,7 +138,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
   });
 
   return (
-    <AppLayout
+    <AppLayoutModern
       isGeminiReady={isGeminiReady}
       appError={appError}
       currentView={currentView}

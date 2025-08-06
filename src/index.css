@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Shadcn/ui Design System - All colors using HSL for proper theming */
+/* Shadcn/ui Design System - Enhanced Default Theme with Modern Components */
 
 @layer base {
   :root {

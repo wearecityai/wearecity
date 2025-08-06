@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ChatContainer, { RecommendedPromptsBar } from './ChatContainer';
 import ChatInput from './ChatInput';
-import UserMenu from './UserMenu';
-import UserButton from './auth/UserButton';
+import { ChatMain, ChatMessages } from './ui/chat-layout';
+import { EmptyState } from './ui/empty-state';
 import { DEFAULT_LANGUAGE_CODE } from '../constants';
+import { MessageCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -28,8 +29,8 @@ interface MainContentProps {
   handleDownloadPdf: (pdfInfo: any) => void;
   handleSeeMoreEvents: (originalUserQuery: string) => void;
   handleSetCurrentLanguageCode: (langCode: string) => void;
-  isInFinetuningMode?: boolean; // Nueva prop para detectar si está en modo finetuning
-  shouldShowChatContainer?: boolean; // Nueva prop para controlar la visibilidad del ChatContainer
+  isInFinetuningMode?: boolean;
+  shouldShowChatContainer?: boolean;
   handleToggleLocation: (enabled: boolean) => Promise<void>;
 }
 
@@ -75,175 +76,121 @@ const MainContent: React.FC<MainContentProps> = ({
     }
   }, [messages]);
 
-  // Forzar scroll al fondo en modo finetuning
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (isInFinetuningMode && scrollableBoxRef.current) {
-      scrollableBoxRef.current.scrollTop = scrollableBoxRef.current.scrollHeight;
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [isInFinetuningMode, messages]);
+  }, [messages]);
 
-  const drawerWidth = 260;
-  const collapsedDrawerWidth = 72;
+  if (isInFinetuningMode) {
+    return (
+      <ChatMain className="h-full max-w-4xl mx-auto">
+        <ChatMessages className="flex-1 overflow-y-auto">
+          {messages.length === 0 && !shouldShowChatContainer ? (
+            <EmptyState
+              icon={<MessageCircle className="h-8 w-8 text-muted-foreground" />}
+              title="Bienvenido al configurador"
+              description="Configura tu asistente de ciudad y comienza a chatear"
+            />
+          ) : (
+            <div className="space-y-4">
+              <ChatContainer
+                messages={messages}
+                isLoading={isLoading}
+                onSendMessage={handleSendMessage}
+                appError={appError}
+                chatConfig={chatConfig}
+                onDownloadPdf={handleDownloadPdf}
+                onSeeMoreEvents={handleSeeMoreEvents}
+                onSetLanguageCode={handleSetCurrentLanguageCode}
+                user={user}
+                onLogin={onLogin}
+              />
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </ChatMessages>
+        
+        <div className="border-t bg-background p-4">
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            recommendedPrompts={chatConfig.recommendedPrompts}
+            currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
+            onSetLanguageCode={handleSetCurrentLanguageCode}
+            isInFinetuningMode={true}
+            onToggleLocation={handleToggleLocation}
+            chatConfig={chatConfig}
+          />
+        </div>
+      </ChatMain>
+    );
+  }
 
   return (
-    <main
-      className={`
-        flex-1 flex flex-col bg-background overflow-hidden justify-center items-center
-        ${isInFinetuningMode 
-          ? 'h-full' 
-          : 'h-screen max-h-screen'
-        }
-        ${isInFinetuningMode ? '' : 'pt-16'}
-      `}
-      style={{
-        marginLeft: isMobile && isMenuOpen ? 0 : undefined,
-      }}
-    >
-      {isInFinetuningMode ? (
-        <div className="flex-1 flex flex-col h-full w-full max-w-[800px] mx-auto">
-          <div
-            ref={scrollableBoxRef}
-            className="flex-1 overflow-y-auto h-full pb-0"
-          >
-            {messages.length === 0 && !shouldShowChatContainer && (
-              <div className="w-full flex flex-col items-center pt-8 px-1 sm:px-1 overflow-hidden">
-                <div className="w-full max-w-full overflow-hidden">
-                  <ChatContainer
-                    messages={[]}
-                    isLoading={false}
-                    onSendMessage={() => {}}
-                    appError={null}
-                    chatConfig={chatConfig}
-                    onDownloadPdf={() => {}}
-                    onSeeMoreEvents={() => {}}
-                    onSetLanguageCode={() => {}}
-                    onlyGreeting
-                    user={user}
-                    onLogin={onLogin}
-                  />
-                </div>
-                {!isMobile && !hasUserSentFirstMessage && (
-                  <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
-                )}
-              </div>
-            )}
-            {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
-            {(messages.length > 0 || shouldShowChatContainer) && (
-              <div className="w-full max-w-full mx-auto px-2 sm:px-4 h-full flex flex-col">
-                <ChatContainer
-                  messages={messages}
-                  isLoading={isLoading}
-                  onSendMessage={handleSendMessage}
-                  appError={appError}
-                  chatConfig={chatConfig}
-                  onDownloadPdf={handleDownloadPdf}
-                  onSeeMoreEvents={handleSeeMoreEvents}
-                  onSetLanguageCode={handleSetCurrentLanguageCode}
-                  user={user}
-                  onLogin={onLogin}
+    <ChatMain className="h-screen">
+      <ChatMessages className="flex-1 overflow-y-auto pb-32">
+        {messages.length === 0 && !shouldShowChatContainer ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <EmptyState
+              icon={<MessageCircle className="h-8 w-8 text-muted-foreground" />}
+              title={`¡Hola! Soy el asistente de ${chatConfig?.restrictedCity?.name || 'tu ciudad'}`}
+              description="¿En qué puedo ayudarte hoy? Puedes preguntarme sobre servicios, eventos, trámites y mucho más."
+            />
+            {!isMobile && !hasUserSentFirstMessage && (
+              <div className="mt-8">
+                <RecommendedPromptsBar 
+                  prompts={chatConfig?.recommendedPrompts || []} 
+                  onSendMessage={handleSendMessage} 
                 />
-                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
-          {/* Input del chat pegado abajo en modo admin */}
-          <div className="w-full max-w-full mx-auto flex-shrink-0 p-0 sticky bottom-0 z-[1]">
+        ) : (
+          <div className="space-y-4 p-4">
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSendMessage={handleSendMessage}
+              appError={appError}
+              chatConfig={chatConfig}
+              onDownloadPdf={handleDownloadPdf}
+              onSeeMoreEvents={handleSeeMoreEvents}
+              onSetLanguageCode={handleSetCurrentLanguageCode}
+              user={user}
+              onLogin={onLogin}
+            />
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </ChatMessages>
+      
+      {/* Fixed Chat Input */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
+        {isMobile && !hasUserSentFirstMessage && (
+          <div className="p-4 border-b">
+            <RecommendedPromptsBar 
+              prompts={chatConfig?.recommendedPrompts || []} 
+              onSendMessage={handleSendMessage} 
+            />
+          </div>
+        )}
+        <div className="p-4">
+          <div className="max-w-4xl mx-auto">
             <ChatInput
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
               recommendedPrompts={chatConfig.recommendedPrompts}
               currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
               onSetLanguageCode={handleSetCurrentLanguageCode}
-              isInFinetuningMode={true}
               onToggleLocation={handleToggleLocation}
               chatConfig={chatConfig}
             />
           </div>
         </div>
-      ) : (
-        <>
-          <div
-            ref={scrollableBoxRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden h-full w-full max-w-[800px] mx-auto pb-[120px] sm:pb-[120px] min-w-0"
-            style={{
-              paddingBottom: isMobile ? 'calc(120px + env(safe-area-inset-bottom, 0px))' : '120px'
-            }}
-          >
-            {messages.length === 0 && !shouldShowChatContainer && (
-              <div className="w-full flex flex-col items-center pt-8 px-1 sm:px-1 overflow-hidden">
-                <div className="w-full max-w-full overflow-hidden">
-                  <ChatContainer
-                    messages={[]}
-                    isLoading={false}
-                    onSendMessage={() => {}}
-                    appError={null}
-                    chatConfig={chatConfig}
-                    onDownloadPdf={() => {}}
-                    onSeeMoreEvents={() => {}}
-                    onSetLanguageCode={() => {}}
-                    onlyGreeting
-                    user={user}
-                    onLogin={onLogin}
-                  />
-                </div>
-                {!isMobile && !hasUserSentFirstMessage && (
-                  <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
-                )}
-              </div>
-            )}
-            {/* Mostrar ChatContainer cuando hay mensajes o cuando shouldShowChatContainer es true */}
-            {(messages.length > 0 || shouldShowChatContainer) && (
-              <div className="w-full max-w-full sm:max-w-[800px] mx-auto px-1 sm:px-2 md:px-4 min-h-full flex flex-col overflow-hidden">
-                <ChatContainer
-                  messages={messages}
-                  isLoading={isLoading}
-                  onSendMessage={handleSendMessage}
-                  appError={appError}
-                  chatConfig={chatConfig}
-                  onDownloadPdf={handleDownloadPdf}
-                  onSeeMoreEvents={handleSeeMoreEvents}
-                  onSetLanguageCode={handleSetCurrentLanguageCode}
-                  user={user}
-                  onLogin={onLogin}
-                />
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </div>
-          {/* Fixed Chat Input at the bottom */}
-          <div
-            className="fixed bg-background z-[1000]"
-            style={{
-              bottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : 0,
-              left: isMobile ? 0 : (isMenuOpen ? drawerWidth : collapsedDrawerWidth),
-              right: 0,
-            }}
-          >
-            {/* Contenedor específico para sugerencias en mobile */}
-            {isMobile && !hasUserSentFirstMessage && (
-              <div className="absolute top-0 left-0 right-0 w-screen overflow-visible z-[1001]">
-                <RecommendedPromptsBar prompts={chatConfig?.recommendedPrompts || []} onSendMessage={handleSendMessage} />
-              </div>
-            )}
-            <div 
-              className={`w-full max-w-full sm:max-w-[800px] mx-auto ${
-                isMobile && !hasUserSentFirstMessage ? 'pt-8' : 'pt-0'
-              }`}
-            >
-              <ChatInput
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                recommendedPrompts={chatConfig.recommendedPrompts}
-                currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
-                onSetLanguageCode={handleSetCurrentLanguageCode}
-                onToggleLocation={handleToggleLocation}
-                chatConfig={chatConfig}
-              />
-            </div>
-          </div>
-        </>
-      )}
-    </main>
+      </div>
+    </ChatMain>
   );
 };
 
