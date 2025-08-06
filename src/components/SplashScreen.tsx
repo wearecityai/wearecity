@@ -1,27 +1,12 @@
 import React from 'react';
-import { Box, CircularProgress, Typography, useTheme } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 
 const SplashScreen: React.FC = () => {
-  // Detectar dark mode nativo del sistema para evitar parpadeo
-  const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const backgroundColor = isDark ? '#121212' : '#ffffff';
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100vh',
-        bgcolor: backgroundColor,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000,
-      }}
-    >
-      <CircularProgress size={48} thickness={4} />
-    </Box>
+    <div className="fixed inset-0 w-screen h-screen bg-background flex items-center justify-center z-[2000]">
+      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+    </div>
   );
 };
 
-export default SplashScreen; 
+export default SplashScreen;
