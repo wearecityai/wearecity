@@ -106,119 +106,102 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
 
   if (currentView === 'finetuning') {
     return (
-      <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError}>
-        <DashboardLayout>
-          <DashboardHeader>
-            <div className="container flex h-16 items-center justify-between px-4">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setCurrentView('chat')}
-                >
-                  <span className="sr-only">Volver al chat</span>
-                  ←
-                </Button>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <h1 className="text-xl font-bold">Configuración</h1>
+      <DashboardLayout>
+        <DashboardHeader>
+          <div className="container flex h-16 items-center justify-between px-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCurrentView('chat')}
+              >
+                <span className="sr-only">Volver al chat</span>
+                ←
+              </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Sparkles className="h-4 w-4" />
                 </div>
+                <h1 className="text-xl font-bold">Configuración</h1>
               </div>
-              <UserButton />
             </div>
-          </DashboardHeader>
-          
-          <DashboardContent>
-            <FinetuningPage
-              currentConfig={chatConfig}
-              onSave={handleSaveCustomization}
-              onCancel={() => setCurrentView('chat')}
-              googleMapsScriptLoaded={googleMapsScriptLoaded}
-              apiKeyForMaps=""
-            />
-          </DashboardContent>
-        </DashboardLayout>
-      </ErrorBoundary>
+            <UserButton />
+          </div>
+        </DashboardHeader>
+        
+        <DashboardContent>
+          <FinetuningPage
+            currentConfig={chatConfig}
+            onSave={handleSaveCustomization}
+            onCancel={() => setCurrentView('chat')}
+            googleMapsScriptLoaded={googleMapsScriptLoaded}
+            apiKeyForMaps=""
+          />
+        </DashboardContent>
+      </DashboardLayout>
     );
   }
 
   return (
-    <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError}>
-      <SidebarProvider>
-        <ChatLayout>
-          {!isMobile && (
-            <AppDrawer
-              chatTitles={chatTitles}
-              selectedChatIndex={selectedChatIndex}
-              onSelectChat={handleSelectChat}
-              chatConfig={chatConfig}
-              userLocation={userLocation}
-              geolocationStatus={geolocationStatus}
-              currentThemeMode={currentThemeMode}
-              conversations={conversations}
-              deleteConversation={deleteConversation}
-            />
-          )}
-          
-          <ChatMain>
-            {!isPublicChat && (
-              <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="flex h-16 items-center justify-between px-4">
-                  <div className="flex items-center gap-3">
-                    <SidebarTrigger />
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                        <Sparkles className="h-4 w-4" />
-                      </div>
-                      <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                        {chatConfig?.restrictedCity?.name || 'CityCore'}
-                      </h1>
-                    </div>
-                  </div>
-                  
+    <SidebarProvider>
+      <ChatLayout>
+        
+        <ChatMain>
+          {!isPublicChat && (
+            <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="flex h-16 items-center justify-between px-4">
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger />
                   <div className="flex items-center gap-2">
-                    {isMobile && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleMenuToggle}
-                      >
-                        <Menu className="h-5 w-5" />
-                      </Button>
-                    )}
-                    <UserButton />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                      {chatConfig?.restrictedCity?.name || 'CityCore'}
+                    </h1>
                   </div>
                 </div>
+                
+                <div className="flex items-center gap-2">
+                  {isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleMenuToggle}
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  )}
+                  <UserButton />
+                </div>
               </div>
-            )}
-            
-            <MainContent
-              theme={theme}
-              isMobile={isMobile}
-              isMenuOpen={isMenuOpen}
-              handleMenuToggle={handleMenuToggle}
-              currentThemeMode={currentThemeMode}
-              toggleTheme={toggleTheme}
-              handleOpenSettings={handleOpenSettings}
-              user={user}
-              onLogin={onLogin}
-              messages={messages}
-              isLoading={isLoading}
-              appError={appError}
-              chatConfig={chatConfig}
-              handleSendMessage={handleSendMessage}
-              handleDownloadPdf={handleDownloadPdf}
-              handleSeeMoreEvents={handleSeeMoreEvents}
-              handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
-              shouldShowChatContainer={shouldShowChatContainer}
-              handleToggleLocation={handleToggleLocation}
-            />
-          </ChatMain>
-        </ChatLayout>
-      </SidebarProvider>
-    </ErrorBoundary>
+            </div>
+          )}
+          
+          <MainContent
+            theme={theme}
+            isMobile={isMobile}
+            isMenuOpen={isMenuOpen}
+            handleMenuToggle={handleMenuToggle}
+            currentThemeMode={currentThemeMode}
+            toggleTheme={toggleTheme}
+            handleOpenSettings={handleOpenSettings}
+            user={user}
+            onLogin={onLogin}
+            messages={messages}
+            isLoading={isLoading}
+            appError={appError}
+            chatConfig={chatConfig}
+            handleSendMessage={handleSendMessage}
+            handleDownloadPdf={handleDownloadPdf}
+            handleSeeMoreEvents={handleSeeMoreEvents}
+            handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+            shouldShowChatContainer={shouldShowChatContainer}
+            handleToggleLocation={handleToggleLocation}
+          />
+        </ChatMain>
+      </ChatLayout>
+    </SidebarProvider>
   );
 };
 
