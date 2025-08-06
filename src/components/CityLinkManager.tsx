@@ -1,31 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Badge } from './ui/badge';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Separator } from './ui/separator';
+import { Skeleton } from './ui/skeleton';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  Typography,
-  Button,
-  TextField,
-  Chip,
-  Box,
-  Alert,
-  IconButton,
-  Divider,
-  Stack,
-  Paper
-} from '@mui/material';
-import {
-  ContentCopy,
-  OpenInNew,
-  Language,
-  Visibility,
-  VisibilityOff,
+  Copy,
+  ExternalLink,
+  Globe,
+  Eye,
+  EyeOff,
   Settings,
   QrCode,
   Download,
-  Image,
-  Code
-} from '@mui/icons-material';
+  ImageIcon,
+  FileCode
+} from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAssistantConfig } from '@/hooks/useAssistantConfig';
 import { supabase } from '@/integrations/supabase/client';
@@ -195,229 +187,165 @@ export const CityLinkManager: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <div className="flex flex-col gap-6">
       {/* Debug component - solo en desarrollo */}
       {process.env.NODE_ENV === 'development' && (
         <CityDebug />
       )}
       
       <Card>
-        <CardHeader
-          title={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Language sx={{ fontSize: 20 }} />
-              <Typography variant="h5" component="h3">
-                Link Público de tu Ciudad
-              </Typography>
-            </Box>
-          }
-        />
-        <CardContent>
-          <Stack spacing={3}>
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                URL Pública
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <TextField
-                  value={publicUrl}
-                  InputProps={{ readOnly: true }}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontFamily: 'monospace',
-                      fontSize: '0.875rem'
-                    }
-                  }}
-                />
-                <IconButton
-                  onClick={() => copyToClipboard(publicUrl)}
-                  size="small"
-                  sx={{ border: 1, borderColor: 'divider' }}
-                >
-                  <ContentCopy fontSize="small" />
-                </IconButton>
-                <IconButton
-                  onClick={() => window.open(publicUrl, '_blank')}
-                  disabled={!isPublic}
-                  size="small"
-                  sx={{ border: 1, borderColor: 'divider' }}
-                >
-                  <OpenInNew fontSize="small" />
-                </IconButton>
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                El slug se actualiza automáticamente cuando cambias el nombre del asistente.
-              </Typography>
-            </Box>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            Link Público de tu Ciudad
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">URL Pública</label>
+            <div className="flex gap-2 items-center">
+              <Input
+                value={publicUrl}
+                readOnly
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => copyToClipboard(publicUrl)}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.open(publicUrl, '_blank')}
+                disabled={!isPublic}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              El slug se actualiza automáticamente cuando cambias el nombre del asistente.
+            </p>
+          </div>
 
-            <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {isLoadingPrivacy ? (
-                      <Typography variant="body2" color="text.secondary">
-                        Cargando...
-                      </Typography>
-                    ) : isPublic ? (
-                      <>
-                        <Visibility sx={{ color: 'success.main', fontSize: 20 }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                          Público
-                        </Typography>
-                        <Chip
-                          label="Accesible para todos"
-                          size="small"
-                          icon={<Language sx={{ fontSize: 16 }} />}
-                          color="primary"
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <VisibilityOff sx={{ color: 'warning.main', fontSize: 20 }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                          Privado
-                        </Typography>
-                        <Chip
-                          label="Solo para ti"
-                          size="small"
-                          variant="outlined"
-                        />
-                      </>
-                    )}
-                  </Box>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isLoadingPrivacy ? (
+                    <Skeleton className="h-4 w-20" />
+                  ) : isPublic ? (
+                    <>
+                      <Eye className="h-5 w-5 text-green-600" />
+                      <span className="font-medium">Público</span>
+                      <Badge className="flex items-center gap-1">
+                        <Globe className="h-3 w-3" />
+                        Accesible para todos
+                      </Badge>
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="h-5 w-5 text-orange-600" />
+                      <span className="font-medium">Privado</span>
+                      <Badge variant="outline">Solo para ti</Badge>
+                    </>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={togglePrivacy}
+                  disabled={isUpdatingPrivacy || isLoadingPrivacy}
+                >
+                  {isUpdatingPrivacy ? 'Actualizando...' : (isPublic ? 'Hacer Privado' : 'Hacer Público')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Código QR */}
+          {isPublic && !isLoadingPrivacy && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="h-5 w-5" />
+                  Código QR
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-center">
+                  {isGeneratingQR ? (
+                    <div className="w-64 h-64 flex items-center justify-center border border-border rounded">
+                      <span className="text-sm text-muted-foreground">Generando QR...</span>
+                    </div>
+                  ) : qrCodeDataUrl ? (
+                    <div className="text-center">
+                      <img 
+                        src={qrCodeDataUrl} 
+                        alt="QR Code" 
+                        className="w-64 h-64 border border-border rounded"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Escanea para acceder al chat
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="w-64 h-64 flex items-center justify-center border border-border rounded">
+                      <span className="text-sm text-muted-foreground">Error generando QR</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 justify-center">
                   <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={togglePrivacy}
-                    disabled={isUpdatingPrivacy || isLoadingPrivacy}
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadQRAsJPG}
+                    disabled={!qrCodeDataUrl}
+                    className="flex items-center gap-2"
                   >
-                    {isUpdatingPrivacy ? 'Actualizando...' : (isPublic ? 'Hacer Privado' : 'Hacer Público')}
+                    <ImageIcon className="h-4 w-4" />
+                    Descargar JPG
                   </Button>
-                </Box>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadQRAsSVG}
+                    disabled={!isPublic}
+                    className="flex items-center gap-2"
+                  >
+                    <FileCode className="h-4 w-4" />
+                    Descargar SVG
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+          )}
 
-            {/* Código QR */}
-            {isPublic && !isLoadingPrivacy && (
-              <Card variant="outlined">
-                <CardHeader
-                  title={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <QrCode sx={{ fontSize: 20 }} />
-                      <Typography variant="h6" component="h4">
-                        Código QR
-                      </Typography>
-                    </Box>
-                  }
-                />
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                      {isGeneratingQR ? (
-                        <Box sx={{ 
-                          width: 256, 
-                          height: 256, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          border: 1,
-                          borderColor: 'divider',
-                          borderRadius: 1
-                        }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Generando QR...
-                          </Typography>
-                        </Box>
-                      ) : qrCodeDataUrl ? (
-                        <Box sx={{ textAlign: 'center' }}>
-                          <img 
-                            src={qrCodeDataUrl} 
-                            alt="QR Code" 
-                            style={{ 
-                              width: 256, 
-                              height: 256,
-                              border: '1px solid #e0e0e0',
-                              borderRadius: '4px'
-                            }} 
-                          />
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                            Escanea para acceder al chat
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ 
-                          width: 256, 
-                          height: 256, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          border: 1,
-                          borderColor: 'divider',
-                          borderRadius: 1
-                        }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Error generando QR
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<Image />}
-                        onClick={downloadQRAsJPG}
-                        disabled={!qrCodeDataUrl}
-                      >
-                        Descargar JPG
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<Code />}
-                        onClick={downloadQRAsSVG}
-                        disabled={!isPublic}
-                      >
-                        Descargar SVG
-                      </Button>
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
+          {isPublic && !isLoadingPrivacy && (
+            <Alert>
+              <Globe className="h-4 w-4" />
+              <AlertTitle>Chat Público Activo</AlertTitle>
+              <AlertDescription>
+                Tu ciudad es accesible públicamente. Cualquier usuario puede chatear con tu asistente
+                usando el link de arriba, pero no podrán modificar la configuración.
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {isPublic && !isLoadingPrivacy && (
-              <Alert severity="success" icon={<Language />}>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'medium', mb: 1 }}>
-                    Chat Público Activo
-                  </Typography>
-                  <Typography variant="body2" color="success.main">
-                    Tu ciudad es accesible públicamente. Cualquier usuario puede chatear con tu asistente
-                    usando el link de arriba, pero no podrán modificar la configuración.
-                  </Typography>
-                </Box>
-              </Alert>
-            )}
-
-            {!isPublic && !isLoadingPrivacy && (
-              <Alert severity="warning" icon={<VisibilityOff />}>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'medium', mb: 1 }}>
-                    Chat Privado
-                  </Typography>
-                  <Typography variant="body2" color="warning.main">
-                    Tu ciudad es privada. Solo usuarios autenticados con tu cuenta pueden acceder al chat.
-                  </Typography>
-                </Box>
-              </Alert>
-            )}
-          </Stack>
+          {!isPublic && !isLoadingPrivacy && (
+            <Alert variant="destructive">
+              <EyeOff className="h-4 w-4" />
+              <AlertTitle>Chat Privado</AlertTitle>
+              <AlertDescription>
+                Tu ciudad es privada. Solo usuarios autenticados con tu cuenta pueden acceder al chat.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
