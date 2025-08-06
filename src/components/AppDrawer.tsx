@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box, Drawer, IconButton, Typography, Button, List, ListItem, ListItemButton, 
-  ListItemIcon, ListItemText, CircularProgress, useTheme, useMediaQuery, Divider
-} from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import LocationCityIcon from '@mui/icons-material/LocationCity';
-import HistoryIcon from '@mui/icons-material/History';
-import SettingsIcon from '@mui/icons-material/Settings';
-import TuneIcon from '@mui/icons-material/Tune';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import NearMeIcon from '@mui/icons-material/NearMe';
-import DeleteIcon from '@mui/icons-material/Delete';
-import StarIcon from '@mui/icons-material/Star';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
+import { cn } from '@/lib/utils';
+import { Button } from './ui/button';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
+import { 
+  Menu,
+  Edit3, 
+  MapPin, 
+  History, 
+  Settings, 
+  Sliders, 
+  ChevronDown, 
+  Navigation, 
+  Trash2, 
+  Star,
+  MoreHorizontal
+} from 'lucide-react';
 import { CustomChatConfig } from '../types';
 import { useDefaultChat } from '../hooks/useDefaultChat';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UserLocation {
   latitude: number;
@@ -56,8 +59,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   geolocationStatus,
   isPublicChat = false
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat } = useDefaultChat();
   const [locationInfo, setLocationInfo] = useState<{
@@ -125,13 +127,6 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
 
   const drawerWidth = 260;
   const collapsedDrawerWidth = 72;
-  
-  // Constantes para consistencia
-  const ICON_SIZE = 24;
-  const PADDING_COLLAPSED = 0; // Sin padding en contraído para centrado perfecto
-  const PADDING_EXPANDED = 2; // 16px
-  const MARGIN_BETWEEN_ICON_TEXT = 1.5; // 12px
-  const BUTTON_HEIGHT = 48; // Altura más generosa para mejor apariencia
 
   const refreshLocation = () => {
     if (chatConfig.allowGeolocation && navigator.geolocation) {
@@ -193,387 +188,242 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
     }
   };
 
-  const drawerContent = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header con botón de menú */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        px: isMenuOpen ? PADDING_EXPANDED : 0, 
-        py: 1.5,
-        minHeight: 64,
-        justifyContent: isMenuOpen ? 'flex-start' : 'center',
-      }}>
-        <IconButton
-          onClick={onMenuToggle}
-          sx={{
-            width: BUTTON_HEIGHT,
-            height: BUTTON_HEIGHT,
-            mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-          }}
-        >
-          <MenuIcon sx={{ fontSize: ICON_SIZE }} />
-        </IconButton>
-        {isMenuOpen && (
-          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-            Menu
-          </Typography>
-        )}
-      </Box>
-      {/* Botón Nuevo Chat */}
-      <Box sx={{ 
-        px: isMenuOpen ? PADDING_EXPANDED : 1, 
-        pb: 1.5,
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
-        <Button
-          variant="outlined"
-          startIcon={!isMenuOpen ? null : <EditOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
-          onClick={() => onNewChat("Nuevo chat")}
-          title={!isMenuOpen ? "Nuevo chat" : undefined}
-          sx={{
-            width: isMenuOpen ? '100%' : BUTTON_HEIGHT,
-            height: BUTTON_HEIGHT,
-            bgcolor: theme.palette.mode === 'dark' ? '#2e2f32' :'#e0e0e0',
-            color: theme.palette.mode === 'dark' ? theme.palette.text.primary : theme.palette.text.primary,
-            '&:hover': {
-               bgcolor: theme.palette.mode === 'dark' ? '#3c3d40' :'#d5d5d5',
-            },
-            borderRadius: '20px',
-            border: 'none',
-            boxShadow: 'none',
-            justifyContent: 'center',
-            px: isMenuOpen ? 2 : 0,
-            minWidth: isMenuOpen ? 'auto' : BUTTON_HEIGHT,
-            overflow: 'hidden',
-            textTransform: 'none',
-            fontSize: '0.875rem',
-            '& .MuiButton-startIcon': {
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              ml: 0,
-            }
-          }}
-        >
-          {isMenuOpen ? "Nuevo chat" : <EditOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
-        </Button>
-      </Box>
-      <List sx={{ flexGrow: 1, px: 0, py: 0 }}>
-        <ListItemButton 
-          onClick={() => {
-            navigate('/?focus=search');
-            if (isMobile) onMenuToggle();
-          }}
-          title={!isMenuOpen ? "Descubrir ciudades" : undefined}
-          sx={{
-            minHeight: BUTTON_HEIGHT,
-            justifyContent: 'center',
-            px: isMenuOpen ? PADDING_EXPANDED : 0,
-            mx: isMenuOpen ? 1 : 1.5,
-            my: 0.5,
-            borderRadius: '20px',
-          }}
-        >
-           <ListItemIcon sx={{
-             minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-             mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-             display: 'flex',
-             alignItems: 'center',
-             justifyContent: 'center',
-           }}>
-             <LocationCityIcon sx={{ fontSize: ICON_SIZE }} />
-           </ListItemIcon>
-          {isMenuOpen && <ListItemText primary="Descubrir ciudades" primaryTypographyProps={{fontSize: '0.875rem'}} />}
-        </ListItemButton>
-
-        <Typography variant="caption" sx={{ 
-          px: PADDING_EXPANDED + 1, 
-          py: 1, 
-          color: 'text.secondary', 
-          fontWeight: 500, 
-          display: isMenuOpen ? 'block' : 'none',
-          fontSize: '0.75rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          RECIENTE
-        </Typography>
-        {isMenuOpen && chatTitles.map((title, index) => (
-          <Box key={index} sx={{ position: 'relative', mx: 1, '&:hover .delete-chat-btn': { opacity: 1 } }}>
-            <ListItemButton
-              selected={index === selectedChatIndex}
-              title={!isMenuOpen ? title : undefined}
-              onClick={() => {
-                  onSelectChat(index);
-                  if (isMobile) onMenuToggle();
-              }}
-              sx={{
-                minHeight: BUTTON_HEIGHT,
-                justifyContent: isMenuOpen ? 'flex-start' : 'center',
-                px: isMenuOpen ? PADDING_EXPANDED : PADDING_COLLAPSED,
-                pr: isMenuOpen ? 6 : PADDING_COLLAPSED, // espacio para el icono de eliminar
-                borderRadius: '20px',
-              }}
-            >
-              <ListItemText 
-                primary={title} 
-                primaryTypographyProps={{
-                  fontSize: '0.875rem', 
-                  noWrap: true, 
-                  textOverflow: 'ellipsis'
-                }} 
-              />
-            </ListItemButton>
-            <IconButton
-              className="delete-chat-btn"
-              size="small"
-              aria-label="Eliminar chat"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDeleteChat(chatIds[index]);
-              }}
-              sx={{
-                position: 'absolute',
-                right: 8,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                opacity: { xs: 1, sm: 0 },
-                transition: { xs: 'none', sm: 'opacity 0.2s' },
-                color: 'error.main',
-                zIndex: 2,
-                width: 28,
-                height: 28,
-              }}
-            >
-              <DeleteIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Box>
-        ))}
-         {isMenuOpen && <ListItemButton 
-           onClick={() => console.log("Mostrar más clicked")}
-           title={!isMenuOpen ? "Mostrar más" : undefined}
-           sx={{
-             minHeight: BUTTON_HEIGHT,
-             justifyContent: isMenuOpen ? 'flex-start' : 'center',
-             px: isMenuOpen ? PADDING_EXPANDED : PADDING_COLLAPSED,
-             mx: 1,
-             borderRadius: '20px',
-           }}
-         >
-            <ListItemIcon sx={{
-              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <ExpandMoreIcon sx={{ fontSize: ICON_SIZE }} />
-            </ListItemIcon>
-            <ListItemText primary="Mostrar más" primaryTypographyProps={{fontSize: '0.875rem'}}/>
-        </ListItemButton>}
-      </List>
-
-      {/* Bottom Drawer Section */}
-      <List sx={{ pb: { xs: 3, sm: 4 }, px: 0, py: 0 }}>
-        <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
-        
-        {/* Botón Chat Predeterminado */}
-        {chatIds.length > 0 && selectedChatIndex >= 0 && chatIds[selectedChatIndex] && (
-          <ListItemButton 
-            onClick={handleToggleDefaultChat}
-            title={!isMenuOpen ? (isDefaultChat(chatIds[selectedChatIndex]) ? "Quitar chat predeterminado" : "Marcar como predeterminado") : undefined}
-            sx={{
-              minHeight: BUTTON_HEIGHT,
-              justifyContent: 'center',
-              px: isMenuOpen ? PADDING_EXPANDED : 0,
-              mx: isMenuOpen ? 1 : 1.5,
-              my: 0.5,
-              borderRadius: '20px',
-            }}
-          >
-              <ListItemIcon sx={{
-                minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-                mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                {isDefaultChat(chatIds[selectedChatIndex]) ? (
-                  <StarIcon sx={{ fontSize: ICON_SIZE, color: 'primary.main' }} />
-                ) : (
-                  <StarBorderIcon sx={{ fontSize: ICON_SIZE }} />
-                )}
-              </ListItemIcon>
-              {isMenuOpen && (
-                <ListItemText 
-                  primary={isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado"} 
-                  primaryTypographyProps={{fontSize: '0.875rem'}}
-                />
-              )}
-          </ListItemButton>
-        )}
-        
-        <ListItemButton 
-          onClick={() => console.log("Ajustes clicked")}
-          title={!isMenuOpen ? "Ajustes" : undefined}
-          sx={{
-            minHeight: BUTTON_HEIGHT,
-            justifyContent: 'center',
-            px: isMenuOpen ? PADDING_EXPANDED : 0,
-            mx: isMenuOpen ? 1 : 1.5,
-            my: 0.5,
-            borderRadius: '20px',
-          }}
-        >
-            <ListItemIcon sx={{
-              minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-              mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <SettingsIcon sx={{ fontSize: ICON_SIZE }} />
-            </ListItemIcon>
-            {isMenuOpen && <ListItemText primary="Ajustes" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
-        </ListItemButton>
-        {!isPublicChat && (
-          <ListItemButton 
-            onClick={() => { onOpenFinetuning(); if (isMobile) onMenuToggle(); }}
-            title={!isMenuOpen ? "Configurar chat" : undefined}
-            sx={{
-              minHeight: BUTTON_HEIGHT,
-              justifyContent: 'center',
-              px: isMenuOpen ? PADDING_EXPANDED : 0,
-              mx: isMenuOpen ? 1 : 1.5,
-              my: 0.5,
-              borderRadius: '20px',
-            }}
-          >
-              <ListItemIcon sx={{
-                minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT, 
-                mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <TuneIcon sx={{ fontSize: ICON_SIZE }} />
-              </ListItemIcon>
-              {isMenuOpen && <ListItemText primary="Configurar chat" primaryTypographyProps={{fontSize: '0.875rem'}}/>}
-          </ListItemButton>
-        )}
-        <Divider sx={{ my: 1, mx: 1, display: isMenuOpen ? 'block' : 'none' }}/>
-        
-        {/* Location Section - Mejorada */}
-        {chatConfig.allowGeolocation && (
-        <ListItem
-            sx={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: isMenuOpen ? 'flex-start' : 'center',
-                minHeight: BUTTON_HEIGHT,
-                px: isMenuOpen ? PADDING_EXPANDED : 0,
-                mx: isMenuOpen ? 1 : 1.5,
-                my: 0.5,
-                py: isMenuOpen ? 1 : 0,
-                cursor: 'default',
-                borderRadius: '20px',
-            }}
-            title={!isMenuOpen ? getDisplayCity() : undefined}
-        >
-            <ListItemIcon 
-                sx={{ 
-                    minWidth: isMenuOpen ? ICON_SIZE + 8 : BUTTON_HEIGHT,
-                    mr: isMenuOpen ? MARGIN_BETWEEN_ICON_TEXT : 0,
-                    mt: isMenuOpen ? 0.5 : 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                <NearMeIcon sx={{ fontSize: ICON_SIZE }} />
-            </ListItemIcon>
-            {isMenuOpen && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexGrow: 1 }}>
-                     {/* Nombre del municipio/ciudad */}
-                     <Typography variant="body2" sx={{ fontWeight: '500', lineHeight: 1.2, fontSize: '0.875rem' }}>
-                        {userLocation ? getDisplayCity() : 'Geolocalización activa'}
-                     </Typography>
-                     
-                     {/* Dirección postal detectada por coordenadas */}
-                     <Typography 
-                        variant="caption" 
-                        color="text.secondary" 
-                        sx={{ 
-                          mt: 0.25, 
-                          lineHeight: 1.2,
-                          fontSize: '0.75rem',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                     >
-                        {userLocation 
-                          ? (locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress())
-                          : 'Esperando ubicación...'
-                        }
-                     </Typography>
-                     
-                     <Button
-                        variant="text"
-                        size="small"
-                        onClick={refreshLocation}
-                        disabled={locationInfo.loading}
-                        sx={{
-                          p: 0, 
-                          justifyContent: 'flex-start', 
-                          textTransform: 'none', 
-                          color: 'primary.main', 
-                          mt: 0.5, 
-                          fontSize: '0.75rem',
-                          minHeight: 'auto',
-                          '&:hover': {
-                            backgroundColor: 'transparent',
-                            textDecoration: 'underline'
-                          }
-                        }}
-                     >
-                        {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
-                     </Button>
-                </Box>
-            )}
-        </ListItem>
-        )}
-      </List>
-    </Box>
-  );
-
   return (
-    <Drawer
-      variant={isMobile ? "temporary" : "permanent"}
-      open={isMobile ? isMenuOpen : true}
-      onClose={onMenuToggle}
-      sx={{
-        width: isMenuOpen ? drawerWidth : collapsedDrawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: isMenuOpen ? drawerWidth : collapsedDrawerWidth,
-          boxSizing: 'border-box',
-          borderRight: isMobile ? 'none' : `1px solid ${theme.palette.divider}`,
-          boxShadow: isMobile ? theme.shadows[3] : 'none',
-          overflowX: 'hidden',
-        },
-        '& .MuiListItemIcon-root': {
-        },
-        '& .MuiListItemText-root': {
-          opacity: isMenuOpen ? 1 : 0,
-        }
-      }}
-      ModalProps={{ keepMounted: true }}
-    >
-      {drawerContent}
-    </Drawer>
+    <>
+      {/* Mobile overlay */}
+      {isMobile && isMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40" 
+          onClick={onMenuToggle}
+        />
+      )}
+      
+      {/* Drawer */}
+      <div
+        className={cn(
+          "fixed left-0 top-0 h-full bg-background border-r transition-all duration-300 z-50 flex flex-col",
+          isMobile ? (isMenuOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0",
+          isMenuOpen ? "w-[260px]" : "w-[72px]"
+        )}
+      >
+        {/* Header */}
+        <div className={cn(
+          "flex items-center min-h-16",
+          isMenuOpen ? "px-4 justify-start" : "justify-center"
+        )}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuToggle}
+            className={cn("h-12 w-12", isMenuOpen && "mr-3")}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+          {isMenuOpen && (
+            <span className="font-medium">Menu</span>
+          )}
+        </div>
+
+        {/* New Chat Button */}
+        <div className={cn(
+          "flex justify-center mb-4",
+          isMenuOpen ? "px-4" : "px-2"
+        )}>
+          <Button
+            variant="outline"
+            onClick={() => onNewChat("Nuevo chat")}
+            className={cn(
+              "rounded-2xl border-none shadow-none",
+              isMenuOpen 
+                ? "w-full h-12 justify-center bg-muted hover:bg-muted/80" 
+                : "h-12 w-12 p-0 bg-muted hover:bg-muted/80"
+            )}
+            title={!isMenuOpen ? "Nuevo chat" : undefined}
+          >
+            {isMenuOpen ? (
+              <>
+                <Edit3 className="h-6 w-6 mr-3" />
+                Nuevo chat
+              </>
+            ) : (
+              <Edit3 className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
+
+        {/* Navigation */}
+        <ScrollArea className="flex-1 px-2">
+          {/* Discover Cities */}
+          <Button
+            variant="ghost"
+            onClick={() => {
+              navigate('/?focus=search');
+              if (isMobile) onMenuToggle();
+            }}
+            className={cn(
+              "rounded-2xl mb-2",
+              isMenuOpen 
+                ? "w-full h-12 justify-start px-4" 
+                : "h-12 w-12 p-0 mx-auto"
+            )}
+            title={!isMenuOpen ? "Descubrir ciudades" : undefined}
+          >
+            <MapPin className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
+            {isMenuOpen && "Descubrir ciudades"}
+          </Button>
+
+          {/* Recent chats section */}
+          {isMenuOpen && (
+            <>
+              <div className="px-3 py-2 mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  RECIENTE
+                </span>
+              </div>
+              
+              {chatTitles.map((title, index) => (
+                <div key={index} className="relative group mb-1">
+                  <Button
+                    variant={index === selectedChatIndex ? "secondary" : "ghost"}
+                    onClick={() => {
+                      onSelectChat(index);
+                      if (isMobile) onMenuToggle();
+                    }}
+                    className="w-full h-12 justify-start px-4 pr-12 rounded-2xl text-left overflow-hidden"
+                    title={title}
+                  >
+                    <span className="truncate">{title}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteChat(chatIds[index]);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover:opacity-100 sm:opacity-0 xs:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+
+              <Button
+                variant="ghost"
+                onClick={() => console.log("Mostrar más clicked")}
+                className="w-full h-12 justify-start px-4 rounded-2xl"
+              >
+                <ChevronDown className="h-6 w-6 mr-3" />
+                Mostrar más
+              </Button>
+            </>
+          )}
+        </ScrollArea>
+
+        {/* Bottom section */}
+        <div className="p-2 space-y-2">
+          <Separator className={cn("mx-2", !isMenuOpen && "hidden")} />
+          
+          {/* Default chat toggle */}
+          {chatIds.length > 0 && selectedChatIndex >= 0 && chatIds[selectedChatIndex] && (
+            <Button
+              variant="ghost"
+              onClick={handleToggleDefaultChat}
+              className={cn(
+                "rounded-2xl",
+                isMenuOpen 
+                  ? "w-full h-12 justify-start px-4" 
+                  : "h-12 w-12 p-0 mx-auto"
+              )}
+              title={!isMenuOpen ? (isDefaultChat(chatIds[selectedChatIndex]) ? "Quitar chat predeterminado" : "Marcar como predeterminado") : undefined}
+            >
+              {isDefaultChat(chatIds[selectedChatIndex]) ? (
+                <Star className={cn("h-6 w-6 text-primary", isMenuOpen && "mr-3")} />
+              ) : (
+                <Star className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
+              )}
+              {isMenuOpen && (isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado")}
+            </Button>
+          )}
+
+          {/* Settings */}
+          <Button
+            variant="ghost"
+            onClick={() => console.log("Ajustes clicked")}
+            className={cn(
+              "rounded-2xl",
+              isMenuOpen 
+                ? "w-full h-12 justify-start px-4" 
+                : "h-12 w-12 p-0 mx-auto"
+            )}
+            title={!isMenuOpen ? "Ajustes" : undefined}
+          >
+            <Settings className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
+            {isMenuOpen && "Ajustes"}
+          </Button>
+
+          {/* Configure chat */}
+          {!isPublicChat && (
+            <Button
+              variant="ghost"
+              onClick={() => { 
+                onOpenFinetuning(); 
+                if (isMobile) onMenuToggle(); 
+              }}
+              className={cn(
+                "rounded-2xl",
+                isMenuOpen 
+                  ? "w-full h-12 justify-start px-4" 
+                  : "h-12 w-12 p-0 mx-auto"
+              )}
+              title={!isMenuOpen ? "Configurar chat" : undefined}
+            >
+              <Sliders className={cn("h-6 w-6", isMenuOpen && "mr-3")} />
+              {isMenuOpen && "Configurar chat"}
+            </Button>
+          )}
+
+          <Separator className={cn("mx-2", !isMenuOpen && "hidden")} />
+
+          {/* Location section */}
+          {chatConfig.allowGeolocation && (
+            <div
+              className={cn(
+                "rounded-2xl p-3",
+                isMenuOpen ? "w-full" : "w-12 h-12 flex items-center justify-center mx-auto"
+              )}
+              title={!isMenuOpen ? getDisplayCity() : undefined}
+            >
+              <div className={cn("flex", isMenuOpen ? "items-start space-x-3" : "justify-center")}>
+                <Navigation className={cn("h-6 w-6 mt-0.5", !isMenuOpen && "mt-0")} />
+                {isMenuOpen && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {userLocation ? getDisplayCity() : 'Geolocalización activa'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                      {userLocation 
+                        ? (locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress())
+                        : 'Esperando ubicación...'
+                      }
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={refreshLocation}
+                      disabled={locationInfo.loading}
+                      className="h-auto p-0 text-xs mt-1"
+                    >
+                      {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 };
 
