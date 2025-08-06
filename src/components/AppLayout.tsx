@@ -1,18 +1,15 @@
 import React from 'react';
-import { Box, Typography, Avatar, Paper, Stack, Button } from '@mui/material';
 import ErrorBoundary from './ErrorBoundary';
 import AppDrawer from './AppDrawer';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
-
 import UserMenu from './UserMenu';
 import UserButton from './auth/UserButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import CloseIcon from '@mui/icons-material/Close';
-import LanguageIcon from '@mui/icons-material/Language';
-import { IconButton } from '@mui/material';
+import { Button } from './ui/button';
+import { Avatar, AvatarFallback } from './ui/avatar';
+import { Card, CardContent } from './ui/card';
 import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
+import { Menu, X, Globe, User } from 'lucide-react';
 
 interface User {
   id: string;
@@ -159,93 +156,52 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
 
   // Header para vista normal (sin panel de configuración)
   const normalHeader = (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 0,
+    <div 
+      className={`fixed top-0 z-50 flex items-center justify-between p-4 min-h-16 bg-background border-b ${
+        isMobile 
+          ? 'left-0 w-full' 
+          : `left-${isMenuOpen ? '[260px]' : '[72px]'} w-[calc(100%-${isMenuOpen ? '260px' : '72px'})]`
+      }`}
+      style={{
         left: isMobile ? 0 : (isMenuOpen ? drawerWidth : collapsedDrawerWidth),
         width: isMobile ? '100%' : `calc(100% - ${isMenuOpen ? drawerWidth : collapsedDrawerWidth}px)`,
-        zIndex: (theme) => theme.zIndex.appBar || 1300,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        p: 2,
-        minHeight: '64px',
-        bgcolor: 'background.default',
-        color: 'text.primary',
-        py: { xs: 1, sm: 2 }, // padding vertical 8px en mobile, 16px en desktop
       }}
     >
       {isMobile && (
-        <IconButton
-          edge="start"
-          color="inherit"
-          aria-label="menu"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleMenuToggle}
-          sx={{ mr: 2, color: 'text.primary' }}
+          className="mr-2"
         >
-          <MenuIcon />
-        </IconButton>
+          <Menu className="h-5 w-5" />
+        </Button>
       )}
+      
       {/* Título CityCore centrado absolutamente */}
-      <Box sx={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-        <Typography
-          variant="h6"
-          noWrap
-          component="div"
-          sx={{
-            bgcolor: theme => theme.palette.mode === 'dark' ? '#232428' : '#f5f5f5',
-            borderRadius: 4,
-            px: 3,
-            py: 1.2,
-            color: 'transparent',
-            backgroundImage: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 50%, #90caf9 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 800,
-            letterSpacing: 2,
-            fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.35rem' },
-            pointerEvents: 'auto',
-            display: 'inline-block',
-            transition: 'transform 0.2s',
-            '&:hover': {
-              transform: 'scale(1.04)',
-            },
-          }}
-        >
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent font-bold text-xl tracking-wider pointer-events-auto transition-transform hover:scale-105 px-6 py-2 rounded-lg bg-muted/50">
           CityCore
-        </Typography>
-      </Box>
-      {/* Fin título centrado */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2 ml-auto">
         {user ? (
           <UserButton />
         ) : (
           <>
-            <IconButton
-              color="inherit"
-              aria-label="user account"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleUserMenuOpen}
-              id="user-avatar-button"
-              sx={{ p: 0 }}
+              className="p-0"
             >
-              <Avatar
-                sx={{
-                  width: 40,
-                  height: 40,
-                  bgcolor: theme => theme.palette.background.paper,
-                  color: theme => theme.palette.text.primary,
-                  fontSize: 28,
-                  border: `1px solid ${theme => theme.palette.divider}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <AccountCircleIcon sx={{ fontSize: 32 }} />
+              <Avatar className="w-10 h-10">
+                <AvatarFallback>
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
               </Avatar>
-            </IconButton>
+            </Button>
             <UserMenu
               anchorEl={userMenuAnchorEl}
               open={Boolean(userMenuAnchorEl)}
@@ -258,11 +214,9 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
             />
           </>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
-
-
 
   if (!isGeminiReady && appError) {
     return <ErrorBoundary isGeminiReady={isGeminiReady} appError={appError} />;
@@ -291,14 +245,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
   // DESKTOP: panel admin y chat lado a lado
   if (currentView === 'finetuning') {
     return (
-      <Box sx={{ 
-        height: { xs: '100dvh', sm: '100vh' }, 
-        maxHeight: { xs: '100dvh', sm: '100vh' }, 
-        overflow: 'hidden', 
-        bgcolor: 'background.default', 
-        display: 'flex', 
-        flexDirection: 'row' 
-      }}>
+      <div className="h-screen overflow-hidden bg-background flex">
         {/* Side menu siempre visible */}
         <AppDrawer
           isMenuOpen={isMenuOpen}
@@ -317,38 +264,25 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
         />
         
         {/* Paneles redimensionables: admin y chat */}
-        <ResizablePanelGroup direction="horizontal" style={{ flex: 1 }}>
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
           {/* Panel Izquierdo: Configuración */}
           <ResizablePanel minSize={30} defaultSize={50}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="flex flex-col h-full">
               {/* Header del panel de configuración */}
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 2,
-                height: '64px',
-                minHeight: '64px',
-                maxHeight: '64px',
-                bgcolor: 'background.default',
-                color: 'text.primary',
-                borderBottom: `1px solid ${theme.palette.divider}`,
-                borderRight: `1px solid ${theme.palette.divider}`,
-              }}>
-                <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, flexGrow: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', color: 'text.primary' }}>
+              <div className="flex items-center justify-between p-4 h-16 bg-background border-b border-r">
+                <h2 className="text-lg font-medium truncate">
                   Personalizar Asistente
-                </Typography>
-                <IconButton
-                  color="inherit"
-                  aria-label="cerrar configuración"
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
-                  sx={{ color: 'text.primary' }}
                 >
-                  <CloseIcon />
-                </IconButton>
-              </Box>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
               {/* Contenido del panel de configuración */}
-              <Box sx={{ flex: 1, overflow: 'hidden', borderRight: `1px solid ${theme.palette.divider}` }}>
+              <div className="flex-1 overflow-hidden border-r">
                 <FinetuningPage
                   currentConfig={chatConfig}
                   onSave={handleSaveCustomizationWithToast}
@@ -360,57 +294,35 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                   activeTab={finetuningActiveTab}
                   onTabChange={setFinetuningActiveTab}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
           </ResizablePanel>
           
           {/* Panel Derecho: Chat */}
           <ResizablePanel minSize={30} defaultSize={50}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="flex flex-col h-full">
               {/* Header del chat */}
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 2,
-                height: '64px',
-                minHeight: '64px',
-                maxHeight: '64px',
-                bgcolor: 'background.default',
-                color: 'text.primary',
-                borderBottom: `1px solid ${theme.palette.divider}`,
-              }}>
-                <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'white', letterSpacing: 1.5, fontSize: '1rem', flexGrow: 1 }}>
+              <div className="flex items-center justify-between p-4 h-16 bg-background border-b">
+                <h2 className="text-lg font-bold text-white tracking-wider">
                   CityCore
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                </h2>
+                <div className="flex items-center gap-2">
                   {user ? (
                     <UserButton />
                   ) : (
                     <>
-                      <IconButton
-                        color="inherit"
-                        aria-label="user account"
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={handleUserMenuOpen}
-                        id="user-avatar-button"
-                        sx={{ p: 0 }}
+                        className="p-0"
                       >
-                        <Avatar
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            bgcolor: theme => theme.palette.background.paper,
-                            color: theme => theme.palette.text.primary,
-                            fontSize: 28,
-                            border: `1px solid ${theme => theme.palette.divider}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <AccountCircleIcon sx={{ fontSize: 32 }} />
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback>
+                            <User className="h-5 w-5" />
+                          </AvatarFallback>
                         </Avatar>
-                      </IconButton>
+                      </Button>
                       <UserMenu
                         anchorEl={userMenuAnchorEl}
                         open={Boolean(userMenuAnchorEl)}
@@ -423,16 +335,10 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                       />
                     </>
                   )}
-                </Box>
-              </Box>
+                </div>
+              </div>
               {/* Contenido del chat */}
-              <Box sx={{ 
-                flex: 1, 
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0
-              }}>
+              <div className="flex-1 overflow-hidden flex flex-col">
                 <MainContent
                   theme={theme}
                   isMobile={false}
@@ -455,26 +361,19 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                   shouldShowChatContainer={shouldShowChatContainer}
                   handleToggleLocation={handleToggleLocation}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
-      </Box>
+      </div>
     );
   }
 
   // Vista normal: header, side menu y chat
   return (
-    <Box sx={{ 
-      height: { xs: '100dvh', sm: '100vh' }, 
-      maxHeight: { xs: '100dvh', sm: '100vh' }, 
-      overflow: 'hidden', 
-      bgcolor: 'background.default', 
-      display: 'flex', 
-      flexDirection: 'column' 
-    }}>
+    <div className="h-screen overflow-hidden bg-background flex flex-col">
       {normalHeader}
-      <Box sx={{ display: 'flex', flex: 1, height: '100%', paddingTop: { xs: 0, sm: '64px' } }}>
+      <div className="flex flex-1 pt-16 sm:pt-16">
         <AppDrawer
           isMenuOpen={isMenuOpen}
           onMenuToggle={handleMenuToggle}
@@ -511,74 +410,49 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           shouldShowChatContainer={shouldShowChatContainer}
           handleToggleLocation={handleToggleLocation}
         />
-      </Box>
+      </div>
       
       {/* Toast de compartir */}
       {showShareToast && (
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: '80px', // Posición arriba del input del chat
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 9999,
-            maxWidth: 400,
-            width: '90%',
-            mx: 2
-          }}
-        >
-          <Paper
-            elevation={4}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              bgcolor: 'background.paper',
-              border: `1px solid ${theme.palette.divider}`,
-              position: 'relative',
-              boxShadow: theme.shadows[8]
-            }}
-          >
-            <IconButton
-              onClick={handleCloseToast}
-              sx={{
-                position: 'absolute',
-                top: 4,
-                right: 4,
-                color: 'text.secondary',
-                size: 'small'
-              }}
-              size="small"
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-            
-            <Stack spacing={1.5} alignItems="center" textAlign="center">
-              <Box sx={{ color: 'primary.main' }}>
-                <LanguageIcon sx={{ fontSize: 32 }} />
-              </Box>
-              
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                ¡Configuración Guardada!
-              </Typography>
-              
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Tu asistente está listo. ¿Quieres compartirlo?
-              </Typography>
-              
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[9999] max-w-md w-11/12 mx-2">
+          <Card className="relative shadow-lg">
+            <CardContent className="p-4">
               <Button
-                variant="contained"
-                color="primary"
-                onClick={handleShareClick}
-                startIcon={<LanguageIcon />}
-                size="small"
+                variant="ghost"
+                size="icon"
+                onClick={handleCloseToast}
+                className="absolute top-2 right-2 h-6 w-6"
               >
-                Compartir Chat
+                <X className="h-3 w-3" />
               </Button>
-            </Stack>
-          </Paper>
-        </Box>
+              
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="text-primary">
+                  <Globe className="h-8 w-8" />
+                </div>
+                
+                <h3 className="text-lg font-semibold">
+                  ¡Configuración Guardada!
+                </h3>
+                
+                <p className="text-sm text-muted-foreground">
+                  Tu asistente está listo. ¿Quieres compartirlo?
+                </p>
+                
+                <Button
+                  onClick={handleShareClick}
+                  size="sm"
+                  className="w-full"
+                >
+                  <Globe className="w-4 h-4 mr-2" />
+                  Compartir Chat
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
