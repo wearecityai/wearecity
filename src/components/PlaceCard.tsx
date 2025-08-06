@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { Card, CardMedia, CardContent, CardActions, Typography, Button, Box, Chip, Rating, CircularProgress, Alert, Stack, Link, Tooltip } from '@mui/material';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import LanguageIcon from '@mui/icons-material/Language'; // For website
-import NearMeIcon from '@mui/icons-material/NearMe'; // For distance
-
+import React from 'react';
+import { MapPin, ExternalLink, Globe, Navigation, Star, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Alert, AlertDescription } from './ui/alert';
+import { Skeleton } from './ui/skeleton';
 import { PlaceCardInfo } from '../types';
 
 interface PlaceCardProps {
@@ -25,14 +25,14 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
   if (place.isLoadingDetails) {
     console.log('🔍 Showing loading state for place:', place.name);
     return (
-      <Card variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2 }}>
-        <Box sx={{ height: 160, bgcolor: 'grey.300', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CircularProgress />
-        </Box>
-        <CardContent>
-          <Box sx={{ height: 20, bgcolor: 'grey.300', borderRadius: 1, mb: 1, width: '75%' }} />
-          <Box sx={{ height: 16, bgcolor: 'grey.300', borderRadius: 1, mb: 0.5, width: '50%' }} />
-          <Box sx={{ height: 16, bgcolor: 'grey.300', borderRadius: 1, width: '33%' }} />
+      <Card className="w-full max-w-sm">
+        <div className="h-40 bg-muted flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+        <CardContent className="p-4">
+          <Skeleton className="h-5 w-3/4 mb-2" />
+          <Skeleton className="h-4 w-1/2 mb-1" />
+          <Skeleton className="h-4 w-1/3" />
         </CardContent>
       </Card>
     );
@@ -41,212 +41,135 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
   if (place.errorDetails) {
     console.log('🔍 Showing error state for place:', place.name, 'Error:', place.errorDetails);
     return (
-      <Alert severity="error" variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2 }}>
-        <Typography variant="subtitle2" component="h3" fontWeight="medium">{place.name}</Typography>
-        <Typography variant="body2">Error: {place.errorDetails}</Typography>
+      <Alert variant="destructive" className="w-full max-w-sm">
+        <AlertDescription>
+          <div className="font-medium">{place.name}</div>
+          <div className="text-sm">Error: {place.errorDetails}</div>
+        </AlertDescription>
       </Alert>
     );
   }
 
-  // Si no hay datos cargados pero tampoco hay error, mostrar estado de "no disponible"
-  if (!place.rating && !place.address && !place.photoUrl) {
-    console.log('🔍 No data available for place:', place.name);
-    // Si no hay placeId pero hay searchQuery, mostrar una tarjeta básica con enlace a Google Maps
-    if (place.searchQuery) {
-      const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(place.searchQuery)}`;
-      return (
-        <Card variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="h6" component="h3" gutterBottom>
-              {place.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Información detallada no disponible
-            </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<LocationOnIcon />}
-              href={googleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              fullWidth
-            >
-              Ver en Google Maps
-            </Button>
-          </CardContent>
-        </Card>
-      );
+  const formatRating = (rating?: number): string => {
+    if (typeof rating !== 'number') return 'Sin valoración';
+    return `${rating.toFixed(1)} ⭐`;
+  };
+
+  const formatDistance = (distance?: string): string => {
+    if (!distance) return '';
+    // Convert "1.2 km" format to more readable format
+    return distance.replace('km', ' km').replace('m', ' m');
+  };
+
+  const generateMapsUrl = (): string => {
+    if (place.placeId) {
+      return `https://www.google.com/maps/place/?q=place_id:${place.placeId}`;
     }
     
-    // Si no hay ni placeId ni searchQuery
-    return (
-      <Alert severity="warning" variant="outlined" sx={{ width: '100%', maxWidth: 360, borderRadius: 2 }}>
-        <Typography variant="subtitle2" component="h3" fontWeight="medium">{place.name}</Typography>
-        <Typography variant="body2">No se pudo obtener información detallada de este lugar.</Typography>
-      </Alert>
-    );
-  }
+    const query = encodeURIComponent(place.name + (place.address ? ` ${place.address}` : ''));
+    return `https://www.google.com/maps/search/${query}`;
+  };
 
-  console.log('🔍 Rendering card with data for place:', place.name);
-  
-  // Renderizar tarjeta con datos cargados
+  const generateWebsiteSearchUrl = (): string => {
+    const query = encodeURIComponent(place.name + (place.address ? ` ${place.address}` : ''));
+    return `https://www.google.com/search?q=${query}`;
+  };
+
   return (
-    <Card variant="outlined" sx={{ 
-      width: '100%', 
-      maxWidth: { xs: '100%', sm: 360 }, 
-      borderRadius: 2, 
-      display: 'flex', 
-      flexDirection: 'column',
-      minWidth: 0, // Prevenir overflow
-      overflow: 'hidden', // Prevenir overflow
-    }}>
-      {place.photoUrl && (
-        <CardMedia
-          component="img"
-          height="160"
-          image={place.photoUrl}
-          alt={`Foto de ${place.name}`}
-          sx={{ objectFit: 'cover' }}
-        />
-      )}
-      <CardContent sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Typography 
-          variant="h6" 
-          component="h3" 
-          fontWeight="medium" 
-          noWrap 
-          title={place.name} 
-          gutterBottom
-          sx={{ 
-            fontSize: { xs: '1rem', sm: '1.25rem' },
-            minWidth: 0,
-          }}
-        >
-          {place.name}
-        </Typography>
+    <Card className="w-full max-w-sm border-border hover:shadow-md transition-shadow">
 
-        {typeof place.rating === 'number' && (
-          <Stack direction="row" alignItems="center" spacing={0.5} mb={1} sx={{ minWidth: 0 }}>
-            <Rating name="read-only" value={place.rating} precision={0.1} readOnly size="small" />
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              ({place.rating.toFixed(1)})
-            </Typography>
-            {place.userRatingsTotal !== undefined && (
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                {place.userRatingsTotal} reseñas
-              </Typography>
+      <CardHeader className="pb-3">
+        <div className="space-y-2">
+          <h3 className="font-semibold text-base leading-tight line-clamp-2">
+            {place.name}
+          </h3>
+          
+          <div className="flex flex-wrap gap-2">
+            {place.rating && (
+              <Badge variant="secondary" className="text-xs">
+                <Star className="h-3 w-3 mr-1 fill-current" />
+                {formatRating(place.rating)}
+              </Badge>
             )}
-          </Stack>
-        )}
+            
+            {place.distance && (
+              <Badge variant="outline" className="text-xs">
+                <Navigation className="h-3 w-3 mr-1" />
+                {formatDistance(place.distance)}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CardHeader>
 
-        {place.address && (
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 1, 
-              display: 'flex', 
-              alignItems: 'center',
-              fontSize: { xs: '0.8rem', sm: '0.875rem' },
-              minWidth: 0,
-            }}
-          >
-            <LocationOnIcon fontSize="small" sx={{ mr: 0.5, flexShrink: 0 }} />
-            <span style={{ 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis', 
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-            }}>
-              {place.address}
-            </span>
-          </Typography>
-        )}
+      <CardContent className="pt-0">
+        <div className="space-y-3">
+          {place.address && (
+            <div className="flex items-start space-x-2">
+              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <span className="text-sm text-muted-foreground line-clamp-2">
+                {place.address}
+              </span>
+            </div>
+          )}
 
-        {place.distance && (
-          <Chip
-            icon={<NearMeIcon />}
-            label={place.distance}
-            size="small"
-            variant="outlined"
-            sx={{ 
-              mb: 1,
-              fontSize: { xs: '0.7rem', sm: '0.75rem' },
-            }}
-          />
-        )}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              asChild
+            >
+              <a
+                href={generateMapsUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center space-x-2"
+              >
+                <MapPin className="h-4 w-4" />
+                <span>Ver en Mapas</span>
+              </a>
+            </Button>
+
+            {place.website ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                asChild
+              >
+                <a
+                  href={place.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center space-x-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span>Web</span>
+                </a>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                asChild
+              >
+                <a
+                  href={generateWebsiteSearchUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center space-x-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Buscar</span>
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
       </CardContent>
-
-      <CardActions sx={{ 
-        px: { xs: 1, sm: 2 }, 
-        pb: { xs: 1, sm: 2 }, 
-        pt: 0, 
-        justifyContent: 'flex-start', 
-        flexWrap: 'wrap', 
-        gap: { xs: 0.5, sm: 1 },
-        minWidth: 0,
-      }}>
-        {place.mapsUrl && (
-            <Tooltip title="Ver en Google Maps">
-                <Button
-                    component={Link}
-                    href={place.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    size="small"
-                    variant="outlined"
-                    startIcon={<OpenInNewIcon />}
-                    sx={{ 
-                      borderRadius: '16px', 
-                      textTransform: 'none',
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                    }}
-                >
-                    Mapa
-                </Button>
-            </Tooltip>
-        )}
-        {place.website && (
-            <Tooltip title="Visitar sitio web">
-                <Button
-                    component={Link}
-                    href={place.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    size="small"
-                    variant="outlined"
-                    startIcon={<LanguageIcon />}
-                    sx={{ 
-                      borderRadius: '16px', 
-                      textTransform: 'none',
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                    }}
-                >
-                    Web
-                </Button>
-            </Tooltip>
-        )}
-        {!place.mapsUrl && place.searchQuery && (
-            <Tooltip title="Buscar en Google Maps">
-                <Button
-                    component={Link}
-                    href={`https://www.google.com/maps/search/${encodeURIComponent(place.searchQuery)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    size="small"
-                    variant="outlined"
-                    startIcon={<LocationOnIcon />}
-                    sx={{ 
-                      borderRadius: '16px', 
-                      textTransform: 'none',
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                    }}
-                >
-                    Buscar
-                </Button>
-            </Tooltip>
-        )}
-      </CardActions>
     </Card>
   );
 };

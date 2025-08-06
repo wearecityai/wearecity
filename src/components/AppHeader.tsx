@@ -1,8 +1,7 @@
 import React from 'react';
-import { AppBar, Toolbar, IconButton, Typography, Avatar, Box } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import PersonIcon from '@mui/icons-material/Person';
-import { useTheme } from '@mui/material/styles';
+import { Menu, User } from 'lucide-react';
+import { Button } from './ui/button';
+import { Avatar, AvatarFallback } from './ui/avatar';
 import UserMenu from './UserMenu';
 
 interface AppHeaderProps {
@@ -24,7 +23,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   isAuthenticated = false,
   onLogin
 }) => {
-  const theme = useTheme();
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const openUserMenu = Boolean(userMenuAnchorEl);
 
@@ -38,35 +36,45 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <>
-      <AppBar position="static" sx={{ bgcolor: 'background.default', color: 'text.primary' }}>
-        <Toolbar sx={{ minHeight: '56px!important', px: 2, position: 'relative' }}>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center relative px-4">
           {isMobile && (
-            <IconButton
-              edge="start"
-              color="inherit"
-              aria-label="menu"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-2"
               onClick={onMenuToggle}
-              sx={{ mr: 2 }}
+              aria-label="menu"
             >
-              <MenuIcon />
-            </IconButton>
+              <Menu className="h-5 w-5" />
+            </Button>
           )}
-          {/* Espacio para alinear el centro */}
-          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'absolute', left: 0, right: 0, pointerEvents: 'none' }}>
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, letterSpacing: 1, color: 'primary.main', textAlign: 'center', pointerEvents: 'auto' }}>
+          
+          {/* Centered title */}
+          <div className="absolute left-0 right-0 flex justify-center pointer-events-none">
+            <h1 className="text-lg font-bold tracking-wide text-primary pointer-events-auto">
               CityChat
-            </Typography>
-          </Box>
-          {/* Resto de elementos alineados a la derecha */}
-          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <IconButton onClick={handleUserMenuClick} size="small">
-              <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                <PersonIcon fontSize="small"/>
+            </h1>
+          </div>
+          
+          {/* Right-aligned user menu */}
+          <div className="flex items-center justify-end flex-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleUserMenuClick}
+              className="relative h-8 w-8 rounded-full"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>
+                  <User className="h-4 w-4" />
+                </AvatarFallback>
               </Avatar>
-            </IconButton>
-          </Box>
-        </Toolbar>
-      </AppBar>
+            </Button>
+          </div>
+        </div>
+      </header>
+      
       <UserMenu
         anchorEl={userMenuAnchorEl}
         open={openUserMenu}

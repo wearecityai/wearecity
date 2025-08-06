@@ -1,27 +1,22 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Box, TextField, IconButton, Paper, Stack, Menu, MenuItem, Button, Typography, CircularProgress, useTheme, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import MicIcon from '@mui/icons-material/Mic';
-import MicOffIcon from '@mui/icons-material/MicOff';
-import AddIcon from '@mui/icons-material/Add'; // For the "+" button
-import CheckIcon from '@mui/icons-material/Check';
-import LanguageIcon from '@mui/icons-material/Language';
-import NearMeIcon from '@mui/icons-material/NearMe';
-import Tooltip from '@mui/material/Tooltip';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-
+import { Send, Mic, MicOff, Plus, Check, Globe, MapPin, ChevronDown, Loader2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { Card, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE_CODE } from '../constants';
 import { SupportedLanguage } from '../types';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
-  recommendedPrompts?: string[]; // Keep for potential future use, but Gemini UI has fixed chips
+  recommendedPrompts?: string[];
   currentLanguageCode: string;
-  onSetLanguageCode: (code: string) => void; // Keep for settings menu
-  isInFinetuningMode?: boolean; // Nueva prop para ajustar el padding en modo finetuning
-  onToggleLocation?: (enabled: boolean) => void; // Nueva prop para manejar la geolocalización
-  chatConfig?: any; // Prop para acceder al estado global de configuración
+  onSetLanguageCode: (code: string) => void;
+  isInFinetuningMode?: boolean;
+  onToggleLocation?: (enabled: boolean) => void;
+  chatConfig?: any;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -29,7 +24,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   recommendedPrompts,
   currentLanguageCode,
-  onSetLanguageCode, // Retained for settings, not used directly in this input bar
+  onSetLanguageCode,
   isInFinetuningMode = false,
   onToggleLocation,
   chatConfig
@@ -37,7 +32,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const transcribedTextRef = useRef<string>('');
-  const theme = useTheme();
 
   const [isRecording, setIsRecording] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
@@ -68,7 +62,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     };
   }, []);
 
-  // Sincronizar el estado local con el estado global
+  // Sync local state with global state
   useEffect(() => {
     setIsLocationEnabled(chatConfig?.allowGeolocation || false);
   }, [chatConfig?.allowGeolocation]);
@@ -79,7 +73,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
       canvasRef.current.height = canvasRef.current.offsetHeight > 0 ? canvasRef.current.offsetHeight : 34;
     }
   }, [isRecording, canvasRef.current?.offsetWidth]);
-
 
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e?.preventDefault();
@@ -94,62 +87,89 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !isRecording) {
       e.preventDefault();
-      handleSubmit(e as any); // Type assertion, as it's a form-like submission
+      handleSubmit(e as any);
     }
   };
 
   const fullCleanupAndStopVisualizer = () => {
     if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
     animationFrameIdRef.current = null;
-    sourceNodeRef.current?.disconnect(); sourceNodeRef.current = null;
+    sourceNodeRef.current?.disconnect(); 
+    sourceNodeRef.current = null;
     analyserRef.current = null; 
-    mediaStreamRef.current?.getTracks().forEach(track => track.stop()); mediaStreamRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach(track => track.stop()); 
+    mediaStreamRef.current = null;
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close().catch(console.error).finally(() => audioContextRef.current = null);
-    } else { audioContextRef.current = null; }
+    } else { 
+      audioContextRef.current = null; 
+    }
     setIsRecording(false);
   };
   
   const handleActualSpeechRecognitionEnd = () => {
     const finalMessage = transcribedTextRef.current.trim();
     const wasNoErrorOrMinorError = !speechError || speechError === "Escuchando..." || speechError.includes("No se detectó voz") || speechError === "Finalizando...";
-    if (finalMessage && wasNoErrorOrMinorError) { onSendMessage(finalMessage); }
-    if (speechError === "Escuchando..." || speechError === "Finalizando..." || speechError?.includes("No se detectó voz")) { setSpeechError(null); }
-    setInputValue(''); transcribedTextRef.current = '';
+    if (finalMessage && wasNoErrorOrMinorError) { 
+      onSendMessage(finalMessage); 
+    }
+    if (speechError === "Escuchando..." || speechError === "Finalizando..." || speechError?.includes("No se detectó voz")) { 
+      setSpeechError(null); 
+    }
+    setInputValue(''); 
+    transcribedTextRef.current = '';
     fullCleanupAndStopVisualizer();
   };
 
   const drawWaveform = () => {
     if (!isRecording || !analyserRef.current || !canvasRef.current || !waveformDataArrayRef.current) {
       if (isRecording && animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
-      animationFrameIdRef.current = null; return;
+      animationFrameIdRef.current = null; 
+      return;
     }
-    const canvas = canvasRef.current; const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const WIDTH = canvas.width; const HEIGHT = canvas.height;
+    const canvas = canvasRef.current; 
+    const ctx = canvas.getContext('2d'); 
+    if (!ctx) return;
+    const WIDTH = canvas.width; 
+    const HEIGHT = canvas.height;
     analyserRef.current.getByteFrequencyData(waveformDataArrayRef.current);
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
-    const barColor = theme.palette.mode === 'dark' ? 'rgba(137, 180, 252, 0.7)' : 'rgba(25, 118, 210, 0.7)';
+    const barColor = 'hsl(var(--primary))';
     const bufferLength = analyserRef.current.frequencyBinCount;
-    const barWidth = (WIDTH / bufferLength) * 2.5; let barHeight; let x = 0;
+    const barWidth = (WIDTH / bufferLength) * 2.5; 
+    let barHeight; 
+    let x = 0;
     for (let i = 0; i < bufferLength; i++) {
       barHeight = waveformDataArrayRef.current[i] * (HEIGHT / 255) * 0.8; 
-      ctx.fillStyle = barColor; ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
+      ctx.fillStyle = barColor; 
+      ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
       x += barWidth + 1;
     }
     animationFrameIdRef.current = requestAnimationFrame(drawWaveform);
   };
 
   const startRecording = async () => {
-    if (stopDelayTimerRef.current) { window.clearTimeout(stopDelayTimerRef.current); stopDelayTimerRef.current = null; }
+    if (stopDelayTimerRef.current) { 
+      window.clearTimeout(stopDelayTimerRef.current); 
+      stopDelayTimerRef.current = null; 
+    }
     if (isLoading) return;
-    if (!isSpeechApiSupported) { setSpeechError("Reconocimiento de voz no soportado."); return; }
+    if (!isSpeechApiSupported) { 
+      setSpeechError("Reconocimiento de voz no soportado."); 
+      return; 
+    }
     try {
-      if (speechRecognitionRef.current) { speechRecognitionRef.current.abort(); }
+      if (speechRecognitionRef.current) { 
+        speechRecognitionRef.current.abort(); 
+      }
       fullCleanupAndStopVisualizer(); 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
-      setSpeechError("Escuchando..."); setInputValue(''); transcribedTextRef.current = '';
+      setSpeechError("Escuchando..."); 
+      setInputValue(''); 
+      transcribedTextRef.current = '';
       setIsRecording(true); 
+      
       requestAnimationFrame(async () => { 
         if (canvasRef.current && mediaStreamRef.current && isRecording) { 
             canvasRef.current.width = canvasRef.current.offsetWidth;
@@ -169,21 +189,30 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animationFrameIdRef.current = requestAnimationFrame(drawWaveform);
         }
       });
+      
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
       speechRecognitionRef.current = new SpeechRecognitionAPI();
       speechRecognitionRef.current.lang = currentLanguageCode || DEFAULT_LANGUAGE_CODE;
-      speechRecognitionRef.current.interimResults = true; speechRecognitionRef.current.continuous = true;
+      speechRecognitionRef.current.interimResults = true; 
+      speechRecognitionRef.current.continuous = true;
+      
       speechRecognitionRef.current.onresult = (event) => {
-        let interimTranscript = ''; let finalTranscript = transcribedTextRef.current; 
+        let interimTranscript = ''; 
+        let finalTranscript = transcribedTextRef.current; 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) { finalTranscript += event.results[i][0].transcript + ' '; } 
-          else { interimTranscript += event.results[i][0].transcript; }
+          if (event.results[i].isFinal) { 
+            finalTranscript += event.results[i][0].transcript + ' '; 
+          } else { 
+            interimTranscript += event.results[i][0].transcript; 
+          }
         }
         transcribedTextRef.current = finalTranscript.trim();
         setInputValue((finalTranscript + interimTranscript).trim());
-        if (interimTranscript) setSpeechError("Procesando..."); else setSpeechError("Escuchando...");
+        if (interimTranscript) setSpeechError("Procesando..."); 
+        else setSpeechError("Escuchando...");
         if (stopDelayTimerRef.current) window.clearTimeout(stopDelayTimerRef.current);
       };
+      
       speechRecognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error, event.message);
         let errorMsg = "Error de reconocimiento.";
@@ -193,15 +222,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
         else if (event.error === 'network') errorMsg = "Error de red en reconocimiento.";
         setSpeechError(errorMsg);
       };
+      
       speechRecognitionRef.current.onend = () => {
         if (stopDelayTimerRef.current) window.clearTimeout(stopDelayTimerRef.current);
         stopDelayTimerRef.current = window.setTimeout(() => {
              if (isRecording) { 
                 setSpeechError(prev => (prev === "Escuchando..." || prev === "Procesando...") ? "Finalizando..." : prev);
                 handleActualSpeechRecognitionEnd();
-             } else { handleActualSpeechRecognitionEnd(); }
+             } else { 
+                handleActualSpeechRecognitionEnd(); 
+             }
         }, transcribedTextRef.current.trim() ? 1000 : 300); 
       };
+      
       speechRecognitionRef.current.onaudiostart = () => setSpeechError("Escuchando...");
       speechRecognitionRef.current.onspeechstart = () => setSpeechError("Habla detectada...");
       speechRecognitionRef.current.onspeechend = () => { setSpeechError("Fin de habla detectado, procesando..."); };
@@ -210,257 +243,170 @@ const ChatInput: React.FC<ChatInputProps> = ({
     } catch (err: any) {
       console.error('Error starting recording:', err);
       setSpeechError(`Error al iniciar grabación: ${err.message}`);
-      fullCleanupAndStopVisualizer(); setIsRecording(false);
+      fullCleanupAndStopVisualizer(); 
+      setIsRecording(false);
     }
   };
 
   const stopRecording = () => {
     if (stopDelayTimerRef.current) window.clearTimeout(stopDelayTimerRef.current);
     setIsRecording(false); 
-    if (speechRecognitionRef.current) { speechRecognitionRef.current.stop(); } 
-    else { handleActualSpeechRecognitionEnd(); }
+    if (speechRecognitionRef.current) { 
+      speechRecognitionRef.current.stop(); 
+    } else { 
+      handleActualSpeechRecognitionEnd(); 
+    }
     setSpeechError(prev => (prev && prev !== "Escuchando..." && prev !== "Procesando...") ? prev : "Finalizando...");
   };
 
-  const toggleRecording = () => { if (isLoading) return; if (isRecording) stopRecording(); else startRecording(); };
+  const toggleRecording = () => { 
+    if (isLoading) return; 
+    if (isRecording) stopRecording(); 
+    else startRecording(); 
+  };
 
-  const locationToggleButton = (
-    <ListItemButton
-      onClick={() => {
-        const newEnabled = !isLocationEnabled;
-        setIsLocationEnabled(newEnabled);
-        if (typeof onToggleLocation === 'function') onToggleLocation(newEnabled);
-      }}
-      selected={isLocationEnabled}
-      sx={{
-        borderRadius: 999,
-        minHeight: { xs: 28, sm: 36 },
-        px: { xs: 1, sm: 1.5 },
-        py: { xs: 0.25, sm: 0.5 },
-        color: isLocationEnabled ? 'primary.main' : 'text.secondary',
-        '& .MuiListItemIcon-root': {
-          minWidth: { xs: 24, sm: 32 },
-          color: isLocationEnabled ? 'primary.main' : 'text.secondary',
-        },
-        '&:hover': {
-          bgcolor: 'action.hover',
-        },
-        '@media (max-width: 768px)': {
-          bgcolor: 'action.hover',
-        },
-        transition: 'color 0.2s, background 0.2s',
-      }}
-    >
-      <ListItemIcon>
-        <NearMeIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-      </ListItemIcon>
-      <ListItemText
-        primary="Ubicación"
-        primaryTypographyProps={{
-          fontWeight: isLocationEnabled ? 700 : 500,
-          fontSize: { xs: '0.95em', sm: '1em' },
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      />
-    </ListItemButton>
-  );
-
-  const languageButton = (
-    <ListItemButton
-      sx={{
-        borderRadius: 999,
-        minHeight: { xs: 28, sm: 36 },
-        px: { xs: 1, sm: 1.5 },
-        py: { xs: 0.25, sm: 0.5 },
-        color: 'text.secondary',
-        '& .MuiListItemIcon-root': {
-          minWidth: { xs: 24, sm: 32 },
-          color: 'text.secondary',
-        },
-        '&:hover': {
-          bgcolor: 'action.hover',
-        },
-        '@media (max-width: 768px)': {
-          bgcolor: 'action.hover',
-        },
-        transition: 'color 0.2s, background 0.2s',
-      }}
-      aria-label="Seleccionar idioma"
-    >
-      <ListItemIcon>
-        <LanguageIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-      </ListItemIcon>
-      <ListItemText
-        primary={SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
-        primaryTypographyProps={{
-          fontWeight: 500,
-          fontSize: { xs: '0.95em', sm: '1em' },
-        }}
-      />
-      <ExpandMoreIcon sx={{ ml: 0.5, fontSize: { xs: 18, sm: 20 }, color: 'text.secondary' }} />
-    </ListItemButton>
-  );
+  const placeholder = isRecording
+    ? (speechError || `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`)
+    : `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`;
 
   return (
-    <Box sx={{ 
-      padding: isInFinetuningMode 
-        ? { xs: '4px 8px 8px 8px', sm: '8px 20px 12px 20px' } 
-        : { xs: '8px 12px 24px 12px', sm: '12px 24px 32px 24px' },
-      bgcolor: 'background.default',
-      maxWidth: '100%',
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      minWidth: 0, // Prevenir overflow
-    }}>
+    <div className={`w-full flex flex-col items-center ${isInFinetuningMode 
+      ? 'p-2 sm:p-4' 
+      : 'p-3 sm:p-6 pb-6 sm:pb-8'
+    }`}>
       {isRecording && (
         <canvas
           ref={canvasRef}
-          style={{
-            width: '100%',
-            maxWidth: isInFinetuningMode ? '100%' : '800px',
-            height: '34px',
-            display: 'block',
-            backgroundColor: theme.palette.background.paper, // Match input paper
-            borderTopLeftRadius: theme.shape.borderRadius,
-            borderTopRightRadius: theme.shape.borderRadius,
-            border: `1px solid ${theme.palette.divider}`,
-            borderBottom: 'none',
-            boxSizing: 'border-box',
-            marginBottom: '4px'
-          }}
+          className="w-full max-w-4xl h-9 mb-1 bg-card border rounded-t-lg border-b-0"
+          style={{ display: 'block' }}
         />
       )}
-      <Paper
-        elevation={0}
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          p: 0,
-          borderRadius: '28px',
-          bgcolor: 'background.paper',
-          border: `1px solid ${theme.palette.divider}`,
-          maxWidth: isInFinetuningMode ? '100%' : '800px',
-          width: '100%',
-          minWidth: 0,
-          // '&:focus-within': {
-          //   borderColor: theme.palette.primary.main,
-          // },
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', px: { xs: 2, sm: 3 }, pt: 2, pb: 2, minHeight: 80 }}>
-          <Stack direction="column" sx={{ flexGrow: 1, minWidth: 0 }}>
-            <TextField
-              inputRef={textareaRef}
-              fullWidth
-              multiline
-              maxRows={5}
-              placeholder={
-                isRecording
-                  ? (speechError || `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`)
-                  : `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`
-              }
-              value={inputValue}
-              onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
-              InputProps={{
-                disableUnderline: true,
-                onKeyDown: handleKeyDown,
-                sx: {
-                  py: 0,
-                  fontSize: { xs: '1.1rem', sm: '1.15rem' },
-                  lineHeight: '1.4',
-                  minWidth: 0,
-                },
-              }}
-              disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
-              variant="standard"
-              sx={{
-                '& .MuiInputBase-root': {
-                  backgroundColor: 'transparent',
-                  minWidth: 0,
-                },
-                minWidth: 0,
-                fontWeight: 500,
-                color: 'text.primary',
-              }}
-            />
-            {/* Fila de acciones (idioma y ubicación) */}
-            <Box
-              sx={{
-                mt: 2.5,
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                color: 'text.secondary',
-                fontSize: '1rem',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                {languageButton}
-                {locationToggleButton}
-              </Box>
-            </Box>
-          </Stack>
-          {/* Mueve el micrófono aquí, alineado con la fila de botones de abajo */}
-          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', pl: 2, alignSelf: 'flex-end' }}>
-            {inputValue.trim() || isRecording ? (
-              isRecording ? (
-                <IconButton 
-                  onClick={toggleRecording} 
-                  color="error" 
-                  disabled={isLoading} 
-                  title="Detener Grabación" 
-                  sx={{ p: 1.25 }}
+      
+      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} border-input`}>
+        <CardContent className="p-0">
+          <div className="flex items-center min-h-20 px-3 sm:px-4 py-4">
+            <div className="flex-1 space-y-3">
+              <Textarea
+                ref={textareaRef}
+                placeholder={placeholder}
+                value={inputValue}
+                onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
+                className="min-h-[40px] resize-none border-0 p-0 shadow-none focus-visible:ring-0 text-base sm:text-lg"
+                rows={1}
+              />
+              
+              {/* Action buttons row */}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
                 >
-                  <MicOffIcon sx={{ fontSize: 24 }} />
-                </IconButton>
+                  <Globe className="h-4 w-4 mr-1" />
+                  <span className="text-sm">
+                    {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newEnabled = !isLocationEnabled;
+                    setIsLocationEnabled(newEnabled);
+                    if (typeof onToggleLocation === 'function') onToggleLocation(newEnabled);
+                  }}
+                  className={`h-7 px-2 ${isLocationEnabled ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span className="text-sm font-medium">Ubicación</span>
+                </Button>
+              </div>
+            </div>
+            
+            {/* Microphone/Send button */}
+            <div className="flex items-end pl-3">
+              {inputValue.trim() || isRecording ? (
+                isRecording ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost"
+                          size="icon"
+                          onClick={toggleRecording} 
+                          disabled={isLoading}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <MicOff className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Detener Grabación</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          onClick={handleSubmit} 
+                          disabled={isLoading || !inputValue.trim()}
+                          size="icon"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Send className="h-5 w-5" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Enviar Mensaje</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
               ) : (
-                <IconButton 
-                  type="submit" 
-                  color="primary" 
-                  onClick={handleSubmit} 
-                  disabled={isLoading || !inputValue.trim()} 
-                  title="Enviar Mensaje" 
-                  sx={{ p: 1.25 }}
-                >
-                  {isLoading ? <CircularProgress size={24} color="inherit" /> : <SendIcon sx={{ fontSize: 24 }} />}
-                </IconButton>
-              )
-            ) : (
-              <IconButton 
-                onClick={toggleRecording} 
-                color={isSpeechApiSupported ? "primary" : "default"} 
-                disabled={isLoading || !isSpeechApiSupported} 
-                title={isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"} 
-                sx={{ p: 1.25 }}
-              >
-                {isSpeechApiSupported ? <MicIcon sx={{ fontSize: 24 }} /> : <MicOffIcon sx={{ fontSize: 24 }} />}
-              </IconButton>
-            )}
-          </Box>
-        </Box>
-      </Paper>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleRecording} 
+                        disabled={isLoading || !isSpeechApiSupported}
+                        className={isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}
+                      >
+                        {isSpeechApiSupported ? (
+                          <Mic className="h-5 w-5" />
+                        ) : (
+                          <MicOff className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
       {isRecording && speechError && (
-        <Typography 
-          variant="caption" 
-          color={speechError.includes("Error") || speechError.includes("denegado") ? "error" : "text.secondary"} 
-          sx={{ 
-            display: 'block', 
-            textAlign: 'center', 
-            mt: 0.5, 
-            fontSize: { xs: '0.65rem', sm: '0.7rem' },
-            px: 1, // Padding horizontal para evitar que el texto toque los bordes
-          }}
-        >
-            {speechError}
-        </Typography>
+        <p className={`text-xs text-center mt-1 px-2 ${
+          speechError.includes("Error") || speechError.includes("denegado") 
+            ? "text-destructive" 
+            : "text-muted-foreground"
+        }`}>
+          {speechError}
+        </p>
       )}
-    </Box>
+    </div>
   );
 };
 

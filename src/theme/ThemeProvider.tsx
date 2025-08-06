@@ -1,7 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ThemeProvider as MUIThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import useMediaQuery from '@mui/material/useMediaQuery';
 
 interface ThemeContextType {
   currentThemeMode: 'light' | 'dark';
@@ -23,23 +20,24 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [currentThemeMode, setCurrentThemeMode] = useState<'light' | 'dark'>('light');
 
-  // Initialize theme based on device preference
+  // Initialize theme based on device preference or saved preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme-mode');
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
     if (savedTheme === 'light' || savedTheme === 'dark') {
       setCurrentThemeMode(savedTheme);
     } else {
       // Use device preference if no saved preference
       setCurrentThemeMode(prefersDarkMode ? 'dark' : 'light');
     }
-  }, [prefersDarkMode]);
+  }, []);
 
-  // Actualiza el meta theme-color y la clase dark en el documento según el modo
+  // Update document class and meta theme-color based on mode
   useEffect(() => {
-    const color = currentThemeMode === 'dark' ? '#121212' : '#ffffff';
+    const color = currentThemeMode === 'dark' ? '#0a0a0a' : '#ffffff';
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement('meta');
@@ -48,7 +46,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
     meta.setAttribute('content', color);
 
-    // Aplicar/remover la clase 'dark' al elemento html para activar los estilos CSS de modo oscuro
+    // Apply/remove 'dark' class to html element for Tailwind dark mode
     const htmlElement = document.documentElement;
     if (currentThemeMode === 'dark') {
       htmlElement.classList.add('dark');
@@ -63,85 +61,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     localStorage.setItem('theme-mode', newMode);
   };
 
-  const theme = React.useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: currentThemeMode,
-          ...(currentThemeMode === 'light'
-            ? {
-                // Light mode colors
-                primary: {
-                  main: '#1976d2',
-                },
-                secondary: {
-                  main: '#dc004e',
-                },
-                background: {
-                  default: '#ffffff',
-                  paper: '#f5f5f5',
-                },
-                text: {
-                  primary: '#000000',
-                  secondary: '#666666',
-                },
-              }
-            : {
-                // Dark mode colors
-                primary: {
-                  main: '#90caf9',
-                },
-                secondary: {
-                  main: '#f48fb1',
-                },
-                background: {
-                  default: '#121212',
-                  paper: '#1e1e1e',
-                },
-                text: {
-                  primary: '#ffffff',
-                  secondary: '#b0b0b0',
-                },
-              }),
-        },
-        components: {
-          MuiCssBaseline: {
-            styleOverrides: {
-              body: {
-                backgroundColor: currentThemeMode === 'light' ? '#ffffff' : '#121212',
-                scrollbarColor: currentThemeMode === 'dark' ? '#6b6b6b #2b2b2b' : '#c1c1c1 #f1f1f1',
-                '&::-webkit-scrollbar, & *::-webkit-scrollbar': {
-                  backgroundColor: currentThemeMode === 'dark' ? '#2b2b2b' : '#f1f1f1',
-                },
-                '&::-webkit-scrollbar-thumb, & *::-webkit-scrollbar-thumb': {
-                  borderRadius: 8,
-                  backgroundColor: currentThemeMode === 'dark' ? '#6b6b6b' : '#c1c1c1',
-                  minHeight: 24,
-                  border: `3px solid ${currentThemeMode === 'dark' ? '#2b2b2b' : '#f1f1f1'}`,
-                },
-                '&::-webkit-scrollbar-thumb:focus, & *::-webkit-scrollbar-thumb:focus': {
-                  backgroundColor: currentThemeMode === 'dark' ? '#959595' : '#a8a8a8',
-                },
-                '&::-webkit-scrollbar-thumb:active, & *::-webkit-scrollbar-thumb:active': {
-                  backgroundColor: currentThemeMode === 'dark' ? '#959595' : '#a8a8a8',
-                },
-                '&::-webkit-scrollbar-thumb:hover, & *::-webkit-scrollbar-thumb:hover': {
-                  backgroundColor: currentThemeMode === 'dark' ? '#959595' : '#a8a8a8',
-                },
-              },
-            },
-          },
-        },
-      }),
-    [currentThemeMode]
-  );
-
   return (
     <ThemeContext.Provider value={{ currentThemeMode, toggleTheme }}>
-      <MUIThemeProvider theme={theme}>
-        <CssBaseline />
+      <div className="min-h-screen bg-background text-foreground">
         {children}
-      </MUIThemeProvider>
+      </div>
     </ThemeContext.Provider>
   );
 };
