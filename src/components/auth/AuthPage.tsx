@@ -1,30 +1,13 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  TextField,
-  Card,
-  CardContent,
-  CardHeader,
-  Typography,
-  Tabs,
-  Tab,
-  Box,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  InputAdornment,
-  IconButton,
-  Stack
-} from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  ArrowBack
-} from '@mui/icons-material';
+import { Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
@@ -33,7 +16,7 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
+  const [activeTab, setActiveTab] = useState('login');
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -159,188 +142,181 @@ const AuthPage = () => {
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
     setError(null);
     setSuccess(null);
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-        bgcolor: 'background.default'
-      }}
-    >
-      <Box sx={{ width: '100%', maxWidth: 400 }}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <div className="w-full max-w-md space-y-4">
         <Button
-          variant="text"
+          variant="ghost"
           onClick={() => navigate('/')}
-          startIcon={<ArrowBack />}
-          sx={{ mb: 2 }}
+          className="mb-4"
         >
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Volver al chat
         </Button>
 
         <Card>
-          <CardHeader
-            title="Acceso al Sistema"
-            subheader="Inicia sesión o regístrate para guardar tus conversaciones"
-            sx={{ textAlign: 'center' }}
-          />
+          <CardHeader className="text-center">
+            <CardTitle>Acceso al Sistema</CardTitle>
+            <CardDescription>
+              Inicia sesión o regístrate para guardar tus conversaciones
+            </CardDescription>
+          </CardHeader>
           <CardContent>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-              <Tabs
-                value={tabValue}
-                onChange={handleTabChange}
-                variant="fullWidth"
-              >
-                <Tab label="Iniciar Sesión" />
-                <Tab label="Registrarse" />
-              </Tabs>
-            </Box>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
+                <TabsTrigger value="signup">Registrarse</TabsTrigger>
+              </TabsList>
 
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-            {success && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                {success}
-              </Alert>
-            )}
+              {success && (
+                <Alert>
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              )}
 
-            {tabValue === 0 && (
-              <Box component="form" onSubmit={handleLogin} sx={{ mt: 2 }}>
-                <Stack spacing={2}>
-                  <TextField
-                    label="Email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
-                    fullWidth
-                  />
-                  <TextField
-                    label="Contraseña"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                    fullWidth
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth
-                    disabled={isLoading}
-                    sx={{ mt: 2 }}
-                  >
+              <TabsContent value="login">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Contraseña</Label>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                   </Button>
-                </Stack>
-              </Box>
-            )}
+                </form>
+              </TabsContent>
 
-            {tabValue === 1 && (
-              <Box component="form" onSubmit={handleSignup} sx={{ mt: 2 }}>
-                <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
-                      label="Nombre"
-                      placeholder="Nombre"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
+              <TabsContent value="signup">
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first-name">Nombre</Label>
+                      <Input
+                        id="first-name"
+                        placeholder="Nombre"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last-name">Apellido</Label>
+                      <Input
+                        id="last-name"
+                        placeholder="Apellido"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
                       required
-                      fullWidth
                     />
-                    <TextField
-                      label="Apellido"
-                      placeholder="Apellido"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      fullWidth
-                    />
-                  </Box>
-                  <TextField
-                    label="Email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required
-                    fullWidth
-                  />
-                  <TextField
-                    label="Contraseña"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    required
-                    fullWidth
-                    inputProps={{ minLength: 6 }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <FormControl fullWidth>
-                    <InputLabel>Tipo de Usuario</InputLabel>
-                    <Select
-                      value={role}
-                      label="Tipo de Usuario"
-                      onChange={(e) => setRole(e.target.value as 'ciudadano' | 'administrativo')}
-                    >
-                      <MenuItem value="ciudadano">Ciudadano</MenuItem>
-                      <MenuItem value="administrativo">Administrativo</MenuItem>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Contraseña</Label>
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Tipo de Usuario</Label>
+                    <Select value={role} onValueChange={(value: 'ciudadano' | 'administrativo') => setRole(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona tu tipo de usuario" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ciudadano">Ciudadano</SelectItem>
+                        <SelectItem value="administrativo">Administrativo</SelectItem>
+                      </SelectContent>
                     </Select>
-                  </FormControl>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth
-                    disabled={isLoading}
-                    sx={{ mt: 2 }}
-                  >
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? 'Registrando...' : 'Registrarse'}
                   </Button>
-                </Stack>
-              </Box>
-            )}
+                </form>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
