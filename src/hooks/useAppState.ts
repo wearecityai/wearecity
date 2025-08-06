@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import { useTheme, useMediaQuery } from '@mui/material';
 import { useThemeContext } from '../theme/ThemeProvider';
 import { useGeolocation } from './useGeolocation';
 import { useApiInitialization } from './useApiInitialization';
@@ -11,9 +10,25 @@ import { MessageRole, CustomChatConfig } from '../types';
 import { supabase } from '../integrations/supabase/client';
 import { DEFAULT_CHAT_CONFIG } from '../constants';
 
+// Custom hook for mobile detection to replace MUI's useMediaQuery
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+  
+  return isMobile;
+};
+
 export const useAppState = (citySlug?: string) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Incluir tablet como mobile
+  const isMobile = useIsMobile();
   
   // Use theme context instead of local state
   const { currentThemeMode, toggleTheme } = useThemeContext();
@@ -261,7 +276,6 @@ export const useAppState = (citySlug?: string) => {
   };
 
   return {
-    theme,
     isMobile,
     currentThemeMode,
     toggleTheme,

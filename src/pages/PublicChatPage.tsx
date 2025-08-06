@@ -21,7 +21,6 @@ export const PublicChatPage: React.FC = () => {
 
   // App state hooks para el chat funcional
   const {
-    theme,
     isMobile,
     currentView,
     setCurrentView,
@@ -232,7 +231,7 @@ export const PublicChatPage: React.FC = () => {
       user={user}
       profile={profile}
       onLogin={handleLogin}
-      theme={theme}
+      theme={null}
       isMobile={isMobile}
       isGeminiReady={isGeminiReady}
       appError={appError}

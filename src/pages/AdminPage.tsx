@@ -12,7 +12,6 @@ const AdminPage = () => {
   
   // App state hooks - usar conversaciones generales para admin
   const {
-    theme,
     isMobile,
     currentView,
     setCurrentView,
@@ -71,7 +70,7 @@ const AdminPage = () => {
       user={user}
       profile={profile}
       onLogin={handleLogin}
-      theme={theme}
+      theme={null}
       isMobile={isMobile}
       isGeminiReady={isGeminiReady}
       appError={appError}
