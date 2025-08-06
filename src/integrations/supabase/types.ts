@@ -165,6 +165,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          default_chat_data: Json | null
           email: string
           first_name: string | null
           id: string
@@ -174,6 +175,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          default_chat_data?: Json | null
           email: string
           first_name?: string | null
           id: string
@@ -183,6 +185,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          default_chat_data?: Json | null
           email?: string
           first_name?: string | null
           id?: string
