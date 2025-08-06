@@ -1,13 +1,13 @@
-
 import React from 'react';
-import { Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LoginIcon from '@mui/icons-material/Login';
-import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import { Sun, Moon, Settings, LogIn, LogOut } from 'lucide-react';
 
 interface UserMenuProps {
   anchorEl: null | HTMLElement;
@@ -63,38 +63,42 @@ const UserMenu: React.FC<UserMenuProps> = ({
   };
 
   return (
-    <Menu
-      anchorEl={anchorEl}
-      open={open}
-      onClose={onClose}
-      MenuListProps={{ 'aria-labelledby': 'user-avatar-button' }}
-      transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-    >
-      <MenuItem onClick={handleToggleTheme}>
-        <ListItemIcon>
-          {currentThemeMode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-        </ListItemIcon>
-        <ListItemText>Cambiar a modo {currentThemeMode === 'dark' ? 'Claro' : 'Oscuro'}</ListItemText>
-      </MenuItem>
-      
-      {!actuallyAuthenticated ? (
-        <MenuItem onClick={handleLogin}>
-          <ListItemIcon><LoginIcon fontSize="small" /></ListItemIcon>
-          <ListItemText>Iniciar Sesión</ListItemText>
-        </MenuItem>
-      ) : (
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-          <ListItemText>Cerrar Sesión</ListItemText>
-        </MenuItem>
-      )}
-      
-      <MenuItem onClick={handleOpenSettings}>
-        <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
-        <ListItemText>Ajustes</ListItemText>
-      </MenuItem>
-    </Menu>
+    <DropdownMenu open={open} onOpenChange={(open) => !open && onClose()}>
+      <DropdownMenuTrigger asChild>
+        <div />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent 
+        align="end" 
+        side="bottom"
+        className="w-56"
+      >
+        <DropdownMenuItem onClick={handleToggleTheme}>
+          {currentThemeMode === 'dark' ? (
+            <Sun className="mr-2 h-4 w-4" />
+          ) : (
+            <Moon className="mr-2 h-4 w-4" />
+          )}
+          Cambiar a modo {currentThemeMode === 'dark' ? 'Claro' : 'Oscuro'}
+        </DropdownMenuItem>
+        
+        {!actuallyAuthenticated ? (
+          <DropdownMenuItem onClick={handleLogin}>
+            <LogIn className="mr-2 h-4 w-4" />
+            Iniciar Sesión
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Cerrar Sesión
+          </DropdownMenuItem>
+        )}
+        
+        <DropdownMenuItem onClick={handleOpenSettings}>
+          <Settings className="mr-2 h-4 w-4" />
+          Ajustes
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
