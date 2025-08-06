@@ -129,10 +129,10 @@ const MainContent: React.FC<MainContentProps> = ({
   }
 
   return (
-    <ChatMain className="h-screen">
-      <ChatMessages className="flex-1 overflow-y-auto pb-32">
+    <ChatMain className="h-full flex flex-col">
+      <ChatMessages className="flex-1 overflow-y-auto">
         {messages.length === 0 && !shouldShowChatContainer ? (
-          <div className="flex flex-col items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center h-full p-4">
             <EmptyState
               icon={<MessageCircle className="h-8 w-8 text-muted-foreground" />}
               title={`¡Hola! Soy el asistente de ${chatConfig?.restrictedCity?.name || 'tu ciudad'}`}
@@ -166,8 +166,8 @@ const MainContent: React.FC<MainContentProps> = ({
         )}
       </ChatMessages>
       
-      {/* Fixed Chat Input */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
+      {/* Chat Input integrado en el main */}
+      <div className="border-t bg-background">
         {isMobile && !hasUserSentFirstMessage && (
           <div className="p-4 border-b">
             <RecommendedPromptsBar 

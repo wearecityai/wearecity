@@ -1,6 +1,6 @@
 import React from 'react';
 import ErrorBoundary from './ErrorBoundary';
-import AppDrawer from './AppDrawer';
+import { AppSidebar } from './app-sidebar';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
 import UserMenu from './UserMenu';
@@ -238,21 +238,19 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     return (
       <SidebarProvider>
         <div className="h-screen overflow-hidden bg-background flex w-full">
-          <AppDrawer
-            isMenuOpen={isMenuOpen}
-            onMenuToggle={handleMenuToggle}
-            onNewChat={handleNewChat}
-            onOpenFinetuning={handleOpenFinetuningWithAuth}
-            chatTitles={chatTitles}
-            chatIds={chatIds}
-            selectedChatIndex={selectedChatIndex}
-            onSelectChat={handleSelectChat}
-            onDeleteChat={deleteConversation}
-            chatConfig={chatConfig}
-            userLocation={userLocation}
-            geolocationStatus={geolocationStatus}
-            isPublicChat={isPublicChat}
-          />
+        <AppSidebar
+          onNewChat={handleNewChat}
+          onOpenFinetuning={handleOpenFinetuningWithAuth}
+          chatTitles={chatTitles}
+          chatIds={chatIds}
+          selectedChatIndex={selectedChatIndex}
+          onSelectChat={handleSelectChat}
+          onDeleteChat={deleteConversation}
+          chatConfig={chatConfig}
+          userLocation={userLocation}
+          geolocationStatus={geolocationStatus}
+          isPublicChat={isPublicChat}
+        />
           
           {/* Paneles redimensionables: admin y chat */}
           <div className="flex-1 flex flex-col">
@@ -332,9 +330,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
   return (
     <SidebarProvider>
       <div className="h-screen overflow-hidden bg-background flex w-full">
-        <AppDrawer
-          isMenuOpen={isMenuOpen}
-          onMenuToggle={handleMenuToggle}
+        <AppSidebar
           onNewChat={handleNewChat}
           onOpenFinetuning={handleOpenFinetuningWithAuth}
           chatTitles={chatTitles}
