@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from './theme/ThemeProvider';
-import { Toaster } from '@/components/ui/toaster';
+
 import Index from '@/pages/Index';
 import AuthPage from '@/components/auth/AuthPage';
 import { CityChat } from '@/pages/CityChat';
@@ -44,7 +44,6 @@ const App = () => {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
-        <Toaster />
       </ThemeProvider>
     </AppErrorBoundary>
   );

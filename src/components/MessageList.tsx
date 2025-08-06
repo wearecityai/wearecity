@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Loader2 } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../types';
-import ChatMessage from './ChatMessage'; // Ensured relative path
+import ChatMessage from './ChatMessage';
+import { LoadingSpinner } from './ui/loading-spinner';
 
 interface MessageListProps {
   messages: ChatMessageType[];
