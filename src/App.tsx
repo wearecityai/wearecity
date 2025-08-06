@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from './theme/ThemeProvider';
+import { Toaster } from '@/components/ui/sonner';
 
 import Index from '@/pages/Index';
 import AuthPage from '@/components/auth/AuthPage';
@@ -44,6 +45,7 @@ const App = () => {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
+        <Toaster richColors closeButton />
       </ThemeProvider>
     </AppErrorBoundary>
   );
