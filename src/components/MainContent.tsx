@@ -184,8 +184,8 @@ const MainContent: React.FC<MainContentProps> = ({
   }
 
   return (
-    <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto">
+    <div className={`flex flex-1 flex-col h-full min-h-0 overflow-hidden ${isMobile ? 'mobile-chat-container' : ''}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'mobile-chat-messages' : ''}`}>
         {messages.length === 0 && !shouldShowChatContainer ? (
           <div className="flex flex-col items-center justify-center h-full p-4 pb-0">
             <EmptyState
@@ -224,7 +224,7 @@ const MainContent: React.FC<MainContentProps> = ({
       </div>
       
       {/* Chat Input integrado en el main */}
-      <div className="bg-background border-t shrink-0">
+      <div className={`bg-background border-t shrink-0 ${isMobile ? 'mobile-chat-input' : ''}`}>
         {isMobile && !hasUserSentFirstMessage && (
           <div className="px-3 py-2 border-b">
             <RecommendedPromptsBar 

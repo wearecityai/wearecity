@@ -147,69 +147,73 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
 
   return (
     <SidebarProvider>
-      <AppSidebar 
-        onNewChat={handleNewChat}
-        onOpenFinetuning={handleOpenFinetuningWithAuth}
-        chatTitles={chatTitles}
-        chatIds={conversations.map(c => c.id)}
-        selectedChatIndex={selectedChatIndex}
-        onSelectChat={handleSelectChat}
-        onDeleteChat={deleteConversation}
-        chatConfig={chatConfig}
-        userLocation={userLocation}
-        geolocationStatus={geolocationStatus}
-        isPublicChat={isPublicChat}
-        handleToggleLocation={handleToggleLocation}
-      />
-      <SidebarInset className="flex flex-col h-screen max-h-screen overflow-hidden">
-        {!isPublicChat && (
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b">
-            <div className="flex flex-1 items-center gap-2 px-3">
-              <SidebarTrigger />
-              <Separator
-                orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
-              />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="line-clamp-1">
-                      {chatConfig?.restrictedCity?.name || 'CityCore AI Chat'}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-            <div className="ml-auto px-3">
-              <NavActions />
-            </div>
-          </header>
-        )}
-        
-        <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-          <MainContent
-            theme={theme}
-            isMobile={isMobile}
-            isMenuOpen={isMenuOpen}
-            handleMenuToggle={handleMenuToggle}
-            currentThemeMode={currentThemeMode}
-            toggleTheme={toggleTheme}
-            handleOpenSettings={handleOpenSettings}
-            user={user}
-            onLogin={onLogin}
-            messages={messages}
-            isLoading={isLoading}
-            appError={appError}
-            chatConfig={chatConfig}
-            handleSendMessage={handleSendMessage}
-            handleDownloadPdf={handleDownloadPdf}
-            handleSeeMoreEvents={handleSeeMoreEvents}
-            handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
-            shouldShowChatContainer={shouldShowChatContainer}
-            handleToggleLocation={handleToggleLocation}
-          />
-        </div>
-      </SidebarInset>
+      <div className="h-screen overflow-hidden md:flex" style={{
+        height: '100dvh'
+      }}>
+        <AppSidebar
+          onNewChat={handleNewChat}
+          onOpenFinetuning={handleOpenFinetuningWithAuth}
+          chatTitles={chatTitles}
+          chatIds={conversations.map(c => c.id)}
+          selectedChatIndex={selectedChatIndex}
+          onSelectChat={handleSelectChat}
+          onDeleteChat={deleteConversation}
+          chatConfig={chatConfig}
+          userLocation={userLocation}
+          geolocationStatus={geolocationStatus}
+          isPublicChat={isPublicChat}
+          handleToggleLocation={handleToggleLocation}
+        />
+        <SidebarInset className="flex flex-col h-full min-h-0 overflow-hidden md:flex-1">
+          {!isPublicChat && (
+            <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background">
+              <div className="flex flex-1 items-center gap-2 px-3">
+                <SidebarTrigger />
+                <Separator
+                  orientation="vertical"
+                  className="mr-2 data-[orientation=vertical]:h-4"
+                />
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="line-clamp-1">
+                        {chatConfig?.restrictedCity?.name || 'CityCore AI Chat'}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
+              <div className="ml-auto px-3">
+                <NavActions />
+              </div>
+            </header>
+          )}
+          
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+            <MainContent
+              theme={theme}
+              isMobile={isMobile}
+              isMenuOpen={isMenuOpen}
+              handleMenuToggle={handleMenuToggle}
+              currentThemeMode={currentThemeMode}
+              toggleTheme={toggleTheme}
+              handleOpenSettings={handleOpenSettings}
+              user={user}
+              onLogin={onLogin}
+              messages={messages}
+              isLoading={isLoading}
+              appError={appError}
+              chatConfig={chatConfig}
+              handleSendMessage={handleSendMessage}
+              handleDownloadPdf={handleDownloadPdf}
+              handleSeeMoreEvents={handleSeeMoreEvents}
+              handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+              shouldShowChatContainer={shouldShowChatContainer}
+              handleToggleLocation={handleToggleLocation}
+            />
+          </div>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 };
