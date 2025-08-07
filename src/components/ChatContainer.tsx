@@ -146,17 +146,17 @@ export const RecommendedPromptsBar: React.FC<{
   if (!prompts?.length) return null;
 
   return (
-    <div className="w-full overflow-x-auto pb-2">
-      <div className="flex gap-2 px-4 min-w-max">
+    <div className="w-full overflow-x-auto pb-1 sm:pb-2">
+      <div className="flex gap-1 sm:gap-2 px-2 sm:px-4 min-w-max">
         {prompts.slice(0, 6).map((prompt, index) => (
           <Button
             key={index}
             variant="outline"
             size="sm"
             onClick={() => onSendMessage(prompt.text)}
-            className="whitespace-nowrap rounded-full bg-background hover:bg-muted/80 border-muted-foreground/20"
+            className="whitespace-nowrap rounded-full bg-background hover:bg-muted/80 border-muted-foreground/20 text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
           >
-            <span className="text-sm">{prompt.text}</span>
+            <span className="text-xs sm:text-sm">{prompt.text}</span>
           </Button>
         ))}
       </div>

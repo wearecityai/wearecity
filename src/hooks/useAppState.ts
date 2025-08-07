@@ -47,10 +47,23 @@ export const useAppState = (citySlug?: string) => {
   const assistantConfigHook = useAssistantConfig();
   const [publicChatConfig, setPublicChatConfig] = useState<CustomChatConfig>(DEFAULT_CHAT_CONFIG);
   
+  // Mantener la última ciudad configurada para cuando estemos en la página de descubrir
+  const [lastCityConfig, setLastCityConfig] = useState<CustomChatConfig | null>(null);
+  
   // Decidir qué configuración usar según si es chat público o no
-  const chatConfig = citySlug ? publicChatConfig : assistantConfigHook.config;
-  const setChatConfig = citySlug ? setPublicChatConfig : assistantConfigHook.setConfig;
-  const saveConfig = citySlug ? 
+  // Si no hay citySlug (página de descubrir), usar la última ciudad configurada
+  const effectiveCitySlug = citySlug || (lastCityConfig?.restrictedCity?.slug);
+  const chatConfig = effectiveCitySlug ? publicChatConfig : assistantConfigHook.config;
+  const setChatConfig = effectiveCitySlug ? setPublicChatConfig : assistantConfigHook.setConfig;
+  
+  // Guardar la configuración actual como última ciudad cuando cambie
+  useEffect(() => {
+    if (citySlug && chatConfig?.restrictedCity) {
+      setLastCityConfig(chatConfig);
+    }
+  }, [citySlug, chatConfig?.restrictedCity]);
+  
+  const saveConfig = effectiveCitySlug ? 
     // Para chats públicos, solo guardar en localStorage
     async (config: CustomChatConfig) => {
       localStorage.setItem('chatConfig', JSON.stringify(config));

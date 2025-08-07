@@ -84,10 +84,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   };
 
   return (
-    <div className={`flex w-full mb-4 px-1 sm:px-0 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {isUser ? (
         // User message - right aligned
-        <div className="max-w-[calc(100vw-32px)] sm:max-w-[700px] overflow-hidden">
+        <div className="overflow-hidden">
           <Card className="bg-muted border-0">
             <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
               {(message.content && message.content.trim() !== "") && (

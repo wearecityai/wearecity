@@ -1,12 +1,35 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Send, Mic, MicOff, Plus, Check, Globe, MapPin, ChevronDown, Loader2 } from 'lucide-react';
+import { Send, Mic, MicOff, Plus, Check, Globe, MapPin, ChevronDown, Loader2, Navigation, ArrowUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
+import { Toggle } from './ui/toggle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE_CODE } from '../constants';
 import { SupportedLanguage } from '../types';
+
+// Estilos CSS personalizados para el textarea sin border
+const textareaStyles = `
+  .chat-textarea {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .chat-textarea:focus {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .chat-textarea:focus-visible {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+`;
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -47,6 +70,24 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const waveformDataArrayRef = useRef<Uint8Array | null>(null);
   const stopDelayTimerRef = useRef<number | null>(null); 
   const [isLocationEnabled, setIsLocationEnabled] = useState(false);
+
+  // Auto-resize textarea like ChatGPT
+  useEffect(() => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const maxHeight = 200; // Altura máxima antes de mostrar scroll
+      
+      if (scrollHeight <= maxHeight) {
+        textarea.style.height = `${scrollHeight}px`;
+        textarea.style.overflowY = 'hidden';
+      } else {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
+      }
+    }
+  }, [inputValue]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -270,143 +311,254 @@ const ChatInput: React.FC<ChatInputProps> = ({
     : `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`;
 
   return (
-    <div className={`w-full flex flex-col items-center ${isInFinetuningMode 
-      ? 'p-2 sm:p-4' 
-      : 'p-3 sm:p-6 pb-6 sm:pb-8'
-    }`}>
-      {isRecording && (
-        <canvas
-          ref={canvasRef}
-          className="w-full max-w-4xl h-9 mb-1 bg-card border rounded-t-lg border-b-0"
-          style={{ display: 'block' }}
-        />
-      )}
-      
-      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} border-input`}>
+    <>
+      <style>{textareaStyles}</style>
+      <div className={`w-full flex flex-col items-center ${isInFinetuningMode 
+        ? 'p-2 sm:p-4' 
+        : 'pb-2 sm:pb-6 md:pb-8'
+      }`}>
+      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} border-input rounded-xl ${isRecording ? 'border-red-500' : ''}`}>
         <CardContent className="p-0">
-          <div className="flex items-center min-h-20 px-3 sm:px-4 py-4">
-            <div className="flex-1 space-y-3">
-              <Textarea
-                ref={textareaRef}
-                placeholder={placeholder}
-                value={inputValue}
-                onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
-                onKeyDown={handleKeyDown}
-                disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
-                className="min-h-[40px] resize-none border-0 p-0 shadow-none focus-visible:ring-0 text-base sm:text-lg"
-                rows={1}
-              />
-              
-              {/* Action buttons row */}
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
-                >
-                  <Globe className="h-4 w-4 mr-1" />
-                  <span className="text-sm">
-                    {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const newEnabled = !isLocationEnabled;
-                    setIsLocationEnabled(newEnabled);
-                    if (typeof onToggleLocation === 'function') onToggleLocation(newEnabled);
-                  }}
-                  className={`h-7 px-2 ${isLocationEnabled ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <MapPin className="h-4 w-4 mr-1" />
-                  <span className="text-sm font-medium">Ubicación</span>
-                </Button>
-              </div>
-            </div>
-            
-            {/* Microphone/Send button */}
-            <div className="flex items-end pl-3">
-              {inputValue.trim() || isRecording ? (
-                isRecording ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost"
-                          size="icon"
-                          onClick={toggleRecording} 
-                          disabled={isLoading}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <MicOff className="h-5 w-5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Detener Grabación</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          onClick={handleSubmit} 
-                          disabled={isLoading || !inputValue.trim()}
-                          size="icon"
-                          className="bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                          {isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
-                            <Send className="h-5 w-5" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Enviar Mensaje</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )
-              ) : (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
+          <div className="flex items-center min-h-20 sm:min-h-20 px-2 sm:px-3 md:px-4 pb-2 sm:pb-4">
+            <div className="flex-1 space-y-2 sm:space-y-3">
+              {isRecording ? (
+                // Recording mode - simplified interface
+                <div className="flex-1 space-y-2 sm:space-y-3">
+                  <div className="flex items-center justify-between min-h-[32px] sm:min-h-[40px]">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm sm:text-base md:text-lg text-muted-foreground">Escuchando</span>
+                        </div>
+                        <div className="flex-1 flex items-center gap-0.5 min-w-0">
+                          {[...Array(170)].map((_, i) => {
+                            // Improved realistic frequency response simulation
+                            const frequency = i * 0.03;
+                            const time = Date.now() * 0.001; // For dynamic movement
+                            
+                            // Bass frequencies (low end)
+                            const bass = Math.sin(frequency * 0.5 + time * 0.5) * 0.6 + 0.4;
+                            
+                            // Mid frequencies (vocals, instruments)
+                            const mid = Math.sin(frequency * 1.5 + time * 0.8) * 0.4 + 0.6;
+                            
+                            // Treble frequencies (high end)
+                            const treble = Math.sin(frequency * 3 + time * 1.2) * 0.3 + 0.7;
+                            
+                            // Combine frequencies with realistic weighting
+                            const intensity = (bass * 0.4 + mid * 0.4 + treble * 0.2);
+                            
+                            // Add some randomness for more natural look
+                            const randomFactor = Math.sin(i * 0.7 + time * 0.3) * 0.1 + 0.9;
+                            const finalIntensity = intensity * randomFactor;
+                            
+                            // Map to height with more variation
+                            const height = Math.max(2, Math.floor(finalIntensity * 12));
+                            
+                            const heightClass = height <= 3 ? 'h-1' : 
+                                              height <= 5 ? 'h-2' : 
+                                              height <= 7 ? 'h-3' : 
+                                              height <= 9 ? 'h-4' : 
+                                              height <= 11 ? 'h-5' : 'h-6';
+                            
+                            // More varied animation delays
+                            const delayClass = i % 8 === 0 ? 'animate-pulse' : 
+                                             i % 8 === 1 ? 'animate-pulse delay-75' : 
+                                             i % 8 === 2 ? 'animate-pulse delay-150' : 
+                                             i % 8 === 3 ? 'animate-pulse delay-300' :
+                                             i % 8 === 4 ? 'animate-pulse delay-500' : 
+                                             i % 8 === 5 ? 'animate-pulse delay-700' :
+                                             i % 8 === 6 ? 'animate-pulse delay-1000' : 'animate-pulse delay-1500';
+                            
+                            return (
+                              <div
+                                key={i}
+                                className={`bg-primary rounded-full w-0.5 ${heightClass} ${delayClass}`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Action buttons row - same structure as normal mode */}
+                  <div className="flex items-center justify-between mt-3 sm:mt-2">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Button
                         variant="ghost"
-                        size="icon"
-                        onClick={toggleRecording} 
-                        disabled={isLoading || !isSpeechApiSupported}
-                        className={isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}
+                        size="sm"
+                        className="h-8 sm:h-7 px-2 sm:px-2 text-muted-foreground hover:text-foreground"
                       >
-                        {isSpeechApiSupported ? (
-                          <Mic className="h-5 w-5" />
-                        ) : (
-                          <MicOff className="h-5 w-5" />
-                        )}
+                        <Globe className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
+                        <span className="text-sm sm:text-sm">
+                          {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
+                        </span>
+                        <ChevronDown className="h-3 w-3 sm:h-3 sm:w-3 ml-1" />
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      
+                      <Toggle
+                        pressed={isLocationEnabled}
+                        onPressedChange={(pressed) => {
+                          setIsLocationEnabled(pressed);
+                          if (typeof onToggleLocation === 'function') onToggleLocation(pressed);
+                        }}
+                        aria-label="Activar ubicación"
+                        className="h-8 sm:h-7 px-2 sm:px-2"
+                      >
+                        <Navigation className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
+                        <span className="text-sm sm:text-sm font-medium">Ubicación</span>
+                      </Toggle>
+                    </div>
+                    
+                    {/* Microphone/Send button - now aligned with bottom buttons */}
+                    <div className="flex items-center">
+                      {inputValue.trim() ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                onClick={handleSubmit} 
+                                disabled={isLoading || !inputValue.trim()}
+                                size="icon"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full"
+                              >
+                                {isLoading ? (
+                                  <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                                ) : (
+                                  <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Enviar Mensaje</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleRecording} 
+                                disabled={isLoading || !isSpeechApiSupported}
+                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                              >
+                                {isSpeechApiSupported ? (
+                                  <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
+                                ) : (
+                                  <MicOff className="h-5 w-5 sm:h-6 sm:w-6" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Normal mode - full interface
+                <>
+                  <Textarea
+                    ref={textareaRef}
+                    placeholder={placeholder}
+                    value={inputValue}
+                    onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
+                    onKeyDown={handleKeyDown}
+                    disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
+                    className="chat-textarea min-h-[48px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-2 sm:px-0 text-sm sm:text-base md:text-lg overflow-hidden"
+                    rows={1}
+                  />
+                  
+                  {/* Action buttons row */}
+                  <div className="flex items-center justify-between mt-3 sm:mt-2">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 sm:h-7 px-2 sm:px-2 text-muted-foreground hover:text-foreground"
+                      >
+                        <Globe className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
+                        <span className="text-sm sm:text-sm">
+                          {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
+                        </span>
+                        <ChevronDown className="h-3 w-3 sm:h-3 sm:w-3 ml-1" />
+                      </Button>
+                      
+                      <Toggle
+                        pressed={isLocationEnabled}
+                        onPressedChange={(pressed) => {
+                          setIsLocationEnabled(pressed);
+                          if (typeof onToggleLocation === 'function') onToggleLocation(pressed);
+                        }}
+                        aria-label="Activar ubicación"
+                        className="h-8 sm:h-7 px-2 sm:px-2"
+                      >
+                        <Navigation className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
+                        <span className="text-sm sm:text-sm font-medium">Ubicación</span>
+                      </Toggle>
+                    </div>
+                    
+                    {/* Microphone/Send button - now aligned with bottom buttons */}
+                    <div className="flex items-center">
+                      {inputValue.trim() ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                onClick={handleSubmit} 
+                                disabled={isLoading || !inputValue.trim()}
+                                size="icon"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full"
+                              >
+                                {isLoading ? (
+                                  <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                                ) : (
+                                  <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Enviar Mensaje</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleRecording} 
+                                disabled={isLoading || !isSpeechApiSupported}
+                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                              >
+                                {isSpeechApiSupported ? (
+                                  <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
+                                ) : (
+                                  <MicOff className="h-5 w-5 sm:h-6 sm:w-6" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
         </CardContent>
       </Card>
-      
-      {isRecording && speechError && (
-        <p className={`text-xs text-center mt-1 px-2 ${
-          speechError.includes("Error") || speechError.includes("denegado") 
-            ? "text-destructive" 
-            : "text-muted-foreground"
-        }`}>
-          {speechError}
-        </p>
-      )}
     </div>
+    </>
   );
 };
 

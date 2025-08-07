@@ -342,6 +342,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           userLocation={userLocation}
           geolocationStatus={geolocationStatus}
           isPublicChat={isPublicChat}
+          handleToggleLocation={handleToggleLocation}
         />
         <div className="flex-1 flex flex-col">
           {modernHeader}

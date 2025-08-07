@@ -10,7 +10,7 @@ export const useCities = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar todas las ciudades activas
+  // Cargar todas las ciudades activas y públicas
   const loadCities = async () => {
     setIsLoading(true);
     setError(null);
@@ -18,8 +18,8 @@ export const useCities = () => {
       const { data, error } = await supabase
         .from('cities')
         .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .eq('is_public', true)
+        .order('name', { ascending: true });
 
       if (error) {
         console.error('Error loading cities:', error);

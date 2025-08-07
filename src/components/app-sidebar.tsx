@@ -1,18 +1,25 @@
 import * as React from "react"
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import {
   MessageCircle,
   Plus,
-  Home,
   MapPin,
   Settings2,
   Sliders,
-  Star,
+
   Trash2,
   MoreHorizontal,
   Navigation,
   LifeBuoy,
   Send,
+  Edit,
+  Building2,
+  Compass,
+  Globe,
+  Map,
+  MessageSquare,
+  Star,
+  Locate,
 } from "lucide-react"
 
 import { NavSecondary } from "@/components/nav-secondary"
@@ -20,6 +27,10 @@ import { TeamSwitcher } from "@/components/team-switcher"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Separator } from "@/components/ui/separator"
+import { Toggle } from "@/components/ui/toggle"
+import { useSidebar } from "@/components/ui/sidebar"
+
+
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +42,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { useDefaultChat } from "@/hooks/useDefaultChat"
@@ -47,21 +59,14 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   userLocation?: any
   geolocationStatus?: 'idle' | 'pending' | 'success' | 'error'
   isPublicChat?: boolean
+  handleToggleLocation?: (enabled: boolean) => Promise<void>
+  onCitySelect?: (city: any) => void
+  onShowCitySearch?: () => void
+  isInSearchMode?: boolean
 }
 
 // Navigation data
-const navSecondaryData = [
-  {
-    title: "Soporte",
-    url: "#",
-    icon: LifeBuoy,
-  },
-  {
-    title: "Comentarios",
-    url: "#",
-    icon: Send,
-  },
-]
+const navSecondaryData = []
 
 export function AppSidebar({ 
   onNewChat = () => {},
@@ -75,10 +80,28 @@ export function AppSidebar({
   userLocation = null,
   geolocationStatus = 'idle',
   isPublicChat = false,
+  handleToggleLocation = async () => {},
+  onCitySelect = () => {},
+  onShowCitySearch = () => {},
+  isInSearchMode = false,
   ...props 
 }: AppSidebarProps) {
   const navigate = useNavigate()
-  const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat } = useDefaultChat()
+  const location = useLocation()
+  const params = useParams()
+  const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat, loading } = useDefaultChat()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  // Función para cerrar sidebar en mobile después de una acción
+  const handleMobileAction = (action: () => void) => {
+    action()
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
+
+  // Detectar si estamos en la página de descubrir ciudades (ya no se usa, pero mantenemos para compatibilidad)
+  const isDiscoverPage = location.search.includes('focus=search')
   const [locationInfo, setLocationInfo] = React.useState<{
     city: string;
     address: string;
@@ -88,6 +111,59 @@ export function AppSidebar({
     address: '',
     loading: false
   })
+
+  // Función para obtener el avatar de la ciudad
+  const getCityAvatar = () => {
+    if (chatConfig?.restrictedCity?.name) {
+      // Extraer solo el nombre de la ciudad (antes de la coma)
+      const getCityName = () => {
+        const fullName = chatConfig.restrictedCity.name;
+        if (fullName.includes(',')) {
+          return fullName.split(',')[0].trim();
+        }
+        return fullName;
+      };
+
+      // Obtener iniciales de la ciudad
+      const getInitials = (name: string) => {
+        return name
+          .split(' ')
+          .map(word => word.charAt(0))
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+      };
+
+      const cityName = getCityName();
+      const cityImage = chatConfig.profileImageUrl || null;
+      const cityInitials = getInitials(cityName);
+
+      if (cityImage) {
+        return (
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full overflow-hidden mb-3">
+            <img 
+              src={cityImage} 
+              alt={cityName}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        );
+      } else {
+        return (
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-lg font-semibold mb-3">
+            {cityInitials}
+          </div>
+        );
+      }
+    }
+    
+    // Fallback si no hay ciudad configurada
+    return (
+      <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-muted text-sidebar-muted-foreground">
+        <MessageCircle className="h-4 w-4" />
+      </div>
+    );
+  };
 
   // Función para obtener información de ubicación desde coordenadas
   const getLocationInfo = async (lat: number, lng: number) => {
@@ -186,190 +262,201 @@ export function AppSidebar({
     return "Dirección no disponible"
   }
 
-  return (
-    <Sidebar variant="inset" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher />
-      </SidebarHeader>
-      
-      <SidebarContent>
-        {/* New Chat */}
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onNewChat("Nuevo chat")}
-                className="w-full"
-                size="lg"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Nuevo chat</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+  // Obtener la ciudad actual de la URL
+  const getCurrentCitySlug = () => {
+    const path = location.pathname;
+    if (path.startsWith('/chat/') || path.startsWith('/city/')) {
+      return params.chatSlug || params.citySlug || path.split('/').pop();
+    }
+    return null;
+  }
 
-        {/* Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Navegación</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+  // Función para manejar el cambio de chat predeterminado
+
+  const handleCitySelect = (city: any) => {
+    if (onCitySelect) {
+      onCitySelect(city)
+    } else {
+      // Navegar a la nueva ciudad
+      navigate(`/chat/${city.slug}`)
+    }
+  }
+
+
+  return (
+    <>
+      <Sidebar variant="inset" collapsible="icon" {...props}>
+        <SidebarHeader>
+          <TeamSwitcher chatConfig={chatConfig} onCitySelect={onCitySelect} onShowCitySearch={onShowCitySearch} />
+        </SidebarHeader>
+        
+        <SidebarContent className="flex flex-col gap-0 h-full">
+          {/* Discover Cities and Default City */}
+          <SidebarGroup className="p-1 flex-shrink-0 pl-2">
+            <SidebarMenu className="gap-0.5">
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => navigate('/')}
-                  tooltip="Inicio"
+                  onClick={isInSearchMode ? () => {} : () => handleMobileAction(onShowCitySearch)}
+                  isActive={isInSearchMode}
+                  disabled={isInSearchMode}
+                  className="w-full group-data-[collapsible=icon]:justify-center h-10"
+                  size="sm"
+                  tooltip={isInSearchMode ? "Ya estás en modo búsqueda" : "Descubrir ciudades"}
                 >
-                  <Home className="h-4 w-4" />
-                  <span>Inicio</span>
+                  <Compass className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+                  <span className="group-data-[collapsible=icon]:hidden">
+                    {isInSearchMode ? "Buscando ciudades..." : "Descubrir ciudades"}
+                  </span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => navigate('/?focus=search')}
-                  tooltip="Descubrir ciudades"
+                  onClick={async () => handleMobileAction(async () => {
+                    const currentCitySlug = getCurrentCitySlug()
+                    if (currentCitySlug) {
+                      if (isDefaultChat(currentCitySlug)) {
+                        await removeDefaultChat()
+                      } else {
+                        await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                      }
+                    }
+                  })}
+                  disabled={loading}
+                  className="w-full group-data-[collapsible=icon]:justify-center h-10"
+                  size="sm"
+                  tooltip="Ciudad predeterminada"
                 >
-                  <MapPin className="h-4 w-4" />
-                  <span>Descubrir ciudades</span>
+                  <Star className={cn(
+                    "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
+                    getCurrentCitySlug() && isDefaultChat(getCurrentCitySlug()) ? "text-white fill-current" : "text-white"
+                  )} />
+                  <span className="group-data-[collapsible=icon]:hidden">Ciudad predeterminada</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Recent Chats */}
-        {chatTitles.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Conversaciones recientes</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {chatTitles.slice(0, 5).map((title, index) => (
-                  <SidebarMenuItem key={index}>
-                    <SidebarMenuButton
-                      onClick={() => onSelectChat(index)}
-                      isActive={index === selectedChatIndex}
-                      className="group w-full justify-between"
-                      tooltip={title}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <MessageCircle className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{title}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {isDefaultChat(chatIds[index]) && (
-                          <Star className="h-3 w-3 text-primary" />
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteChat(chatIds[index])
-                          }}
-                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-                {chatTitles.length > 5 && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span>Ver más ({chatTitles.length - 5})</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
           </SidebarGroup>
-        )}
 
-        <NavSecondary items={navSecondaryData} className="mt-auto" />
-      </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenu>
-          {/* Default chat toggle */}
-          {chatIds.length > 0 && selectedChatIndex >= 0 && chatIds[selectedChatIndex] && (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => {
-                  const currentChatId = chatIds[selectedChatIndex]
-                  const currentChatTitle = chatTitles[selectedChatIndex]
-                  if (currentChatId && currentChatTitle) {
-                    if (isDefaultChat(currentChatId)) {
-                      removeDefaultChat()
-                    } else {
-                      setDefaultChat(currentChatId, currentChatTitle)
-                    }
-                  }
-                }}
-                tooltip={isDefaultChat(chatIds[selectedChatIndex]) ? "Quitar chat predeterminado" : "Marcar como predeterminado"}
-              >
-                <Star className={cn("h-4 w-4", isDefaultChat(chatIds[selectedChatIndex]) && "text-primary")} />
-                <span>{isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado"}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-
-          {/* Settings */}
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Ajustes">
-              <Settings2 className="h-4 w-4" />
-              <span>Ajustes</span>
+          {/* Recent Chats */}
+          <SidebarGroup className="flex-1 flex flex-col min-h-0 max-h-[calc(100vh-300px)]">
+            <SidebarSeparator className="mb-1 flex-shrink-0" />
+            <SidebarMenuItem className="flex-shrink-0">
+                                          <SidebarMenuButton
+                  onClick={() => handleMobileAction(() => {
+                    const currentCity = chatConfig?.restrictedCity?.name || 'tu ciudad';
+                    const citySlug = chatConfig?.restrictedCity?.slug || '';
+                    onNewChat();
+                  })}
+                  className="w-full group-data-[collapsible=icon]:justify-center h-10"
+                  size="sm"
+                  tooltip="Nuevo chat"
+                >
+              <Edit className="h-4 w-4" />
+              <span className="group-data-[collapsible=icon]:hidden">Nuevo chat</span>
             </SidebarMenuButton>
-          </SidebarMenuItem>
-
-          {/* Configure chat */}
-          {!isPublicChat && (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={onOpenFinetuning}
-                tooltip="Configurar chat"
-              >
-                <Sliders className="h-4 w-4" />
-                <span>Configurar chat</span>
-              </SidebarMenuButton>
             </SidebarMenuItem>
-          )}
+            <div className="group-data-[collapsible=icon]:hidden flex-1 flex flex-col min-h-0">
+              {chatTitles.length > 0 && (
+                <SidebarGroupLabel className="flex-shrink-0">Conversaciones</SidebarGroupLabel>
+              )}
+              <SidebarGroupContent className="flex-1 overflow-y-auto min-h-0 scrollbar-hide hover:scrollbar-default">
+                {chatTitles.length > 0 ? (
+                  <SidebarMenu>
+                    {chatTitles.map((title, index) => (
+                      <SidebarMenuItem key={index}>
+                                              <SidebarMenuButton
+                        onClick={() => handleMobileAction(() => onSelectChat(index))}
+                        isActive={index === selectedChatIndex}
+                        className="group/menu-item w-full justify-between group-data-[collapsible=icon]:justify-center min-h-[2rem] py-1"
+                        tooltip={title}
+                      >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <MessageCircle className="h-4 w-4 flex-shrink-0 text-sidebar-foreground/50" />
+                            <span className="truncate group-data-[collapsible=icon]:hidden">{title}</span>
+                          </div>
+                          <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+                                                      <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleMobileAction(() => onDeleteChat(chatIds[index]))
+                            }}
+                            className="h-6 w-6 p-0 opacity-0 group-hover/menu-item:opacity-100 transition-opacity"
+                          >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                ) : (
+                  <div className="flex items-end justify-center min-h-[200px] pt-16 group-data-[collapsible=icon]:hidden">
+                    <div className="flex flex-col items-center text-center text-sidebar-foreground/60">
+                      {getCityAvatar()}
+                      <div className="text-sm mt-2">
+                        <div>Todavía no tienes</div>
+                        <div>conversaciones</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </SidebarGroupContent>
+            </div>
+          </SidebarGroup>
 
           {/* Location section */}
-          {chatConfig.allowGeolocation && (
-            <>
-              <Separator className="my-2" />
-              <div className="px-2 py-1">
-                <div className="flex items-center gap-3">
-                  <Navigation className="h-4 w-4 text-sidebar-foreground/60" />
-                  <div className="min-w-0 flex-1">
-                    <StatusBadge 
-                      status={geolocationStatus === 'success' ? 'success' : geolocationStatus === 'error' ? 'error' : 'loading'}
-                      className="text-xs"
-                    >
-                      {userLocation ? getDisplayCity() : 'Ubicación'}
-                    </StatusBadge>
-                    {userLocation && (
-                      <p className="text-xs text-sidebar-foreground/60 mt-1 line-clamp-2">
+          <SidebarGroup className="pr-2 pl-2 pb-4 pt-0 flex-1 flex flex-col justify-end">
+            <SidebarSeparator />
+            <SidebarMenu className="gap-0.5">
+              {chatConfig.allowGeolocation && userLocation && (
+                <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
+                  <SidebarMenuButton
+                    className="w-full group-data-[collapsible=icon]:justify-center h-auto min-h-0"
+                    size="sm"
+                    tooltip={getDisplayCity()}
+                  >
+                    
+                    <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden h-auto">
+                      <p className="text-xs text-sidebar-foreground/60">
                         {locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress()}
                       </p>
-                    )}
-                    <Button
-                      variant="link"
-                      size="sm"
-                      onClick={refreshLocation}
-                      disabled={locationInfo.loading}
-                      className="h-auto p-0 text-xs mt-1 text-sidebar-foreground/60"
-                    >
-                      {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={refreshLocation}
+                        disabled={locationInfo.loading}
+                        className="h-auto p-0 text-xs text-sidebar-foreground/60"
+                      >
+                        {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
+                      </Button>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {/* Location Toggle - Always at bottom */}
+              <SidebarMenuItem className={cn(
+                !chatConfig.allowGeolocation && "hidden"
+              )}>
+                              <SidebarMenuButton
+                onClick={() => handleMobileAction(() => handleToggleLocation(!chatConfig.allowGeolocation))}
+                isActive={chatConfig.allowGeolocation}
+                className="w-full justify-center group-data-[collapsible=icon]:justify-center h-10"
+                size="sm"
+                tooltip={chatConfig.allowGeolocation ? "Desactivar ubicación" : "Activar ubicación"}
+              >
+                  <Navigation className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+                  <span className="group-data-[collapsible=icon]:hidden">
+                    {chatConfig.allowGeolocation ? "Desactivar ubicación" : "Activar ubicación"}
+                  </span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+
+
+    </>
   )
 }

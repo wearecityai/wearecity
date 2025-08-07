@@ -159,6 +159,7 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
         userLocation={userLocation}
         geolocationStatus={geolocationStatus}
         isPublicChat={isPublicChat}
+        handleToggleLocation={handleToggleLocation}
       />
       <SidebarInset>
         {!isPublicChat && (

@@ -69,6 +69,59 @@ const MainContent: React.FC<MainContentProps> = ({
     setUserMenuAnchorEl(null);
   };
 
+  // Función para obtener el avatar de la ciudad
+  const getCityAvatar = () => {
+    if (chatConfig?.restrictedCity?.name) {
+      // Extraer solo el nombre de la ciudad (antes de la coma)
+      const getCityName = () => {
+        const fullName = chatConfig.restrictedCity.name;
+        if (fullName.includes(',')) {
+          return fullName.split(',')[0].trim();
+        }
+        return fullName;
+      };
+
+      // Obtener iniciales de la ciudad
+      const getInitials = (name: string) => {
+        return name
+          .split(' ')
+          .map(word => word.charAt(0))
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+      };
+
+      const cityName = getCityName();
+      const cityImage = chatConfig.profileImageUrl || null;
+      const cityInitials = getInitials(cityName);
+
+      if (cityImage) {
+        return (
+          <div className="flex aspect-square size-20 items-center justify-center rounded-full overflow-hidden mb-4">
+            <img 
+              src={cityImage} 
+              alt={cityName}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        );
+      } else {
+        return (
+          <div className="flex aspect-square size-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-semibold mb-4">
+            {cityInitials}
+          </div>
+        );
+      }
+    }
+    
+    // Fallback si no hay ciudad configurada
+    return (
+      <div className="flex aspect-square size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <MessageCircle className="h-6 w-6" />
+      </div>
+    );
+  };
+
   // Track if user has sent their first message
   useEffect(() => {
     if (messages.length > 0 && messages.some(msg => msg.role === 'user')) {
@@ -85,16 +138,73 @@ const MainContent: React.FC<MainContentProps> = ({
 
   if (isInFinetuningMode) {
     return (
-      <ChatMain className="h-full max-w-4xl mx-auto">
-        <ChatMessages className="flex-1 overflow-y-auto">
-          {messages.length === 0 && !shouldShowChatContainer ? (
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4">
+            {messages.length === 0 && !shouldShowChatContainer ? (
+              <EmptyState
+                icon={getCityAvatar()}
+                title="Bienvenido al configurador"
+                description="Configura tu asistente de ciudad y comienza a chatear"
+              />
+            ) : (
+              <div className="space-y-4">
+                <ChatContainer
+                  messages={messages}
+                  isLoading={isLoading}
+                  onSendMessage={handleSendMessage}
+                  appError={appError}
+                  chatConfig={chatConfig}
+                  onDownloadPdf={handleDownloadPdf}
+                  onSeeMoreEvents={handleSeeMoreEvents}
+                  onSetLanguageCode={handleSetCurrentLanguageCode}
+                  user={user}
+                  onLogin={onLogin}
+                />
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="border-t bg-background p-4">
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            recommendedPrompts={chatConfig.recommendedPrompts}
+            currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
+            onSetLanguageCode={handleSetCurrentLanguageCode}
+            isInFinetuningMode={true}
+            onToggleLocation={handleToggleLocation}
+            chatConfig={chatConfig}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        {messages.length === 0 && !shouldShowChatContainer ? (
+          <div className="flex flex-col items-center justify-center h-full p-4 pb-0">
             <EmptyState
-              icon={<MessageCircle className="h-8 w-8 text-muted-foreground" />}
-              title="Bienvenido al configurador"
-              description="Configura tu asistente de ciudad y comienza a chatear"
+              icon={getCityAvatar()}
+              title={`¡Hola! Soy el asistente de ${chatConfig?.restrictedCity?.name || 'tu ciudad'}`}
+              description="¿En qué puedo ayudarte hoy? Puedes preguntarme sobre servicios, eventos, trámites y mucho más."
             />
-          ) : (
-            <div className="space-y-4">
+            {!isMobile && !hasUserSentFirstMessage && (
+              <div className="mt-8 mb-0">
+                <RecommendedPromptsBar 
+                  prompts={chatConfig?.recommendedPrompts || []} 
+                  onSendMessage={handleSendMessage} 
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <div className="w-full max-w-4xl space-y-4 pb-0 px-3 sm:px-6 md:px-8">
               <ChatContainer
                 messages={messages}
                 isLoading={isLoading}
@@ -109,74 +219,21 @@ const MainContent: React.FC<MainContentProps> = ({
               />
               <div ref={messagesEndRef} />
             </div>
-          )}
-        </ChatMessages>
-        
-        <div className="border-t bg-background p-4">
-          <ChatInput
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            recommendedPrompts={chatConfig.recommendedPrompts}
-            currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
-            onSetLanguageCode={handleSetCurrentLanguageCode}
-            isInFinetuningMode={true}
-            onToggleLocation={handleToggleLocation}
-            chatConfig={chatConfig}
-          />
-        </div>
-      </ChatMain>
-    );
-  }
-
-  return (
-    <ChatMain className="h-full flex flex-col">
-      <ChatMessages className="flex-1 overflow-y-auto">
-        {messages.length === 0 && !shouldShowChatContainer ? (
-          <div className="flex flex-col items-center justify-center h-full p-4">
-            <EmptyState
-              icon={<MessageCircle className="h-8 w-8 text-muted-foreground" />}
-              title={`¡Hola! Soy el asistente de ${chatConfig?.restrictedCity?.name || 'tu ciudad'}`}
-              description="¿En qué puedo ayudarte hoy? Puedes preguntarme sobre servicios, eventos, trámites y mucho más."
-            />
-            {!isMobile && !hasUserSentFirstMessage && (
-              <div className="mt-8">
-                <RecommendedPromptsBar 
-                  prompts={chatConfig?.recommendedPrompts || []} 
-                  onSendMessage={handleSendMessage} 
-                />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4 p-4">
-            <ChatContainer
-              messages={messages}
-              isLoading={isLoading}
-              onSendMessage={handleSendMessage}
-              appError={appError}
-              chatConfig={chatConfig}
-              onDownloadPdf={handleDownloadPdf}
-              onSeeMoreEvents={handleSeeMoreEvents}
-              onSetLanguageCode={handleSetCurrentLanguageCode}
-              user={user}
-              onLogin={onLogin}
-            />
-            <div ref={messagesEndRef} />
           </div>
         )}
-      </ChatMessages>
+      </div>
       
       {/* Chat Input integrado en el main */}
-      <div className="border-t bg-background">
+      <div className="bg-background">
         {isMobile && !hasUserSentFirstMessage && (
-          <div className="p-4 border-b">
+          <div className="px-3 py-2 border-b">
             <RecommendedPromptsBar 
               prompts={chatConfig?.recommendedPrompts || []} 
               onSendMessage={handleSendMessage} 
             />
           </div>
         )}
-        <div className="p-4">
+        <div className="px-3 py-2 sm:p-4 sm:pt-0">
           <div className="max-w-4xl mx-auto">
             <ChatInput
               onSendMessage={handleSendMessage}
@@ -190,7 +247,7 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         </div>
       </div>
-    </ChatMain>
+    </div>
   );
 };
 
