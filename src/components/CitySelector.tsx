@@ -141,7 +141,6 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={city.profile_image_url || undefined} />
                     <AvatarFallback className="bg-primary/10 text-primary">
                       {getCityInitials(city.name)}
                     </AvatarFallback>

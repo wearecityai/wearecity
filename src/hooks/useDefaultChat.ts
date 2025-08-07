@@ -30,8 +30,11 @@ export const useDefaultChat = () => {
 
         if (error) {
           console.error('Error loading default chat:', error);
-        } else if (data?.default_chat_data) {
-          setDefaultChat(data.default_chat_data);
+        } else if (data?.default_chat_data && typeof data.default_chat_data === 'object') {
+          const chatData = data.default_chat_data as any;
+          if (chatData.conversationId && chatData.title) {
+            setDefaultChat(chatData as DefaultChat);
+          }
         }
       } catch (error) {
         console.error('Error loading default chat:', error);
@@ -64,7 +67,7 @@ export const useDefaultChat = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ default_chat_data: chatData })
+        .update({ default_chat_data: chatData as any })
         .eq('id', user.id);
 
       if (error) {

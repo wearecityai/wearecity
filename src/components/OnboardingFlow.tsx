@@ -188,15 +188,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-semibold">
-                          {city.profile_image_url ? (
-                            <img 
-                              src={city.profile_image_url} 
-                              alt={city.name}
-                              className="h-8 w-8 rounded object-cover"
-                            />
-                          ) : (
-                            getCityInitials(city.name)
-                          )}
+                          {getCityInitials(city.name)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold truncate">{city.name}</h3>

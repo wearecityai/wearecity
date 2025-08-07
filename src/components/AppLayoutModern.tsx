@@ -161,9 +161,9 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
         isPublicChat={isPublicChat}
         handleToggleLocation={handleToggleLocation}
       />
-      <SidebarInset>
+      <SidebarInset className="flex flex-col h-screen max-h-screen overflow-hidden">
         {!isPublicChat && (
-          <header className="flex h-14 shrink-0 items-center gap-2">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b">
             <div className="flex flex-1 items-center gap-2 px-3">
               <SidebarTrigger />
               <Separator
@@ -186,7 +186,7 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
           </header>
         )}
         
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
           <MainContent
             theme={theme}
             isMobile={isMobile}

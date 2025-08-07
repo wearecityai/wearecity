@@ -63,7 +63,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   return (
     <ThemeContext.Provider value={{ currentThemeMode, toggleTheme }}>
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="h-screen max-h-screen bg-background text-foreground overflow-hidden">
         {children}
       </div>
     </ThemeContext.Provider>

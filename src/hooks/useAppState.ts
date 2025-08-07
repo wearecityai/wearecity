@@ -52,7 +52,7 @@ export const useAppState = (citySlug?: string) => {
   
   // Decidir qué configuración usar según si es chat público o no
   // Si no hay citySlug (página de descubrir), usar la última ciudad configurada
-  const effectiveCitySlug = citySlug || (lastCityConfig?.restrictedCity?.slug);
+  const effectiveCitySlug = citySlug;
   const chatConfig = effectiveCitySlug ? publicChatConfig : assistantConfigHook.config;
   const setChatConfig = effectiveCitySlug ? setPublicChatConfig : assistantConfigHook.setConfig;
   
