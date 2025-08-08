@@ -180,7 +180,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
                 {filteredCities.map((city) => (
                   <Card 
                     key={city.id} 
-                    className={`hover:shadow-lg transition-all duration-200 cursor-pointer group ${
+                    className={`md:hover:shadow-lg transition-all duration-200 cursor-pointer group ${
                       selectedCity?.id === city.id ? 'ring-2 ring-primary' : ''
                     }`}
                     onClick={() => handleCitySelect(city)}

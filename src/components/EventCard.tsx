@@ -159,7 +159,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   return (
-    <Card className="w-full max-w-sm border-border hover:shadow-md transition-shadow">
+            <Card className="w-full max-w-sm border-border md:hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <div className="space-y-2">
           <h3 className="font-semibold text-sm leading-tight line-clamp-2">

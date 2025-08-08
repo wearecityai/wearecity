@@ -429,7 +429,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 size="icon"
                                 onClick={toggleRecording} 
                                 disabled={isLoading || !isSpeechApiSupported}
-                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full ${isSpeechApiSupported ? "text-primary md:hover:text-primary" : "text-muted-foreground"}`}
                               >
                                 {isSpeechApiSupported ? (
                                   <Mic className="h-5 w-5 sm:h-6 sm:w-6" />

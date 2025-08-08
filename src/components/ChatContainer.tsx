@@ -154,7 +154,7 @@ export const RecommendedPromptsBar: React.FC<{
             variant="outline"
             size="sm"
             onClick={() => onSendMessage(prompt.text)}
-            className="whitespace-nowrap rounded-full bg-background hover:bg-muted/80 border-muted-foreground/20 text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
+                            className="whitespace-nowrap rounded-full bg-background md:hover:bg-muted/80 border-muted-foreground/20 text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
           >
             <span className="text-xs sm:text-sm">{prompt.text}</span>
           </Button>

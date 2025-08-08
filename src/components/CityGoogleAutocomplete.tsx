@@ -64,7 +64,7 @@ export default function CityGoogleAutocomplete({ onSelect, disabled }) {
           {data.map((suggestion, index) => (
             <div
               key={index}
-              className="px-4 py-2 cursor-pointer hover:bg-muted text-sm"
+                              className="px-4 py-2 cursor-pointer md:hover:bg-muted text-sm"
               onClick={() => handleSelect(suggestion.description)}
             >
               {suggestion.description}

@@ -57,7 +57,7 @@ export function NavFavorites() {
                 </div>
               </a>
             </SidebarMenuButton>
-            <MoreHorizontal className="opacity-0 group-hover:opacity-100 ml-auto mr-2 size-4 shrink-0" />
+            <MoreHorizontal className="opacity-0 md:group-hover:opacity-100 ml-auto mr-2 size-4 shrink-0" />
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>

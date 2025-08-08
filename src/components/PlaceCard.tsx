@@ -76,7 +76,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
   };
 
   return (
-    <Card className="w-full max-w-sm border-border hover:shadow-md transition-shadow">
+            <Card className="w-full max-w-sm border-border md:hover:shadow-md transition-shadow">
 
       <CardHeader className="pb-3">
         <div className="space-y-2">

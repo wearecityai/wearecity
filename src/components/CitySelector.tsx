@@ -135,7 +135,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
           {filteredCities.map((city) => (
             <Card 
               key={city.id} 
-              className="hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                              className="md:hover:shadow-lg transition-all duration-200 cursor-pointer group"
               onClick={() => handleCitySelect(city)}
             >
               <CardHeader className="pb-3">
@@ -182,7 +182,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
                   )}
                 </div>
                 <Button 
-                  className="w-full mt-4 group-hover:bg-primary group-hover:text-primary-foreground"
+                  className="w-full mt-4 md:group-hover:bg-primary md:group-hover:text-primary-foreground"
                   variant="outline"
                 >
                   <Users className="h-4 w-4 mr-2" />

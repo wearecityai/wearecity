@@ -304,7 +304,7 @@ export function AppSidebar({
                   onClick={isInSearchMode ? () => {} : onShowCitySearch}
                   isActive={isInSearchMode}
                   disabled={isInSearchMode}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10"
+                  className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
                   size="sm"
                   tooltip={isInSearchMode ? "Ya estás en modo búsqueda" : "Descubrir ciudades"}
                 >
@@ -342,14 +342,9 @@ export function AppSidebar({
                       console.log('No current city slug found')
                     }
                   }}
-                  onTouchStart={(e) => {
-                    e.preventDefault()
-                    console.log('Touch start on star button')
-                  }}
                   disabled={loading}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation"
+                  className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
                   size="sm"
-                  tooltip="Ciudad predeterminada"
                 >
                   <Star className={cn(
                     "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
@@ -376,7 +371,7 @@ export function AppSidebar({
                 const citySlug = chatConfig?.restrictedCity?.slug || '';
                 onNewChat();
               }}
-              className="w-full group-data-[collapsible=icon]:justify-center h-10"
+              className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
               size="sm"
               tooltip="Nuevo chat"
             >
