@@ -115,7 +115,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
           <Card className="bg-muted border-0">
             <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
               {(message.content && message.content.trim() !== "") && (
-                <div className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words">
+                <div className="text-base sm:text-lg leading-relaxed whitespace-pre-line break-words">
                   {linkifyAndMarkdown(message.content)}
                 </div>
               )}
@@ -158,11 +158,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   <>
                     {(contentToDisplay && contentToDisplay.trim() !== "") && (
                       <div 
-                        className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words cursor-pointer"
+                        className="text-base sm:text-lg leading-relaxed whitespace-pre-line break-words cursor-pointer"
                         onClick={typewriterIsTyping ? skipToEnd : undefined}
                       >
                         {linkifyAndMarkdown(contentToDisplay)}
-                        {typewriterIsTyping && <span className="animate-pulse">|</span>}
                       </div>
                     )}
                      {message.events && message.events.length > 0 && (
