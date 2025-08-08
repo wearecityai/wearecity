@@ -27,7 +27,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         <div className="text-muted-foreground">{icon}</div>
       )}
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold">{title}</h3>
+        <h3 className="text-lg font-semibold whitespace-pre-line">{title}</h3>
         {description && (
           <p className="text-sm text-muted-foreground max-w-md">{description}</p>
         )}

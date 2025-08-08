@@ -154,6 +154,72 @@ html, body {
   height: 100dvh;
 }
 
+/* Tema específico para móvil - tamaños más grandes para mejor UX */
+@media screen and (max-width: 768px) {
+  /* Botones más grandes en móvil */
+  .btn, button {
+    min-height: 44px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+  }
+  
+  /* Inputs y textareas más grandes */
+  input, textarea, select {
+    min-height: 44px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+  }
+  
+  /* Avatares más grandes */
+  .avatar, [class*="size-"] {
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+  
+  /* Texto más grande */
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.25rem !important; }
+  p, span, div { font-size: 16px !important; }
+  
+  /* Espaciado más generoso */
+  .p-4 { padding: 1.5rem !important; }
+  .px-4 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+  .py-4 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+  
+  /* Gaps más grandes */
+  .gap-2 { gap: 0.75rem !important; }
+  .gap-3 { gap: 1rem !important; }
+  .gap-4 { gap: 1.5rem !important; }
+  
+  /* Márgenes más generosos */
+  .m-4 { margin: 1.5rem !important; }
+  .mx-4 { margin-left: 1.5rem !important; margin-right: 1.5rem !important; }
+  .my-4 { margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
+}
+
+/* Solución específica para Safari iOS - viewport */
+@supports (-webkit-touch-callout: none) {
+  @media screen and (max-width: 768px) {
+    html, body {
+      /* Prevenir que Safari ajuste el viewport automáticamente */
+      height: 100vh !important;
+      height: 100dvh !important;
+      overflow-x: hidden !important;
+      /* Forzar que el contenido use toda la altura disponible */
+      min-height: 100vh !important;
+      min-height: 100dvh !important;
+    }
+    
+    #root {
+      height: 100vh !important;
+      height: 100dvh !important;
+      min-height: 100vh !important;
+      min-height: 100dvh !important;
+    }
+  }
+}
+
 /* Root container height fix para PWA */
 #root {
   height: 100vh;
@@ -374,25 +440,59 @@ html, body {
     right: 0 !important;
     z-index: 50 !important;
     background: hsl(var(--background)) !important;
-    border-top: 1px solid hsl(var(--border)) !important;
   }
   
   /* Dar margen al contenido del input para que no esté pegado */
+  .chat-input-container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
   .chat-input-container > div {
-    margin-left: 0.75rem !important;
-    margin-right: 0.75rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
   
   @media (min-width: 640px) {
-    .chat-input-container > div {
-      margin-left: 1rem !important;
-      margin-right: 1rem !important;
+    .chat-input-container {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .chat-input-container {
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
     }
   }
   
   /* Asegurar que el contenido del chat no se superponga con el input */
   .chat-container:not(.chat-input-container) {
     padding-bottom: 100px !important;
+  }
+  
+  /* Estilos específicos cuando el teclado está abierto */
+  .keyboard-open {
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  
+  .keyboard-open .chat-container:not(.chat-input-container) {
+    height: calc(100vh - 200px) !important;
+    height: calc(100dvh - 200px) !important;
+    overflow-y: auto !important;
+    padding-bottom: 120px !important;
+  }
+  
+  .keyboard-open .chat-input-container {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    background: hsl(var(--background)) !important;
   }
 }
 
@@ -426,5 +526,135 @@ html, body {
   html::before,
   html::after {
     display: none !important;
+  }
+  
+  /* Prevenir que el teclado cree overlays que tapen el contenido */
+  body {
+    position: relative !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Asegurar que el contenido principal sea visible cuando el teclado está abierto */
+  .chat-container:not(.chat-input-container) {
+    position: relative !important;
+    z-index: 1 !important;
+    background: hsl(var(--background)) !important;
+  }
+  
+  /* Prevenir que el teclado cree una capa negra */
+  input:focus,
+  textarea:focus {
+    position: relative !important;
+    z-index: 1000 !important;
+    background: hsl(var(--background)) !important;
+  }
+  
+  /* Asegurar que el viewport se ajuste correctamente solo en Safari */
+  @supports (-webkit-touch-callout: none) {
+    @media screen and (max-width: 768px) {
+      html, body {
+        height: 100vh !important;
+        height: 100dvh !important;
+        overflow-x: hidden !important;
+      }
+      
+      #root {
+        height: 100vh !important;
+        height: 100dvh !important;
+        overflow-x: hidden !important;
+      }
+    }
+  }
+  
+  /* Solución específica para Safari iOS - prevenir overlay del teclado */
+  @media screen and (max-width: 768px) {
+    /* Solo aplicar estilos específicos cuando el teclado está abierto en Safari */
+    .keyboard-open .chat-input-container {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 1000 !important;
+      background: hsl(var(--background)) !important;
+    }
+    
+    .keyboard-open .chat-container:not(.chat-input-container) {
+      padding-bottom: 120px !important;
+    }
+    
+    /* Asegurar que el mensaje de bienvenida esté bien posicionado en móvil */
+    .keyboard-open .flex.flex-col.items-center.justify-center {
+      padding-top: 2rem !important;
+      padding-bottom: 6rem !important;
+    }
+    
+    /* En móvil normal, dar más espacio al mensaje de bienvenida */
+    .flex.flex-col.items-center.justify-center {
+      padding-bottom: 5rem !important;
+    }
+    
+    /* Tamaños específicos para móvil - Chat Input */
+    .chat-input-container .min-h-20 {
+      min-height: 80px !important;
+    }
+    
+    .chat-input-container .min-h-\[48px\] {
+      min-height: 56px !important;
+    }
+    
+    .chat-input-container .h-8 {
+      height: 44px !important;
+    }
+    
+    .chat-input-container .w-8 {
+      width: 44px !important;
+    }
+    
+    .chat-input-container .h-10 {
+      height: 48px !important;
+    }
+    
+    .chat-input-container .w-10 {
+      width: 48px !important;
+    }
+    
+    /* Tamaños específicos para móvil - Mensajes */
+    .chat-message .p-3 {
+      padding: 1rem !important;
+    }
+    
+    .chat-message .px-3 {
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+    }
+    
+    .chat-message .py-3 {
+      padding-top: 1rem !important;
+      padding-bottom: 1rem !important;
+    }
+    
+    /* Tamaños específicos para móvil - Avatares en mensajes */
+    .chat-message .w-8 {
+      width: 48px !important;
+    }
+    
+    .chat-message .h-8 {
+      height: 48px !important;
+    }
+    
+    /* Tamaños específicos para móvil - Botones */
+    .chat-input-container button {
+      min-height: 44px !important;
+      padding: 12px 16px !important;
+      font-size: 16px !important;
+    }
+    
+    /* Tamaños específicos para móvil - Textarea */
+    .chat-textarea {
+      min-height: 56px !important;
+      padding: 16px !important;
+      font-size: 16px !important;
+    }
   }
 }

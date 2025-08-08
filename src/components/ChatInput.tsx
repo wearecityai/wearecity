@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Send, Mic, MicOff, Plus, Check, Globe, MapPin, ChevronDown, Loader2, Navigation, ArrowUp } from 'lucide-react';
+import { Send, Mic, MicOff, Plus, Check, MapPin, Loader2, Navigation, ArrowUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Toggle } from './ui/toggle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE_CODE } from '../constants';
-import { SupportedLanguage } from '../types';
+import { DEFAULT_LANGUAGE_CODE } from '../constants';
 
 // Estilos CSS personalizados para el textarea sin border
 const textareaStyles = `
@@ -317,7 +316,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         ? 'p-2 sm:p-4' 
         : 'pb-2 sm:pb-6 md:pb-8'
       }`}>
-      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} border-input rounded-xl ${isRecording ? 'border-red-500' : ''}`}>
+      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-xl ${isRecording ? 'border-red-500' : ''}`}>
         <CardContent className="p-0">
           <div className="flex items-center min-h-20 sm:min-h-20 px-2 sm:px-3 md:px-4 pb-2 sm:pb-4">
             <div className="flex-1 space-y-2 sm:space-y-3">
@@ -385,18 +384,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   {/* Action buttons row - same structure as normal mode */}
                   <div className="flex items-center justify-between mt-3 sm:mt-2">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 sm:h-7 px-2 sm:px-2 text-muted-foreground hover:text-foreground"
-                      >
-                        <Globe className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
-                        <span className="text-sm sm:text-sm">
-                          {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
-                        </span>
-                        <ChevronDown className="h-3 w-3 sm:h-3 sm:w-3 ml-1" />
-                      </Button>
-                      
                       <Toggle
                         pressed={isLocationEnabled}
                         onPressedChange={(pressed) => {
@@ -477,18 +464,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   {/* Action buttons row */}
                   <div className="flex items-center justify-between mt-3 sm:mt-2">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 sm:h-7 px-2 sm:px-2 text-muted-foreground hover:text-foreground"
-                      >
-                        <Globe className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
-                        <span className="text-sm sm:text-sm">
-                          {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguageCode)?.name?.split(' ')[0] || currentLanguageCode}
-                        </span>
-                        <ChevronDown className="h-3 w-3 sm:h-3 sm:w-3 ml-1" />
-                      </Button>
-                      
                       <Toggle
                         pressed={isLocationEnabled}
                         onPressedChange={(pressed) => {

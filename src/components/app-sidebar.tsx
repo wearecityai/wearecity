@@ -9,7 +9,6 @@ import {
 
   Trash2,
   MoreHorizontal,
-  Navigation,
   LifeBuoy,
   Send,
   Edit,
@@ -86,6 +85,7 @@ export function AppSidebar({
   isInSearchMode = false,
   ...props 
 }: AppSidebarProps) {
+  const [starUpdateTrigger, setStarUpdateTrigger] = React.useState(0);
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
@@ -131,7 +131,7 @@ export function AppSidebar({
 
       if (cityImage) {
         return (
-          <div className="flex aspect-square size-16 items-center justify-center rounded-full overflow-hidden mb-3">
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full overflow-hidden border border-border/40 mb-3">
             <img 
               src={cityImage} 
               alt={cityName}
@@ -141,7 +141,7 @@ export function AppSidebar({
         );
       } else {
         return (
-          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-lg font-semibold mb-3">
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-lg font-semibold border border-border/40 mb-3">
             {cityInitials}
           </div>
         );
@@ -150,7 +150,7 @@ export function AppSidebar({
     
     // Fallback si no hay ciudad configurada
     return (
-      <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-muted text-sidebar-muted-foreground">
+      <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-muted text-sidebar-muted-foreground border border-border/40">
         <MessageCircle className="h-4 w-4" />
       </div>
     );
@@ -256,8 +256,16 @@ export function AppSidebar({
   // Obtener la ciudad actual de la URL
   const getCurrentCitySlug = () => {
     const path = location.pathname;
+    // Intentar obtener el slug de los parámetros primero
+    const slugFromParams = params.chatSlug || params.citySlug;
+    if (slugFromParams) {
+      return slugFromParams;
+    }
+    // Si no hay parámetros, intentar extraer de la URL
     if (path.startsWith('/chat/') || path.startsWith('/city/')) {
-      return params.chatSlug || params.citySlug || path.split('/').pop();
+      const pathParts = path.split('/');
+      const slug = pathParts[pathParts.length - 1];
+      return slug && slug !== 'chat' && slug !== 'city' ? slug : null;
     }
     return null;
   }
@@ -304,12 +312,19 @@ export function AppSidebar({
                 <SidebarMenuButton
                   onClick={async () => {
                     const currentCitySlug = getCurrentCitySlug()
+                    console.log('Current city slug:', currentCitySlug)
                     if (currentCitySlug) {
                       if (isDefaultChat(currentCitySlug)) {
+                        console.log('Removing default chat for:', currentCitySlug)
                         await removeDefaultChat()
                       } else {
+                        console.log('Setting default chat for:', currentCitySlug)
                         await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
                       }
+                      // Forzar re-renderización
+                      setStarUpdateTrigger(prev => prev + 1)
+                    } else {
+                      console.log('No current city slug found')
                     }
                   }}
                   disabled={loading}
@@ -319,7 +334,12 @@ export function AppSidebar({
                 >
                   <Star className={cn(
                     "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
-                    getCurrentCitySlug() && isDefaultChat(getCurrentCitySlug()) ? "text-white fill-current" : "text-white"
+                    (() => {
+                      const currentSlug = getCurrentCitySlug()
+                      const isDefault = currentSlug && isDefaultChat(currentSlug)
+                      console.log('Star state - Current slug:', currentSlug, 'Is default:', isDefault)
+                      return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
+                    })()
                   )} />
                   <span className="group-data-[collapsible=icon]:hidden">Ciudad predeterminada</span>
                 </SidebarMenuButton>
@@ -394,55 +414,6 @@ export function AppSidebar({
                 )}
               </SidebarGroupContent>
             </div>
-          </SidebarGroup>
-
-          {/* Location section */}
-          <SidebarGroup className="pr-2 pl-2 pb-4 pt-0 flex-1 flex flex-col justify-end">
-            <SidebarSeparator />
-            <SidebarMenu className="gap-0.5">
-              {chatConfig.allowGeolocation && userLocation && (
-                <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
-                  <SidebarMenuButton
-                    className="w-full group-data-[collapsible=icon]:justify-center h-auto min-h-0"
-                    size="sm"
-                    tooltip={getDisplayCity()}
-                  >
-                    
-                    <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden h-auto">
-                      <p className="text-xs text-sidebar-foreground/60">
-                        {locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress()}
-                      </p>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={refreshLocation}
-                        disabled={locationInfo.loading}
-                        className="h-auto p-0 text-xs text-sidebar-foreground/60"
-                      >
-                        {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
-                      </Button>
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              {/* Location Toggle - Always at bottom */}
-              <SidebarMenuItem className={cn(
-                !chatConfig.allowGeolocation && "hidden"
-              )}>
-                <SidebarMenuButton
-                  onClick={() => handleToggleLocation(!chatConfig.allowGeolocation)}
-                  isActive={chatConfig.allowGeolocation}
-                  className="w-full justify-center group-data-[collapsible=icon]:justify-center h-10"
-                  size="sm"
-                  tooltip={chatConfig.allowGeolocation ? "Desactivar ubicación" : "Activar ubicación"}
-                >
-                  <Navigation className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
-                  <span className="group-data-[collapsible=icon]:hidden">
-                    {chatConfig.allowGeolocation ? "Desactivar ubicación" : "Activar ubicación"}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>

@@ -110,7 +110,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                 tooltip={currentCity.name}
               >
                 {currentCity.image ? (
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-full overflow-hidden group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-full overflow-hidden border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
                     <img 
                       src={currentCity.image} 
                       alt={currentCity.name}
@@ -118,7 +118,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                     />
                   </div>
                 ) : (
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
                     {currentCity.logo}
                   </div>
                 )}
@@ -140,7 +140,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
               </DropdownMenuLabel>
               <DropdownMenuItem className="gap-2 p-2">
                 {currentCity.image ? (
-                  <div className="flex size-6 items-center justify-center rounded-sm overflow-hidden">
+                  <div className="flex size-6 items-center justify-center rounded-sm overflow-hidden border border-border/40">
                     <img 
                       src={currentCity.image} 
                       alt={currentCity.name}
@@ -148,7 +148,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                     />
                   </div>
                 ) : (
-                  <div className="flex size-6 items-center justify-center rounded-sm border bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
+                  <div className="flex size-6 items-center justify-center rounded-sm border border-border/40 bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
                     {currentCity.logo}
                   </div>
                 )}
