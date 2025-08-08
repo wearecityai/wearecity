@@ -372,7 +372,7 @@ html, body {
     bottom: env(safe-area-inset-bottom, 0px) !important;
     left: 0 !important;
     right: 0 !important;
-    z-index: 10 !important; /* Reducido el z-index para evitar que cubra el contenido */
+    z-index: 50 !important;
     background: hsl(var(--background)) !important;
     border-top: 1px solid hsl(var(--border)) !important;
   }
@@ -392,17 +392,7 @@ html, body {
   
   /* Asegurar que el contenido del chat no se superponga con el input */
   .chat-container:not(.chat-input-container) {
-    padding-bottom: 120px !important; /* Aumentado el padding */
-  }
-  
-  /* Asegurar que el área de mensajes del chat tenga suficiente espacio */
-  .flex.flex-1.flex-col.overflow-hidden {
-    padding-bottom: 0 !important;
-  }
-  
-  /* Asegurar que los mensajes no se superpongan */
-  .flex.justify-center.h-full > div {
-    padding-bottom: 120px !important;
+    padding-bottom: 100px !important;
   }
 }
 
@@ -436,11 +426,5 @@ html, body {
   html::before,
   html::after {
     display: none !important;
-  }
-  
-  /* Asegurar que no hay sombras o elementos que creen capas */
-  .chat-input-container * {
-    box-shadow: none !important;
-    -webkit-box-shadow: none !important;
   }
 }
