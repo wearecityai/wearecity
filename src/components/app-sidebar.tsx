@@ -310,30 +310,38 @@ export function AppSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    
                     const currentCitySlug = getCurrentCitySlug()
-                    console.log('Current city slug:', currentCitySlug)
+                    console.log('Star clicked - Current city slug:', currentCitySlug)
+                    
                     if (currentCitySlug) {
-                      if (isDefaultChat(currentCitySlug)) {
-                        console.log('Removing default chat for:', currentCitySlug)
-                        await removeDefaultChat()
-                      } else {
-                        console.log('Setting default chat for:', currentCitySlug)
-                        await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                      try {
+                        if (isDefaultChat(currentCitySlug)) {
+                          console.log('Removing default chat for:', currentCitySlug)
+                          await removeDefaultChat()
+                        } else {
+                          console.log('Setting default chat for:', currentCitySlug)
+                          await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                        }
+                        // Forzar re-renderización
+                        setStarUpdateTrigger(prev => prev + 1)
+                      } catch (error) {
+                        console.error('Error toggling default chat:', error)
                       }
-                      // Forzar re-renderización
-                      setStarUpdateTrigger(prev => prev + 1)
                     } else {
                       console.log('No current city slug found')
                     }
                   }}
                   disabled={loading}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10"
+                  className="w-full group-data-[collapsible=icon]:justify-center h-10 cursor-pointer touch-manipulation"
                   size="sm"
                   tooltip="Ciudad predeterminada"
                 >
                   <Star className={cn(
-                    "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
+                    "h-4 w-4 group-data-[collapsible=icon]:mx-auto pointer-events-none",
                     (() => {
                       const currentSlug = getCurrentCitySlug()
                       const isDefault = currentSlug && isDefaultChat(currentSlug)
