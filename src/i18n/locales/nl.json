@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "error": "Fout",
+    "retry": "Opnieuw proberen",
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "close": "Sluiten",
+    "ok": "OK",
+    "yes": "Ja",
+    "no": "Nee",
+    "search": "Zoeken",
+    "settings": "Instellingen",
+    "back": "Terug",
+    "next": "Volgende",
+    "previous": "Vorige",
+    "home": "Home",
+    "menu": "Menu"
+  },
+  "auth": {
+    "login": "Inloggen",
+    "logout": "Uitloggen",
+    "signup": "Registreren",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "confirmPassword": "Wachtwoord bevestigen",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "dontHaveAccount": "Geen account?",
+    "alreadyHaveAccount": "Al een account?",
+    "loginWithGoogle": "Inloggen met Google",
+    "signupWithGoogle": "Registreren met Google"
+  },
+  "chat": {
+    "title": "Stad Chat",
+    "placeholder": "Typ je bericht...",
+    "send": "Verzenden",
+    "typing": "Aan het typen...",
+    "newChat": "Nieuwe Chat",
+    "clearChat": "Chat wissen",
+    "downloadPdf": "PDF downloaden",
+    "viewOnMap": "Bekijken op kaart",
+    "seeMoreEvents": "Meer evenementen bekijken",
+    "noMessages": "Nog geen berichten",
+    "startConversation": "Start een gesprek",
+    "errorSending": "Fout bij verzenden",
+    "microphoneAccess": "Microfoon toegang",
+    "speechNotSupported": "Spraakherkenning wordt niet ondersteund in deze browser"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "admin": "Beheer",
+    "profile": "Profiel",
+    "cities": "Steden",
+    "chat": "Chat",
+    "publicChats": "Openbare chats",
+    "finetuning": "Fijnafstemming"
+  },
+  "errors": {
+    "pageNotFound": "Pagina niet gevonden",
+    "pageNotFoundDescription": "De pagina die je zoekt bestaat niet of is verplaatst.",
+    "backToHome": "Terug naar home",
+    "goBack": "Terug",
+    "unexpectedError": "Onverwachte fout",
+    "tryAgain": "Probeer opnieuw",
+    "networkError": "Netwerkfout",
+    "serverError": "Serverfout"
+  },
+  "geolocation": {
+    "detecting": "Locatie detecteren...",
+    "detected": "Locatie gedetecteerd",
+    "error": "Geolocatie fout",
+    "permission": "Locatie toestemming",
+    "notSupported": "Geolocatie niet ondersteund",
+    "timeout": "Locatie timeout",
+    "unknownError": "Onbekende locatiefout"
+  },
+  "events": {
+    "title": "Evenementen",
+    "date": "Datum",
+    "time": "Tijd",
+    "location": "Locatie",
+    "source": "Bron",
+    "noEvents": "Geen evenementen gevonden",
+    "viewMore": "Meer bekijken",
+    "today": "Vandaag",
+    "tomorrow": "Morgen",
+    "thisWeek": "Deze week",
+    "nextWeek": "Volgende week"
+  },
+  "places": {
+    "title": "Plaatsen",
+    "rating": "Beoordeling",
+    "reviews": "beoordelingen",
+    "address": "Adres",
+    "website": "Website",
+    "phone": "Telefoon",
+    "hours": "Openingstijden",
+    "distance": "Afstand",
+    "directions": "Routebeschrijving",
+    "noPlaces": "Geen plaatsen gevonden"
+  },
+  "language": {
+    "title": "Taal",
+    "select": "Taal selecteren",
+    "spanish": "Spaans",
+    "english": "Engels",
+    "catalan": "Catalaans",
+    "french": "Frans",
+    "german": "Duits",
+    "italian": "Italiaans",
+    "portuguese": "Portugees",
+    "dutch": "Nederlands"
+  },
+  "theme": {
+    "title": "Thema",
+    "light": "Licht",
+    "dark": "Donker",
+    "system": "Systeem"
+  },
+  "citySelector": {
+    "title": "Stad selecteren",
+    "placeholder": "Stad zoeken...",
+    "noResults": "Geen steden gevonden",
+    "current": "Huidige stad"
+  },
+  "notifications": {
+    "success": "Succes",
+    "error": "Fout",
+    "warning": "Waarschuwing",
+    "info": "Informatie",
+    "messagesSaved": "Berichten succesvol opgeslagen",
+    "settingsUpdated": "Instellingen bijgewerkt",
+    "profileUpdated": "Profiel bijgewerkt"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "ok": "OK",
+    "yes": "Oui",
+    "no": "Non",
+    "search": "Rechercher",
+    "settings": "Paramètres",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "home": "Accueil",
+    "menu": "Menu"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "signup": "S'inscrire",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "dontHaveAccount": "Vous n'avez pas de compte ?",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "loginWithGoogle": "Se connecter avec Google",
+    "signupWithGoogle": "S'inscrire avec Google"
+  },
+  "chat": {
+    "title": "Chat de la Ville",
+    "placeholder": "Tapez votre message...",
+    "send": "Envoyer",
+    "typing": "En train d'écrire...",
+    "newChat": "Nouveau Chat",
+    "clearChat": "Effacer le chat",
+    "downloadPdf": "Télécharger PDF",
+    "viewOnMap": "Voir sur la carte",
+    "seeMoreEvents": "Voir plus d'événements",
+    "noMessages": "Aucun message pour le moment",
+    "startConversation": "Commencer une conversation",
+    "errorSending": "Erreur lors de l'envoi du message",
+    "microphoneAccess": "Accès au microphone",
+    "speechNotSupported": "La reconnaissance vocale n'est pas supportée dans ce navigateur"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "admin": "Administration",
+    "profile": "Profil",
+    "cities": "Villes",
+    "chat": "Chat",
+    "publicChats": "Chats publics",
+    "finetuning": "Réglage fin"
+  },
+  "errors": {
+    "pageNotFound": "Page non trouvée",
+    "pageNotFoundDescription": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "backToHome": "Retour à l'accueil",
+    "goBack": "Retour",
+    "unexpectedError": "Erreur inattendue",
+    "tryAgain": "Réessayer",
+    "networkError": "Erreur de réseau",
+    "serverError": "Erreur du serveur"
+  },
+  "geolocation": {
+    "detecting": "Détection de la localisation...",
+    "detected": "Localisation détectée",
+    "error": "Erreur de géolocalisation",
+    "permission": "Autorisation de localisation",
+    "notSupported": "Géolocalisation non supportée",
+    "timeout": "Délai d'attente dépassé",
+    "unknownError": "Erreur de localisation inconnue"
+  },
+  "events": {
+    "title": "Événements",
+    "date": "Date",
+    "time": "Heure",
+    "location": "Lieu",
+    "source": "Source",
+    "noEvents": "Aucun événement trouvé",
+    "viewMore": "Voir plus",
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain",
+    "thisWeek": "Cette semaine",
+    "nextWeek": "Semaine prochaine"
+  },
+  "places": {
+    "title": "Lieux",
+    "rating": "Note",
+    "reviews": "avis",
+    "address": "Adresse",
+    "website": "Site web",
+    "phone": "Téléphone",
+    "hours": "Horaires",
+    "distance": "Distance",
+    "directions": "Itinéraire",
+    "noPlaces": "Aucun lieu trouvé"
+  },
+  "language": {
+    "title": "Langue",
+    "select": "Sélectionner la langue",
+    "spanish": "Espagnol",
+    "english": "Anglais",
+    "catalan": "Catalan",
+    "french": "Français",
+    "german": "Allemand",
+    "italian": "Italien",
+    "portuguese": "Portugais",
+    "dutch": "Néerlandais"
+  },
+  "theme": {
+    "title": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système"
+  },
+  "citySelector": {
+    "title": "Sélectionner une ville",
+    "placeholder": "Rechercher une ville...",
+    "noResults": "Aucune ville trouvée",
+    "current": "Ville actuelle"
+  },
+  "notifications": {
+    "success": "Succès",
+    "error": "Erreur",
+    "warning": "Avertissement",
+    "info": "Information",
+    "messagesSaved": "Messages sauvegardés avec succès",
+    "settingsUpdated": "Paramètres mis à jour",
+    "profileUpdated": "Profil mis à jour"
+  }
+}

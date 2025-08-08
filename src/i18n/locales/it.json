@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "retry": "Riprova",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "close": "Chiudi",
+    "ok": "OK",
+    "yes": "Sì",
+    "no": "No",
+    "search": "Cerca",
+    "settings": "Impostazioni",
+    "back": "Indietro",
+    "next": "Avanti",
+    "previous": "Precedente",
+    "home": "Home",
+    "menu": "Menu"
+  },
+  "auth": {
+    "login": "Accedi",
+    "logout": "Esci",
+    "signup": "Registrati",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Conferma password",
+    "forgotPassword": "Password dimenticata?",
+    "dontHaveAccount": "Non hai un account?",
+    "alreadyHaveAccount": "Hai già un account?",
+    "loginWithGoogle": "Accedi con Google",
+    "signupWithGoogle": "Registrati con Google"
+  },
+  "chat": {
+    "title": "Chat della Città",
+    "placeholder": "Scrivi il tuo messaggio...",
+    "send": "Invia",
+    "typing": "Sta scrivendo...",
+    "newChat": "Nuova Chat",
+    "clearChat": "Cancella chat",
+    "downloadPdf": "Scarica PDF",
+    "viewOnMap": "Visualizza sulla mappa",
+    "seeMoreEvents": "Vedi più eventi",
+    "noMessages": "Nessun messaggio ancora",
+    "startConversation": "Inizia una conversazione",
+    "errorSending": "Errore nell'invio del messaggio",
+    "microphoneAccess": "Accesso al microfono",
+    "speechNotSupported": "Il riconoscimento vocale non è supportato in questo browser"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "admin": "Amministrazione",
+    "profile": "Profilo",
+    "cities": "Città",
+    "chat": "Chat",
+    "publicChats": "Chat pubbliche",
+    "finetuning": "Ottimizzazione"
+  },
+  "errors": {
+    "pageNotFound": "Pagina non trovata",
+    "pageNotFoundDescription": "La pagina che stai cercando non esiste o è stata spostata.",
+    "backToHome": "Torna alla home",
+    "goBack": "Torna indietro",
+    "unexpectedError": "Errore imprevisto",
+    "tryAgain": "Riprova",
+    "networkError": "Errore di rete",
+    "serverError": "Errore del server"
+  },
+  "geolocation": {
+    "detecting": "Rilevamento posizione...",
+    "detected": "Posizione rilevata",
+    "error": "Errore di geolocalizzazione",
+    "permission": "Permesso di localizzazione",
+    "notSupported": "Geolocalizzazione non supportata",
+    "timeout": "Timeout localizzazione",
+    "unknownError": "Errore di localizzazione sconosciuto"
+  },
+  "events": {
+    "title": "Eventi",
+    "date": "Data",
+    "time": "Ora",
+    "location": "Luogo",
+    "source": "Fonte",
+    "noEvents": "Nessun evento trovato",
+    "viewMore": "Vedi altro",
+    "today": "Oggi",
+    "tomorrow": "Domani",
+    "thisWeek": "Questa settimana",
+    "nextWeek": "Prossima settimana"
+  },
+  "places": {
+    "title": "Luoghi",
+    "rating": "Valutazione",
+    "reviews": "recensioni",
+    "address": "Indirizzo",
+    "website": "Sito web",
+    "phone": "Telefono",
+    "hours": "Orari",
+    "distance": "Distanza",
+    "directions": "Indicazioni",
+    "noPlaces": "Nessun luogo trovato"
+  },
+  "language": {
+    "title": "Lingua",
+    "select": "Seleziona lingua",
+    "spanish": "Spagnolo",
+    "english": "Inglese",
+    "catalan": "Catalano",
+    "french": "Francese",
+    "german": "Tedesco",
+    "italian": "Italiano",
+    "portuguese": "Portoghese",
+    "dutch": "Olandese"
+  },
+  "theme": {
+    "title": "Tema",
+    "light": "Chiaro",
+    "dark": "Scuro",
+    "system": "Sistema"
+  },
+  "citySelector": {
+    "title": "Seleziona città",
+    "placeholder": "Cerca città...",
+    "noResults": "Nessuna città trovata",
+    "current": "Città attuale"
+  },
+  "notifications": {
+    "success": "Successo",
+    "error": "Errore",
+    "warning": "Avviso",
+    "info": "Informazione",
+    "messagesSaved": "Messaggi salvati con successo",
+    "settingsUpdated": "Impostazioni aggiornate",
+    "profileUpdated": "Profilo aggiornato"
+  }
+}

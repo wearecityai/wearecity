@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Carregant...",
+    "error": "Error",
+    "retry": "Tornar a intentar",
+    "cancel": "Cancel·lar",
+    "save": "Desar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Tancar",
+    "ok": "Acceptar",
+    "yes": "Sí",
+    "no": "No",
+    "search": "Cercar",
+    "settings": "Configuració",
+    "back": "Tornar",
+    "next": "Següent",
+    "previous": "Anterior",
+    "home": "Inici",
+    "menu": "Menú"
+  },
+  "auth": {
+    "login": "Iniciar sessió",
+    "logout": "Tancar sessió",
+    "signup": "Registrar-se",
+    "email": "Correu electrònic",
+    "password": "Contrasenya",
+    "confirmPassword": "Confirmar contrasenya",
+    "forgotPassword": "Has oblidat la contrasenya?",
+    "dontHaveAccount": "No tens un compte?",
+    "alreadyHaveAccount": "Ja tens un compte?",
+    "loginWithGoogle": "Iniciar sessió amb Google",
+    "signupWithGoogle": "Registrar-se amb Google"
+  },
+  "chat": {
+    "title": "Xat de la Ciutat",
+    "placeholder": "Escriu el teu missatge...",
+    "send": "Enviar",
+    "typing": "Escrivint...",
+    "newChat": "Nou Xat",
+    "clearChat": "Netejar xat",
+    "downloadPdf": "Descarregar PDF",
+    "viewOnMap": "Veure al mapa",
+    "seeMoreEvents": "Veure més esdeveniments",
+    "noMessages": "Encara no hi ha missatges",
+    "startConversation": "Inicia una conversa",
+    "errorSending": "Error en enviar el missatge",
+    "microphoneAccess": "Accés al micròfon",
+    "speechNotSupported": "El reconeixement de veu no està suportat en aquest navegador"
+  },
+  "navigation": {
+    "dashboard": "Tauler de control",
+    "admin": "Administració",
+    "profile": "Perfil",
+    "cities": "Ciutats",
+    "chat": "Xat",
+    "publicChats": "Xats públics",
+    "finetuning": "Ajust fi"
+  },
+  "errors": {
+    "pageNotFound": "Pàgina no trobada",
+    "pageNotFoundDescription": "La pàgina que busques no existeix o ha estat moguda.",
+    "backToHome": "Tornar a l'inici",
+    "goBack": "Tornar enrere",
+    "unexpectedError": "Error inesperat",
+    "tryAgain": "Torna-ho a intentar",
+    "networkError": "Error de connexió",
+    "serverError": "Error del servidor"
+  },
+  "geolocation": {
+    "detecting": "Detectant ubicació...",
+    "detected": "Ubicació detectada",
+    "error": "Error de geolocalització",
+    "permission": "Permís d'ubicació",
+    "notSupported": "Geolocalització no suportada",
+    "timeout": "Temps d'espera esgotat",
+    "unknownError": "Error desconegut d'ubicació"
+  },
+  "events": {
+    "title": "Esdeveniments",
+    "date": "Data",
+    "time": "Hora",
+    "location": "Ubicació",
+    "source": "Font",
+    "noEvents": "No s'han trobat esdeveniments",
+    "viewMore": "Veure més",
+    "today": "Avui",
+    "tomorrow": "Demà",
+    "thisWeek": "Aquesta setmana",
+    "nextWeek": "Propera setmana"
+  },
+  "places": {
+    "title": "Llocs",
+    "rating": "Valoració",
+    "reviews": "ressenyes",
+    "address": "Adreça",
+    "website": "Lloc web",
+    "phone": "Telèfon",
+    "hours": "Horaris",
+    "distance": "Distància",
+    "directions": "Com arribar",
+    "noPlaces": "No s'han trobat llocs"
+  },
+  "language": {
+    "title": "Idioma",
+    "select": "Seleccionar idioma",
+    "spanish": "Espanyol",
+    "english": "Anglès",
+    "catalan": "Català",
+    "french": "Francès",
+    "german": "Alemany",
+    "italian": "Italià",
+    "portuguese": "Portuguès",
+    "dutch": "Holandès"
+  },
+  "theme": {
+    "title": "Tema",
+    "light": "Clar",
+    "dark": "Fosc",
+    "system": "Sistema"
+  },
+  "citySelector": {
+    "title": "Seleccionar ciutat",
+    "placeholder": "Cercar ciutat...",
+    "noResults": "No s'han trobat ciutats",
+    "current": "Ciutat actual"
+  },
+  "notifications": {
+    "success": "Èxit",
+    "error": "Error",
+    "warning": "Advertència",
+    "info": "Informació",
+    "messagesSaved": "Missatges desats correctament",
+    "settingsUpdated": "Configuració actualitzada",
+    "profileUpdated": "Perfil actualitzat"
+  }
+}

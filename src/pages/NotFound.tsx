@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Layout, LayoutMain, LayoutContainer } from "@/components/ui/layout";
@@ -7,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowLeft, Home, Search } from "lucide-react";
 
 const NotFound = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -24,10 +26,10 @@ const NotFound = () => {
           <div className="max-w-md mx-auto">
             <EmptyState
               icon={<Search className="h-12 w-12" />}
-              title="Página no encontrada"
-              description={`La página "${location.pathname}" no existe o ha sido movida.`}
+              title={t('errors.pageNotFound')}
+              description={`${t('errors.pageNotFoundDescription')} (${location.pathname})`}
               action={{
-                label: "Volver al inicio",
+                label: t('errors.backToHome'),
                 onClick: () => navigate('/'),
                 variant: "default"
               }}
@@ -39,7 +41,7 @@ const NotFound = () => {
                 className="text-muted-foreground"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver atrás
+                {t('errors.goBack')}
               </Button>
             </div>
           </div>

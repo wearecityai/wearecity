@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from 'react-i18next'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,6 +9,7 @@ import { Loader2 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 
 export function LoginForm() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,7 +67,7 @@ export function LoginForm() {
           )}
           
           <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
               id="email"
               type="email"
@@ -78,7 +80,7 @@ export function LoginForm() {
           
           <div className="grid gap-2">
             <div className="flex items-center">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
             </div>
             <Input
               id="password"
@@ -91,7 +93,7 @@ export function LoginForm() {
           
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Iniciar sesión
+            {t('auth.login')}
           </Button>
         </div>
       </form>

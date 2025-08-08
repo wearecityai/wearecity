@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "retry": "Tentar novamente",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "ok": "OK",
+    "yes": "Sim",
+    "no": "Não",
+    "search": "Buscar",
+    "settings": "Configurações",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "home": "Início",
+    "menu": "Menu"
+  },
+  "auth": {
+    "login": "Entrar",
+    "logout": "Sair",
+    "signup": "Cadastrar",
+    "email": "Email",
+    "password": "Senha",
+    "confirmPassword": "Confirmar senha",
+    "forgotPassword": "Esqueceu a senha?",
+    "dontHaveAccount": "Não tem uma conta?",
+    "alreadyHaveAccount": "Já tem uma conta?",
+    "loginWithGoogle": "Entrar com Google",
+    "signupWithGoogle": "Cadastrar com Google"
+  },
+  "chat": {
+    "title": "Chat da Cidade",
+    "placeholder": "Digite sua mensagem...",
+    "send": "Enviar",
+    "typing": "Digitando...",
+    "newChat": "Novo Chat",
+    "clearChat": "Limpar chat",
+    "downloadPdf": "Baixar PDF",
+    "viewOnMap": "Ver no mapa",
+    "seeMoreEvents": "Ver mais eventos",
+    "noMessages": "Nenhuma mensagem ainda",
+    "startConversation": "Iniciar uma conversa",
+    "errorSending": "Erro ao enviar mensagem",
+    "microphoneAccess": "Acesso ao microfone",
+    "speechNotSupported": "Reconhecimento de voz não é suportado neste navegador"
+  },
+  "navigation": {
+    "dashboard": "Painel",
+    "admin": "Administração",
+    "profile": "Perfil",
+    "cities": "Cidades",
+    "chat": "Chat",
+    "publicChats": "Chats públicos",
+    "finetuning": "Ajuste fino"
+  },
+  "errors": {
+    "pageNotFound": "Página não encontrada",
+    "pageNotFoundDescription": "A página que você está procurando não existe ou foi movida.",
+    "backToHome": "Voltar ao início",
+    "goBack": "Voltar",
+    "unexpectedError": "Erro inesperado",
+    "tryAgain": "Tente novamente",
+    "networkError": "Erro de rede",
+    "serverError": "Erro do servidor"
+  },
+  "geolocation": {
+    "detecting": "Detectando localização...",
+    "detected": "Localização detectada",
+    "error": "Erro de geolocalização",
+    "permission": "Permissão de localização",
+    "notSupported": "Geolocalização não suportada",
+    "timeout": "Timeout de localização",
+    "unknownError": "Erro de localização desconhecido"
+  },
+  "events": {
+    "title": "Eventos",
+    "date": "Data",
+    "time": "Hora",
+    "location": "Local",
+    "source": "Fonte",
+    "noEvents": "Nenhum evento encontrado",
+    "viewMore": "Ver mais",
+    "today": "Hoje",
+    "tomorrow": "Amanhã",
+    "thisWeek": "Esta semana",
+    "nextWeek": "Próxima semana"
+  },
+  "places": {
+    "title": "Lugares",
+    "rating": "Avaliação",
+    "reviews": "avaliações",
+    "address": "Endereço",
+    "website": "Site",
+    "phone": "Telefone",
+    "hours": "Horários",
+    "distance": "Distância",
+    "directions": "Direções",
+    "noPlaces": "Nenhum lugar encontrado"
+  },
+  "language": {
+    "title": "Idioma",
+    "select": "Selecionar idioma",
+    "spanish": "Espanhol",
+    "english": "Inglês",
+    "catalan": "Catalão",
+    "french": "Francês",
+    "german": "Alemão",
+    "italian": "Italiano",
+    "portuguese": "Português",
+    "dutch": "Holandês"
+  },
+  "theme": {
+    "title": "Tema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Sistema"
+  },
+  "citySelector": {
+    "title": "Selecionar cidade",
+    "placeholder": "Buscar cidade...",
+    "noResults": "Nenhuma cidade encontrada",
+    "current": "Cidade atual"
+  },
+  "notifications": {
+    "success": "Sucesso",
+    "error": "Erro",
+    "warning": "Aviso",
+    "info": "Informação",
+    "messagesSaved": "Mensagens salvas com sucesso",
+    "settingsUpdated": "Configurações atualizadas",
+    "profileUpdated": "Perfil atualizado"
+  }
+}

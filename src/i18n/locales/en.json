@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "settings": "Settings",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "home": "Home",
+    "menu": "Menu"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot your password?",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "loginWithGoogle": "Log in with Google",
+    "signupWithGoogle": "Sign up with Google"
+  },
+  "chat": {
+    "title": "City Chat",
+    "placeholder": "Type your message...",
+    "send": "Send",
+    "typing": "Typing...",
+    "newChat": "New Chat",
+    "clearChat": "Clear chat",
+    "downloadPdf": "Download PDF",
+    "viewOnMap": "View on map",
+    "seeMoreEvents": "See more events",
+    "noMessages": "No messages yet",
+    "startConversation": "Start a conversation",
+    "errorSending": "Error sending message",
+    "microphoneAccess": "Microphone access",
+    "speechNotSupported": "Speech recognition is not supported in this browser"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "profile": "Profile",
+    "cities": "Cities",
+    "chat": "Chat",
+    "publicChats": "Public chats",
+    "finetuning": "Fine-tuning"
+  },
+  "errors": {
+    "pageNotFound": "Page not found",
+    "pageNotFoundDescription": "The page you're looking for doesn't exist or has been moved.",
+    "backToHome": "Back to home",
+    "goBack": "Go back",
+    "unexpectedError": "Unexpected error",
+    "tryAgain": "Try again",
+    "networkError": "Network error",
+    "serverError": "Server error"
+  },
+  "geolocation": {
+    "detecting": "Detecting location...",
+    "detected": "Location detected",
+    "error": "Geolocation error",
+    "permission": "Location permission",
+    "notSupported": "Geolocation not supported",
+    "timeout": "Location timeout",
+    "unknownError": "Unknown location error"
+  },
+  "events": {
+    "title": "Events",
+    "date": "Date",
+    "time": "Time",
+    "location": "Location",
+    "source": "Source",
+    "noEvents": "No events found",
+    "viewMore": "View more",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This week",
+    "nextWeek": "Next week"
+  },
+  "places": {
+    "title": "Places",
+    "rating": "Rating",
+    "reviews": "reviews",
+    "address": "Address",
+    "website": "Website",
+    "phone": "Phone",
+    "hours": "Hours",
+    "distance": "Distance",
+    "directions": "Directions",
+    "noPlaces": "No places found"
+  },
+  "language": {
+    "title": "Language",
+    "select": "Select language",
+    "spanish": "Spanish",
+    "english": "English",
+    "catalan": "Catalan",
+    "french": "French",
+    "german": "German",
+    "italian": "Italian",
+    "portuguese": "Portuguese",
+    "dutch": "Dutch"
+  },
+  "theme": {
+    "title": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "citySelector": {
+    "title": "Select city",
+    "placeholder": "Search city...",
+    "noResults": "No cities found",
+    "current": "Current city"
+  },
+  "notifications": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "messagesSaved": "Messages saved successfully",
+    "settingsUpdated": "Settings updated",
+    "profileUpdated": "Profile updated"
+  }
+}

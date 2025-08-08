@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "ok": "Aceptar",
+    "yes": "Sí",
+    "no": "No",
+    "search": "Buscar",
+    "settings": "Configuración",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "home": "Inicio",
+    "menu": "Menú"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "signup": "Registrarse",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "dontHaveAccount": "¿No tienes una cuenta?",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "loginWithGoogle": "Iniciar sesión con Google",
+    "signupWithGoogle": "Registrarse con Google"
+  },
+  "chat": {
+    "title": "Chat de la Ciudad",
+    "placeholder": "Escribe tu mensaje...",
+    "send": "Enviar",
+    "typing": "Escribiendo...",
+    "newChat": "Nuevo Chat",
+    "clearChat": "Limpiar chat",
+    "downloadPdf": "Descargar PDF",
+    "viewOnMap": "Ver en el mapa",
+    "seeMoreEvents": "Ver más eventos",
+    "noMessages": "No hay mensajes aún",
+    "startConversation": "Inicia una conversación",
+    "errorSending": "Error al enviar el mensaje",
+    "microphoneAccess": "Acceso al micrófono",
+    "speechNotSupported": "El reconocimiento de voz no está soportado en este navegador"
+  },
+  "navigation": {
+    "dashboard": "Panel de control",
+    "admin": "Administración",
+    "profile": "Perfil",
+    "cities": "Ciudades",
+    "chat": "Chat",
+    "publicChats": "Chats públicos",
+    "finetuning": "Ajuste fino"
+  },
+  "errors": {
+    "pageNotFound": "Página no encontrada",
+    "pageNotFoundDescription": "La página que buscas no existe o ha sido movida.",
+    "backToHome": "Volver al inicio",
+    "goBack": "Volver atrás",
+    "unexpectedError": "Error inesperado",
+    "tryAgain": "Inténtalo de nuevo",
+    "networkError": "Error de conexión",
+    "serverError": "Error del servidor"
+  },
+  "geolocation": {
+    "detecting": "Detectando ubicación...",
+    "detected": "Ubicación detectada",
+    "error": "Error de geolocalización",
+    "permission": "Permiso de ubicación",
+    "notSupported": "Geolocalización no soportada",
+    "timeout": "Tiempo de espera agotado",
+    "unknownError": "Error desconocido de ubicación"
+  },
+  "events": {
+    "title": "Eventos",
+    "date": "Fecha",
+    "time": "Hora",
+    "location": "Ubicación",
+    "source": "Fuente",
+    "noEvents": "No se encontraron eventos",
+    "viewMore": "Ver más",
+    "today": "Hoy",
+    "tomorrow": "Mañana",
+    "thisWeek": "Esta semana",
+    "nextWeek": "Próxima semana"
+  },
+  "places": {
+    "title": "Lugares",
+    "rating": "Calificación",
+    "reviews": "reseñas",
+    "address": "Dirección",
+    "website": "Sitio web",
+    "phone": "Teléfono",
+    "hours": "Horarios",
+    "distance": "Distancia",
+    "directions": "Cómo llegar",
+    "noPlaces": "No se encontraron lugares"
+  },
+  "language": {
+    "title": "Idioma",
+    "select": "Seleccionar idioma",
+    "spanish": "Español",
+    "english": "Inglés",
+    "catalan": "Catalán",
+    "french": "Francés",
+    "german": "Alemán",
+    "italian": "Italiano",
+    "portuguese": "Portugués",
+    "dutch": "Holandés"
+  },
+  "theme": {
+    "title": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "citySelector": {
+    "title": "Seleccionar ciudad",
+    "placeholder": "Buscar ciudad...",
+    "noResults": "No se encontraron ciudades",
+    "current": "Ciudad actual"
+  },
+  "notifications": {
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "messagesSaved": "Mensajes guardados correctamente",
+    "settingsUpdated": "Configuración actualizada",
+    "profileUpdated": "Perfil actualizado"
+  }
+}

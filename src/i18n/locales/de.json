@@ -1,0 +1,137 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "error": "Fehler",
+    "retry": "Wiederholen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "ok": "OK",
+    "yes": "Ja",
+    "no": "Nein",
+    "search": "Suchen",
+    "settings": "Einstellungen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "home": "Startseite",
+    "menu": "Menü"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "signup": "Registrieren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "forgotPassword": "Passwort vergessen?",
+    "dontHaveAccount": "Noch kein Konto?",
+    "alreadyHaveAccount": "Bereits ein Konto?",
+    "loginWithGoogle": "Mit Google anmelden",
+    "signupWithGoogle": "Mit Google registrieren"
+  },
+  "chat": {
+    "title": "Stadt-Chat",
+    "placeholder": "Nachricht eingeben...",
+    "send": "Senden",
+    "typing": "Tippt...",
+    "newChat": "Neuer Chat",
+    "clearChat": "Chat löschen",
+    "downloadPdf": "PDF herunterladen",
+    "viewOnMap": "Auf Karte anzeigen",
+    "seeMoreEvents": "Mehr Veranstaltungen",
+    "noMessages": "Noch keine Nachrichten",
+    "startConversation": "Unterhaltung beginnen",
+    "errorSending": "Fehler beim Senden",
+    "microphoneAccess": "Mikrofon-Zugriff",
+    "speechNotSupported": "Spracherkennung wird in diesem Browser nicht unterstützt"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "admin": "Administration",
+    "profile": "Profil",
+    "cities": "Städte",
+    "chat": "Chat",
+    "publicChats": "Öffentliche Chats",
+    "finetuning": "Feinabstimmung"
+  },
+  "errors": {
+    "pageNotFound": "Seite nicht gefunden",
+    "pageNotFoundDescription": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+    "backToHome": "Zur Startseite",
+    "goBack": "Zurück",
+    "unexpectedError": "Unerwarteter Fehler",
+    "tryAgain": "Erneut versuchen",
+    "networkError": "Netzwerkfehler",
+    "serverError": "Serverfehler"
+  },
+  "geolocation": {
+    "detecting": "Standort wird erkannt...",
+    "detected": "Standort erkannt",
+    "error": "Ortungsfehler",
+    "permission": "Standortberechtigung",
+    "notSupported": "Ortung nicht unterstützt",
+    "timeout": "Zeitüberschreitung",
+    "unknownError": "Unbekannter Ortungsfehler"
+  },
+  "events": {
+    "title": "Veranstaltungen",
+    "date": "Datum",
+    "time": "Uhrzeit",
+    "location": "Ort",
+    "source": "Quelle",
+    "noEvents": "Keine Veranstaltungen gefunden",
+    "viewMore": "Mehr anzeigen",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "thisWeek": "Diese Woche",
+    "nextWeek": "Nächste Woche"
+  },
+  "places": {
+    "title": "Orte",
+    "rating": "Bewertung",
+    "reviews": "Bewertungen",
+    "address": "Adresse",
+    "website": "Website",
+    "phone": "Telefon",
+    "hours": "Öffnungszeiten",
+    "distance": "Entfernung",
+    "directions": "Wegbeschreibung",
+    "noPlaces": "Keine Orte gefunden"
+  },
+  "language": {
+    "title": "Sprache",
+    "select": "Sprache auswählen",
+    "spanish": "Spanisch",
+    "english": "Englisch",
+    "catalan": "Katalanisch",
+    "french": "Französisch",
+    "german": "Deutsch",
+    "italian": "Italienisch",
+    "portuguese": "Portugiesisch",
+    "dutch": "Niederländisch"
+  },
+  "theme": {
+    "title": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
+  },
+  "citySelector": {
+    "title": "Stadt auswählen",
+    "placeholder": "Stadt suchen...",
+    "noResults": "Keine Städte gefunden",
+    "current": "Aktuelle Stadt"
+  },
+  "notifications": {
+    "success": "Erfolg",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Information",
+    "messagesSaved": "Nachrichten erfolgreich gespeichert",
+    "settingsUpdated": "Einstellungen aktualisiert",
+    "profileUpdated": "Profil aktualisiert"
+  }
+}
