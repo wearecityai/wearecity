@@ -22,7 +22,7 @@ export async function fetchChatIA(userMessage: string, options?: {
 
   console.log('🔍 DEBUG - Request body:', requestBody);
 
-  const res = await fetch("https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia", {
+  const res = await fetch("https://irghpvvoparqettcnpnh.supabase.co/functions/v1/chat-ia", {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",
