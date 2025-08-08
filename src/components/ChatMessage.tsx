@@ -106,7 +106,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
 
   return (
     <div 
-      className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}
+      className={`flex w-full mb-4 px-4 sm:px-0 ${isUser ? 'justify-end' : 'justify-start'}`}
       data-message-role={message.role}
     >
       {isUser ? (
