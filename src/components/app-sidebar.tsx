@@ -91,6 +91,12 @@ export function AppSidebar({
   const params = useParams()
   const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat, loading } = useDefaultChat()
 
+  // Forzar re-renderización cuando cambie el defaultChat
+  React.useEffect(() => {
+    console.log('DefaultChat changed:', defaultChat);
+    setStarUpdateTrigger(prev => prev + 1);
+  }, [defaultChat]);
+
   // Detectar si estamos en la página de descubrir ciudades (ya no se usa, pero mantenemos para compatibilidad)
   const isDiscoverPage = location.search.includes('focus=search')
   const [locationInfo, setLocationInfo] = React.useState<{
@@ -310,25 +316,38 @@ export function AppSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    console.log('Star button clicked!')
+                    
                     const currentCitySlug = getCurrentCitySlug()
                     console.log('Current city slug:', currentCitySlug)
+                    
                     if (currentCitySlug) {
-                      if (isDefaultChat(currentCitySlug)) {
-                        console.log('Removing default chat for:', currentCitySlug)
-                        await removeDefaultChat()
-                      } else {
-                        console.log('Setting default chat for:', currentCitySlug)
-                        await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                      try {
+                        if (isDefaultChat(currentCitySlug)) {
+                          console.log('Removing default chat for:', currentCitySlug)
+                          await removeDefaultChat()
+                        } else {
+                          console.log('Setting default chat for:', currentCitySlug)
+                          await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                        }
+                        // Forzar re-renderización
+                        setStarUpdateTrigger(prev => prev + 1)
+                      } catch (error) {
+                        console.error('Error toggling default chat:', error)
                       }
-                      // Forzar re-renderización
-                      setStarUpdateTrigger(prev => prev + 1)
                     } else {
                       console.log('No current city slug found')
                     }
                   }}
+                  onTouchStart={(e) => {
+                    e.preventDefault()
+                    console.log('Touch start on star button')
+                  }}
                   disabled={loading}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10"
+                  className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation"
                   size="sm"
                   tooltip="Ciudad predeterminada"
                 >
@@ -337,7 +356,7 @@ export function AppSidebar({
                     (() => {
                       const currentSlug = getCurrentCitySlug()
                       const isDefault = currentSlug && isDefaultChat(currentSlug)
-                      console.log('Star state - Current slug:', currentSlug, 'Is default:', isDefault)
+                      console.log('Star state - Current slug:', currentSlug, 'Is default:', isDefault, 'Trigger:', starUpdateTrigger)
                       return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
                     })()
                   )} />
