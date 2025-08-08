@@ -62,11 +62,11 @@ export const useKeyboardDetection = () => {
       const handleFocus = () => {
         setTimeout(updateKeyboardState, 100);
         
-        // Solución específica para Safari iOS - prevenir overlay
-        if (isSafari) {
-          // Agregar clase keyboard-open al body para activar estilos CSS específicos
-          document.body.classList.add('keyboard-open');
-        }
+              // Solución específica para Safari iOS - prevenir overlay
+      if (isSafariBrowser) {
+        // Agregar clase keyboard-open al body para activar estilos CSS específicos
+        document.body.classList.add('keyboard-open');
+      }
       };
       
       // Detectar cuando el input pierde focus (teclado se cierra)
@@ -74,7 +74,7 @@ export const useKeyboardDetection = () => {
         setTimeout(updateKeyboardState, 100);
         
         // Remover clase keyboard-open cuando el teclado se cierra
-        if (isSafari) {
+        if (isSafariBrowser) {
           document.body.classList.remove('keyboard-open');
         }
       };
