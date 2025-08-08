@@ -344,7 +344,7 @@ function extractGeminiText(data: any): string {
 async function callGeminiAPI(systemInstruction: string, userMessage: string): Promise<string> {
   if (!GEMINI_API_KEY) {
     console.error("❌ ERROR: GOOGLE_GEMINI_API_KEY no está configurada");
-    throw new Error("GOOGLE_GEMINI_API_KEY no está configurada");
+    return "Lo siento, el servicio de IA no está disponible en este momento. Por favor, contacta al administrador para configurar las claves de API necesarias.";
   }
   
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
@@ -677,13 +677,10 @@ serve(async (req) => {
     let responseText: string;
     try {
       responseText = await callGeminiAPI(systemInstruction, userMessage);
-  } catch (e) {
-    console.error("Error al llamar a Gemini:", e);
-      return new Response(JSON.stringify({ error: "Error al llamar a Gemini" }), { 
-        status: 500, 
-        headers: corsHeaders 
-      });
-  }
+    } catch (e) {
+      console.error("Error al llamar a Gemini:", e);
+      responseText = "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.";
+    }
 
   if (!responseText) {
       console.error("Gemini no devolvió texto. Prompt:", systemInstruction, "Mensaje:", userMessage);
