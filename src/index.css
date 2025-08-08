@@ -180,7 +180,7 @@ html, body {
   h1 { font-size: 1.75rem !important; }
   h2 { font-size: 1.5rem !important; }
   h3 { font-size: 1.25rem !important; }
-  p, span, div { font-size: 16px !important; }
+  /* p, span, div { font-size: 16px !important; } */
   
   /* Espaciado más generoso */
   .p-4 { padding: 1.5rem !important; }
@@ -469,7 +469,12 @@ html, body {
   
   /* Asegurar que el contenido del chat no se superponga con el input */
   .chat-container:not(.chat-input-container) {
-    padding-bottom: 100px !important;
+    padding-bottom: 140px !important;
+  }
+  
+  /* Área de mensajes específica para móvil */
+  .flex-1.overflow-y-auto.chat-container {
+    padding-bottom: 160px !important;
   }
   
   /* Estilos específicos cuando el teclado está abierto */

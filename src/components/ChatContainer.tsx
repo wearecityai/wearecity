@@ -64,12 +64,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
       {onlyGreeting && (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <Avatar className="w-20 h-20 mb-4 shadow-lg">
+          <Avatar className="w-20 h-20 mb-4 shadow-lg border-2 border-primary">
             <AvatarImage 
               src={chatConfig.profileImageUrl || '/placeholder.svg'} 
               alt="Assistant"
             />
-            <AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary">
               <Sparkles className="w-8 h-8" />
             </AvatarFallback>
           </Avatar>

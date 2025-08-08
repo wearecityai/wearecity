@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Send, Mic, MicOff, Plus, Check, MapPin, Loader2, Navigation, ArrowUp } from 'lucide-react';
+import { Send, Mic, MicOff, Plus, Check, MapPin, Loader2, Navigation, ArrowUp, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent } from './ui/card';
@@ -87,6 +87,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
       }
     }
   }, [inputValue]);
+
+  // Auto-focus textarea when component mounts
+  useEffect(() => {
+    if (textareaRef.current && !isRecording) {
+      textareaRef.current.focus();
+    }
+  }, [isRecording]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -314,11 +321,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <style>{textareaStyles}</style>
       <div className={`w-full flex flex-col items-center chat-input-container ${isInFinetuningMode 
         ? 'p-2 sm:p-4' 
-        : 'pb-2 sm:pb-6 md:pb-8'
+        : 'pb-4 sm:pb-8 md:pb-12'
       }`}>
-      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-xl ${isRecording ? 'border-red-500' : ''}`}>
+      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-[2rem] border-[0.5px] border-muted-foreground/30 ${isRecording ? 'border-red-500' : ''}`}>
         <CardContent className="p-0">
-          <div className="flex items-center min-h-20 sm:min-h-20 px-2 sm:px-3 md:px-4 pb-2 sm:pb-4">
+          <div className="flex items-center min-h-24 sm:min-h-20 px-2 sm:px-3 md:px-6 pt-3 pb-2 sm:pt-2 sm:pb-4">
             <div className="flex-1 space-y-2 sm:space-y-3">
               {isRecording ? (
                 // Recording mode - simplified interface
@@ -391,9 +398,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           if (typeof onToggleLocation === 'function') onToggleLocation(pressed);
                         }}
                         aria-label="Activar ubicación"
-                        className="h-8 sm:h-7 px-2 sm:px-2"
+                        className="h-8 sm:h-7 px-3 sm:px-3 rounded-full border border-border/50 bg-background hover:bg-muted/50"
                       >
-                        <Navigation className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
+                        <Navigation className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="text-sm sm:text-sm font-medium">Ubicación</span>
                       </Toggle>
                     </div>
@@ -408,7 +415,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 onClick={handleSubmit} 
                                 disabled={isLoading || !inputValue.trim()}
                                 size="icon"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg"
                               >
                                 {isLoading ? (
                                   <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
@@ -429,7 +436,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 size="icon"
                                 onClick={toggleRecording} 
                                 disabled={isLoading || !isSpeechApiSupported}
-                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full ${isSpeechApiSupported ? "text-primary md:hover:text-primary" : "text-muted-foreground"}`}
+                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary md:hover:text-primary" : "text-muted-foreground"}`}
                               >
                                 {isSpeechApiSupported ? (
                                   <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -457,29 +464,33 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
                     onKeyDown={handleKeyDown}
                     disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
-                    className="chat-textarea min-h-[48px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-2 sm:px-0 text-sm sm:text-base md:text-lg overflow-hidden"
+                    className="chat-textarea min-h-[64px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-0 -ml-1 sm:ml-0 text-sm sm:text-base md:text-lg overflow-hidden"
                     rows={1}
                   />
                   
                   {/* Action buttons row */}
-                  <div className="flex items-center justify-between mt-3 sm:mt-2">
+                  <div className="flex items-center justify-between mt-3 sm:mt-2 px-3 sm:px-0">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <Toggle
-                        pressed={isLocationEnabled}
-                        onPressedChange={(pressed) => {
-                          setIsLocationEnabled(pressed);
-                          if (typeof onToggleLocation === 'function') onToggleLocation(pressed);
-                        }}
-                        aria-label="Activar ubicación"
-                        className="h-8 sm:h-7 px-2 sm:px-2"
-                      >
-                        <Navigation className="h-4 w-4 sm:h-4 sm:w-4 mr-1" />
-                        <span className="text-sm sm:text-sm font-medium">Ubicación</span>
-                      </Toggle>
+                      {/* Language info first */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                          <span className="text-sm sm:text-sm font-medium text-muted-foreground">{currentLanguageCode?.startsWith('es') ? 'Español' : currentLanguageCode?.startsWith('en') ? 'English' : currentLanguageCode?.startsWith('ca') ? 'Català' : currentLanguageCode?.startsWith('fr') ? 'Français' : currentLanguageCode?.startsWith('de') ? 'Deutsch' : currentLanguageCode?.startsWith('it') ? 'Italiano' : currentLanguageCode?.startsWith('pt') ? 'Português' : currentLanguageCode?.startsWith('ru') ? 'Русский' : currentLanguageCode?.startsWith('ja') ? '日本語' : currentLanguageCode?.startsWith('ko') ? '한국어' : currentLanguageCode?.startsWith('zh') ? '中文' : currentLanguageCode?.startsWith('ar') ? 'العربية' : currentLanguageCode?.toUpperCase()}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Separator */}
+                      <div className="w-px h-4 sm:h-5 bg-border/50"></div>
+                      
+                      {/* Location info */}
+                      <div className="flex items-center gap-1">
+                        <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-blue-700" />
+                        <span className="text-sm sm:text-sm font-medium text-blue-700">Ubicación activa</span>
+                      </div>
                     </div>
                     
                     {/* Microphone/Send button - now aligned with bottom buttons */}
-                    <div className="flex items-center">
+                    <div className="flex items-center -mr-3 sm:-mr-2 md:-mr-3">
                       {inputValue.trim() ? (
                         <TooltipProvider>
                           <Tooltip>
@@ -488,7 +499,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 onClick={handleSubmit} 
                                 disabled={isLoading || !inputValue.trim()}
                                 size="icon"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg"
                               >
                                 {isLoading ? (
                                   <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
@@ -509,7 +520,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 size="icon"
                                 onClick={toggleRecording} 
                                 disabled={isLoading || !isSpeechApiSupported}
-                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
                               >
                                 {isSpeechApiSupported ? (
                                   <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -530,6 +541,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
               )}
             </div>
           </div>
+          
+
         </CardContent>
       </Card>
     </div>

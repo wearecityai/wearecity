@@ -97,7 +97,7 @@ const MainContent: React.FC<MainContentProps> = ({
 
       if (cityImage) {
         return (
-          <div className="flex aspect-square size-20 items-center justify-center rounded-full overflow-hidden mb-4">
+          <div className="flex aspect-square size-20 items-center justify-center rounded-full overflow-hidden mb-4 border border-border">
             <img 
               src={cityImage} 
               alt={cityName}
@@ -107,7 +107,7 @@ const MainContent: React.FC<MainContentProps> = ({
         );
       } else {
         return (
-          <div className="flex aspect-square size-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-semibold mb-4">
+          <div className="flex aspect-square size-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-semibold mb-4 border border-border">
             {cityInitials}
           </div>
         );
@@ -186,7 +186,7 @@ const MainContent: React.FC<MainContentProps> = ({
   return (
     <div className="flex flex-1 flex-col overflow-hidden" style={{ height: '100%' }}>
       {/* Área de mensajes - flexible */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0 chat-container">
         {messages.length === 0 && !shouldShowChatContainer ? (
           <div className="flex flex-col items-center justify-center h-full p-4 pb-0">
             <EmptyState
