@@ -60,6 +60,25 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const parseEventDate = (dateStr: string): EventDateDisplayParts | null => {
     try {
       const cleanDateStr = dateStr.trim();
+      
+      // Parse ISO format (YYYY-MM-DD) which is the standard from backend
+      const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
+      const isoMatch = cleanDateStr.match(isoDateRegex);
+      
+      if (isoMatch) {
+        const [, year, month, day] = isoMatch;
+        const monthIndex = parseInt(month, 10) - 1;
+        
+        if (monthIndex >= 0 && monthIndex < 12) {
+          return {
+            day: parseInt(day, 10).toString(),
+            monthAbbr: spanishMonthAbbreviations[monthIndex],
+            year
+          };
+        }
+      }
+      
+      // Fallback: Parse DD/MM/YYYY format for compatibility
       const dateRangeRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*-\s*(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
       const rangeMatch = cleanDateStr.match(dateRangeRegex);
       
