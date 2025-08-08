@@ -123,7 +123,6 @@ export const SafariKeyboardWrapper: React.FC<SafariKeyboardWrapperProps> = ({
       ref={wrapperRef}
       className="safari-keyboard-wrapper"
       style={{
-        height: '100vh',
         height: '100dvh',
         position: 'fixed',
         top: 0,

@@ -42,7 +42,7 @@ const PersistentLayout: React.FC = () => {
   const params = useParams();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
-  const { viewportHeight } = useSimpleViewport();
+  const { viewportHeight, isSafari, isKeyboardOpen } = useSimpleViewport();
   
   // Estado para el onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);

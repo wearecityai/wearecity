@@ -313,7 +313,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <>
       <style>{textareaStyles}</style>
-      <div className={`w-full flex flex-col items-center ${isInFinetuningMode 
+      <div className={`w-full flex flex-col items-center chat-input-container ${isInFinetuningMode 
         ? 'p-2 sm:p-4' 
         : 'pb-2 sm:pb-6 md:pb-8'
       }`}>

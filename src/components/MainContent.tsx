@@ -167,7 +167,7 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         </div>
         
-        <div className="border-t bg-background p-4">
+        <div className="border-t bg-background p-4 chat-container">
           <ChatInput
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
@@ -225,7 +225,7 @@ const MainContent: React.FC<MainContentProps> = ({
       </div>
       
       {/* Chat Input - siempre visible en la parte inferior */}
-      <div className="bg-background border-t flex-shrink-0">
+      <div className="bg-background border-t flex-shrink-0 chat-container">
         {isMobile && !hasUserSentFirstMessage && (
           <div className="px-3 py-2 border-b">
             <RecommendedPromptsBar 
