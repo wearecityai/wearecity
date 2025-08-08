@@ -305,7 +305,7 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         ) : (
           <div className="flex justify-center h-full">
-                      <div className="w-full max-w-4xl space-y-4 pb-0 px-3 sm:px-6 md:px-8">
+                      <div className="w-full max-w-4xl space-y-4 pb-0 px-4 sm:px-6 md:px-8">
             <ChatContainer
               messages={messages}
               isLoading={isLoading}
