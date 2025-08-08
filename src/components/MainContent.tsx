@@ -129,10 +129,10 @@ const MainContent: React.FC<MainContentProps> = ({
     }
   }, [messages]);
 
-  // Auto-scroll to top when new messages arrive (ChatGPT style)
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
