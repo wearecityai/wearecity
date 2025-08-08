@@ -26,7 +26,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const shouldUseTypewriter = !isUser && !message.isTyping && !message.error && message.content;
   const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
     shouldUseTypewriter ? message.content || '' : '',
-    { speed: 8, startDelay: 200 }
+    { speed: 8, startDelay: 200, messageId: message.id }
   );
 
   // Use typewriter text if active, otherwise use original content
@@ -38,7 +38,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
     textContent: message.content,
     totalCards,
     typewriterIsComplete: !typewriterIsTyping && !!message.content,
-    cardDelay: 400
+    cardDelay: 400,
+    messageId: message.id
   });
 
   const linkifyAndMarkdown = (text: string): React.ReactNode[] => {

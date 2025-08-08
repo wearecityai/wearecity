@@ -3,7 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 interface TypewriterOptions {
   speed?: number; // milliseconds per character
   startDelay?: number; // delay before starting
+  messageId?: string; // unique identifier for the message
 }
+
+// Global set to track completed messages
+const completedMessages = new Set<string>();
 
 export const useTypewriter = (
   targetText: string, 
@@ -15,9 +19,18 @@ export const useTypewriter = (
   const indexRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { speed = 30, startDelay = 100 } = options;
+  const { speed = 30, startDelay = 100, messageId } = options;
 
   useEffect(() => {
+    // If this message was already completed, show it immediately
+    if (messageId && completedMessages.has(messageId)) {
+      setDisplayText(targetText);
+      setIsTyping(false);
+      setIsComplete(true);
+      indexRef.current = targetText.length;
+      return;
+    }
+
     // Reset state when target text changes
     setDisplayText('');
     setIsTyping(false);
@@ -44,6 +57,10 @@ export const useTypewriter = (
         } else {
           setIsTyping(false);
           setIsComplete(true);
+          // Mark this message as completed
+          if (messageId) {
+            completedMessages.add(messageId);
+          }
         }
       };
 
@@ -56,7 +73,7 @@ export const useTypewriter = (
         clearTimeout(timerRef.current);
       }
     };
-  }, [targetText, speed, startDelay]);
+  }, [targetText, speed, startDelay, messageId]);
 
   const skipToEnd = () => {
     if (timerRef.current) {
@@ -66,6 +83,10 @@ export const useTypewriter = (
     setIsTyping(false);
     setIsComplete(true);
     indexRef.current = targetText.length;
+    // Mark this message as completed
+    if (messageId) {
+      completedMessages.add(messageId);
+    }
   };
 
   return {
