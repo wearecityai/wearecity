@@ -186,7 +186,7 @@ const MainContent: React.FC<MainContentProps> = ({
   return (
     <div className="flex flex-1 flex-col overflow-hidden h-full">
       {/* Área de mensajes - flexible */}
-      <div className="flex-1 overflow-y-auto min-h-0 chat-container" style={{ paddingBottom: '140px' }}>
+      <div className="flex-1 overflow-y-auto min-h-0 chat-container">
         {messages.length === 0 && !shouldShowChatContainer ? (
           <div className="flex flex-col items-center justify-center h-full p-4 pb-0">
             <EmptyState
@@ -225,7 +225,7 @@ const MainContent: React.FC<MainContentProps> = ({
       </div>
       
       {/* Chat Input - siempre visible en la parte inferior */}
-      <div className="bg-background flex-shrink-0 chat-input-container fixed bottom-0 left-0 right-0 z-50 md:relative md:bottom-auto md:left-auto md:right-auto md:z-auto">
+      <div className="bg-background flex-shrink-0 chat-input-container">
         <div className="px-3 py-2 sm:p-4 sm:pt-0">
           <div className="max-w-4xl mx-auto">
             <ChatInput
