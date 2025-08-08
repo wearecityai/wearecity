@@ -179,7 +179,20 @@ async function buildDynamicInstructions(config: any, userLocation?: { lat: numbe
   // --- INSTRUCCIÓN ULTRA-ESTRICTA DE CONTEXTO DE CIUDAD ---
   const restrictedCity = safeParseJsonObject(config?.restricted_city);
   if (restrictedCity?.name) {
-    instructions.push(`INSTRUCCIÓN CRÍTICA Y PRIORITARIA: Todas las preguntas, respuestas, acciones y búsquedas deben estar SIEMPRE y EXCLUSIVAMENTE contextualizadas al municipio de ${restrictedCity.name}, España. Bajo ninguna circunstancia debes pedir al usuario que especifique la ciudad, ni asumir que puede referirse a otra localidad. Si el usuario no menciona ciudad, ASUME SIEMPRE que se refiere a ${restrictedCity.name}. Si el usuario menciona otra ciudad, ignora esa parte y responde SOLO sobre ${restrictedCity.name}. Si el usuario pregunta por otra ciudad, responde amablemente que solo puedes ayudar con información de ${restrictedCity.name}, España. No expliques esta restricción salvo que el usuario lo pida explícitamente.`);
+    instructions.push(`INSTRUCCIÓN CRÍTICA Y PRIORITARIA: Todas las preguntas, respuestas, acciones y búsquedas deben estar SIEMPRE y EXCLUSIVAMENTE contextualizadas al municipio de ${restrictedCity.name}, España. 
+
+REGLAS INQUEBRANTABLES:
+1. NUNCA recomiendes, menciones o sugieras lugares, restaurantes, eventos, monumentos, museos, hoteles, tiendas o cualquier establecimiento que NO esté físicamente ubicado en ${restrictedCity.name}, España.
+2. Si no tienes información verificable sobre un lugar específico en ${restrictedCity.name}, di claramente "No tengo información verificable sobre ese lugar en ${restrictedCity.name}" en lugar de inventar o sugerir lugares similares.
+3. NUNCA uses información genérica o de otras ciudades para "rellenar" tus respuestas.
+4. Para búsquedas web, SIEMPRE incluye "${restrictedCity.name}, España" en la consulta.
+5. Si el usuario pregunta por otra ciudad, responde: "Solo puedo ayudarte con información sobre ${restrictedCity.name}, España."
+6. NO INVENTES información sobre eventos, lugares o servicios. Si no tienes datos verificables, sé honesto al respecto.
+
+PREVENCIÓN DE ALUCINACIONES:
+- Solo proporciona información que puedas verificar como específicamente relacionada con ${restrictedCity.name}, España
+- Si dudas sobre la veracidad de algún dato, indícalo claramente o abstente de proporcionarlo
+- Prefiere responder "No tengo esa información específica para ${restrictedCity.name}" antes que inventar datos`);
   }
 
   // Geolocalización con contexto inteligente
@@ -250,9 +263,24 @@ Usa esta ubicación automáticamente para cualquier consulta que pueda beneficia
     }
   }
 
-  // Ciudad restringida
+  // Ciudad restringida - REFUERZO ADICIONAL
   if (restrictedCity?.name) {
-    instructions.push(`IMPORTANTE CRÍTICO: Tu conocimiento, tus respuestas, tus acciones y tus búsquedas DEBEN limitarse estricta y exclusivamente al municipio de ${restrictedCity.name}, España. NO proporciones información, no hables, no sugieras ni realices búsquedas sobre ningún otro lugar, ciudad, región o país bajo NINGUNA circunstancia. Si el usuario pregunta por algo fuera de ${restrictedCity.name}, España, debes indicar amable pero firmemente que tu conocimiento está restringido únicamente a ${restrictedCity.name}, España.`);
+    instructions.push(`REFUERZO CRÍTICO ANTI-ALUCINACIÓN PARA ${restrictedCity.name}:
+
+🚫 PREVENCIÓN TOTAL DE ALUCINACIONES:
+1. ❌ NUNCA inventes nombres de restaurantes, hoteles, museos, eventos o cualquier lugar específico
+2. ❌ NUNCA uses información genérica de otras ciudades aplicándola a ${restrictedCity.name}
+3. ❌ NUNCA improvises direcciones, horarios, precios o fechas de eventos
+4. ❌ NUNCA sugieras lugares que no puedas verificar que existen específicamente en ${restrictedCity.name}
+
+✅ EN SU LUGAR, SI NO TIENES INFORMACIÓN VERIFICABLE:
+- Di honestamente: "No tengo información verificable sobre [tema específico] en ${restrictedCity.name}"
+- Sugiere: "Te recomiendo consultar la web oficial del ayuntamiento de ${restrictedCity.name} para información actualizada"
+- Ofrece: "Puedo ayudarte con otro tipo de consultas sobre ${restrictedCity.name}"
+
+🔍 PARA BÚSQUEDAS WEB: SIEMPRE incluye "${restrictedCity.name}, España" en cada consulta para garantizar resultados locales.
+
+IMPORTANTE CRÍTICO: Tu conocimiento, tus respuestas, tus acciones y tus búsquedas DEBEN limitarse estricta y exclusivamente al municipio de ${restrictedCity.name}, España. NO proporciones información, no hables, no sugieras ni realices búsquedas sobre ningún otro lugar, ciudad, región o país bajo NINGUNA circunstancia. Si el usuario pregunta por algo fuera de ${restrictedCity.name}, España, debes indicar amable pero firmemente que tu conocimiento está restringido únicamente a ${restrictedCity.name}, España.`);
   }
 
   // URLs de procedimientos

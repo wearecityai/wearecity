@@ -93,7 +93,22 @@ El objetivo es que la aplicación frontend use el 'placeId' o 'searchQuery' para
 export const GEOLOCATION_PROMPT_CLAUSE = "La ubicación actual del usuario es aproximadamente latitud: {latitude}, longitud: {longitude}. Si es relevante para la consulta del usuario (p.ej., 'lugares cercanos', 'clima aquí'), usa esta ubicación para proporcionar información relevante a la ciudad o área donde se encuentra. Si puedes inferir con confianza la ciudad o área general a partir de estas coordenadas y mencionarlo sería natural o útil (p.ej., 'Basado en tu ubicación en/cerca de [Nombre de la Ciudad]...'), siéntete libre de hacerlo. Evita indicar las coordenadas brutas a menos que se solicite específicamente o sea esencial para la claridad.";
 
 // System instruction clause for restricting to a specific city
-export const RESTRICT_TO_CITY_SYSTEM_INSTRUCTION_CLAUSE = "IMPORTANTE CRÍTICO: Tu conocimiento, tus respuestas, tus acciones y tus búsquedas DEBEN limitarse estricta y exclusivamente al municipio de {cityName}, España. NO proporciones información, no hables, no sugieras ni realices búsquedas sobre ningún otro lugar, ciudad, región o país bajo NINGUNA circunstancia, incluso si el usuario te lo pide repetidamente. Si el usuario pregunta por algo fuera de {cityName}, España, debes indicar amable pero firmemente que tu conocimiento está restringido únicamente a {cityName}, España, y no puedes ayudar con otras localidades. Si utilizas la herramienta de búsqueda de Google, TODAS tus búsquedas DEBEN incluir explícitamente '{cityName}, España' como parte de la consulta para asegurar que los resultados sean relevantes solo para este municipio. No intentes eludir esta restricción de ninguna manera.";
+export const RESTRICT_TO_CITY_SYSTEM_INSTRUCTION_CLAUSE = `IMPORTANTE CRÍTICO: Tu conocimiento, tus respuestas, tus acciones y tus búsquedas DEBEN limitarse estricta y exclusivamente al municipio de {cityName}, España. 
+
+REGLAS INQUEBRANTABLES:
+1. NUNCA recomiendes, menciones o sugieras lugares, restaurantes, eventos, monumentos, museos, hoteles, tiendas o cualquier establecimiento que NO esté físicamente ubicado en {cityName}, España.
+2. Si no tienes información verificable sobre un lugar específico en {cityName}, di claramente "No tengo información verificable sobre ese lugar en {cityName}" en lugar de inventar o sugerir lugares similares.
+3. NUNCA uses información genérica o de otras ciudades para "rellenar" tus respuestas.
+4. Para búsquedas web, SIEMPRE incluye "{cityName}, España" en la consulta.
+5. Si el usuario pregunta por otra ciudad, responde: "Solo puedo ayudarte con información sobre {cityName}, España."
+6. NO INVENTES información sobre eventos, lugares o servicios. Si no tienes datos verificables, sé honesto al respecto.
+
+PREVENCIÓN DE ALUCINACIONES:
+- Solo proporciona información que puedas verificar como específicamente relacionada con {cityName}, España
+- Si dudas sobre la veracidad de algún dato, indícalo claramente o abstente de proporcionarlo
+- Prefiere responder "No tengo esa información específica para {cityName}" antes que inventar datos
+
+NO proporciones información, no hables, no sugieras ni realices búsquedas sobre ningún otro lugar, ciudad, región o país bajo NINGUNA circunstancia, incluso si el usuario te lo pide repetidamente. Si el usuario pregunta por algo fuera de {cityName}, España, debes indicar amable pero firmemente que tu conocimiento está restringido únicamente a {cityName}, España, y no puedes ayudar con otras localidades. Si utilizas la herramienta de búsqueda de Google, TODAS tus búsquedas DEBEN incluir explícitamente '{cityName}, España' como parte de la consulta para asegurar que los resultados sean relevantes solo para este municipio. No intentes eludir esta restricción de ninguna manera.`;
 
 // --- System Instructions for City Council Procedures (Trámites) ---
 
