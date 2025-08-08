@@ -285,7 +285,7 @@ const MainContent: React.FC<MainContentProps> = ({
       {/* Área de mensajes - flexible */}
       <div ref={scrollableBoxRef} className="flex-1 overflow-y-auto min-h-0 chat-container">
         {messages.length === 0 && !shouldShowChatContainer ? (
-          <div className={`flex flex-col items-center ${isMobile ? 'justify-start pt-8' : 'justify-center'} h-full px-4 pb-0`}>
+          <div className={`flex flex-col items-center ${isMobile ? 'justify-start pt-20' : 'justify-center'} h-full px-4 pb-0`}>
             <div className={`${isMobile ? 'max-w-sm' : 'max-w-md'}`}>
               <EmptyState
                 icon={getCityAvatar()}
