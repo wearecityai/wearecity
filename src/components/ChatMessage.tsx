@@ -84,7 +84,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   };
 
   return (
-    <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div 
+      className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}
+      data-message-role={message.role}
+    >
       {isUser ? (
         // User message - right aligned
         <div className="overflow-hidden">

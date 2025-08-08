@@ -60,6 +60,11 @@ const MainContent: React.FC<MainContentProps> = ({
   const [hasUserSentFirstMessage, setHasUserSentFirstMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollableBoxRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLDivElement>(null);
+  
+  // Dynamic bottom/left offset for the scroll button (above input and centered)
+  const [scrollButtonBottom, setScrollButtonBottom] = useState<number>(96);
+  const [scrollButtonLeft, setScrollButtonLeft] = useState<number>(typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
   
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchorEl(event.currentTarget);
@@ -129,17 +134,109 @@ const MainContent: React.FC<MainContentProps> = ({
     }
   }, [messages]);
 
-  // Auto-scroll to bottom when new messages arrive
+    // Auto-scroll like ChatGPT - position last USER message at top
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      setTimeout(() => {
+        if (scrollableBoxRef.current) {
+          const scrollContainer = scrollableBoxRef.current;
+          
+          // Find the last USER message element
+          const userMessageElements = scrollContainer.querySelectorAll('[data-message-role="user"]');
+          
+          if (userMessageElements.length > 0) {
+            const lastUserMessage = userMessageElements[userMessageElements.length - 1];
+            
+            // Calculate position to make the last user message visible at top
+            const messageTop = lastUserMessage.offsetTop;
+            const headerHeight = 20; // Use same position as first message in new chat
+            const targetScrollTop = messageTop - headerHeight;
+            
+            scrollContainer.scrollTop = Math.max(0, targetScrollTop);
+            
+            console.log('ChatGPT-style scroll - last user message:', {
+              messageTop,
+              headerHeight,
+              targetScrollTop,
+              finalScrollTop: scrollContainer.scrollTop,
+              totalUserMessages: userMessageElements.length
+            });
+          } else {
+            // Fallback: scroll to bottom
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            console.log('Fallback: no user messages found');
+          }
+        }
+      }, 100);
     }
   }, [messages]);
+
+  // Check if assistant response exceeds visible area and show scroll button
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  useEffect(() => {
+    const checkScrollPosition = () => {
+      if (scrollableBoxRef.current) {
+        const scrollContainer = scrollableBoxRef.current;
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        
+        // Show button only when user has scrolled up significantly
+        const scrollThreshold = 200; // Minimum scroll up before showing button
+        const hasScrolledUp = scrollTop < scrollHeight - clientHeight - scrollThreshold;
+        setShowScrollButton(hasScrolledUp);
+      }
+    };
+
+    // Check initially and on scroll
+    checkScrollPosition();
+    if (scrollableBoxRef.current) {
+      scrollableBoxRef.current.addEventListener('scroll', checkScrollPosition);
+      return () => scrollableBoxRef.current?.removeEventListener('scroll', checkScrollPosition);
+    }
+  }, [messages]);
+
+  // Measure chat input height to position the scroll button above it
+  useEffect(() => {
+    const updateOffset = () => {
+      const inputEl = chatInputRef.current;
+      const inputHeight = inputEl?.offsetHeight ?? 0;
+
+      // Treat as mobile if prop says so OR viewport <= 640px
+      const isMobileViewport = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 640);
+      const baseGap = isMobileViewport ? 144 : 20; // mobile: a bit higher (~144px above input)
+
+      setScrollButtonBottom(Math.max(baseGap, inputHeight + baseGap));
+
+      // Center horizontally with the input container
+      const rect = inputEl?.getBoundingClientRect();
+      if (rect) {
+        setScrollButtonLeft(rect.left + rect.width / 2);
+      } else if (typeof window !== 'undefined') {
+        setScrollButtonLeft(window.innerWidth / 2);
+      }
+    };
+
+    updateOffset();
+    window.addEventListener('resize', updateOffset);
+
+    let ro: ResizeObserver | undefined;
+    if (chatInputRef.current && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(updateOffset);
+      ro.observe(chatInputRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateOffset);
+      ro?.disconnect();
+    };
+  }, [isMobile, messages]);
 
   if (isInFinetuningMode) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
+        <div ref={scrollableBoxRef} className="flex-1 overflow-y-auto">
           <div className="p-4">
             {messages.length === 0 && !shouldShowChatContainer ? (
               <EmptyState
@@ -186,7 +283,7 @@ const MainContent: React.FC<MainContentProps> = ({
   return (
     <div className="flex flex-1 flex-col overflow-hidden h-full">
       {/* Área de mensajes - flexible */}
-      <div className="flex-1 overflow-y-auto min-h-0 chat-container">
+      <div ref={scrollableBoxRef} className="flex-1 overflow-y-auto min-h-0 chat-container">
         {messages.length === 0 && !shouldShowChatContainer ? (
           <div className="flex flex-col items-center justify-center h-full p-4 pb-0">
             <EmptyState
@@ -205,27 +302,34 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         ) : (
           <div className="flex justify-center h-full">
-            <div className="w-full max-w-4xl space-y-4 pb-0 px-3 sm:px-6 md:px-8">
-              <ChatContainer
-                messages={messages}
-                isLoading={isLoading}
-                onSendMessage={handleSendMessage}
-                appError={appError}
-                chatConfig={chatConfig}
-                onDownloadPdf={handleDownloadPdf}
-                onSeeMoreEvents={handleSeeMoreEvents}
-                onSetLanguageCode={handleSetCurrentLanguageCode}
-                user={user}
-                onLogin={onLogin}
-              />
-              <div ref={messagesEndRef} />
-            </div>
+                      <div className="w-full max-w-4xl space-y-4 pb-0 px-3 sm:px-6 md:px-8">
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSendMessage={handleSendMessage}
+              appError={appError}
+              chatConfig={chatConfig}
+              onDownloadPdf={handleDownloadPdf}
+              onSeeMoreEvents={handleSeeMoreEvents}
+              onSetLanguageCode={handleSetCurrentLanguageCode}
+              user={user}
+              onLogin={onLogin}
+            />
+            <div ref={messagesEndRef} />
+            {/* Espaciador dinámico para posicionar el último mensaje arriba */}
+            <div 
+              style={{ 
+                paddingBottom: `${Math.max(200, (scrollableBoxRef.current?.clientHeight || 200) - 100)}px`, 
+                width: '100%' 
+              }}
+            ></div>
+          </div>
           </div>
         )}
       </div>
       
       {/* Chat Input - siempre visible en la parte inferior */}
-      <div className="bg-background flex-shrink-0 chat-input-container">
+      <div ref={chatInputRef} className="bg-background flex-shrink-0 chat-input-container">
         <div className="px-3 py-2 sm:p-4 sm:pt-0">
           <div className="max-w-4xl mx-auto">
             <ChatInput
@@ -240,6 +344,35 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{ bottom: scrollButtonBottom, left: scrollButtonLeft, transform: 'translateX(-50%)' }}
+        >
+          <button
+            onClick={() => {
+              if (scrollableBoxRef.current) {
+                scrollableBoxRef.current.scrollTop = scrollableBoxRef.current.scrollHeight;
+              }
+            }}
+            className={`bg-background border border-border text-white hover:bg-accent rounded-full shadow-lg transition-all duration-200 hover:scale-110 pointer-events-auto flex items-center justify-center ${isMobile ? 'h-12 w-12' : 'p-3'}`}
+            aria-label="Scroll to bottom"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-white"
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
