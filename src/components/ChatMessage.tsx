@@ -96,12 +96,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
         );
       }
       if (part.match(/^~.*?~$/)) return <s key={index}>{part.substring(1, part.length - 1)}</s>;
-      return part.split('\n').map((line, i, arr) => (
-        <span key={`${index}-${i}`}>
-          {line}
-          {i < arr.length - 1 && <br />}
-        </span>
-      ));
+      return part; // No need to split by \n since whitespace-pre-line handles it
     });
   };
 
@@ -133,7 +128,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
           <Card className="bg-muted border-0">
             <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
               {(message.content && message.content.trim() !== "") && (
-                <div className="text-base sm:text-lg leading-relaxed whitespace-pre-line break-words">
+                <div className="text-base sm:text-lg leading-normal whitespace-pre-line break-words">{/* Cambiado de leading-relaxed a leading-normal */}
                   {linkifyAndMarkdown(message.content)}
                 </div>
               )}
@@ -166,7 +161,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   <>
                     {(contentToDisplay && contentToDisplay.trim() !== "") && (
                       <div 
-                        className="text-base sm:text-lg leading-relaxed whitespace-pre-line break-words cursor-pointer"
+                        className="text-base sm:text-lg leading-normal whitespace-pre-line break-words cursor-pointer"
                         onClick={typewriterIsTyping ? skipToEnd : undefined}
                       >
                         {linkifyAndMarkdown(contentToDisplay)}
