@@ -150,7 +150,7 @@ const MainContent: React.FC<MainContentProps> = ({
             const lastUserMessage = userMessageElements[userMessageElements.length - 1];
             
             // Calculate position to make the last user message visible at top
-            const messageTop = lastUserMessage.offsetTop;
+            const messageTop = (lastUserMessage as HTMLElement).offsetTop;
             const headerHeight = 20; // Use same position as first message in new chat
             const targetScrollTop = messageTop - headerHeight;
             
@@ -285,12 +285,15 @@ const MainContent: React.FC<MainContentProps> = ({
       {/* Área de mensajes - flexible */}
       <div ref={scrollableBoxRef} className="flex-1 overflow-y-auto min-h-0 chat-container">
         {messages.length === 0 && !shouldShowChatContainer ? (
-          <div className="flex flex-col items-center justify-center h-full p-4 pb-0">
-            <EmptyState
-              icon={getCityAvatar()}
-              title={`¡Hola! Soy el asistente de ${chatConfig?.restrictedCity?.name || 'tu ciudad'}`}
-              description="¿En qué puedo ayudarte hoy? Puedes preguntarme sobre servicios, eventos, trámites y mucho más."
-            />
+          <div className={`flex flex-col items-center ${isMobile ? 'justify-start pt-8' : 'justify-center'} h-full px-4 pb-0`}>
+            <div className={`${isMobile ? 'max-w-sm' : 'max-w-md'}`}>
+              <EmptyState
+                icon={getCityAvatar()}
+                title={`¡Hola! Soy el asistente de ${chatConfig?.restrictedCity?.name || 'tu ciudad'}`}
+                description="¿En qué puedo ayudarte hoy? Puedes preguntarme sobre servicios, eventos, trámites y mucho más."
+                className={`${isMobile ? 'p-4 space-y-3' : 'p-8 space-y-4'}`}
+              />
+            </div>
             {!isMobile && !hasUserSentFirstMessage && (
               <div className="mt-8 mb-0">
                 <RecommendedPromptsBar 
