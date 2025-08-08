@@ -42,6 +42,21 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
     messageId: message.id
   });
 
+  const processTextForParagraphs = (text: string): React.ReactNode => {
+    // Split by double line breaks (paragraph breaks) but preserve single line breaks
+    const paragraphs = text.split(/\n\s*\n/);
+    
+    return paragraphs.map((paragraph, index) => {
+      if (paragraph.trim() === '') return null;
+      
+      return (
+        <div key={index} className={index > 0 ? 'mt-3' : ''}>
+          {linkifyAndMarkdown(paragraph.trim())}
+        </div>
+      );
+    }).filter(Boolean);
+  };
+
   const linkifyAndMarkdown = (text: string): React.ReactNode[] => {
     const parts = text.split(/(\[.*?\]\(.*?\)|`.*?`|\*\*.*?\*\*|\*.*?\*|```[\s\S]*?```|~.*?~|https?:\/\/\S+)/g);
     return parts.map((part, index) => {
@@ -128,8 +143,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
           <Card className="bg-muted border-0">
             <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
               {(message.content && message.content.trim() !== "") && (
-                <div className="text-base sm:text-lg leading-normal whitespace-pre-line break-words">{/* Cambiado de leading-relaxed a leading-normal */}
-                  {linkifyAndMarkdown(message.content)}
+                <div className="text-base sm:text-lg leading-normal break-words">
+                  {processTextForParagraphs(message.content)}
                 </div>
               )}
             </CardContent>
@@ -161,10 +176,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   <>
                     {(contentToDisplay && contentToDisplay.trim() !== "") && (
                       <div 
-                        className="text-base sm:text-lg leading-normal whitespace-pre-line break-words cursor-pointer"
+                        className="text-base sm:text-lg leading-normal break-words cursor-pointer"
                         onClick={typewriterIsTyping ? skipToEnd : undefined}
                       >
-                        {linkifyAndMarkdown(contentToDisplay)}
+                        {processTextForParagraphs(contentToDisplay)}
                       </div>
                     )}
                      {message.events && message.events.length > 0 && (
