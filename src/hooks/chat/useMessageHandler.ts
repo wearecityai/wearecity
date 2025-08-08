@@ -17,6 +17,28 @@ const generateCitySlug = (assistantName: string): string => {
     .replace(/-+/g, '-'); // Replace multiple hyphens with single
 };
 
+const detectLoadingType = (userMessage: string): ChatMessage['loadingType'] => {
+  const msg = userMessage.toLowerCase();
+  
+  if (msg.includes('evento') || msg.includes('actividad') || msg.includes('festival') || msg.includes('concierto') || msg.includes('espectáculo')) {
+    return 'events';
+  }
+  if (msg.includes('restaurante') || msg.includes('comer') || msg.includes('comida') || msg.includes('cenar') || msg.includes('almorzar')) {
+    return 'restaurants';
+  }
+  if (msg.includes('lugar') || msg.includes('sitio') || msg.includes('donde') || msg.includes('museo') || msg.includes('parque') || msg.includes('visitar')) {
+    return 'places';
+  }
+  if (msg.includes('trámite') || msg.includes('documento') || msg.includes('papele') || msg.includes('gestión') || msg.includes('solicitud')) {
+    return 'procedures';
+  }
+  if (msg.includes('información') || msg.includes('saber') || msg.includes('conocer') || msg.includes('explica') || msg.includes('qué es')) {
+    return 'information';
+  }
+  
+  return 'general';
+};
+
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
   onError: (error: string) => void,
@@ -50,12 +72,14 @@ export const useMessageHandler = (
     
     // 2. Añadir el spinner justo después del mensaje del usuario
     const typingMessageId = `typing-${userMessage.id}`;
+    const loadingType = detectLoadingType(inputText);
     const typingMessage: ChatMessage = {
       id: typingMessageId,
       role: MessageRole.Model,
       content: '',
       timestamp: new Date(),
-      isTyping: true
+      isTyping: true,
+      loadingType
     };
     
     // Añadir el spinner después del mensaje del usuario

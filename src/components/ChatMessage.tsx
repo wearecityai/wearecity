@@ -104,6 +104,23 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
     });
   };
 
+  const getLoadingMessage = (loadingType?: string): string => {
+    switch (loadingType) {
+      case 'events':
+        return 'Buscando eventos...';
+      case 'places':
+        return 'Buscando lugares...';
+      case 'restaurants':
+        return 'Buscando restaurantes...';
+      case 'information':
+        return 'Buscando información...';
+      case 'procedures':
+        return 'Buscando trámites...';
+      default:
+        return 'Un momento...';
+    }
+  };
+
   return (
     <div 
       className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}
@@ -134,16 +151,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       <Loader2 className="h-5 w-5 text-primary animate-spin" />
                     </div>
                     <div className="text-muted-foreground text-sm animate-pulse">
-                      {(() => {
-                        const loadingStates = [
-                          "Un momento...",
-                          "Analizando la consulta...",
-                          "Buscando información relevante...",
-                          "Preparando la respuesta...",
-                          "Verificando datos locales..."
-                        ];
-                        return loadingStates[Math.floor((Date.now() / 2000) % loadingStates.length)];
-                      })()}
+                      {getLoadingMessage(message.loadingType)}
                     </div>
                   </div>
                 ) : message.error ? (

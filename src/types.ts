@@ -73,6 +73,7 @@ export interface ChatMessage {
   originalUserQueryForEvents?: string;
   groundingMetadata?: any;
   isTyping?: boolean;
+  loadingType?: 'general' | 'events' | 'places' | 'restaurants' | 'information' | 'procedures';
 }
 
 export interface RestrictedCityInfo {
