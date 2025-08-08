@@ -84,34 +84,46 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   };
 
   return (
-    <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className="w-full mb-6">
       {isUser ? (
-        // User message - right aligned
-        <div className="overflow-hidden">
-          <Card className="bg-muted border-0">
-            <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
-              {(message.content && message.content.trim() !== "") && (
-                <div className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words">
-                  {linkifyAndMarkdown(message.content)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        // Assistant message - left aligned
-        <div className="flex items-start space-x-2 w-full overflow-hidden">
-          {!message.isTyping && (
+        // User message - full width, prominent display
+        <div className="w-full mb-4">
+          <div className="flex items-start space-x-3">
             <Avatar className="w-8 h-8 flex-shrink-0">
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                <Building2 className="h-4 w-4" />
+              <AvatarFallback className="bg-muted text-muted-foreground">
+                <User className="h-4 w-4" />
               </AvatarFallback>
             </Avatar>
-          )}
-          
-          <div className="flex-1 overflow-hidden max-w-full">
-            <Card className="bg-transparent border-0 shadow-none">
-              <CardContent className="p-0">
+            <div className="flex-1">
+              <div className="text-sm text-muted-foreground mb-1 font-medium">Tú</div>
+              <div className="text-base leading-relaxed">
+                {(message.content && message.content.trim() !== "") && (
+                  <div className="whitespace-pre-line break-words">
+                    {linkifyAndMarkdown(message.content)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Assistant message - full width below user message
+        <div className="w-full">
+          <div className="flex items-start space-x-3">
+            {!message.isTyping && (
+              <Avatar className="w-8 h-8 flex-shrink-0">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  <Building2 className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+            )}
+            
+            <div className="flex-1 overflow-hidden max-w-full">
+              {!message.isTyping && (
+                <div className="text-sm text-muted-foreground mb-2 font-medium">Asistente</div>
+              )}
+              
+              <div className="bg-transparent">
                 {message.isTyping ? (
                   <div className="flex items-center space-x-3 h-10">
                     <div className="relative flex items-center justify-center">
@@ -141,7 +153,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 ) : (
                   <>
                     {(message.content && message.content.trim() !== "") && (
-                      <div className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words">
+                      <div className="text-base leading-relaxed whitespace-pre-line break-words mb-4">
                         {linkifyAndMarkdown(message.content)}
                       </div>
                     )}
@@ -164,25 +176,25 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     )}
                   </>
                 )}
-              </CardContent>
-            </Card>
-            
-            {!message.isTyping && !message.error && (
-              <div className="flex items-center space-x-1 mt-1 pl-1">
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <ThumbsUp className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <ThumbsDown className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <Copy className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
               </div>
-            )}
+              
+              {!message.isTyping && !message.error && (
+                <div className="flex items-center space-x-1 mt-2">
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                    <ThumbsUp className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                    <ThumbsDown className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                    <MoreHorizontal className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
