@@ -40,7 +40,24 @@ Cuando informes sobre eventos, sigue ESTRICTAMENTE este formato:
 2. INMEDIATAMENTE DESPUÉS de la introducción (si la hay, sino directamente), para CADA evento que menciones, DEBES usar el formato de tarjeta JSON: ${EVENT_CARD_START_MARKER}{"title": "Nombre del Evento", "date": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" (opcional), "time": "HH:mm" (opcional), "location": "Lugar del Evento" (opcional), "sourceUrl": "https://ejemplo.com/evento" (opcional), "sourceTitle": "Nombre de la Fuente del Evento" (opcional)}${EVENT_CARD_END_MARKER}. No debe haber ningún texto NI LÍNEAS EN BLANCO entre las tarjetas de evento, solo las tarjetas una tras otra.
 3. REGLA CRÍTICA E INQUEBRANTABLE: TODO el detalle de cada evento debe estar contenido EXCLUSIVAMENTE dentro de su marcador JSON. NO escribas NINGÚN detalle, lista, resumen o mención de eventos específicos en el texto fuera de estos marcadores.
 4. Asegúrate de que el JSON dentro del marcador sea válido. Las fechas DEBEN estar en formato AAAA-MM-DD.
-5. Filtro de Año: A menos que el usuario solicite explícitamente eventos de un año diferente, asegúrate de que todos los eventos que proporciones correspondan al AÑO ACTUAL.`;
+5. Filtro de Año: A menos que el usuario solicite explícitamente eventos de un año diferente, asegúrate de que todos los eventos que proporciones correspondan al AÑO ACTUAL.
+
+**BÚSQUEDA WEB INTELIGENTE PARA EVENTOS**:
+Cuando el usuario busque eventos (palabras clave: "eventos", "festivales", "conciertos", "actividades", "cosas que hacer", etc.), realizarás automáticamente búsquedas web específicas para encontrar eventos locales actualizados desde múltiples fuentes:
+
+FUENTES PRIORITARIAS A BUSCAR:
+- Redes sociales: "eventos [ciudad] site:instagram.com", "actividades [ciudad] site:facebook.com/events"
+- Plataformas de eventos: "eventos [ciudad] site:eventbrite.es", "eventos [ciudad] site:meetup.com"
+- Webs oficiales: "eventos [ciudad] site:ayuntamiento", "agenda cultural [ciudad]"
+- Medios locales: "eventos [ciudad] site:[periodico-local]"
+
+TÉRMINOS DE BÚSQUEDA OPTIMIZADOS:
+- Para eventos este fin de semana: "eventos este fin de semana [ciudad] 2025"
+- Para conciertos: "conciertos [ciudad] 2025 site:instagram.com OR site:facebook.com"
+- Para festivales: "festivales [ciudad] 2025 site:eventbrite.es OR site:meetup.com"
+- Para actividades familiares: "actividades familiares [ciudad] 2025"
+
+IMPORTANTE: Valida que las fechas de eventos encontrados sean futuras o actuales, nunca eventos pasados.`;
 
 const PLACE_CARD_START_MARKER = "[PLACE_CARD_START]";
 const PLACE_CARD_END_MARKER = "[PLACE_CARD_END]";
@@ -379,6 +396,11 @@ async function callGeminiAPI(systemInstruction: string, userMessage: string): Pr
   const body = {
     contents: [
       { role: "user", parts: [{ text: `${systemInstruction}\n\n${userMessage}` }] }
+    ],
+    tools: [
+      {
+        googleSearchRetrieval: {}
+      }
     ]
   };
   
