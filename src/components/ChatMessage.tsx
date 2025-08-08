@@ -26,7 +26,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const shouldUseTypewriter = !isUser && !message.isTyping && !message.error && message.content;
   const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
     shouldUseTypewriter ? message.content || '' : '',
-    { speed: 20, startDelay: 200 }
+    { speed: 8, startDelay: 200 }
   );
 
   // Use typewriter text if active, otherwise use original content
