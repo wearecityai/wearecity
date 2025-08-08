@@ -8,6 +8,7 @@ import { Skeleton } from './ui/skeleton';
 import { ChatMessage as ChatMessageType, MessageRole } from '../types';
 import EventCard from './EventCard';
 import PlaceCard from './PlaceCard';
+import { useTypewriter } from '../hooks/useTypewriter';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -19,6 +20,16 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents }) => {
   const isUser = message.role === MessageRole.User;
   const timestamp = new Date(message.timestamp);
+
+  // Use typewriter effect for assistant messages that are not typing indicators
+  const shouldUseTypewriter = !isUser && !message.isTyping && !message.error && message.content;
+  const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
+    shouldUseTypewriter ? message.content || '' : '',
+    { speed: 20, startDelay: 200 }
+  );
+
+  // Use typewriter text if active, otherwise use original content
+  const contentToDisplay = shouldUseTypewriter ? displayText : message.content;
 
   const linkifyAndMarkdown = (text: string): React.ReactNode[] => {
     const parts = text.split(/(\[.*?\]\(.*?\)|`.*?`|\*\*.*?\*\*|\*.*?\*|```[\s\S]*?```|~.*?~|https?:\/\/\S+)/g);
@@ -143,9 +154,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   </Card>
                 ) : (
                   <>
-                    {(message.content && message.content.trim() !== "") && (
-                      <div className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words">
-                        {linkifyAndMarkdown(message.content)}
+                    {(contentToDisplay && contentToDisplay.trim() !== "") && (
+                      <div 
+                        className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words cursor-pointer"
+                        onClick={typewriterIsTyping ? skipToEnd : undefined}
+                      >
+                        {linkifyAndMarkdown(contentToDisplay)}
+                        {typewriterIsTyping && <span className="animate-pulse">|</span>}
                       </div>
                     )}
                     {message.events && message.events.length > 0 && (
