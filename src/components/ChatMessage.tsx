@@ -124,15 +124,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
         </div>
       ) : (
         // Assistant message - left aligned
-        <div className="flex items-start space-x-2 w-full overflow-hidden">
-          {!message.isTyping && (
-            <Avatar className="w-8 h-8 flex-shrink-0">
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                <Building2 className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-          )}
-          
+        <div className="flex items-start w-full overflow-hidden">
           <div className="flex-1 overflow-hidden max-w-full">
             <Card className="bg-transparent border-0 shadow-none">
               <CardContent className="p-0">
