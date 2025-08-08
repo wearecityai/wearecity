@@ -469,16 +469,16 @@ html, body {
   
   /* Asegurar que el contenido del chat no se superponga con el input */
   .chat-container:not(.chat-input-container) {
-    padding-bottom: 140px !important;
-    max-height: calc(100vh - 140px) !important;
-    max-height: calc(100dvh - 140px) !important;
+    padding-bottom: 180px !important;
+    max-height: calc(100vh - 180px) !important;
+    max-height: calc(100dvh - 180px) !important;
   }
   
   /* Área de mensajes específica para móvil - mayor padding y altura limitada */
   .flex-1.overflow-y-auto.chat-container {
-    padding-bottom: 160px !important;
-    max-height: calc(100vh - 160px) !important;
-    max-height: calc(100dvh - 160px) !important;
+    padding-bottom: 200px !important;
+    max-height: calc(100vh - 200px) !important;
+    max-height: calc(100dvh - 200px) !important;
   }
   
   /* Estilos específicos cuando el teclado está abierto */
