@@ -9,6 +9,7 @@ import { ChatMessage as ChatMessageType, MessageRole } from '../types';
 import EventCard from './EventCard';
 import PlaceCard from './PlaceCard';
 import { useTypewriter } from '../hooks/useTypewriter';
+import { useProgressiveReveal } from '../hooks/useProgressiveReveal';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -30,6 +31,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
 
   // Use typewriter text if active, otherwise use original content
   const contentToDisplay = shouldUseTypewriter ? displayText : message.content;
+
+  // Progressive reveal for cards
+  const totalCards = (message.events?.length || 0) + (message.placeCards?.length || 0);
+  const visibleCards = useProgressiveReveal(totalCards, 400);
 
   const linkifyAndMarkdown = (text: string): React.ReactNode[] => {
     const parts = text.split(/(\[.*?\]\(.*?\)|`.*?`|\*\*.*?\*\*|\*.*?\*|```[\s\S]*?```|~.*?~|https?:\/\/\S+)/g);
@@ -165,16 +170,43 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     )}
                     {message.events && message.events.length > 0 && (
                       <div className="mt-3 space-y-2">
-                        {message.events.map((event, index) => (
-                          <EventCard key={`${message.id}-event-${index}`} event={event} />
-                        ))}
+                        {message.events.map((event, index) => {
+                          const shouldShow = index < visibleCards;
+                          return (
+                            <div
+                              key={`${message.id}-event-${index}`}
+                              className={`transition-all duration-500 ${
+                                shouldShow 
+                                  ? 'opacity-100 translate-y-0' 
+                                  : 'opacity-0 translate-y-4'
+                              }`}
+                              style={{ display: shouldShow ? 'block' : 'none' }}
+                            >
+                              <EventCard event={event} />
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     {message.placeCards && message.placeCards.length > 0 && (
                       <div className="mt-3 space-y-2">
-                        {message.placeCards.map((place) => (
-                          <PlaceCard key={`${message.id}-place-${place.id}`} place={place} />
-                        ))}
+                        {message.placeCards.map((place, index) => {
+                          const cardIndex = (message.events?.length || 0) + index;
+                          const shouldShow = cardIndex < visibleCards;
+                          return (
+                            <div
+                              key={`${message.id}-place-${place.id}`}
+                              className={`transition-all duration-500 ${
+                                shouldShow 
+                                  ? 'opacity-100 translate-y-0' 
+                                  : 'opacity-0 translate-y-4'
+                              }`}
+                              style={{ display: shouldShow ? 'block' : 'none' }}
+                            >
+                              <PlaceCard place={place} />
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
