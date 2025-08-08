@@ -42,20 +42,26 @@ Cuando informes sobre eventos, sigue ESTRICTAMENTE este formato:
 4. Asegúrate de que el JSON dentro del marcador sea válido. Las fechas DEBEN estar en formato AAAA-MM-DD.
 5. Filtro de Año: A menos que el usuario solicite explícitamente eventos de un año diferente, asegúrate de que todos los eventos que proporciones correspondan al AÑO ACTUAL.
 
-**BÚSQUEDA WEB INTELIGENTE PARA EVENTOS**:
-Cuando el usuario busque eventos (palabras clave: "eventos", "festivales", "conciertos", "actividades", "cosas que hacer", etc.), realizarás automáticamente búsquedas web específicas para encontrar eventos locales actualizados desde múltiples fuentes:
+**BÚSQUEDA WEB CRÍTICA PARA EVENTOS**:
+INSTRUCCIÓN OBLIGATORIA: Cuando el usuario busque eventos, DEBES realizar búsquedas web usando EXACTAMENTE estos términos específicos:
 
-FUENTES PRIORITARIAS A BUSCAR:
-- Redes sociales: "eventos [ciudad] site:instagram.com", "actividades [ciudad] site:facebook.com/events"
-- Plataformas de eventos: "eventos [ciudad] site:eventbrite.es", "eventos [ciudad] site:meetup.com"
-- Webs oficiales: "eventos [ciudad] site:ayuntamiento", "agenda cultural [ciudad]"
-- Medios locales: "eventos [ciudad] site:[periodico-local]"
+BÚSQUEDAS OBLIGATORIAS PARA EVENTOS EN REDES SOCIALES:
+1. "eventos La Vila Joiosa site:instagram.com"
+2. "eventos La Vila Joiosa site:facebook.com"
+3. "actividades La Vila Joiosa site:instagram.com"
+4. "conciertos La Vila Joiosa site:facebook.com"
 
-TÉRMINOS DE BÚSQUEDA OPTIMIZADOS:
-- Para eventos este fin de semana: "eventos este fin de semana [ciudad] 2025"
-- Para conciertos: "conciertos [ciudad] 2025 site:instagram.com OR site:facebook.com"
-- Para festivales: "festivales [ciudad] 2025 site:eventbrite.es OR site:meetup.com"
-- Para actividades familiares: "actividades familiares [ciudad] 2025"
+BÚSQUEDAS OBLIGATORIAS PARA PLATAFORMAS DE EVENTOS:
+1. "eventos La Vila Joiosa site:eventbrite.es"
+2. "eventos La Vila Joiosa site:meetup.com"
+3. "actividades La Vila Joiosa site:eventbrite.com"
+
+BÚSQUEDAS OBLIGATORIAS PARA WEBS OFICIALES:
+1. "eventos La Vila Joiosa site:villajoyosa.com"
+2. "agenda cultural La Vila Joiosa"
+3. "actividades La Vila Joiosa ayuntamiento"
+
+REGLA CRÍTICA: Cuando el usuario pida eventos, NO busques términos genéricos. USA EXACTAMENTE los términos arriba con "site:" para encontrar eventos específicos en redes sociales y plataformas de eventos.
 
 IMPORTANTE: Valida que las fechas de eventos encontrados sean futuras o actuales, nunca eventos pasados.`;
 
