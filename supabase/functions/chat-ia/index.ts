@@ -342,6 +342,11 @@ function extractGeminiText(data: any): string {
 }
 
 async function callGeminiAPI(systemInstruction: string, userMessage: string): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    console.error("❌ ERROR: GOOGLE_GEMINI_API_KEY no está configurada");
+    throw new Error("GOOGLE_GEMINI_API_KEY no está configurada");
+  }
+  
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
   const body = {
     contents: [

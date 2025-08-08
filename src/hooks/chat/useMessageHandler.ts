@@ -20,7 +20,8 @@ const generateCitySlug = (assistantName: string): string => {
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
   onError: (error: string) => void,
-  onGeminiReadyChange: (ready: boolean) => void
+  onGeminiReadyChange: (ready: boolean) => void,
+  citySlug?: string
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const { parseAIResponse } = useMessageParser();
@@ -82,11 +83,12 @@ export const useMessageHandler = (
         lng: userLocation.longitude
       } : undefined;
       
-      // Generar city slug desde el assistant name
-      const citySlug = generateCitySlug(chatConfig.assistantName);
+      // Usar city slug pasado como parámetro o generar desde assistant name como fallback
+      const finalCitySlug = citySlug || generateCitySlug(chatConfig.assistantName);
       
       console.log('🔍 DEBUG - Enviando city slug a chat-ia:', {
-        citySlug: citySlug,
+        citySlug: finalCitySlug,
+        citySlugFromParam: citySlug,
         assistantName: chatConfig.assistantName,
         restrictedCity: chatConfig.restrictedCity,
         restrictedCityName: chatConfig.restrictedCity?.name
@@ -96,7 +98,14 @@ export const useMessageHandler = (
         allowMapDisplay: chatConfig.allowMapDisplay,
         userId: user?.id,
         userLocation: userLocationData,
-        citySlug: citySlug // Enviar solo el slug en lugar de la configuración completa
+        citySlug: finalCitySlug // Enviar solo el slug en lugar de la configuración completa
+      });
+      
+      console.log('🔍 DEBUG - Respuesta de fetchChatIA:', {
+        responseText: responseText,
+        responseTextType: typeof responseText,
+        responseTextLength: responseText?.length,
+        isEmpty: !responseText || responseText.trim() === ''
       });
       
       const aiMessage: ChatMessage = {

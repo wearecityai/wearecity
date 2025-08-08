@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Separator } from "@/components/ui/separator"
 import { Toggle } from "@/components/ui/toggle"
-import { useSidebar } from "@/components/ui/sidebar"
+
 
 
 import {
@@ -90,15 +90,6 @@ export function AppSidebar({
   const location = useLocation()
   const params = useParams()
   const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat, loading } = useDefaultChat()
-  const { isMobile, setOpenMobile } = useSidebar()
-
-  // Función para cerrar sidebar en mobile después de una acción
-  const handleMobileAction = (action: () => void) => {
-    action()
-    if (isMobile) {
-      setOpenMobile(false)
-    }
-  }
 
   // Detectar si estamos en la página de descubrir ciudades (ya no se usa, pero mantenemos para compatibilidad)
   const isDiscoverPage = location.search.includes('focus=search')
@@ -296,7 +287,7 @@ export function AppSidebar({
             <SidebarMenu className="gap-0.5">
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={isInSearchMode ? () => {} : () => handleMobileAction(onShowCitySearch)}
+                  onClick={isInSearchMode ? () => {} : onShowCitySearch}
                   isActive={isInSearchMode}
                   disabled={isInSearchMode}
                   className="w-full group-data-[collapsible=icon]:justify-center h-10"
@@ -311,7 +302,7 @@ export function AppSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={async () => handleMobileAction(async () => {
+                  onClick={async () => {
                     const currentCitySlug = getCurrentCitySlug()
                     if (currentCitySlug) {
                       if (isDefaultChat(currentCitySlug)) {
@@ -320,7 +311,7 @@ export function AppSidebar({
                         await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
                       }
                     }
-                  })}
+                  }}
                   disabled={loading}
                   className="w-full group-data-[collapsible=icon]:justify-center h-10"
                   size="sm"
@@ -340,16 +331,16 @@ export function AppSidebar({
           <SidebarGroup className="flex-1 flex flex-col min-h-0 max-h-[calc(100vh-300px)]">
             <SidebarSeparator className="mb-1 flex-shrink-0" />
             <SidebarMenuItem className="flex-shrink-0">
-                                          <SidebarMenuButton
-                  onClick={() => handleMobileAction(() => {
-                    const currentCity = chatConfig?.restrictedCity?.name || 'tu ciudad';
-                    const citySlug = chatConfig?.restrictedCity?.slug || '';
-                    onNewChat();
-                  })}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10"
-                  size="sm"
-                  tooltip="Nuevo chat"
-                >
+                          <SidebarMenuButton
+              onClick={() => {
+                const currentCity = chatConfig?.restrictedCity?.name || 'tu ciudad';
+                const citySlug = chatConfig?.restrictedCity?.slug || '';
+                onNewChat();
+              }}
+              className="w-full group-data-[collapsible=icon]:justify-center h-10"
+              size="sm"
+              tooltip="Nuevo chat"
+            >
               <Edit className="h-4 w-4" />
               <span className="group-data-[collapsible=icon]:hidden">Nuevo chat</span>
             </SidebarMenuButton>
@@ -363,26 +354,26 @@ export function AppSidebar({
                   <SidebarMenu>
                     {chatTitles.map((title, index) => (
                       <SidebarMenuItem key={index}>
-                                              <SidebarMenuButton
-                        onClick={() => handleMobileAction(() => onSelectChat(index))}
-                        isActive={index === selectedChatIndex}
-                        className="group/menu-item w-full justify-between group-data-[collapsible=icon]:justify-center min-h-[2rem] py-1"
-                        tooltip={title}
-                      >
+                        <SidebarMenuButton
+                          onClick={() => onSelectChat(index)}
+                          isActive={index === selectedChatIndex}
+                          className="group/menu-item w-full justify-between group-data-[collapsible=icon]:justify-center min-h-[2rem] py-1"
+                          tooltip={title}
+                        >
                           <div className="flex items-center gap-2 min-w-0">
                             <MessageCircle className="h-4 w-4 flex-shrink-0 text-sidebar-foreground/50" />
                             <span className="truncate group-data-[collapsible=icon]:hidden">{title}</span>
                           </div>
                           <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-                                                      <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleMobileAction(() => onDeleteChat(chatIds[index]))
-                            }}
-                            className="h-6 w-6 p-0 opacity-0 group-hover/menu-item:opacity-100 transition-opacity"
-                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteChat(chatIds[index])
+                              }}
+                              className="h-6 w-6 p-0 opacity-0 group-hover/menu-item:opacity-100 transition-opacity"
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
@@ -438,13 +429,13 @@ export function AppSidebar({
               <SidebarMenuItem className={cn(
                 !chatConfig.allowGeolocation && "hidden"
               )}>
-                              <SidebarMenuButton
-                onClick={() => handleMobileAction(() => handleToggleLocation(!chatConfig.allowGeolocation))}
-                isActive={chatConfig.allowGeolocation}
-                className="w-full justify-center group-data-[collapsible=icon]:justify-center h-10"
-                size="sm"
-                tooltip={chatConfig.allowGeolocation ? "Desactivar ubicación" : "Activar ubicación"}
-              >
+                <SidebarMenuButton
+                  onClick={() => handleToggleLocation(!chatConfig.allowGeolocation)}
+                  isActive={chatConfig.allowGeolocation}
+                  className="w-full justify-center group-data-[collapsible=icon]:justify-center h-10"
+                  size="sm"
+                  tooltip={chatConfig.allowGeolocation ? "Desactivar ubicación" : "Activar ubicación"}
+                >
                   <Navigation className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
                   <span className="group-data-[collapsible=icon]:hidden">
                     {chatConfig.allowGeolocation ? "Desactivar ubicación" : "Activar ubicación"}

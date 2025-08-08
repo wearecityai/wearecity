@@ -169,7 +169,8 @@ export const useAppState = (citySlug?: string) => {
       setCurrentConversationId,
       createConversation,
       updateConversationTitle
-    }
+    },
+    citySlug
   );
 
   // Clear processed cards when starting a new conversation

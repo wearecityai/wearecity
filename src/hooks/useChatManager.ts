@@ -24,7 +24,8 @@ export const useChatManager = (
   isGeminiReady: boolean,
   onError: (error: string) => void,
   onGeminiReadyChange: (ready: boolean) => void,
-  conversationFunctions: ConversationFunctions
+  conversationFunctions: ConversationFunctions,
+  citySlug?: string
 ) => {
   // Destructure conversation functions from parameters
   const { 
@@ -54,7 +55,7 @@ export const useChatManager = (
   const {
     isLoading,
     processMessage
-  } = useMessageHandler(chatConfig, onError, onGeminiReadyChange);
+  } = useMessageHandler(chatConfig, onError, onGeminiReadyChange, citySlug);
 
   // Chat actions
   const {
