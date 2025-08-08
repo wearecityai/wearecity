@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Bot, Download, ExternalLink, Plus, ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Building2 } from 'lucide-react';
+import { User, Bot, Download, ExternalLink, Plus, ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Building2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
@@ -130,9 +130,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
               <CardContent className="p-0">
                 {message.isTyping ? (
                   <div className="flex items-center space-x-3 h-10">
-                    <div className="relative flex items-center justify-center">
-                      <Skeleton className="w-8 h-8 rounded-full" />
-                      <Building2 className="absolute h-4 w-4 text-primary" />
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 text-primary animate-spin" />
                     </div>
                     <div className="text-muted-foreground text-sm animate-pulse">
                       {(() => {
