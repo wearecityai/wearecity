@@ -170,6 +170,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                         onClick={typewriterIsTyping ? skipToEnd : undefined}
                       >
                         {linkifyAndMarkdown(contentToDisplay)}
+                        {typewriterIsTyping && <span className="animate-pulse">|</span>}
                       </div>
                     )}
                      {message.events && message.events.length > 0 && (
