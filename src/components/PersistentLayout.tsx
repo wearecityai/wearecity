@@ -19,6 +19,7 @@ import { Sparkles } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
+import { useSimpleViewport } from '@/hooks/useSimpleViewport';
 
 interface User {
   id: string;
@@ -41,6 +42,7 @@ const PersistentLayout: React.FC = () => {
   const params = useParams();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
+  const { viewportHeight } = useSimpleViewport();
   
   // Estado para el onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -419,7 +421,13 @@ const PersistentLayout: React.FC = () => {
 
   return (
     <SidebarProvider>
-      <div className="h-screen overflow-hidden bg-background flex w-full">
+      <div 
+        className="overflow-hidden bg-background flex w-full"
+        style={{ 
+          height: viewportHeight,
+          minHeight: viewportHeight
+        }}
+      >
         <AppSidebar 
           onNewChat={showCitySearch ? handleNewChatInSearchMode : handleNewChatClick}
           onOpenFinetuning={handleOpenFinetuningWithAuth}
@@ -438,7 +446,7 @@ const PersistentLayout: React.FC = () => {
           isInSearchMode={showCitySearch}
         />
         <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2">
+          <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
             <div className="flex flex-1 items-center gap-2 px-3">
               <SidebarTrigger />
               <Separator

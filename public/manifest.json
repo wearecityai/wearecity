@@ -10,6 +10,8 @@
   "scope": "/",
   "lang": "es",
   "categories": ["productivity", "utilities"],
+  "display_override": ["standalone", "minimal-ui"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.ico",

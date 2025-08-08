@@ -2,10 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
   <!-- Meta tags para ocultar barra de navegación en móviles -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="City Chat">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1976d2">
+  <meta name="msapplication-navbutton-color" content="#1976d2">
+  <meta name="msapplication-TileColor" content="#1976d2">
+  <!-- Prevenir zoom en inputs en iOS -->
+  <meta name="format-detection" content="telephone=no">
+  <!-- Optimizaciones para PWA -->
+  <meta name="application-name" content="City Chat">
+  <meta name="msapplication-tap-highlight" content="no">
   <meta name="apple-mobile-web-app-title" content="City Chat">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#1976d2">
@@ -52,6 +62,11 @@
       /* Mejorar rendimiento en móviles */
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
+      /* Asegurar que el body use toda la altura disponible */
+      height: 100vh;
+      height: 100dvh;
+      /* Prevenir scroll en el body */
+      overflow: hidden;
     }
     
     /* Asegurar que el contenedor principal use todo el espacio */
@@ -61,6 +76,11 @@
       height: 100dvh;
       display: flex;
       flex-direction: column;
+      /* Asegurar que use toda la altura disponible */
+      min-height: 100vh;
+      min-height: 100dvh;
+      /* Prevenir scroll en el root */
+      overflow: hidden;
     }
     
     /* Prevent zoom on input focus on iOS */
@@ -152,6 +172,48 @@
       width: 100%;
       max-width: 100%;
       position: relative;
+    }
+    
+    /* Prevenir que el teclado mueva el viewport en iOS */
+    @media screen and (max-width: 768px) {
+      body {
+        /* Prevenir scroll cuando el teclado está abierto */
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      
+      /* Asegurar que el contenido se ajuste al viewport disponible */
+      #root {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+    }
+    
+    /* Mobile optimizations for keyboard */
+    @media screen and (max-width: 768px) {
+      body {
+        /* Prevenir scroll cuando el teclado está abierto */
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      
+      /* Asegurar que el contenido se ajuste al viewport disponible */
+      #root {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      
+      /* Prevenir zoom en inputs */
+      input, textarea {
+        font-size: 16px;
+        touch-action: manipulation;
+      }
     }
   </style>
 </head>

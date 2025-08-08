@@ -21,15 +21,31 @@ export async function fetchChatIA(userMessage: string, options?: {
   };
 
   console.log('🔍 DEBUG - Request body:', requestBody);
-
-  const res = await fetch("https://irghpvvoparqettcnpnh.supabase.co/functions/v1/chat-ia", {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
-    },
-    body: JSON.stringify(requestBody)
+  console.log('🔍 DEBUG - URL:', "https://irghpvvoparqettcnpnh.supabase.co/functions/v1/chat-ia");
+  console.log('🔍 DEBUG - Headers:', { 
+    "Content-Type": "application/json",
+    "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
   });
+
+  let res;
+  try {
+    res = await fetch("https://irghpvvoparqettcnpnh.supabase.co/functions/v1/chat-ia", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+      },
+      body: JSON.stringify(requestBody)
+    });
+  } catch (fetchError) {
+    console.error('🔍 DEBUG - Fetch error details:', {
+      name: fetchError.name,
+      message: fetchError.message,
+      stack: fetchError.stack
+    });
+    throw fetchError;
+  }
 
   console.log('🔍 DEBUG - Response status:', res.status, res.statusText);
 
