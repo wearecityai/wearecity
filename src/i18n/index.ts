@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
+import { Suspense } from 'react';
 
 // Import translation files
 import en from './locales/en.json';
@@ -44,6 +45,8 @@ i18n
     
     react: {
       useSuspense: false,
+      bindI18n: 'languageChanged',
+      bindI18nStore: false,
     },
   });
 
