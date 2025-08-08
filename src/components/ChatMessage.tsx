@@ -10,7 +10,6 @@ import EventCard from './EventCard';
 import PlaceCard from './PlaceCard';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { useProgressiveReveal } from '../hooks/useProgressiveReveal';
-import { useSequentialReveal, SequentialItem } from '../hooks/useSequentialReveal';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -23,49 +22,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const isUser = message.role === MessageRole.User;
   const timestamp = new Date(message.timestamp);
 
-  // Create sequential items for assistant messages
-  const createSequentialItems = (): SequentialItem[] => {
-    if (isUser || message.isTyping || message.error || !message.content) return [];
-    
-    const items: SequentialItem[] = [];
-    
-    // Add main text content
-    if (message.content && message.content.trim() !== '') {
-      items.push({
-        type: 'text',
-        content: message.content
-      });
-    }
-    
-    // Add event cards
-    if (message.events && message.events.length > 0) {
-      message.events.forEach((event, index) => {
-        items.push({
-          type: 'event',
-          content: '',
-          data: event,
-          index
-        });
-      });
-    }
-    
-    // Add place cards
-    if (message.placeCards && message.placeCards.length > 0) {
-      message.placeCards.forEach((place, index) => {
-        items.push({
-          type: 'place',
-          content: '',
-          data: place,
-          index
-        });
-      });
-    }
-    
-    return items;
-  };
+  // Use typewriter effect for assistant messages that are not typing indicators
+  const shouldUseTypewriter = !isUser && !message.isTyping && !message.error && message.content;
+  const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
+    shouldUseTypewriter ? message.content || '' : '',
+    { speed: 8, startDelay: 200 }
+  );
 
-  const sequentialItems = createSequentialItems();
-  const { currentTextProgress, isTypingText, completedItems, skipToEnd } = useSequentialReveal(sequentialItems, 8, 400);
+  // Use typewriter text if active, otherwise use original content
+  const contentToDisplay = shouldUseTypewriter ? displayText : message.content;
+
+  // Progressive reveal for cards
+  const totalCards = (message.events?.length || 0) + (message.placeCards?.length || 0);
+  const visibleCards = useProgressiveReveal(totalCards, 400);
 
   const linkifyAndMarkdown = (text: string): React.ReactNode[] => {
     const parts = text.split(/(\[.*?\]\(.*?\)|`.*?`|\*\*.*?\*\*|\*.*?\*|```[\s\S]*?```|~.*?~|https?:\/\/\S+)/g);
@@ -190,64 +159,56 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   </Card>
                 ) : (
                   <>
-                    {/* Sequential content rendering */}
-                    {sequentialItems.length > 0 ? (
+                    {(contentToDisplay && contentToDisplay.trim() !== "") && (
                       <div 
-                        className="cursor-pointer"
-                        onClick={isTypingText ? skipToEnd : undefined}
+                        className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words cursor-pointer"
+                        onClick={typewriterIsTyping ? skipToEnd : undefined}
                       >
-                        {sequentialItems.map((item, index) => {
-                          const isCompleted = completedItems.has(index);
-                          const isCurrent = index === Math.min(...Array.from(completedItems.keys()).concat([sequentialItems.length]));
-                          
-                          if (item.type === 'text') {
-                            const textToShow = isCompleted ? item.content : (isCurrent ? currentTextProgress : '');
-                            if (!textToShow) return null;
-                            
-                            return (
-                              <div key={`text-${index}`} className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words">
-                                {linkifyAndMarkdown(textToShow)}
-                                {isCurrent && isTypingText && <span className="animate-pulse">|</span>}
-                              </div>
-                            );
-                          }
-                          
-                          if (item.type === 'event' && isCompleted) {
-                            return (
-                              <div 
-                                key={`event-${index}`} 
-                                className="mt-3 animate-fade-in"
-                              >
-                                <EventCard event={item.data} />
-                              </div>
-                            );
-                          }
-                          
-                          if (item.type === 'place' && isCompleted) {
-                            return (
-                              <div 
-                                key={`place-${index}`} 
-                                className="mt-3 animate-fade-in"
-                              >
-                                <PlaceCard place={item.data} />
-                              </div>
-                            );
-                          }
-                          
-                          return null;
+                        {linkifyAndMarkdown(contentToDisplay)}
+                        {typewriterIsTyping && <span className="animate-pulse">|</span>}
+                      </div>
+                    )}
+                    {message.events && message.events.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {message.events.map((event, index) => {
+                          const shouldShow = index < visibleCards;
+                          return (
+                            <div
+                              key={`${message.id}-event-${index}`}
+                              className={`transition-all duration-500 ${
+                                shouldShow 
+                                  ? 'opacity-100 translate-y-0' 
+                                  : 'opacity-0 translate-y-4'
+                              }`}
+                              style={{ display: shouldShow ? 'block' : 'none' }}
+                            >
+                              <EventCard event={event} />
+                            </div>
+                          );
                         })}
                       </div>
-                    ) : (
-                      /* Fallback for messages without sequential content */
-                      <>
-                        {(message.content && message.content.trim() !== "") && (
-                          <div className="text-sm sm:text-base leading-relaxed whitespace-pre-line break-words">
-                            {linkifyAndMarkdown(message.content)}
-                          </div>
-                        )}
-                      </>
                     )}
-                    
+                    {message.placeCards && message.placeCards.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {message.placeCards.map((place, index) => {
+                          const cardIndex = (message.events?.length || 0) + index;
+                          const shouldShow = cardIndex < visibleCards;
+                          return (
+                            <div
+                              key={`${message.id}-place-${place.id}`}
+                              className={`transition-all duration-500 ${
+                                shouldShow 
+                                  ? 'opacity-100 translate-y-0' 
+                                  : 'opacity-0 translate-y-4'
+                              }`}
+                              style={{ display: shouldShow ? 'block' : 'none' }}
+                            >
+                              <PlaceCard place={place} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
                       <p className="text-muted-foreground text-sm">Sin respuesta</p>
                     )}
