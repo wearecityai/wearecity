@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Bot, Download, ExternalLink, Plus, ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Building2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
@@ -19,6 +20,7 @@ interface ChatMessageProps {
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents }) => {
+  const { t } = useTranslation();
   const isUser = message.role === MessageRole.User;
   const timestamp = new Date(message.timestamp);
 
@@ -118,17 +120,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const getLoadingMessage = (loadingType?: string): string => {
     switch (loadingType) {
       case 'events':
-        return 'Buscando eventos...';
+        return t('loading.events', { defaultValue: 'Searching events...' });
       case 'places':
-        return 'Buscando lugares...';
+        return t('loading.places', { defaultValue: 'Searching places...' });
       case 'restaurants':
-        return 'Buscando restaurantes...';
+        return t('loading.restaurants', { defaultValue: 'Searching restaurants...' });
       case 'information':
-        return 'Buscando información...';
+        return t('loading.information', { defaultValue: 'Searching information...' });
       case 'procedures':
-        return 'Buscando trámites...';
+        return t('loading.procedures', { defaultValue: 'Searching procedures...' });
       default:
-        return 'Un momento...';
+        return t('loading.wait', { defaultValue: 'One moment...' });
     }
   };
 
@@ -168,7 +170,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 ) : message.error ? (
                   <Card className="border-destructive bg-destructive/10">
                     <CardContent className="p-3">
-                      <p className="font-semibold text-destructive">Error:</p>
+                      <p className="font-semibold text-destructive">{t('common.error')}:</p>
                       <p className="text-sm text-destructive">{message.error}</p>
                     </CardContent>
                   </Card>
@@ -224,7 +226,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                        </div>
                      )}
                     {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
-                      <p className="text-muted-foreground text-sm">Sin respuesta</p>
+                      <p className="text-muted-foreground text-sm">{t('common.error')}</p>
                     )}
                   </>
                 )}

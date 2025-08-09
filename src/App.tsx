@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
+import { useAutoLanguage } from '@/hooks/useAutoLanguage';
 
 import PersistentLayout from '@/components/PersistentLayout';
 import AuthPage from '@/components/auth/AuthPage';
@@ -10,6 +11,7 @@ import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
 
 const App = () => {
+  useAutoLanguage();
   return (
     <AppErrorBoundary 
       onError={(error, errorInfo) => {

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useTranslation } from 'react-i18next'
 import {
   MoreHorizontal,
   LogOut,
@@ -25,13 +26,14 @@ import { useNavigate } from "react-router-dom"
 export function NavActions() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     try {
       await signOut();
       navigate('/auth');
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error('Error signing out:', error);
     }
   };
 
@@ -69,19 +71,19 @@ export function NavActions() {
             <>
               <DropdownMenuItem className="flex flex-col items-start p-3">
                 <div className="font-medium">{user.email}</div>
-                <div className="text-xs text-muted-foreground">Usuario</div>
+                <div className="text-xs text-muted-foreground">{t('auth.user', { defaultValue: 'User' })}</div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Cerrar sesión</span>
+                <span>{t('auth.logout')}</span>
               </DropdownMenuItem>
             </>
           ) : (
             <>
               <DropdownMenuItem onClick={handleSignIn}>
                 <User className="mr-2 h-4 w-4" />
-                <span>Iniciar sesión</span>
+                <span>{t('auth.login')}</span>
               </DropdownMenuItem>
             </>
           )}

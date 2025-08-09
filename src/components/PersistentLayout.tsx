@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useApiInitialization } from '@/hooks/useApiInitialization';
@@ -37,6 +38,7 @@ interface Profile {
 }
 
 const PersistentLayout: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
@@ -413,7 +415,7 @@ const PersistentLayout: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex items-center gap-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-          <span className="text-muted-foreground">Cargando...</span>
+          <span className="text-muted-foreground">{t('common.loading')}</span>
         </div>
       </div>
     );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { User, Settings, LogOut, Shield, LogIn } from 'lucide-react';
 const UserButton = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -39,7 +41,7 @@ const UserButton = () => {
     if (profile?.first_name && profile?.last_name) {
       return `${profile.first_name} ${profile.last_name}`;
     }
-    return user?.email || 'Usuario';
+    return user?.email || t('auth.user', { defaultValue: 'User' });
   };
 
   const getRoleDisplay = () => {
@@ -51,7 +53,7 @@ const UserButton = () => {
     return (
       <Button variant="outline" size="sm" onClick={handleLogin}>
         <LogIn className="w-4 h-4 mr-2" />
-        Iniciar Sesión
+        {t('auth.login')}
       </Button>
     );
   }
@@ -79,7 +81,7 @@ const UserButton = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="w-4 h-4 mr-2" />
-          Cerrar Sesión
+          {t('auth.logout')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

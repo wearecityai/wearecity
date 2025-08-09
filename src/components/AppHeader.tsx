@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Menu, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -23,6 +24,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   isAuthenticated = false,
   onLogin
 }) => {
+  const { t } = useTranslation();
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const openUserMenu = Boolean(userMenuAnchorEl);
 
@@ -53,7 +55,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           {/* Centered title */}
           <div className="absolute left-0 right-0 flex justify-center pointer-events-none">
             <h1 className="text-lg font-bold tracking-wide text-primary pointer-events-auto">
-              CityChat
+              {t('chat.title')}
             </h1>
           </div>
           

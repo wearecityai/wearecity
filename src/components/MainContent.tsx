@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ChatContainer, { RecommendedPromptsBar } from './ChatContainer';
 import ChatInput from './ChatInput';
 import { ChatMain, ChatMessages } from './ui/chat-layout';
@@ -56,6 +57,7 @@ const MainContent: React.FC<MainContentProps> = ({
   shouldShowChatContainer = true,
   handleToggleLocation
 }) => {
+  const { t } = useTranslation();
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const [hasUserSentFirstMessage, setHasUserSentFirstMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -289,8 +291,12 @@ const MainContent: React.FC<MainContentProps> = ({
             <div className={`${isMobile ? 'max-w-sm' : 'max-w-md'}`}>
               <EmptyState
                 icon={getCityAvatar()}
-                title={`¡Hola! Soy el asistente de ${chatConfig?.restrictedCity?.name || 'tu ciudad'}`}
-                description="¿En qué puedo ayudarte hoy? Puedes preguntarme sobre servicios, eventos, trámites y mucho más."
+                title={t('chat.greeting', {
+                  name: chatConfig?.restrictedCity?.name
+                    ? t('chat.assistantOf', { city: chatConfig.restrictedCity.name, defaultValue: 'the assistant of {{city}}' })
+                    : t('chat.defaultAssistant')
+                })}
+                description={`${t('chat.howCanIHelp')} ${t('chat.helpExamples', { defaultValue: 'You can ask me about services, events, procedures, and much more.' })}`}
                 className={`${isMobile ? 'p-4 space-y-3' : 'p-8 space-y-4'}`}
               />
             </div>

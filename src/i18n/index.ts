@@ -30,7 +30,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    debug: true, // Activar debug temporalmente
+    debug: false,
     
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
@@ -46,27 +46,5 @@ i18n
       useSuspense: false,
     },
   });
-
-// Forzar limpieza y detección automática
-if (typeof window !== 'undefined') {
-  // Limpiar cualquier configuración previa
-  localStorage.removeItem('i18nextLng');
-  
-  // Debug información
-  console.log('🌍 Browser language:', navigator.language);
-  console.log('🌍 Browser languages:', navigator.languages);
-  
-  // Forzar detección del idioma del navegador
-  const browserLang = navigator.language.split('-')[0];
-  const supportedLanguages = ['es', 'en', 'ca', 'fr', 'de', 'it', 'pt', 'nl'];
-  
-  if (supportedLanguages.includes(browserLang)) {
-    console.log('🌍 Setting language to:', browserLang);
-    // Forzar el cambio inmediatamente
-    setTimeout(() => {
-      i18n.changeLanguage(browserLang);
-    }, 100);
-  }
-}
 
 export default i18n;

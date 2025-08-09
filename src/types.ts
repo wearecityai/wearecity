@@ -18,6 +18,8 @@ export interface GroundingMetadata {
 
 export interface EventInfo {
   title: string;
+  // Optional per-locale titles, e.g., { en: "Title in English", es: "Título en español" }
+  titleTranslations?: Record<string, string>;
   date: string; // Expected format: YYYY-MM-DD (Start date for multi-day events)
   endDate?: string; // Expected format: YYYY-MM-DD (End date for multi-day events, optional)
   time?: string; // Expected format: HH:mm

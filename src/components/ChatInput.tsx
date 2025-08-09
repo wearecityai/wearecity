@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Mic, MicOff, Plus, Check, MapPin, Loader2, Navigation, ArrowUp, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -52,6 +53,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   chatConfig
 }) => {
   const [inputValue, setInputValue] = useState('');
+  const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const transcribedTextRef = useRef<string>('');
 
@@ -98,7 +100,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     setIsSpeechApiSupported(!!SpeechRecognitionAPI);
-    if (!SpeechRecognitionAPI) console.warn("Speech Recognition API no es soportada.");
+    if (!SpeechRecognitionAPI) console.warn('Speech Recognition API not supported.');
     return () => {
       if (stopDelayTimerRef.current) window.clearTimeout(stopDelayTimerRef.current);
       if (speechRecognitionRef.current) {
@@ -202,7 +204,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
     if (isLoading) return;
     if (!isSpeechApiSupported) { 
-      setSpeechError("Reconocimiento de voz no soportado."); 
+      setSpeechError(t('chatInput.recordingNotSupported', { defaultValue: 'Recording not supported' })); 
       return; 
     }
     try {
@@ -212,7 +214,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       fullCleanupAndStopVisualizer(); 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
-      setSpeechError("Escuchando..."); 
+      setSpeechError(t('chatInput.listening', { defaultValue: 'Listening...' })); 
       setInputValue(''); 
       transcribedTextRef.current = '';
       setIsRecording(true); 
@@ -255,18 +257,18 @@ const ChatInput: React.FC<ChatInputProps> = ({
         }
         transcribedTextRef.current = finalTranscript.trim();
         setInputValue((finalTranscript + interimTranscript).trim());
-        if (interimTranscript) setSpeechError("Procesando..."); 
-        else setSpeechError("Escuchando...");
+        if (interimTranscript) setSpeechError(t('chatInput.processing', { defaultValue: 'Processing...' })); 
+        else setSpeechError(t('chatInput.listening', { defaultValue: 'Listening...' }));
         if (stopDelayTimerRef.current) window.clearTimeout(stopDelayTimerRef.current);
       };
       
       speechRecognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error, event.message);
-        let errorMsg = "Error de reconocimiento.";
-        if (event.error === 'no-speech') errorMsg = "No se detectó voz. Intenta de nuevo.";
-        else if (event.error === 'audio-capture') errorMsg = "Error al capturar audio.";
-        else if (event.error === 'not-allowed') errorMsg = "Permiso de micrófono denegado.";
-        else if (event.error === 'network') errorMsg = "Error de red en reconocimiento.";
+        let errorMsg = t('chatInput.recognitionError', { defaultValue: 'Recognition error.' });
+        if (event.error === 'no-speech') errorMsg = t('chatInput.noSpeech', { defaultValue: 'No speech detected. Try again.' });
+        else if (event.error === 'audio-capture') errorMsg = t('chatInput.audioCaptureError', { defaultValue: 'Audio capture error.' });
+        else if (event.error === 'not-allowed') errorMsg = t('chatInput.micPermissionDenied', { defaultValue: 'Microphone permission denied.' });
+        else if (event.error === 'network') errorMsg = t('chatInput.networkError', { defaultValue: 'Network error.' });
         setSpeechError(errorMsg);
       };
       
@@ -282,14 +284,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
         }, transcribedTextRef.current.trim() ? 1000 : 300); 
       };
       
-      speechRecognitionRef.current.onaudiostart = () => setSpeechError("Escuchando...");
-      speechRecognitionRef.current.onspeechstart = () => setSpeechError("Habla detectada...");
-      speechRecognitionRef.current.onspeechend = () => { setSpeechError("Fin de habla detectado, procesando..."); };
-      speechRecognitionRef.current.onstart = () => setSpeechError("Reconocimiento iniciado...");
+      speechRecognitionRef.current.onaudiostart = () => setSpeechError(t('chatInput.listening', { defaultValue: 'Listening...' }));
+      speechRecognitionRef.current.onspeechstart = () => setSpeechError(t('chatInput.processing', { defaultValue: 'Processing...' }));
+      speechRecognitionRef.current.onspeechend = () => { setSpeechError(t('chatInput.processing', { defaultValue: 'Processing...' })); };
+      speechRecognitionRef.current.onstart = () => setSpeechError(t('chatInput.listening', { defaultValue: 'Listening...' }));
       speechRecognitionRef.current.start();
     } catch (err: any) {
       console.error('Error starting recording:', err);
-      setSpeechError(`Error al iniciar grabación: ${err.message}`);
+      setSpeechError(`${t('chatInput.recognitionError', { defaultValue: 'Recognition error.' })} ${err.message}`);
       fullCleanupAndStopVisualizer(); 
       setIsRecording(false);
     }
@@ -303,7 +305,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     } else { 
       handleActualSpeechRecognitionEnd(); 
     }
-    setSpeechError(prev => (prev && prev !== "Escuchando..." && prev !== "Procesando...") ? prev : "Finalizando...");
+    setSpeechError(prev => (prev && prev !== t('chatInput.listening', { defaultValue: 'Listening...' }) && prev !== t('chatInput.processing', { defaultValue: 'Processing...' })) ? prev : '...');
   };
 
   const toggleRecording = () => { 
@@ -313,8 +315,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const placeholder = isRecording
-    ? (speechError || `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`)
-    : `Escribe tu consulta${chatConfig?.restrictedCity?.name ? ' sobre ' + chatConfig.restrictedCity.name : ''}`;
+    ? (speechError || (chatConfig?.restrictedCity?.name 
+        ? t('chatInput.placeholderAbout', { city: chatConfig.restrictedCity.name, defaultValue: 'Type your message about {{city}}...' })
+        : t('chat.placeholder')))
+    : (chatConfig?.restrictedCity?.name 
+        ? t('chatInput.placeholderAbout', { city: chatConfig.restrictedCity.name, defaultValue: 'Type your message about {{city}}...' })
+        : t('chat.placeholder'));
 
   return (
     <>
@@ -335,7 +341,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                          <span className="text-sm sm:text-base md:text-lg text-muted-foreground">Escuchando</span>
+                          <span className="text-sm sm:text-base md:text-lg text-muted-foreground">{t('chatInput.listening', { defaultValue: 'Listening...' })}</span>
                         </div>
                         <div className="flex-1 flex items-center gap-0.5 min-w-0">
                           {[...Array(170)].map((_, i) => {
@@ -401,7 +407,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         className="h-8 sm:h-7 px-3 sm:px-3 rounded-full border border-border/50 bg-background hover:bg-muted/50"
                       >
                         <Navigation className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span className="text-sm sm:text-sm font-medium">Ubicación</span>
+                         <span className="text-sm sm:text-sm font-medium">{t('chatInput.location', { defaultValue: 'Location' })}</span>
                       </Toggle>
                     </div>
                     
@@ -424,7 +430,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 )}
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Enviar Mensaje</TooltipContent>
+                             <TooltipContent>{t('chatInput.sendMessage', { defaultValue: 'Send message' })}</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       ) : (
@@ -446,7 +452,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"}
+                               {isSpeechApiSupported ? t('chatInput.startRecording', { defaultValue: 'Start recording' }) : t('chatInput.recordingNotSupported', { defaultValue: 'Recording not supported' })}
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -485,7 +491,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       {/* Location info */}
                       <div className="flex items-center gap-1">
                         <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-blue-700" />
-                        <span className="text-sm sm:text-sm font-medium text-blue-700">Ubicación activa</span>
+                         <span className="text-sm sm:text-sm font-medium text-blue-700">{t('chatInput.locationActive', { defaultValue: 'Location active' })}</span>
                       </div>
                     </div>
                     
@@ -508,7 +514,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 )}
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Enviar Mensaje</TooltipContent>
+                             <TooltipContent>{t('chatInput.sendMessage', { defaultValue: 'Send message' })}</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       ) : (
@@ -530,7 +536,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {isSpeechApiSupported ? "Iniciar Grabación" : "Grabación no soportada"}
+                               {isSpeechApiSupported ? t('chatInput.startRecording', { defaultValue: 'Start recording' }) : t('chatInput.recordingNotSupported', { defaultValue: 'Recording not supported' })}
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

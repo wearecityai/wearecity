@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 
 
 export const PublicChatPage: React.FC = () => {
+  const { t } = useTranslation();
   const { chatSlug } = useParams<{ chatSlug: string }>();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
@@ -177,7 +179,7 @@ export const PublicChatPage: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin mr-2" />
-            <span>Cargando chat...</span>
+            <span>{t('publicChat.loadingChat', { defaultValue: 'Loading chat...' })}</span>
           </CardContent>
         </Card>
       </div>
@@ -191,12 +193,12 @@ export const PublicChatPage: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="text-center p-8">
             <div className="text-6xl mb-4">🔍</div>
-            <h2 className="text-2xl font-bold mb-2">Slug de chat no válido</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('publicChat.invalidSlugTitle', { defaultValue: 'Invalid chat slug' })}</h2>
             <p className="text-muted-foreground mb-4">
-              La URL del chat no es válida. Verifica que el enlace sea correcto.
+              {t('publicChat.invalidSlugDesc', { defaultValue: 'The chat URL is invalid. Please verify the link.' })}
             </p>
             <Button onClick={() => window.location.href = '/'} variant="outline">
-              Volver al inicio
+              {t('publicChat.backHome', { defaultValue: 'Back to home' })}
             </Button>
           </CardContent>
         </Card>
@@ -210,12 +212,12 @@ export const PublicChatPage: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="text-center p-8">
             <div className="text-6xl mb-4">🤖</div>
-            <h2 className="text-2xl font-bold mb-2">Ciudad no encontrada</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('publicChat.cityNotFoundTitle', { defaultValue: 'City not found' })}</h2>
             <p className="text-muted-foreground mb-4">
-              La ciudad "{chatSlug}" no existe o no está disponible públicamente.
+              {t('publicChat.cityNotFoundDesc', { city: chatSlug, defaultValue: 'The city "{{city}}" does not exist or is not publicly available.' })}
             </p>
             <Button onClick={() => window.location.href = '/'} variant="outline">
-              Volver al inicio
+              {t('publicChat.backHome', { defaultValue: 'Back to home' })}
             </Button>
           </CardContent>
         </Card>

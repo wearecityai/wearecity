@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, Clock, MapPin, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Button } from './ui/button';
@@ -12,7 +13,13 @@ interface EventCardProps {
 
 type LinkStatus = 'idle' | 'loading' | 'valid' | 'notFound' | 'serverError' | 'networkOrCorsError';
 
-const spanishMonthAbbreviations = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+const MONTH_ABBRS: Record<string, string[]> = {
+  es: ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"],
+  en: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"],
+  ca: ["GEN", "FEB", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OCT", "NOV", "DES"],
+  fr: ["JAN", "FÉV", "MAR", "AVR", "MAI", "JUI", "JUL", "AOÛ", "SEP", "OCT", "NOV", "DÉC"],
+  de: ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"]
+};
 
 interface EventDateDisplayParts {
   day: string;
@@ -25,6 +32,7 @@ interface EventDateDisplayParts {
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const [linkStatus, setLinkStatus] = useState<LinkStatus>('idle');
+  const { i18n, t } = useTranslation();
 
   useEffect(() => {
     if (event.sourceUrl) {
@@ -60,6 +68,8 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const parseEventDate = (dateStr: string): EventDateDisplayParts | null => {
     try {
       const cleanDateStr = dateStr.trim();
+      const lang = (i18n.language || 'es').split('-')[0];
+      const abbrs = MONTH_ABBRS[lang] || MONTH_ABBRS.es;
       
       // Parse ISO format (YYYY-MM-DD) which is the standard from backend
       const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -72,7 +82,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         if (monthIndex >= 0 && monthIndex < 12) {
           return {
             day: parseInt(day, 10).toString(),
-            monthAbbr: spanishMonthAbbreviations[monthIndex],
+            monthAbbr: abbrs[monthIndex],
             year
           };
         }
@@ -90,10 +100,10 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         if (startMonthIndex >= 0 && startMonthIndex < 12 && endMonthIndex >= 0 && endMonthIndex < 12) {
           return {
             day: startDay.padStart(2, '0'),
-            monthAbbr: spanishMonthAbbreviations[startMonthIndex],
+            monthAbbr: abbrs[startMonthIndex],
             year: startYear !== endYear ? startYear : undefined,
             endDay: endDay.padStart(2, '0'),
-            endMonthAbbr: spanishMonthAbbreviations[endMonthIndex],
+            endMonthAbbr: abbrs[endMonthIndex],
             endYear: endYear
           };
         }
@@ -108,7 +118,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           if (monthIndex >= 0 && monthIndex < 12) {
             return {
               day: day.padStart(2, '0'),
-              monthAbbr: spanishMonthAbbreviations[monthIndex],
+              monthAbbr: abbrs[monthIndex],
               year
             };
           }
@@ -182,7 +192,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
       <CardHeader className="pb-3">
         <div className="space-y-2">
           <h3 className="font-semibold text-sm leading-tight line-clamp-2">
-            {event.title}
+            {(() => {
+              const lang = (i18n.language || 'es').split('-')[0];
+              const translated = event.titleTranslations?.[lang];
+              return translated || event.title;
+            })()}
           </h3>
           
           <div className="flex flex-wrap gap-2 text-xs">
@@ -229,17 +243,17 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                       className="flex items-center justify-center space-x-2"
                     >
                       {getLinkStatusIcon()}
-                      <span>Ver detalles</span>
+                      <span>{t('events.viewMore', { defaultValue: 'View more' })}</span>
                     </a>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {linkStatus === 'loading' && 'Verificando enlace...'}
-                  {linkStatus === 'valid' && 'Enlace verificado'}
-                  {linkStatus === 'notFound' && 'Enlace no encontrado (404)'}
-                  {linkStatus === 'serverError' && 'Error del servidor'}
-                  {linkStatus === 'networkOrCorsError' && 'No se pudo verificar el enlace'}
-                  {linkStatus === 'idle' && 'Abrir enlace'}
+                  {linkStatus === 'loading' && t('events.checkingLink', { defaultValue: 'Checking link...' })}
+                  {linkStatus === 'valid' && t('events.linkVerified', { defaultValue: 'Link verified' })}
+                  {linkStatus === 'notFound' && t('events.linkNotFound', { defaultValue: 'Link not found (404)' })}
+                  {linkStatus === 'serverError' && t('events.serverError', { defaultValue: 'Server error' })}
+                  {linkStatus === 'networkOrCorsError' && t('events.linkCheckFailed', { defaultValue: 'Could not verify link' })}
+                  {linkStatus === 'idle' && t('events.openLink', { defaultValue: 'Open link' })}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

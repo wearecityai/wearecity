@@ -116,11 +116,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
               <div className="flex justify-center mb-2">
                 <MapPin className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-lg">Información Local</CardTitle>
+              <CardTitle className="text-lg">{t('features.localInfo', { defaultValue: 'Local Information' })}</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Accede a información actualizada de tu municipio
+                {t('features.localInfoDesc', { defaultValue: 'Access up-to-date information about your municipality' })}
               </CardDescription>
             </CardContent>
           </Card>
@@ -130,11 +130,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
               <div className="flex justify-center mb-2">
                 <Users className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-lg">Servicio Ciudadano</CardTitle>
+              <CardTitle className="text-lg">{t('features.citizenService', { defaultValue: 'Citizen Service' })}</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Resuelve dudas y gestiona trámites de forma sencilla
+                {t('features.citizenServiceDesc', { defaultValue: 'Resolve questions and manage procedures easily' })}
               </CardDescription>
             </CardContent>
           </Card>
@@ -143,12 +143,12 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
         {/* City Selection */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              Selecciona tu ciudad
+                {t('onboarding.selectCity', { defaultValue: 'Select your city' })}
             </CardTitle>
             <CardDescription>
-              Encuentra el asistente virtual de tu municipio para comenzar
+              {t('onboarding.findAssistant', { defaultValue: "Find your municipality's virtual assistant to start" })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -156,7 +156,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar ciudad..."
+                placeholder={t('onboarding.searchPlaceholder', { defaultValue: 'Search city...' })}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -168,12 +168,12 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
               <div className="text-center py-8">
                 <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
-                  {searchTerm ? 'No se encontraron ciudades' : 'No hay ciudades disponibles'}
+                  {searchTerm ? t('onboarding.noCitiesFound', { defaultValue: 'No cities found' }) : t('onboarding.noCitiesAvailable', { defaultValue: 'No cities available' })}
                 </h3>
                 <p className="text-muted-foreground">
                   {searchTerm 
-                    ? 'Intenta con otro término de búsqueda'
-                    : 'Pronto estarán disponibles más ciudades'
+                    ? t('onboarding.tryAnotherSearch', { defaultValue: 'Try another search term' })
+                    : t('onboarding.moreCitiesSoon', { defaultValue: 'More cities will be available soon' })
                   }
                 </p>
               </div>
@@ -200,7 +200,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
                         </div>
                         {selectedCity?.id === city.id && (
                           <Badge variant="secondary" className="ml-2">
-                            Seleccionada
+                            {t('onboarding.selected', { defaultValue: 'Selected' })}
                           </Badge>
                         )}
                       </div>
@@ -219,14 +219,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
             onClick={handleSkip}
             className="flex items-center gap-2"
           >
-            Continuar sin seleccionar
+            {t('onboarding.continueWithoutSelecting', { defaultValue: 'Continue without selecting' })}
           </Button>
           <Button 
             onClick={handleContinue}
             disabled={!selectedCity}
             className="flex items-center gap-2"
           >
-            Continuar con {selectedCity?.name}
+            {t('onboarding.continueWithCity', { city: selectedCity?.name, defaultValue: 'Continue with {{city}}' })}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

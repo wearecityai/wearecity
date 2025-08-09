@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { City } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
 export const CityChat: React.FC = () => {
+  const { t } = useTranslation();
   const { citySlug } = useParams<{ citySlug: string }>();
   const { loadCityBySlug } = useCities();
   const { user, profile } = useAuth();
@@ -21,7 +23,7 @@ export const CityChat: React.FC = () => {
   useEffect(() => {
     const loadCity = async () => {
       if (!citySlug) {
-        setError('Slug de ciudad no válido');
+        setError(t('publicChat.invalidSlugTitle', { defaultValue: 'Invalid chat slug' }));
         setIsLoading(false);
         return;
       }
@@ -31,7 +33,7 @@ export const CityChat: React.FC = () => {
         const cityData = await loadCityBySlug(citySlug);
         
         if (!cityData) {
-          setError('Ciudad no encontrada');
+          setError(t('publicChat.cityNotFoundTitle', { defaultValue: 'City not found' }));
           setIsLoading(false);
           return;
         }
@@ -47,13 +49,13 @@ export const CityChat: React.FC = () => {
 
         // Si es privada, verificar si el usuario está autenticado y es el admin
         if (!user) {
-          setError('Esta ciudad es privada. Necesitas iniciar sesión para acceder.');
+          setError(t('city.privateNeedsLogin', { defaultValue: 'This city is private. You must log in to access.' }));
           setIsLoading(false);
           return;
         }
 
         if (user.id !== cityData.admin_user_id) {
-          setError('No tienes permisos para acceder a esta ciudad privada.');
+          setError(t('city.privateNoPermission', { defaultValue: 'You do not have permissions to access this private city.' }));
           setIsLoading(false);
           return;
         }
@@ -64,7 +66,7 @@ export const CityChat: React.FC = () => {
 
       } catch (err) {
         console.error('Error loading city:', err);
-        setError('Error al cargar la ciudad');
+        setError(t('city.errorLoading', { defaultValue: 'Error loading city' }));
         setIsLoading(false);
       }
     };
@@ -82,7 +84,7 @@ export const CityChat: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin mr-2" />
-            <span>Verificando acceso...</span>
+            <span>{t('city.verifyingAccess', { defaultValue: 'Verifying access...' })}</span>
           </CardContent>
         </Card>
       </div>
@@ -95,17 +97,17 @@ export const CityChat: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="text-center p-8">
             <div className="text-6xl mb-4">🏙️</div>
-            <h2 className="text-2xl font-bold mb-2">Acceso Denegado</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('city.accessDenied', { defaultValue: 'Access Denied' })}</h2>
             <p className="text-muted-foreground mb-4">
               {error || 'La ciudad no existe o no tienes permisos para acceder.'}
             </p>
             {!user && (
               <Button onClick={() => window.location.href = '/auth'} className="mr-2">
-                Iniciar Sesión
+                {t('auth.login')}
               </Button>
             )}
             <Button variant="outline" onClick={() => window.location.href = '/'}>
-              Volver al inicio
+              {t('errors.backToHome')}
             </Button>
           </CardContent>
         </Card>
@@ -121,7 +123,7 @@ export const CityChat: React.FC = () => {
         <Card className="max-w-md mx-auto">
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin mr-2" />
-            <span>Redirigiendo al chat...</span>
+            <span>{t('city.redirecting', { defaultValue: 'Redirecting to chat...' })}</span>
           </CardContent>
         </Card>
       </div>
@@ -137,10 +139,10 @@ export const CityChat: React.FC = () => {
             <CardHeader className="text-center">
               <div className="text-6xl mb-4">🏙️</div>
               <CardTitle className="text-3xl mb-2">
-                Bienvenido a {city.name}
+                {t('city.welcomeTo', { city: city.name, defaultValue: 'Welcome to {{city}}' })}
               </CardTitle>
               <p className="text-muted-foreground text-lg">
-                Esta es una ciudad privada. Solo el administrador puede acceder al chat.
+                {t('city.privateInfo', { defaultValue: 'This is a private city. Only the administrator can access the chat.' })}
               </p>
             </CardHeader>
           </Card>
@@ -150,19 +152,18 @@ export const CityChat: React.FC = () => {
             <CardContent className="text-center p-8">
               <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-semibold mb-4">
-                Ciudad Privada
+                {t('city.privateCity', { defaultValue: 'Private City' })}
               </h3>
               <p className="text-muted-foreground mb-6">
-                Esta ciudad está configurada como privada. Solo el administrador 
-                puede acceder al chat y modificar la configuración.
+                {t('city.privateCityDesc', { defaultValue: 'This city is configured as private. Only the administrator can access the chat and modify settings.' })}
               </p>
               {!user ? (
                 <Button onClick={() => window.location.href = '/auth'}>
-                  Iniciar Sesión
+                  {t('auth.login')}
                 </Button>
               ) : (
                 <Button variant="outline" onClick={() => window.location.href = '/'}>
-                  Volver al inicio
+                  {t('errors.backToHome')}
                 </Button>
               )}
             </CardContent>
@@ -173,9 +174,9 @@ export const CityChat: React.FC = () => {
             <Card>
               <CardContent className="text-center p-6">
                 <MapPin className="h-8 w-8 mx-auto mb-3 text-primary" />
-                <h3 className="font-semibold mb-2">Información Local</h3>
+                <h3 className="font-semibold mb-2">{t('features.localInfo', { defaultValue: 'Local Information' })}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Encuentra lugares, servicios y puntos de interés en {city.name}
+                  {t('city.findPlaces', { city: city.name, defaultValue: 'Find places, services and points of interest in {{city}}' })}
                 </p>
               </CardContent>
             </Card>
@@ -183,9 +184,9 @@ export const CityChat: React.FC = () => {
             <Card>
               <CardContent className="text-center p-6">
                 <Users className="h-8 w-8 mx-auto mb-3 text-primary" />
-                <h3 className="font-semibold mb-2">Servicios Públicos</h3>
+                <h3 className="font-semibold mb-2">{t('city.publicServices', { defaultValue: 'Public Services' })}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Accede a información sobre trámites y servicios municipales
+                  {t('city.accessMunicipalInfo', { defaultValue: 'Access information about municipal procedures and services' })}
                 </p>
               </CardContent>
             </Card>
@@ -193,9 +194,9 @@ export const CityChat: React.FC = () => {
             <Card>
               <CardContent className="text-center p-6">
                 <MessageCircle className="h-8 w-8 mx-auto mb-3 text-primary" />
-                <h3 className="font-semibold mb-2">Asistencia 24/7</h3>
+                <h3 className="font-semibold mb-2">{t('city.assistance247', { defaultValue: '24/7 Assistance' })}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Obtén ayuda inmediata con nuestro asistente virtual
+                  {t('city.instantHelp', { defaultValue: 'Get immediate help with our virtual assistant' })}
                 </p>
               </CardContent>
             </Card>
@@ -204,8 +205,7 @@ export const CityChat: React.FC = () => {
           {/* Footer Info */}
           <div className="text-center text-sm text-muted-foreground mt-8">
             <p>
-              Esta es la página de información de {city.name}. 
-              El chat está disponible solo para el administrador.
+              {t('city.infoPage', { city: city.name, defaultValue: 'This is the info page for {{city}}. The chat is only available to the administrator.' })}
             </p>
           </div>
         </div>

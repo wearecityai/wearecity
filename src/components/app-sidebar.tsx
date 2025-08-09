@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import {
   MessageCircle,
@@ -85,6 +86,7 @@ export function AppSidebar({
   isInSearchMode = false,
   ...props 
 }: AppSidebarProps) {
+  const { t } = useTranslation();
   const [starUpdateTrigger, setStarUpdateTrigger] = React.useState(0);
   const navigate = useNavigate()
   const location = useLocation()
@@ -193,7 +195,7 @@ export function AppSidebar({
     } catch (error) {
       console.error('Error obteniendo información de ubicación:', error)
       setLocationInfo({
-        city: 'Ubicación actual',
+        city: t('geolocation.currentLocation', { defaultValue: 'Current location' }),
         address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
         loading: false
       })
@@ -241,9 +243,9 @@ export function AppSidebar({
       return locationInfo.city
     }
     if (userLocation) {
-      return "Ubicación actual"
+      return t('geolocation.currentLocation', { defaultValue: 'Current location' })
     }
-    return "Ubicación desconocida"
+    return t('geolocation.unknownLocation', { defaultValue: 'Unknown location' })
   }
 
   const getDisplayAddress = () => {
@@ -256,7 +258,7 @@ export function AppSidebar({
     if (geolocationStatus === 'success' && userLocation) {
       return `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`
     }
-    return "Dirección no disponible"
+    return t('geolocation.addressNotAvailable', { defaultValue: 'Address not available' })
   }
 
   // Obtener la ciudad actual de la URL
@@ -306,11 +308,11 @@ export function AppSidebar({
                   disabled={isInSearchMode}
                   className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
                   size="sm"
-                  tooltip={isInSearchMode ? "Ya estás en modo búsqueda" : "Descubrir ciudades"}
+                  tooltip={isInSearchMode ? t('sidebar.alreadyInSearchMode', { defaultValue: 'You are already in search mode' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
                 >
                   <Compass className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
                   <span className="group-data-[collapsible=icon]:hidden">
-                    {isInSearchMode ? "Buscando ciudades..." : "Descubrir ciudades"}
+                    {isInSearchMode ? t('sidebar.searchingCities', { defaultValue: 'Searching cities...' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
                   </span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -355,7 +357,7 @@ export function AppSidebar({
                       return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
                     })()
                   )} />
-                  <span className="group-data-[collapsible=icon]:hidden">Ciudad predeterminada</span>
+                   <span className="group-data-[collapsible=icon]:hidden">{t('sidebar.defaultCity', { defaultValue: 'Default city' })}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -373,15 +375,15 @@ export function AppSidebar({
               }}
               className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
               size="sm"
-              tooltip="Nuevo chat"
+              tooltip={t('chat.newChat', { defaultValue: 'New Chat' })}
             >
               <Edit className="h-4 w-4" />
-              <span className="group-data-[collapsible=icon]:hidden">Nuevo chat</span>
+              <span className="group-data-[collapsible=icon]:hidden">{t('chat.newChat', { defaultValue: 'New Chat' })}</span>
             </SidebarMenuButton>
             </SidebarMenuItem>
             <div className="group-data-[collapsible=icon]:hidden flex-1 flex flex-col min-h-0">
               {chatTitles.length > 0 && (
-                <SidebarGroupLabel className="flex-shrink-0">Conversaciones</SidebarGroupLabel>
+                <SidebarGroupLabel className="flex-shrink-0">{t('sidebar.conversations', { defaultValue: 'Conversations' })}</SidebarGroupLabel>
               )}
               <SidebarGroupContent className="flex-1 overflow-y-auto min-h-0 scrollbar-hide hover:scrollbar-default">
                 {chatTitles.length > 0 ? (
@@ -420,8 +422,7 @@ export function AppSidebar({
                     <div className="flex flex-col items-center text-center text-sidebar-foreground/60">
                       {getCityAvatar()}
                       <div className="text-sm mt-2">
-                        <div>Todavía no tienes</div>
-                        <div>conversaciones</div>
+                        <div>{t('sidebar.noConversationsYet', { defaultValue: 'You don\'t have conversations yet' })}</div>
                       </div>
                     </div>
                   </div>

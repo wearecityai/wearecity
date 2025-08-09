@@ -29,7 +29,7 @@ export function LoginForm() {
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          setError('Credenciales incorrectas. Verifica tu email y contraseña.')
+          setError(t('auth.invalidCredentials'))
         } else {
           setError(error.message)
         }
@@ -50,7 +50,7 @@ export function LoginForm() {
         }
       }
     } catch (err) {
-      setError('Error inesperado al iniciar sesión.')
+      setError(t('auth.unexpectedLoginError'))
     } finally {
       setIsLoading(false)
     }

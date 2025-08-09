@@ -57,9 +57,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             <AlertTriangle className="h-4 w-4" />
           )}
           <AlertTitle>
-            {isOfflineError ? 'Aviso de Conexión'
-            : isApiError ? 'Error de Configuración de API'
-            : 'Error'}
+            {isOfflineError ? t('errors.offlineNotice', { defaultValue: 'Connection notice' })
+            : isApiError ? t('errors.apiConfigError', { defaultValue: 'API configuration error' })
+            : t('common.error')}
           </AlertTitle>
           <AlertDescription>{appError}</AlertDescription>
         </Alert>
@@ -104,10 +104,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             {!user && onLogin && (
               <div className="mt-6">
                 <p className="text-sm text-muted-foreground mb-3">
-                  Para una experiencia personalizada, inicia sesión
+                  {t('chat.loginPrompt', { defaultValue: 'For a personalized experience, please log in' })}
                 </p>
                 <Button onClick={onLogin} variant="outline">
-                  Iniciar Sesión
+                  {t('auth.login')}
                 </Button>
               </div>
             )}
@@ -118,11 +118,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-primary rounded-full"></div>
                     <span className="text-sm font-medium">
-                      Especializado en {chatConfig.restrictedCity.name}
+                      {t('chat.specializedIn', { city: chatConfig.restrictedCity.name, defaultValue: 'Specialized in {{city}}' })}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Este asistente está configurado específicamente para ayudarte con información y servicios de {chatConfig.restrictedCity.name}.
+                    {t('chat.specializedDescription', { city: chatConfig.restrictedCity.name, defaultValue: 'This assistant is tailored to help with information and services in {{city}}.' })}
                   </p>
                 </CardContent>
               </Card>

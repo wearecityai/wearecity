@@ -30,7 +30,9 @@
     "dontHaveAccount": "Don't have an account?",
     "alreadyHaveAccount": "Already have an account?",
     "loginWithGoogle": "Log in with Google",
-    "signupWithGoogle": "Sign up with Google"
+    "signupWithGoogle": "Sign up with Google",
+    "invalidCredentials": "Incorrect credentials. Check your email and password.",
+    "unexpectedLoginError": "Unexpected error during login."
   },
   "chat": {
     "title": "City Chat",
@@ -49,7 +51,12 @@
     "speechNotSupported": "Speech recognition is not supported in this browser",
     "greeting": "Hello! I'm {{name}}",
     "defaultAssistant": "your assistant",
-    "howCanIHelp": "How can I help you today?"
+    "howCanIHelp": "How can I help you today?",
+    "helpExamples": "You can ask me about services, events, procedures, and much more.",
+    "assistantOf": "the assistant of {{city}}",
+    "loginPrompt": "For a personalized experience, please log in",
+    "specializedIn": "Specialized in {{city}}",
+    "specializedDescription": "This assistant is tailored to help with information and services in {{city}}."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -68,7 +75,9 @@
     "unexpectedError": "Unexpected error",
     "tryAgain": "Try again",
     "networkError": "Network error",
-    "serverError": "Server error"
+    "serverError": "Server error",
+    "offlineNotice": "Connection notice",
+    "apiConfigError": "API configuration error"
   },
   "geolocation": {
     "detecting": "Detecting location...",
@@ -86,11 +95,17 @@
     "location": "Location",
     "source": "Source",
     "noEvents": "No events found",
-    "viewMore": "View more",
+    "viewMore": "View details",
     "today": "Today",
     "tomorrow": "Tomorrow",
     "thisWeek": "This week",
-    "nextWeek": "Next week"
+    "nextWeek": "Next week",
+    "checkingLink": "Checking link...",
+    "linkVerified": "Link verified",
+    "linkNotFound": "Link not found (404)",
+    "serverError": "Server error",
+    "linkCheckFailed": "Could not verify link",
+    "openLink": "Open link"
   },
   "places": {
     "title": "Places",
@@ -116,6 +131,40 @@
     "portuguese": "Portuguese",
     "dutch": "Dutch"
   },
+  "sidebar": {
+    "alreadyInSearchMode": "You are already in search mode",
+    "discoverCities": "Discover cities",
+    "searchingCities": "Searching cities...",
+    "defaultCity": "Default city",
+    "conversations": "Conversations",
+    "noConversationsYet": "You don't have conversations yet"
+  },
+  "geolocation": {
+    "currentLocation": "Current location",
+    "unknownLocation": "Unknown location",
+    "addressNotAvailable": "Address not available"
+  },
+  "auth": {
+    "user": "User"
+  },
+  "city": {
+    "privateNeedsLogin": "This city is private. You must log in to access.",
+    "privateNoPermission": "You do not have permissions to access this private city.",
+    "errorLoading": "Error loading city",
+    "verifyingAccess": "Verifying access...",
+    "accessDenied": "Access Denied",
+    "redirecting": "Redirecting to chat...",
+    "welcomeTo": "Welcome to {{city}}",
+    "privateInfo": "This is a private city. Only the administrator can access the chat.",
+    "privateCity": "Private City",
+    "privateCityDesc": "This city is configured as private. Only the administrator can access the chat and modify settings.",
+    "findPlaces": "Find places, services and points of interest in {{city}}",
+    "publicServices": "Public Services",
+    "accessMunicipalInfo": "Access information about municipal procedures and services",
+    "assistance247": "24/7 Assistance",
+    "instantHelp": "Get immediate help with our virtual assistant",
+    "infoPage": "This is the info page for {{city}}. The chat is only available to the administrator."
+  },
   "theme": {
     "title": "Theme",
     "light": "Light",
@@ -139,10 +188,55 @@
   },
   "onboarding": {
     "welcome": "Welcome to CityChat!",
-    "description": "Discover your city and start interacting with your municipality's virtual assistant"
+    "description": "Discover your city and start interacting with your municipality's virtual assistant",
+    "selectCity": "Select your city",
+    "findAssistant": "Find your municipality's virtual assistant to start",
+    "searchPlaceholder": "Search city...",
+    "noCitiesFound": "No cities found",
+    "noCitiesAvailable": "No cities available",
+    "tryAnotherSearch": "Try another search term",
+    "moreCitiesSoon": "More cities will be available soon",
+    "selected": "Selected",
+    "continueWithoutSelecting": "Continue without selecting",
+    "continueWithCity": "Continue with {{city}}"
   },
   "features": {
     "smartChat": "Smart Chat",
-    "smartChatDesc": "Ask about procedures, services and events in your city"
+    "smartChatDesc": "Ask about procedures, services and events in your city",
+    "localInfo": "Local Information",
+    "localInfoDesc": "Access up-to-date information about your municipality",
+    "citizenService": "Citizen Service",
+    "citizenServiceDesc": "Resolve questions and manage procedures easily"
+  },
+  "chatInput": {
+    "listening": "Listening...",
+    "processing": "Processing...",
+    "noSpeech": "No speech detected. Try again.",
+    "audioCaptureError": "Audio capture error.",
+    "micPermissionDenied": "Microphone permission denied.",
+    "networkError": "Network error.",
+    "recognitionError": "Recognition error.",
+    "startRecording": "Start recording",
+    "recordingNotSupported": "Recording not supported",
+    "sendMessage": "Send message",
+    "location": "Location",
+    "locationActive": "Location active",
+    "placeholderAbout": "Type your message about {{city}}..."
+  },
+  "loading": {
+    "events": "Searching events...",
+    "places": "Searching places...",
+    "restaurants": "Searching restaurants...",
+    "information": "Searching information...",
+    "procedures": "Searching procedures...",
+    "wait": "One moment..."
+  },
+  "publicChat": {
+    "loadingChat": "Loading chat...",
+    "invalidSlugTitle": "Invalid chat slug",
+    "invalidSlugDesc": "The chat URL is invalid. Please verify the link.",
+    "backHome": "Back to home",
+    "cityNotFoundTitle": "City not found",
+    "cityNotFoundDesc": "The city \"{{city}}\" does not exist or is not publicly available."
   }
 }
