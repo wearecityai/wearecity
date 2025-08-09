@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MessageSquare, Users, TrendingUp, BarChart3, PieChart } from 'lucide-react';
+import { Calendar, MessageSquare, Users, TrendingUp, BarChart3, PieChart, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   BarChart, 
   Bar, 
@@ -20,56 +21,174 @@ import {
   AreaChart
 } from 'recharts';
 
-// Datos simulados para el dashboard
-const chatUsageData = [
-  { day: 'Lun', messages: 65, users: 23 },
-  { day: 'Mar', messages: 89, users: 34 },
-  { day: 'Mié', messages: 78, users: 29 },
-  { day: 'Jue', messages: 95, users: 41 },
-  { day: 'Vie', messages: 112, users: 52 },
-  { day: 'Sáb', messages: 87, users: 38 },
-  { day: 'Dom', messages: 73, users: 31 }
-];
-
-const topicsData = [
-  { name: 'Trámites', value: 35, color: 'hsl(var(--chart-1))' },
-  { name: 'Eventos', value: 25, color: 'hsl(var(--chart-2))' },
-  { name: 'Lugares', value: 20, color: 'hsl(var(--chart-3))' },
-  { name: 'Información General', value: 15, color: 'hsl(var(--chart-4))' },
-  { name: 'Turismo', value: 5, color: 'hsl(var(--chart-5))' }
-];
-
-const monthlyTrendsData = [
-  { month: 'Ene', conversations: 145, users: 89 },
-  { month: 'Feb', conversations: 178, users: 112 },
-  { month: 'Mar', conversations: 203, users: 134 },
-  { month: 'Abr', conversations: 167, users: 98 },
-  { month: 'May', conversations: 221, users: 156 },
-  { month: 'Jun', conversations: 289, users: 201 }
-];
-
-const peakHoursData = [
-  { hour: '00:00', messages: 2 },
-  { hour: '02:00', messages: 1 },
-  { hour: '04:00', messages: 0 },
-  { hour: '06:00', messages: 3 },
-  { hour: '08:00', messages: 15 },
-  { hour: '10:00', messages: 28 },
-  { hour: '12:00', messages: 42 },
-  { hour: '14:00', messages: 38 },
-  { hour: '16:00', messages: 35 },
-  { hour: '18:00', messages: 45 },
-  { hour: '20:00', messages: 32 },
-  { hour: '22:00', messages: 18 }
-];
+interface MetricsData {
+  totalMessages: number;
+  uniqueUsers: number;
+  totalConversations: number;
+  avgResponseTime: number;
+  dailyData: any[];
+  categoriesData: any[];
+  monthlyTrends: any[];
+  hourlyData: any[];
+}
 
 const AdminMetrics: React.FC = () => {
   const { user, profile, isLoading } = useAuth();
   const { t } = useTranslation();
+  const [metrics, setMetrics] = useState<MetricsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cityId, setCityId] = useState<string | null>(null);
 
   if (isLoading) return null;
   if (!user) return <Navigate to="/" replace />;
   if (profile?.role !== 'administrativo') return <Navigate to="/" replace />;
+
+  // Obtener ID de la ciudad del admin
+  useEffect(() => {
+    const fetchCityId = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('cities')
+        .select('id')
+        .eq('admin_user_id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setCityId(data.id);
+      }
+    };
+    
+    fetchCityId();
+  }, [user?.id]);
+
+  // Cargar métricas reales
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      if (!cityId) return;
+      
+      setLoading(true);
+      
+      try {
+        // Métricas totales
+        const { data: analyticsData } = await supabase
+          .from('chat_analytics')
+          .select('*')
+          .eq('city_id', cityId);
+
+        const { data: categoriesData } = await supabase
+          .from('chat_categories')
+          .select('*');
+
+        // Procesar datos
+        const totalMessages = analyticsData?.length || 0;
+        const uniqueUsers = new Set(analyticsData?.map(a => a.user_id).filter(Boolean)).size;
+        const uniqueSessions = new Set(analyticsData?.map(a => a.session_id)).size;
+        const avgResponseTime = analyticsData?.reduce((sum, a) => sum + (a.response_time_ms || 0), 0) / (totalMessages || 1);
+
+        // Datos por día (últimos 7 días)
+        const dailyData = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toDateString();
+          
+          const dayMessages = analyticsData?.filter(a => 
+            new Date(a.created_at).toDateString() === dateStr
+          ) || [];
+          
+          dailyData.push({
+            day: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][date.getDay()],
+            messages: dayMessages.length,
+            users: new Set(dayMessages.map(m => m.user_id).filter(Boolean)).size
+          });
+        }
+
+        // Datos por categoría
+        const categoryStats = categoriesData?.map(category => {
+          const categoryMessages = analyticsData?.filter(a => a.category_id === category.id) || [];
+          return {
+            name: category.name === 'tramites' ? 'Trámites' :
+                  category.name === 'eventos' ? 'Eventos' :
+                  category.name === 'lugares' ? 'Lugares' :
+                  category.name === 'informacion_general' ? 'Información General' :
+                  category.name === 'turismo' ? 'Turismo' : category.name,
+            value: Math.round((categoryMessages.length / (totalMessages || 1)) * 100),
+            count: categoryMessages.length,
+            color: category.name === 'tramites' ? 'hsl(var(--chart-1))' :
+                   category.name === 'eventos' ? 'hsl(var(--chart-2))' :
+                   category.name === 'lugares' ? 'hsl(var(--chart-3))' :
+                   category.name === 'informacion_general' ? 'hsl(var(--chart-4))' :
+                   'hsl(var(--chart-5))'
+          };
+        }) || [];
+
+        // Datos mensuales (últimos 6 meses)
+        const monthlyTrends = [];
+        for (let i = 5; i >= 0; i--) {
+          const date = new Date();
+          date.setMonth(date.getMonth() - i);
+          const monthStr = date.toISOString().slice(0, 7); // YYYY-MM
+          
+          const monthMessages = analyticsData?.filter(a => 
+            a.created_at.startsWith(monthStr)
+          ) || [];
+          
+          monthlyTrends.push({
+            month: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][date.getMonth()],
+            conversations: new Set(monthMessages.map(m => m.session_id)).size,
+            users: new Set(monthMessages.map(m => m.user_id).filter(Boolean)).size
+          });
+        }
+
+        // Datos por horas
+        const hourlyData = [];
+        for (let hour = 0; hour < 24; hour += 2) {
+          const hourMessages = analyticsData?.filter(a => {
+            const messageHour = new Date(a.created_at).getHours();
+            return messageHour >= hour && messageHour < hour + 2;
+          }) || [];
+          
+          hourlyData.push({
+            hour: `${hour.toString().padStart(2, '0')}:00`,
+            messages: hourMessages.length
+          });
+        }
+
+        setMetrics({
+          totalMessages,
+          uniqueUsers,
+          totalConversations: uniqueSessions,
+          avgResponseTime: Math.round(avgResponseTime),
+          dailyData,
+          categoriesData: categoryStats,
+          monthlyTrends,
+          hourlyData
+        });
+      } catch (error) {
+        console.error('Error cargando métricas:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (cityId) {
+      fetchMetrics();
+    }
+  }, [cityId]);
+
+  if (loading || !metrics) {
+    return (
+      <div className="flex-1 overflow-auto bg-background">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <RefreshCw className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Cargando métricas...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-auto bg-background">
@@ -96,22 +215,22 @@ const AdminMetrics: React.FC = () => {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2,847</div>
+              <div className="text-2xl font-bold">{metrics.totalMessages.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
-                +12% desde la semana pasada
+                Todos los mensajes registrados
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
+              <CardTitle className="text-sm font-medium">Usuarios Únicos</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,234</div>
+              <div className="text-2xl font-bold">{metrics.uniqueUsers}</div>
               <p className="text-xs text-muted-foreground">
-                +8% desde la semana pasada
+                Usuarios diferentes que han usado el chat
               </p>
             </CardContent>
           </Card>
@@ -122,22 +241,22 @@ const AdminMetrics: React.FC = () => {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">845</div>
+              <div className="text-2xl font-bold">{metrics.totalConversations}</div>
               <p className="text-xs text-muted-foreground">
-                +15% desde la semana pasada
+                Sesiones de chat diferentes
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Satisfacción</CardTitle>
+              <CardTitle className="text-sm font-medium">Tiempo Respuesta</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">94%</div>
+              <div className="text-2xl font-bold">{metrics.avgResponseTime}ms</div>
               <p className="text-xs text-muted-foreground">
-                +2% desde la semana pasada
+                Tiempo promedio de respuesta
               </p>
             </CardContent>
           </Card>
@@ -160,7 +279,7 @@ const AdminMetrics: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={chatUsageData}>
+                    <BarChart data={metrics.dailyData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" />
                       <YAxis />
@@ -178,7 +297,7 @@ const AdminMetrics: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {topicsData.map((topic, index) => (
+                    {metrics.categoriesData.map((topic, index) => (
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div 
@@ -198,6 +317,7 @@ const AdminMetrics: React.FC = () => {
                             />
                           </div>
                           <span className="text-sm font-medium w-10 text-right">{topic.value}%</span>
+                          <span className="text-xs text-muted-foreground">({topic.count})</span>
                         </div>
                       </div>
                     ))}
@@ -218,7 +338,7 @@ const AdminMetrics: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {topicsData.map((topic, index) => (
+                    {metrics.categoriesData.map((topic, index) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <div 
@@ -230,7 +350,7 @@ const AdminMetrics: React.FC = () => {
                         <div className="text-right">
                           <div className="font-bold">{topic.value}%</div>
                           <div className="text-sm text-muted-foreground">
-                            ~{Math.round(topic.value * 28.47)} consultas
+                            {topic.count} consultas
                           </div>
                         </div>
                       </div>
@@ -248,7 +368,7 @@ const AdminMetrics: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={monthlyTrendsData}>
+                  <LineChart data={metrics.monthlyTrends}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -280,7 +400,7 @@ const AdminMetrics: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={peakHoursData}>
+                  <AreaChart data={metrics.hourlyData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="hour" />
                     <YAxis />

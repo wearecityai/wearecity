@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_analytics: {
+        Row: {
+          category_id: string | null
+          city_id: string | null
+          created_at: string | null
+          id: string
+          message_content: string | null
+          message_type: string | null
+          response_time_ms: number | null
+          session_id: string | null
+          tokens_used: number | null
+          user_id: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          city_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_content?: string | null
+          message_type?: string | null
+          response_time_ms?: number | null
+          session_id?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          city_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_content?: string | null
+          message_type?: string | null
+          response_time_ms?: number | null
+          session_id?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_analytics_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "chat_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_analytics_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          keywords: string[] | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          keywords?: string[] | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          keywords?: string[] | null
+          name?: string
+        }
+        Relationships: []
+      }
       cities: {
         Row: {
           admin_user_id: string | null
@@ -203,6 +281,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      classify_message: {
+        Args: { message_text: string }
+        Returns: string
+      }
       create_city: {
         Args: { city_name: string; city_slug: string; admin_id: string }
         Returns: {

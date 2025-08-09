@@ -686,6 +686,55 @@ serve(async (req) => {
   }
 
   try {
+    // Extraer información para analytics
+    const sessionId = body.sessionId || crypto.randomUUID();
+    const userIdForAnalytics = body.userId || null;
+    const startTime = Date.now();
+    
+    // Obtener información de la ciudad para analytics
+    let cityIdForAnalytics = null;
+    if (citySlug) {
+      const { data: cityData } = await supabase
+        .from('cities')
+        .select('id')
+        .eq('slug', citySlug)
+        .maybeSingle();
+      cityIdForAnalytics = cityData?.id;
+    }
+
+    // Clasificar el mensaje del usuario
+    let categoryId = null;
+    if (cityIdForAnalytics && userMessage) {
+      try {
+        const { data: categoryData } = await supabase
+          .rpc('classify_message', { message_text: userMessage });
+        categoryId = categoryData || null;
+      } catch (error) {
+        console.error('Error clasificando mensaje:', error);
+      }
+    }
+
+    // Registrar mensaje del usuario en analytics
+    if (cityIdForAnalytics) {
+      try {
+        await supabase
+          .from('chat_analytics')
+          .insert({
+            city_id: cityIdForAnalytics,
+            user_id: userIdForAnalytics,
+            session_id: sessionId,
+            message_content: userMessage,
+            message_type: 'user',
+            category_id: categoryId,
+            tokens_used: 0,
+            response_time_ms: 0
+          });
+      } catch (error) {
+        console.error('Error registrando mensaje de usuario:', error);
+      }
+    }
+
+  try {
     // Usar configuración enviada desde el cliente o cargar desde base de datos como fallback
     let assistantConfig = null;
     if (citySlug || cityId || userId) {
@@ -735,6 +784,32 @@ serve(async (req) => {
   if (!responseText) {
       console.error("Gemini no devolvió texto. Prompt:", systemInstruction, "Mensaje:", userMessage);
     responseText = "Lo siento, no pude generar una respuesta en este momento.";
+  }
+
+  const endTime = Date.now();
+  const responseTime = endTime - startTime;
+  
+  // Estimar tokens usados (aproximación: 1 token ≈ 4 caracteres)
+  const tokensUsed = Math.ceil((userMessage.length + responseText.length) / 4);
+
+  // Registrar respuesta del asistente en analytics
+  if (cityIdForAnalytics) {
+    try {
+      await supabase
+        .from('chat_analytics')
+        .insert({
+          city_id: cityIdForAnalytics,
+          user_id: userIdForAnalytics,
+          session_id: sessionId,
+          message_content: responseText,
+          message_type: 'assistant',
+          category_id: categoryId,
+          tokens_used: tokensUsed,
+          response_time_ms: responseTime
+        });
+    } catch (error) {
+      console.error('Error registrando respuesta del asistente:', error);
+    }
   }
 
   console.log("Respuesta enviada:", responseText);
