@@ -9,6 +9,27 @@ import { Toggle } from './ui/toggle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { DEFAULT_LANGUAGE_CODE } from '../constants';
 
+// Map language codes to their native names
+const getLanguageNativeName = (languageCode: string): string => {
+  const code = languageCode?.toLowerCase().split('-')[0];
+  const languageMap: { [key: string]: string } = {
+    'es': 'Español',
+    'en': 'English',
+    'ca': 'Valencià', // Catalan shows as Valencià
+    'fr': 'Français',
+    'de': 'Deutsch',
+    'it': 'Italiano',
+    'pt': 'Português',
+    'nl': 'Nederlands',
+    'ru': 'Русский',
+    'ja': '日本語',
+    'ko': '한국어',
+    'zh': '中文',
+    'ar': 'العربية'
+  };
+  return languageMap[code] || languageCode?.toUpperCase() || 'EN';
+};
+
 // Estilos CSS personalizados para el textarea sin border
 const textareaStyles = `
   .chat-textarea {
@@ -481,7 +502,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                           <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                          <span className="text-sm sm:text-sm font-medium text-muted-foreground">{currentLanguageCode?.startsWith('es') ? 'Español' : currentLanguageCode?.startsWith('en') ? 'English' : currentLanguageCode?.startsWith('ca') ? 'Català' : currentLanguageCode?.startsWith('fr') ? 'Français' : currentLanguageCode?.startsWith('de') ? 'Deutsch' : currentLanguageCode?.startsWith('it') ? 'Italiano' : currentLanguageCode?.startsWith('pt') ? 'Português' : currentLanguageCode?.startsWith('ru') ? 'Русский' : currentLanguageCode?.startsWith('ja') ? '日本語' : currentLanguageCode?.startsWith('ko') ? '한국어' : currentLanguageCode?.startsWith('zh') ? '中文' : currentLanguageCode?.startsWith('ar') ? 'العربية' : currentLanguageCode?.toUpperCase()}</span>
+                          <span className="text-sm sm:text-sm font-medium text-muted-foreground">{getLanguageNativeName(currentLanguageCode)}</span>
                         </div>
                       </div>
                       
