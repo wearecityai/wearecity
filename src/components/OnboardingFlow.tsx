@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ interface OnboardingFlowProps {
 }
 
 export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSkip }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { cities, isLoading, error, loadCities } = useCities();
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,10 +88,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Sparkles className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-bold">¡Bienvenido a CityChat!</h1>
+            <h1 className="text-3xl font-bold">{t('common.welcome', { defaultValue: 'Welcome to CityChat!' })}</h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Descubre tu ciudad y comienza a interactuar con el asistente virtual de tu municipio
+            {t('onboarding.description', { defaultValue: 'Discover your city and start interacting with your municipality\'s virtual assistant' })}
           </p>
         </div>
 
