@@ -73,12 +73,16 @@ export const useMessageHandler = (
     
     // 1. Detect language on first user message
     if (!firstMessageProcessed.current) {
-      const detectedLanguage = shouldSwitchLanguage(inputText, i18n.language, true);
-      if (detectedLanguage && detectedLanguage !== i18n.language) {
-        console.log('🔤 Language detected from first message:', detectedLanguage, 'Current:', i18n.language);
-        // Switch i18n language
-        i18n.changeLanguage(detectedLanguage);
-        localStorage.setItem('i18nextLng', detectedLanguage);
+      try {
+        const detectedLanguage = shouldSwitchLanguage(inputText, i18n.language, true);
+        if (detectedLanguage && detectedLanguage !== i18n.language) {
+          console.log('🔤 Language detected from first message:', detectedLanguage, 'Current:', i18n.language);
+          // Switch i18n language
+          i18n.changeLanguage(detectedLanguage);
+          localStorage.setItem('i18nextLng', detectedLanguage);
+        }
+      } catch (error) {
+        console.error('Error detecting language:', error);
       }
       firstMessageProcessed.current = true;
     }
