@@ -29,11 +29,13 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'en',
-    debug: true,
-    
+    fallbackLng: ['es', 'en'],
+    debug: false,
+    cleanCode: true,
+    lowerCaseLng: true,
+
     detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
+      order: ['navigator', 'htmlTag', 'localStorage'],
       lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage'],
     },

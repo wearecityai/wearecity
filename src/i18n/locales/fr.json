@@ -32,7 +32,8 @@
     "loginWithGoogle": "Se connecter avec Google",
     "signupWithGoogle": "S'inscrire avec Google",
     "invalidCredentials": "Identifiants incorrects. Vérifiez votre email et mot de passe.",
-    "unexpectedLoginError": "Erreur inattendue lors de la connexion."
+    "unexpectedLoginError": "Erreur inattendue lors de la connexion.",
+    "user": "Utilisateur"
   },
   "chat": {
     "title": "Chat de la Ville",
@@ -65,7 +66,9 @@
     "cities": "Villes",
     "chat": "Chat",
     "publicChats": "Chats publics",
-    "finetuning": "Réglage fin"
+    "finetuning": "Réglage fin",
+    "metrics": "Métriques",
+    "configureChat": "Configurer le chat"
   },
   "errors": {
     "pageNotFound": "Page non trouvée",
@@ -141,9 +144,6 @@
     "defaultCity": "Ville par défaut",
     "conversations": "Conversations",
     "noConversationsYet": "Vous n'avez pas encore de conversations"
-  },
-  "auth": {
-    "user": "Utilisateur"
   },
   "city": {
     "privateNeedsLogin": "Cette ville est privée. Vous devez vous connecter pour accéder.",

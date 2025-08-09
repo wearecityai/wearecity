@@ -1,5 +1,6 @@
 import * as React from "react"
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@/hooks/useAuth'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import {
   MessageCircle,
@@ -20,6 +21,7 @@ import {
   MessageSquare,
   Star,
   Locate,
+  BarChart3,
 } from "lucide-react"
 
 import { NavSecondary } from "@/components/nav-secondary"
@@ -87,6 +89,8 @@ export function AppSidebar({
   ...props 
 }: AppSidebarProps) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrativo';
   const [starUpdateTrigger, setStarUpdateTrigger] = React.useState(0);
   const navigate = useNavigate()
   const location = useLocation()
@@ -298,68 +302,91 @@ export function AppSidebar({
         </SidebarHeader>
         
         <SidebarContent className="flex flex-col gap-0 h-full">
-          {/* Discover Cities and Default City */}
+          {/* Admin vs Citizen primary actions */}
           <SidebarGroup className="p-1 flex-shrink-0 pl-2">
             <SidebarMenu className="gap-0.5">
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={isInSearchMode ? () => {} : onShowCitySearch}
-                  isActive={isInSearchMode}
-                  disabled={isInSearchMode}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
-                  size="sm"
-                  tooltip={isInSearchMode ? t('sidebar.alreadyInSearchMode', { defaultValue: 'You are already in search mode' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
-                >
-                  <Compass className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
-                  <span className="group-data-[collapsible=icon]:hidden">
-                    {isInSearchMode ? t('sidebar.searchingCities', { defaultValue: 'Searching cities...' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={async (e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    console.log('Star button clicked!')
-                    
-                    const currentCitySlug = getCurrentCitySlug()
-                    console.log('Current city slug:', currentCitySlug)
-                    
-                    if (currentCitySlug) {
-                      try {
-                        if (isDefaultChat(currentCitySlug)) {
-                          console.log('Removing default chat for:', currentCitySlug)
-                          await removeDefaultChat()
-                        } else {
-                          console.log('Setting default chat for:', currentCitySlug)
-                          await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+              {isAdmin ? (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => navigate('/admin/metrics')}
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      size="sm"
+                      tooltip={t('navigation.metrics', { defaultValue: 'Metrics' })}
+                    >
+                      <BarChart3 className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {t('navigation.metrics', { defaultValue: 'Metrics' })}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={onOpenFinetuning}
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      size="sm"
+                      tooltip={t('navigation.configureChat', { defaultValue: 'Configure Chat' })}
+                    >
+                      <Sliders className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {t('navigation.configureChat', { defaultValue: 'Configure Chat' })}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              ) : (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={isInSearchMode ? () => {} : onShowCitySearch}
+                      isActive={isInSearchMode}
+                      disabled={isInSearchMode}
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      size="sm"
+                      tooltip={isInSearchMode ? t('sidebar.alreadyInSearchMode', { defaultValue: 'You are already in search mode' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
+                    >
+                      <Compass className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {isInSearchMode ? t('sidebar.searchingCities', { defaultValue: 'Searching cities...' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const currentCitySlug = getCurrentCitySlug()
+                        if (currentCitySlug) {
+                          try {
+                            if (isDefaultChat(currentCitySlug)) {
+                              await removeDefaultChat()
+                            } else {
+                              await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                            }
+                            setStarUpdateTrigger(prev => prev + 1)
+                          } catch (error) {
+                            console.error('Error toggling default chat:', error)
+                          }
                         }
-                        // Forzar re-renderización
-                        setStarUpdateTrigger(prev => prev + 1)
-                      } catch (error) {
-                        console.error('Error toggling default chat:', error)
-                      }
-                    } else {
-                      console.log('No current city slug found')
-                    }
-                  }}
-                  disabled={loading}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
-                  size="sm"
-                >
-                  <Star className={cn(
-                    "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
-                    (() => {
-                      const currentSlug = getCurrentCitySlug()
-                      const isDefault = currentSlug && isDefaultChat(currentSlug)
-                      console.log('Star state - Current slug:', currentSlug, 'Is default:', isDefault, 'Trigger:', starUpdateTrigger)
-                      return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
-                    })()
-                  )} />
-                   <span className="group-data-[collapsible=icon]:hidden">{t('sidebar.defaultCity', { defaultValue: 'Default city' })}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                      }}
+                      disabled={loading}
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      size="sm"
+                    >
+                      <Star className={cn(
+                        "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
+                        (() => {
+                          const currentSlug = getCurrentCitySlug()
+                          const isDefault = currentSlug && isDefaultChat(currentSlug)
+                          return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
+                        })()
+                      )} />
+                      <span className="group-data-[collapsible=icon]:hidden">{t('sidebar.defaultCity', { defaultValue: 'Default city' })}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroup>
 
@@ -367,12 +394,14 @@ export function AppSidebar({
           <SidebarGroup className="flex-1 flex flex-col min-h-0 max-h-[calc(100vh-300px)]">
             <SidebarSeparator className="mb-1 flex-shrink-0" />
             <SidebarMenuItem className="flex-shrink-0">
-                          <SidebarMenuButton
-              onClick={() => {
-                const currentCity = chatConfig?.restrictedCity?.name || 'tu ciudad';
-                const citySlug = chatConfig?.restrictedCity?.slug || '';
-                onNewChat();
-              }}
+              <SidebarMenuButton
+                onClick={() => {
+                  onNewChat();
+                  if (isAdmin) {
+                    const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
+                    if (slug) navigate(`/chat/${slug}`);
+                  }
+                }}
               className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
               size="sm"
               tooltip={t('chat.newChat', { defaultValue: 'New Chat' })}
@@ -391,7 +420,13 @@ export function AppSidebar({
                     {chatTitles.map((title, index) => (
                       <SidebarMenuItem key={index}>
                         <SidebarMenuButton
-                          onClick={() => onSelectChat(index)}
+                          onClick={() => {
+                            onSelectChat(index);
+                            if (isAdmin) {
+                              const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
+                              if (slug) navigate(`/chat/${slug}`);
+                            }
+                          }}
                           isActive={index === selectedChatIndex}
                           className="group/menu-item w-full justify-between group-data-[collapsible=icon]:justify-center min-h-[2rem] py-1"
                           tooltip={title}
@@ -420,7 +455,9 @@ export function AppSidebar({
                 ) : (
                   <div className="flex items-end justify-center min-h-[200px] pt-16 group-data-[collapsible=icon]:hidden">
                     <div className="flex flex-col items-center text-center text-sidebar-foreground/60">
-                      {getCityAvatar()}
+                      <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary/10 text-sidebar-primary border border-border/40 mb-3">
+                        <MessageCircle className="h-8 w-8" />
+                      </div>
                       <div className="text-sm mt-2">
                         <div>{t('sidebar.noConversationsYet', { defaultValue: 'You don\'t have conversations yet' })}</div>
                       </div>

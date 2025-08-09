@@ -32,7 +32,8 @@
     "loginWithGoogle": "Iniciar sessió amb Google",
     "signupWithGoogle": "Registrar-se amb Google",
     "invalidCredentials": "Credencials incorrectes. Verifica el teu email i contrasenya.",
-    "unexpectedLoginError": "Error inesperat en iniciar sessió."
+    "unexpectedLoginError": "Error inesperat en iniciar sessió.",
+    "user": "Usuari"
   },
   "chat": {
     "title": "Xat de la Ciutat",
@@ -74,7 +75,9 @@
     "cities": "Ciutats",
     "chat": "Xat",
     "publicChats": "Xats públics",
-    "finetuning": "Ajust fi"
+    "finetuning": "Ajust fi",
+    "metrics": "Mètriques",
+    "configureChat": "Configurar xat"
   },
   "errors": {
     "pageNotFound": "Pàgina no trobada",

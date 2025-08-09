@@ -1,6 +1,7 @@
 import * as React from "react"
 import { ChevronsUpDown, MapPin } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from '@/hooks/useAuth'
 
 
 import {
@@ -28,6 +29,8 @@ interface TeamSwitcherProps {
 export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: TeamSwitcherProps) {
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrativo';
 
   // Obtener información de la ciudad actual
   const getCurrentCityInfo = () => {
@@ -79,6 +82,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
   }
 
   const handleChangeCity = () => {
+    if (isAdmin) return; // Admins cannot change city
     if (onShowCitySearch) {
       onShowCitySearch()
     }
@@ -141,16 +145,20 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                   <div className="font-medium">{currentCity.name}</div>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="gap-2 p-2"
-                onClick={handleChangeCity}
-              >
-                <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                  <MapPin className="size-4" />
-                </div>
-                <div className="font-medium text-muted-foreground">Cambiar ciudad</div>
-              </DropdownMenuItem>
+              {!isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="gap-2 p-2"
+                    onClick={handleChangeCity}
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                      <MapPin className="size-4" />
+                    </div>
+                    <div className="font-medium text-muted-foreground">Cambiar ciudad</div>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>

@@ -129,6 +129,12 @@ const PersistentLayout: React.FC = () => {
     handleOpenFinetuning
   });
 
+  // Wrapper to ensure finetuning view opens over any search overlays
+  const openFinetuningFromSidebar = () => {
+    setShowCitySearch(false);
+    handleOpenFinetuningWithAuth();
+  };
+
   const handleCitySelect = async (city: City) => {
     // Cerrar la vista de búsqueda
     setShowCitySearch(false);
@@ -311,6 +317,23 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
+    // Página de finetuning (configuración) tiene prioridad
+    if (currentView === 'finetuning') {
+      return (
+        <FinetuningPage
+          currentConfig={chatConfig}
+          onSave={handleOpenFinetuning}
+          onCancel={() => setCurrentView('chat')}
+          googleMapsScriptLoaded={googleMapsScriptLoaded}
+          apiKeyForMaps=""
+          profileImagePreview={undefined}
+          setProfileImagePreview={() => {}}
+          activeTab={0}
+          onTabChange={() => {}}
+        />
+      );
+    }
+
     // Vista de búsqueda de ciudades (estado local)
     if (showCitySearch) {
       return (
@@ -371,22 +394,7 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Página de finetuning (configuración)
-    if (currentView === 'finetuning') {
-      return (
-        <FinetuningPage
-          currentConfig={chatConfig}
-          onSave={handleOpenFinetuning}
-          onCancel={() => setCurrentView('chat')}
-          googleMapsScriptLoaded={googleMapsScriptLoaded}
-          apiKeyForMaps=""
-          profileImagePreview={undefined}
-          setProfileImagePreview={() => {}}
-          activeTab={0}
-          onTabChange={() => {}}
-        />
-      );
-    }
+    // (finetuning ya tratado arriba)
 
     // Contenido por defecto
     return (
@@ -432,7 +440,7 @@ const PersistentLayout: React.FC = () => {
       >
         <AppSidebar 
           onNewChat={showCitySearch ? handleNewChatInSearchMode : handleNewChatClick}
-          onOpenFinetuning={handleOpenFinetuningWithAuth}
+          onOpenFinetuning={openFinetuningFromSidebar}
           chatTitles={chatTitles}
           chatIds={conversations.map(c => c.id)}
           selectedChatIndex={selectedChatIndex}

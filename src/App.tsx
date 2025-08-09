@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAutoLanguage } from '@/hooks/useAutoLanguage';
 
 import PersistentLayout from '@/components/PersistentLayout';
+import AdminMetrics from '@/pages/AdminMetrics';
 import AuthPage from '@/components/auth/AuthPage';
 import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
@@ -37,6 +38,7 @@ const App = () => {
               {/* Rutas que usan el layout persistente */}
               <Route path="/" element={<PersistentLayout />} />
               <Route path="/admin" element={<PersistentLayout />} />
+              <Route path="/admin/metrics" element={<PersistentLayout />} />
               <Route path="/chat/:chatSlug" element={<PersistentLayout />} />
               <Route path="/city/:citySlug" element={<PersistentLayout />} />
               

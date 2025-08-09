@@ -1,64 +1,61 @@
 {
-  "hash": "60528580",
-  "configHash": "e9e2d3bb",
-  "lockfileHash": "96413db4",
-  "browserHash": "84c51d0b",
+  "hash": "09bd21ff",
+  "configHash": "89baa72c",
+  "lockfileHash": "bee01c92",
+  "browserHash": "36aceb15",
   "optimized": {
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "cadf8094",
+      "fileHash": "98a2b575",
       "needsInterop": true
     },
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "cdc9070d",
+      "fileHash": "181faead",
       "needsInterop": true
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "299eee76",
+      "fileHash": "1810e933",
       "needsInterop": true
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.js",
       "file": "react-router-dom.js",
-      "fileHash": "2b506bef",
+      "fileHash": "f166a268",
       "needsInterop": false
     },
-    "@mui/material/styles": {
-      "src": "../../node_modules/@mui/material/esm/styles/index.js",
-      "file": "@mui_material_styles.js",
-      "fileHash": "be24c3ff",
+    "i18next": {
+      "src": "../../node_modules/i18next/dist/esm/i18next.js",
+      "file": "i18next.js",
+      "fileHash": "7f8a8557",
       "needsInterop": false
     },
-    "@mui/material/CssBaseline": {
-      "src": "../../node_modules/@mui/material/esm/CssBaseline/index.js",
-      "file": "@mui_material_CssBaseline.js",
-      "fileHash": "bb0a68d3",
+    "i18next-browser-languagedetector": {
+      "src": "../../node_modules/i18next-browser-languagedetector/dist/esm/i18nextBrowserLanguageDetector.js",
+      "file": "i18next-browser-languagedetector.js",
+      "fileHash": "643202c5",
       "needsInterop": false
     },
-    "@mui/material/useMediaQuery": {
-      "src": "../../node_modules/@mui/material/esm/useMediaQuery/index.js",
-      "file": "@mui_material_useMediaQuery.js",
-      "fileHash": "0d505b4a",
+    "react-i18next": {
+      "src": "../../node_modules/react-i18next/dist/es/index.js",
+      "file": "react-i18next.js",
+      "fileHash": "34d3c88a",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-QPG7G3M7": {
-      "file": "chunk-QPG7G3M7.js"
+    "chunk-HCGKX5ED": {
+      "file": "chunk-HCGKX5ED.js"
     },
-    "chunk-355TDO5H": {
-      "file": "chunk-355TDO5H.js"
+    "chunk-WNPTCGAH": {
+      "file": "chunk-WNPTCGAH.js"
     },
-    "chunk-ZJZQZZJD": {
-      "file": "chunk-ZJZQZZJD.js"
-    },
-    "chunk-UTEJFLXC": {
-      "file": "chunk-UTEJFLXC.js"
+    "chunk-5WRI5ZAA": {
+      "file": "chunk-5WRI5ZAA.js"
     }
   }
 }

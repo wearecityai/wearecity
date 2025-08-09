@@ -32,7 +32,8 @@
     "loginWithGoogle": "Iniciar sesión con Google",
     "signupWithGoogle": "Registrarse con Google",
     "invalidCredentials": "Credenciales incorrectas. Verifica tu email y contraseña.",
-    "unexpectedLoginError": "Error inesperado al iniciar sesión."
+    "unexpectedLoginError": "Error inesperado al iniciar sesión.",
+    "user": "Usuario"
   },
   "chat": {
     "title": "Chat de la Ciudad",
@@ -65,7 +66,9 @@
     "cities": "Ciudades",
     "chat": "Chat",
     "publicChats": "Chats públicos",
-    "finetuning": "Ajuste fino"
+    "finetuning": "Ajuste fino",
+    "metrics": "Métricas",
+    "configureChat": "Configurar chat"
   },
   "errors": {
     "pageNotFound": "Página no encontrada",
@@ -86,7 +89,10 @@
     "permission": "Permiso de ubicación",
     "notSupported": "Geolocalización no soportada",
     "timeout": "Tiempo de espera agotado",
-    "unknownError": "Error desconocido de ubicación"
+    "unknownError": "Error desconocido de ubicación",
+    "currentLocation": "Ubicación actual",
+    "unknownLocation": "Ubicación desconocida",
+    "addressNotAvailable": "Dirección no disponible"
   },
   "events": {
     "title": "Eventos",
@@ -139,14 +145,7 @@
     "conversations": "Conversaciones",
     "noConversationsYet": "Todavía no tienes conversaciones"
   },
-  "geolocation": {
-    "currentLocation": "Ubicación actual",
-    "unknownLocation": "Ubicación desconocida",
-    "addressNotAvailable": "Dirección no disponible"
-  },
-  "auth": {
-    "user": "Usuario"
-  },
+  
   "city": {
     "privateNeedsLogin": "Esta ciudad es privada. Necesitas iniciar sesión para acceder.",
     "privateNoPermission": "No tienes permisos para acceder a esta ciudad privada.",
