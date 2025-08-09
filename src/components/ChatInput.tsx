@@ -74,7 +74,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   chatConfig
 }) => {
   const [inputValue, setInputValue] = useState('');
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const transcribedTextRef = useRef<string>('');
 
@@ -502,7 +502,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                           <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                          <span className="text-sm sm:text-sm font-medium text-muted-foreground">{getLanguageNativeName(currentLanguageCode)}</span>
+                          <span className="text-sm sm:text-sm font-medium text-muted-foreground">{getLanguageNativeName(i18n.language)}</span>
                         </div>
                       </div>
                       
