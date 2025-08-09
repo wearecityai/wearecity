@@ -29,14 +29,13 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'es',
-    debug: false,
+    fallbackLng: 'en',
+    debug: true, // Activar debug temporalmente
     
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
+      lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage'],
-      lookupFromPathIndex: 0,
-      lookupFromSubdomainIndex: 0,
     },
 
     interpolation: {
@@ -45,9 +44,14 @@ i18n
     
     react: {
       useSuspense: false,
-      bindI18n: 'languageChanged',
-      bindI18nStore: false,
     },
   });
+
+// Limpiar localStorage para forzar detección automática en desarrollo
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  localStorage.removeItem('i18nextLng');
+  console.log('🌍 Browser language:', navigator.language);
+  console.log('🌍 Browser languages:', navigator.languages);
+}
 
 export default i18n;
