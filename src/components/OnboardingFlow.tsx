@@ -88,7 +88,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Sparkles className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-bold">{t('common.welcome', { defaultValue: 'Welcome to CityChat!' })}</h1>
+            <h1 className="text-3xl font-bold">{t('onboarding.welcome', { defaultValue: 'Welcome to CityChat!' })}</h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {t('onboarding.description', { defaultValue: 'Discover your city and start interacting with your municipality\'s virtual assistant' })}
@@ -102,11 +102,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
               <div className="flex justify-center mb-2">
                 <MessageCircle className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-lg">Chat Inteligente</CardTitle>
+              <CardTitle className="text-lg">{t('features.smartChat', { defaultValue: 'Smart Chat' })}</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Pregunta sobre trámites, servicios y eventos de tu ciudad
+                {t('features.smartChatDesc', { defaultValue: 'Ask about procedures, services and events in your city' })}
               </CardDescription>
             </CardContent>
           </Card>

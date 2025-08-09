@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -35,6 +36,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   user,
   onLogin
 }) => {
+  const { t } = useTranslation();
+  
   if (!onlyGreeting && messages.length === 0 && !isLoading && !messages.some(m => m.isTyping)) return null;
 
   const isOfflineError = appError?.toLowerCase().includes("offline") || appError?.toLowerCase().includes("network");
@@ -76,11 +79,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
           <div className="space-y-4 max-w-md">
             <h2 className="text-2xl font-bold text-gradient">
-              ¡Hola! Soy {chatConfig.assistantName || 'tu asistente'}
+              {t('chat.greeting', { 
+                name: chatConfig.assistantName || t('chat.defaultAssistant'),
+                defaultValue: `Hello! I'm ${chatConfig.assistantName || 'your assistant'}`
+              })}
             </h2>
 
             <p className="text-lg text-muted-foreground">
-              ¿En qué puedo ayudarte hoy?
+              {t('chat.howCanIHelp', { defaultValue: 'How can I help you today?' })}
             </p>
 
             {chatConfig.systemInstruction && (

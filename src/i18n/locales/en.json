@@ -46,7 +46,10 @@
     "startConversation": "Start a conversation",
     "errorSending": "Error sending message",
     "microphoneAccess": "Microphone access",
-    "speechNotSupported": "Speech recognition is not supported in this browser"
+    "speechNotSupported": "Speech recognition is not supported in this browser",
+    "greeting": "Hello! I'm {{name}}",
+    "defaultAssistant": "your assistant",
+    "howCanIHelp": "How can I help you today?"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -133,5 +136,13 @@
     "messagesSaved": "Messages saved successfully",
     "settingsUpdated": "Settings updated",
     "profileUpdated": "Profile updated"
+  },
+  "onboarding": {
+    "welcome": "Welcome to CityChat!",
+    "description": "Discover your city and start interacting with your municipality's virtual assistant"
+  },
+  "features": {
+    "smartChat": "Smart Chat",
+    "smartChatDesc": "Ask about procedures, services and events in your city"
   }
 }
