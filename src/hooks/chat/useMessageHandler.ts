@@ -4,6 +4,8 @@ import { useMessageParser } from '../useMessageParser';
 import { fetchChatIA } from '../../services/chatIA';
 import { useAuth } from '../useAuth';
 import { useGeolocation } from '../useGeolocation';
+import { shouldSwitchLanguage } from '../../utils/languageDetection';
+import { useTranslation } from 'react-i18next';
 
 // Utility function to generate city slug from assistant name
 const generateCitySlug = (assistantName: string): string => {
@@ -49,7 +51,9 @@ export const useMessageHandler = (
   const { parseAIResponse } = useMessageParser();
   const { user } = useAuth();
   const { userLocation } = useGeolocation();
+  const { i18n } = useTranslation();
   const lastProcessedMessageRef = useRef<string | null>(null);
+  const firstMessageProcessed = useRef<boolean>(false);
 
   const processMessage = useCallback(async (
     _unusedChatSession: null, // ya no se usa
@@ -67,10 +71,22 @@ export const useMessageHandler = (
     lastProcessedMessageRef.current = userMessage.id;
     setIsLoading(true);
     
-    // 1. Añadir el mensaje del usuario
+    // 1. Detect language on first user message
+    if (!firstMessageProcessed.current) {
+      const detectedLanguage = shouldSwitchLanguage(inputText, i18n.language, true);
+      if (detectedLanguage && detectedLanguage !== i18n.language) {
+        console.log('🔤 Language detected from first message:', detectedLanguage, 'Current:', i18n.language);
+        // Switch i18n language
+        i18n.changeLanguage(detectedLanguage);
+        localStorage.setItem('i18nextLng', detectedLanguage);
+      }
+      firstMessageProcessed.current = true;
+    }
+    
+    // 2. Añadir el mensaje del usuario
     await addMessage(userMessage, targetConversationId);
     
-    // 2. Añadir el spinner justo después del mensaje del usuario
+    // 3. Añadir el spinner justo después del mensaje del usuario
     const typingMessageId = `typing-${userMessage.id}`;
     const loadingType = detectLoadingType(inputText);
     const typingMessage: ChatMessage = {
@@ -212,7 +228,7 @@ export const useMessageHandler = (
         lastProcessedMessageRef.current = null;
       }, 1000);
     }
-  }, [parseAIResponse, onError, chatConfig, user?.id, userLocation]);
+  }, [parseAIResponse, onError, chatConfig, user?.id, userLocation, i18n]);
 
   return {
     isLoading,
