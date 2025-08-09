@@ -1,6 +1,6 @@
 {
-  "name": "City Chat",
-  "short_name": "CityChat",
+  "name": "WeAreCity Beta",
+  "short_name": "WeAreCity",
   "description": "Asistente de ciudad inteligente para información local",
   "start_url": "/",
   "display": "standalone",

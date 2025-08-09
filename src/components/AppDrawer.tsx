@@ -217,7 +217,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
           </div>
           {!collapsed && (
             <div>
-              <h2 className="text-lg font-semibold text-sidebar-foreground">CityCore</h2>
+              <h2 className="text-lg font-semibold text-sidebar-foreground">WeAreCity</h2>
               <p className="text-xs text-sidebar-foreground/60">Chat inteligente</p>
             </div>
           )}

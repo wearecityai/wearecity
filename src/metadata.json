@@ -1,5 +1,5 @@
 {
-  "name": "City Chat",
+  "name": "WeAreCity Beta",
   "description": "Asistente de IA especializado en información y servicios para ciudades.",
   "requestFramePermissions": [
     "geolocation",

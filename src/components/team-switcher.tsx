@@ -74,7 +74,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
     
     // Fallback si no hay ciudad configurada
     return {
-      name: "CityCore AI",
+      name: "WeAreCity AI",
       country: "Selecciona una ciudad",
       image: null,
       logo: '🏙️'

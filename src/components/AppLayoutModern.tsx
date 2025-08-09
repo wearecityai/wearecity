@@ -177,7 +177,7 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
                   <BreadcrumbList>
                     <BreadcrumbItem>
                       <BreadcrumbPage className="line-clamp-1">
-                        {chatConfig?.restrictedCity?.name || 'CityCore AI Chat'}
+                        {chatConfig?.restrictedCity?.name || 'WeAreCity AI Chat'}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
                   </BreadcrumbList>

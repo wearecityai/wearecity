@@ -168,7 +168,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
               <Sparkles className="h-4 w-4" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              CityCore
+              WeAreCity
             </h1>
           </div>
         </div>

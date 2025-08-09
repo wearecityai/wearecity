@@ -403,9 +403,9 @@ const PersistentLayout: React.FC = () => {
     return (
       <div className="flex items-center gap-2">
         <span className="font-bold text-lg text-foreground">
-          CityCore
+          WeAreCity
         </span>
-        <Badge variant="outline" className="text-xs">1.0</Badge>
+        <Badge variant="outline" className="text-xs">Beta</Badge>
       </div>
     );
   };
