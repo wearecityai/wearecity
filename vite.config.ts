@@ -37,7 +37,6 @@ export default defineConfig(({ mode }) => ({
       }
     },
     cssCodeSplit: true,
-    minify: 'terser',
     sourcemap: false
   }
 }));
