@@ -820,7 +820,6 @@ serve(async (req) => {
       "Content-Type": "application/json"
     }
   });
-
   } catch (error) {
     console.error("Error general en la función:", error);
     return new Response(JSON.stringify({ error: "Error interno del servidor" }), { 
