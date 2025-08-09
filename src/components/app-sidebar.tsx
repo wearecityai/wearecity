@@ -352,39 +352,38 @@ export function AppSidebar({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={async (e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    const currentCitySlug = getCurrentCitySlug()
-                    if (currentCitySlug) {
-                      try {
-                        if (isDefaultChat(currentCitySlug)) {
-                          await removeDefaultChat()
-                        } else {
-                          await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                    <SidebarMenuButton
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const currentCitySlug = getCurrentCitySlug()
+                        if (currentCitySlug) {
+                          try {
+                            if (isDefaultChat(currentCitySlug)) {
+                              await removeDefaultChat()
+                            } else {
+                              await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                            }
+                            setStarUpdateTrigger(prev => prev + 1)
+                          } catch (error) {
+                            console.error('Error toggling default chat:', error)
+                          }
                         }
-                        setStarUpdateTrigger(prev => prev + 1)
-                      } catch (error) {
-                        console.error('Error toggling default chat:', error)
-                      }
-                    }
-                  }}
-                  disabled={loading || isAdmin}
-                  className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
-                  size="sm"
-                  tooltip={isAdmin ? t('sidebar.adminNoDefault', { defaultValue: 'Not available for admin' }) : undefined}
-                >
-                  <Star className={cn(
-                    "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
-                    (() => {
-                      const currentSlug = getCurrentCitySlug()
-                      const isDefault = currentSlug && isDefaultChat(currentSlug)
-                      return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
-                    })()
-                  )} />
-                  <span className="group-data-[collapsible=icon]:hidden">{t('sidebar.defaultCity', { defaultValue: 'Default city' })}</span>
-                </SidebarMenuButton>
+                      }}
+                      disabled={loading}
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      size="sm"
+                    >
+                      <Star className={cn(
+                        "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
+                        (() => {
+                          const currentSlug = getCurrentCitySlug()
+                          const isDefault = currentSlug && isDefaultChat(currentSlug)
+                          return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
+                        })()
+                      )} />
+                      <span className="group-data-[collapsible=icon]:hidden">{t('sidebar.defaultCity', { defaultValue: 'Default city' })}</span>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 </>
               )}
@@ -398,10 +397,9 @@ export function AppSidebar({
               <SidebarMenuButton
                 onClick={() => {
                   onNewChat();
-                  // En admin, mantenemos en la misma página
                   if (isAdmin) {
-                    // Ya estamos en admin, no navegamos
-                    return;
+                    const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
+                    if (slug) navigate(`/chat/${slug}`);
                   }
                 }}
               className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
@@ -424,10 +422,9 @@ export function AppSidebar({
                         <SidebarMenuButton
                           onClick={() => {
                             onSelectChat(index);
-                            // En admin, mantenemos en la misma página
                             if (isAdmin) {
-                              // Ya estamos en admin, no navegamos
-                              return;
+                              const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
+                              if (slug) navigate(`/chat/${slug}`);
                             }
                           }}
                           isActive={index === selectedChatIndex}
