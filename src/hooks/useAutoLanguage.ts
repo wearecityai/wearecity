@@ -12,12 +12,17 @@ export const useAutoLanguage = () => {
 
   useEffect(() => {
     const initializeLanguage = () => {
-      // Obtener idioma guardado
-      const savedLanguage = localStorage.getItem('i18nextLng');
+      console.log('🔧 Initializing language detection...');
+      
+      // Limpiar localStorage para forzar nueva detección
+      localStorage.removeItem('i18nextLng');
       
       // Obtener idioma del navegador con mejor detección
       const browserLanguage = navigator.language || navigator.languages?.[0] || 'es';
-      console.log('🌍 Browser language detected:', browserLanguage);
+      const allLanguages = navigator.languages || [navigator.language];
+      
+      console.log('🌍 All browser languages:', allLanguages);
+      console.log('🌍 Primary browser language:', browserLanguage);
       
       // Mapeo de códigos de idioma más específico
       const languageMap: { [key: string]: string } = {
@@ -51,33 +56,36 @@ export const useAutoLanguage = () => {
       
       let targetLanguage = 'es'; // idioma por defecto
       
-      if (savedLanguage && supportedLanguages.includes(savedLanguage)) {
-        // Usar idioma guardado si existe y es soportado
-        targetLanguage = savedLanguage;
-        console.log('💾 Using saved language:', targetLanguage);
-      } else {
-        // Intentar mapear el idioma del navegador
-        const mappedLanguage = languageMap[browserLanguage];
-        if (mappedLanguage && supportedLanguages.includes(mappedLanguage)) {
-          targetLanguage = mappedLanguage;
-          console.log('🗺️ Mapped browser language:', browserLanguage, '->', targetLanguage);
-        } else {
-          // Fallback a código corto
-          const browserLangCode = browserLanguage.split('-')[0];
-          if (supportedLanguages.includes(browserLangCode)) {
-            targetLanguage = browserLangCode;
-            console.log('📏 Using short language code:', browserLangCode);
-          }
+      // Buscar en todas las preferencias de idioma del navegador
+      for (const lang of allLanguages) {
+        console.log('🔍 Checking language preference:', lang);
+        
+        // Intentar mapeo directo
+        if (languageMap[lang] && supportedLanguages.includes(languageMap[lang])) {
+          targetLanguage = languageMap[lang];
+          console.log('✅ Found exact match:', lang, '->', targetLanguage);
+          break;
+        }
+        
+        // Intentar código corto
+        const shortCode = lang.split('-')[0];
+        if (supportedLanguages.includes(shortCode)) {
+          targetLanguage = shortCode;
+          console.log('✅ Found short code match:', lang, '->', targetLanguage);
+          break;
         }
       }
       
-      console.log('🎯 Target language:', targetLanguage);
+      console.log('🎯 Final target language:', targetLanguage);
       
-      // Cambiar idioma si es diferente al actual
-      if (i18n.language !== targetLanguage) {
-        console.log('🔄 Changing language from', i18n.language, 'to', targetLanguage);
-        i18n.changeLanguage(targetLanguage);
-      }
+      // Forzar cambio de idioma
+      console.log('🔄 Forcing language change to:', targetLanguage);
+      i18n.changeLanguage(targetLanguage).then(() => {
+        console.log('✅ Language changed successfully to:', i18n.language);
+        localStorage.setItem('i18nextLng', targetLanguage);
+      }).catch((error) => {
+        console.error('❌ Error changing language:', error);
+      });
     };
 
     // Inicializar cuando el i18n esté listo

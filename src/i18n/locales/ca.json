@@ -46,7 +46,24 @@
     "startConversation": "Inicia una conversa",
     "errorSending": "Error en enviar el missatge",
     "microphoneAccess": "Accés al micròfon",
-    "speechNotSupported": "El reconeixement de veu no està suportat en aquest navegador"
+    "speechNotSupported": "El reconeixement de veu no està suportat en aquest navegador",
+    "greeting": "Hola! Sóc {{name}}",
+    "defaultAssistant": "el teu assistent",
+    "howCanIHelp": "Com et puc ajudar avui?",
+    "helpExamples": "Pots preguntar-me sobre serveis, esdeveniments, procediments i molt més.",
+    "assistantOf": "l'assistent de {{city}}",
+    "loginPrompt": "Per a una experiència personalitzada, si us plau inicia sessió",
+    "specializedIn": "Especialitzat en {{city}}",
+    "specializedDescription": "Aquest assistent està adaptat per ajudar amb informació i serveis de {{city}}."
+  },
+  "onboarding": {
+    "welcome": "Benvingut a City Chat!",
+    "description": "El teu assistent personal per descobrir el millor d'aquesta ciutat",
+    "features": {
+      "chat": "Xat intel·ligent amb recomanacions locals",
+      "places": "Descobreix restaurants, atraccions i serveis",
+      "events": "Troba esdeveniments i activitats que passen ara"
+    }
   },
   "navigation": {
     "dashboard": "Tauler de control",

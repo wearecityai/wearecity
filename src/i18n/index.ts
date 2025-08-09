@@ -30,7 +30,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    debug: false,
+    debug: true,
     
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
