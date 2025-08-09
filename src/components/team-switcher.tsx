@@ -41,18 +41,6 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
         return fullName;
       };
 
-      // Extraer país de la dirección formateada
-      const getCountry = () => {
-        if (chatConfig.restrictedCity.formattedAddress) {
-          const parts = chatConfig.restrictedCity.formattedAddress.split(',');
-          // El país generalmente está al final
-          const lastPart = parts[parts.length - 1]?.trim();
-          if (lastPart && lastPart !== '') {
-            return lastPart;
-          }
-        }
-        return 'España';
-      };
 
       // Obtener iniciales de la ciudad
       const getInitials = (name: string) => {
@@ -66,7 +54,6 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
 
       return {
         name: getCityName(),
-        country: getCountry(),
         image: chatConfig.profileImageUrl || null,
         logo: chatConfig.profileImageUrl ? null : getInitials(getCityName())
       }
@@ -75,7 +62,6 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
     // Fallback si no hay ciudad configurada
     return {
       name: "WeAreCity AI",
-      country: "Selecciona una ciudad",
       image: null,
       logo: '🏙️'
     }
@@ -124,7 +110,6 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                 )}
                 <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-semibold">{currentCity.name}</span>
-                  <span className="truncate text-xs">{currentCity.country}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
@@ -154,7 +139,6 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                 )}
                 <div>
                   <div className="font-medium">{currentCity.name}</div>
-                  <div className="text-xs text-muted-foreground">{currentCity.country}</div>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
