@@ -71,20 +71,24 @@ export const useMessageHandler = (
     lastProcessedMessageRef.current = userMessage.id;
     setIsLoading(true);
     
-    // 1. Detect language on first user message
-    if (!firstMessageProcessed.current) {
-      try {
-        const detectedLanguage = shouldSwitchLanguage(inputText, i18n.language, true);
-        if (detectedLanguage && detectedLanguage !== i18n.language) {
-          console.log('🔤 Language detected from first message:', detectedLanguage, 'Current:', i18n.language);
-          // Switch i18n language
-          i18n.changeLanguage(detectedLanguage);
-          localStorage.setItem('i18nextLng', detectedLanguage);
-        }
-      } catch (error) {
-        console.error('Error detecting language:', error);
+    // 1. Detect language changes in user messages
+    try {
+      // Detect language on every message, but be more conservative after the first one
+      const isFirstMessage = !firstMessageProcessed.current;
+      const detectedLanguage = shouldSwitchLanguage(inputText, i18n.language, isFirstMessage);
+      
+      if (detectedLanguage && detectedLanguage !== i18n.language) {
+        console.log('🔤 Language change detected:', detectedLanguage, 'Current:', i18n.language, 'Is first message:', isFirstMessage);
+        // Switch i18n language
+        i18n.changeLanguage(detectedLanguage);
+        localStorage.setItem('i18nextLng', detectedLanguage);
       }
-      firstMessageProcessed.current = true;
+      
+      if (!firstMessageProcessed.current) {
+        firstMessageProcessed.current = true;
+      }
+    } catch (error) {
+      console.error('Error detecting language:', error);
     }
     
     // 2. Añadir el mensaje del usuario

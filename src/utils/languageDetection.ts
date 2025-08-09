@@ -112,17 +112,26 @@ export const shouldSwitchLanguage = (
     return null;
   }
   
-  // For first message, switch if detection is confident
+  // For first message, switch if detection is confident and message is substantial
   if (isFirstMessage && detectedLang !== currentLanguage) {
-    return detectedLang;
+    // Require at least 5 characters for first message language detection
+    if (messageText.trim().length >= 5) {
+      return detectedLang;
+    }
+    return null;
   }
   
   // For subsequent messages, be more conservative
-  // Only switch if the detected language is very different and confident
+  // Only switch if we're very confident and the message is substantial
   if (!isFirstMessage && detectedLang !== currentLanguage) {
+    // Require longer text for subsequent language switches to avoid false positives
+    if (messageText.trim().length < 10) {
+      return null;
+    }
+    
     // Only switch if we're very confident (requires more analysis)
     const confidence = getDetectionConfidence(messageText, detectedLang);
-    if (confidence > 0.8) {
+    if (confidence > 0.7) { // Higher threshold for language switches mid-conversation
       return detectedLang;
     }
   }
