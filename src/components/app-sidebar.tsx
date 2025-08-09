@@ -52,6 +52,7 @@ import { useDefaultChat } from "@/hooks/useDefaultChat"
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onNewChat?: (title?: string) => void
   onOpenFinetuning?: () => void
+  onOpenMetrics?: () => void
   chatTitles?: string[]
   chatIds?: string[]
   selectedChatIndex?: number
@@ -73,6 +74,7 @@ const navSecondaryData = []
 export function AppSidebar({ 
   onNewChat = () => {},
   onOpenFinetuning = () => {},
+  onOpenMetrics = () => {},
   chatTitles = [],
   chatIds = [],
   selectedChatIndex = -1,
@@ -309,7 +311,7 @@ export function AppSidebar({
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      onClick={() => navigate('/admin/metrics')}
+                      onClick={onOpenMetrics}
                       className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
                       size="sm"
                       tooltip={t('navigation.metrics', { defaultValue: 'Metrics' })}
@@ -399,7 +401,7 @@ export function AppSidebar({
                   onNewChat();
                   if (isAdmin) {
                     const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
-                    if (slug) navigate(`/chat/${slug}`);
+                    if (slug) navigate(`/admin/${slug}`);
                   }
                 }}
               className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
@@ -424,7 +426,7 @@ export function AppSidebar({
                             onSelectChat(index);
                             if (isAdmin) {
                               const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
-                              if (slug) navigate(`/chat/${slug}`);
+                              if (slug) navigate(`/admin/${slug}`);
                             }
                           }}
                           isActive={index === selectedChatIndex}

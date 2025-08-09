@@ -16,7 +16,7 @@ import { OnboardingFlow } from './OnboardingFlow';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
 import { City } from '@/types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Building2 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
@@ -49,6 +49,9 @@ const PersistentLayout: React.FC = () => {
   // Estado para el onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
+  // Estado de ciudad del admin
+  const [adminCitySlug, setAdminCitySlug] = useState<string | null>(null);
+  const [adminCityLoading, setAdminCityLoading] = useState(false);
   
   // Estado para controlar la vista de búsqueda de ciudades
   const [showCitySearch, setShowCitySearch] = useState(false);
@@ -56,10 +59,10 @@ const PersistentLayout: React.FC = () => {
   // Extraer citySlug de la URL
   const getCitySlug = () => {
     const path = location.pathname;
-    if (path.startsWith('/chat/') || path.startsWith('/city/')) {
+    if (path.startsWith('/chat/') || path.startsWith('/city/') || path.startsWith('/admin/')) {
       // Extraer el slug de la ruta, ignorando parámetros de búsqueda
       const pathParts = path.split('/');
-      const slug = pathParts[2]; // /chat/valencia -> valencia
+      const slug = pathParts[2];
       return slug || params.chatSlug || params.citySlug;
     }
     return undefined;
@@ -99,12 +102,116 @@ const PersistentLayout: React.FC = () => {
     handleToggleLocation
   } = useAppState(citySlug);
 
+  // Cargar ciudad del admin y redirigir a /admin/:slug si existe
+  useEffect(() => {
+    const loadAdminCity = async () => {
+      if (!user || profile?.role !== 'administrativo') return;
+      setAdminCityLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('cities')
+          .select('slug, admin_user_id, id')
+          .eq('admin_user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (!error && data) {
+          setAdminCitySlug(data.slug);
+          // En cualquier ruta admin distinta, navegar a su slug
+          if (location.pathname.startsWith('/admin') && location.pathname !== `/admin/${data.slug}`) {
+            navigate(`/admin/${data.slug}`, { replace: true });
+          }
+        } else {
+          setAdminCitySlug(null);
+        }
+      } catch (e) {
+        console.error('Error loading admin city:', e);
+        setAdminCitySlug(null);
+      } finally {
+        setAdminCityLoading(false);
+      }
+    };
+
+    loadAdminCity();
+  }, [user, profile?.role]);
+
+  // Enforce admin-only access to their own admin route; prevent /chat/:slug and other admin slugs
+  useEffect(() => {
+    if (profile?.role !== 'administrativo') return;
+    const path = location.pathname;
+    // If admin tries to access /chat/* or /city/*, redirect to their /admin/:slug (or /admin if none yet)
+    if (path.startsWith('/chat/') || path.startsWith('/city/')) {
+      if (adminCityLoading) return;
+      if (adminCitySlug) navigate(`/admin/${adminCitySlug}`, { replace: true });
+      else navigate('/admin', { replace: true });
+      return;
+    }
+    // If admin on /admin/:slug but slug doesn't match their own, redirect to own
+    if (path.startsWith('/admin/')) {
+      const current = getCitySlug();
+      if (adminCitySlug && current && current !== adminCitySlug) {
+        navigate(`/admin/${adminCitySlug}`, { replace: true });
+      }
+    }
+  }, [profile?.role, location.pathname, adminCitySlug, adminCityLoading]);
+
+  // Crear ciudad para admin
+  const handleCreateAdminCity = async () => {
+    if (!user || profile?.role !== 'administrativo') return;
+    setAdminCityLoading(true);
+    try {
+      const defaultName = 'Mi Ciudad';
+      // Intentar generar slug único desde el backend si existe la función; si falla, fallback local
+      let newSlug = '';
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('generate_unique_slug', { base_name: defaultName });
+        if (!rpcError && rpcData) newSlug = rpcData as unknown as string;
+      } catch {}
+      if (!newSlug) {
+        newSlug = defaultName
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+      }
+
+      const { data: insertData, error: insertError } = await supabase
+        .from('cities')
+        .insert({
+          name: defaultName,
+          slug: newSlug,
+          admin_user_id: user.id,
+          is_active: true,
+          is_public: true,
+          created_at: new Date().toISOString()
+        })
+        .select('slug')
+        .single();
+
+      if (insertError) {
+        console.error('Error creating admin city:', insertError);
+        return;
+      }
+
+      setAdminCitySlug(insertData.slug);
+      navigate(`/admin/${insertData.slug}`, { replace: true });
+      // Opcional: abrir configuración justo después de crear
+      setCurrentView('finetuning');
+    } finally {
+      setAdminCityLoading(false);
+    }
+  };
+
   const {
     handleNewChat: handleNewChatClick,
     handleSelectChat,
     handleMenuToggle,
     handleOpenFinetuning,
-    handleOpenSettings
+    handleOpenSettings,
+    handleOpenMetrics
   } = useAppHandlers({
     chatConfig,
     setChatConfig,
@@ -133,6 +240,11 @@ const PersistentLayout: React.FC = () => {
   const openFinetuningFromSidebar = () => {
     setShowCitySearch(false);
     handleOpenFinetuningWithAuth();
+  };
+
+  const openMetricsFromSidebar = () => {
+    setShowCitySearch(false);
+    setCurrentView('metrics');
   };
 
   const handleCitySelect = async (city: City) => {
@@ -334,6 +446,18 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
+    // Página de métricas (solo admins)
+    if (currentView === 'metrics') {
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-xl font-semibold mb-2">{t('navigation.metrics', { defaultValue: 'Metrics' })}</div>
+            <div className="text-sm text-muted-foreground">Dashboard coming soon</div>
+          </div>
+        </div>
+      );
+    }
+
     // Vista de búsqueda de ciudades (estado local)
     if (showCitySearch) {
       return (
@@ -356,8 +480,55 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Página principal y admin - selector de ciudades
-    if (path === '/' || path === '/admin') {
+    // Página principal y admin: si hay slug de admin, mostrar chat;
+    // si no, mostrar selector o vacío admin.
+    if (path === '/' || path === '/admin' || path.startsWith('/admin/')) {
+      const slug = getCitySlug();
+      // Si admin y no tiene ciudad creada, mostrar estado vacío con botón de crear
+      if (profile?.role === 'administrativo' && !adminCityLoading && !adminCitySlug) {
+        return (
+          <div className="flex-1 overflow-auto bg-background">
+            <div className="container mx-auto px-4 py-10 flex flex-col items-center text-center gap-4">
+              <div className="flex items-center justify-center w-20 h-20 rounded-full border border-border/40 bg-muted/30">
+                <Building2 className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xl font-semibold">{t('city.noCityConfigured', { defaultValue: 'No hay ninguna ciudad configurada' })}</div>
+                <div className="text-sm text-muted-foreground">{t('city.createCityHint', { defaultValue: 'Crea tu ciudad para comenzar a configurar tu asistente' })}</div>
+              </div>
+              <Button onClick={handleCreateAdminCity} disabled={adminCityLoading}>
+                {t('city.createCity', { defaultValue: 'Crear ciudad' })}
+              </Button>
+            </div>
+          </div>
+        );
+      }
+
+      if (path.startsWith('/admin/') && slug) {
+        return (
+          <MainContent
+            theme={null}
+            isMobile={isMobile}
+            isMenuOpen={isMenuOpen}
+            handleMenuToggle={handleMenuToggle}
+            currentThemeMode={currentThemeMode}
+            toggleTheme={toggleTheme}
+            handleOpenSettings={handleOpenSettings}
+            user={user}
+            onLogin={() => navigate('/auth')}
+            messages={messages}
+            isLoading={isLoading}
+            appError={appError}
+            chatConfig={chatConfig}
+            handleSendMessage={handleSendMessage}
+            handleDownloadPdf={() => {}}
+            handleSeeMoreEvents={handleSeeMoreEvents}
+            handleSetCurrentLanguageCode={() => {}}
+            shouldShowChatContainer={shouldShowChatContainer}
+            handleToggleLocation={handleToggleLocation}
+          />
+        );
+      }
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -441,6 +612,7 @@ const PersistentLayout: React.FC = () => {
         <AppSidebar 
           onNewChat={showCitySearch ? handleNewChatInSearchMode : handleNewChatClick}
           onOpenFinetuning={openFinetuningFromSidebar}
+          onOpenMetrics={openMetricsFromSidebar}
           chatTitles={chatTitles}
           chatIds={conversations.map(c => c.id)}
           selectedChatIndex={selectedChatIndex}

@@ -38,6 +38,7 @@ const App = () => {
               {/* Rutas que usan el layout persistente */}
               <Route path="/" element={<PersistentLayout />} />
               <Route path="/admin" element={<PersistentLayout />} />
+              <Route path="/admin/:citySlug" element={<PersistentLayout />} />
               <Route path="/admin/metrics" element={<PersistentLayout />} />
               <Route path="/chat/:chatSlug" element={<PersistentLayout />} />
               <Route path="/city/:citySlug" element={<PersistentLayout />} />

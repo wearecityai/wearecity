@@ -13,7 +13,7 @@ interface UseAppHandlersProps {
   chatConfig: CustomChatConfig;
   setChatConfig: React.Dispatch<React.SetStateAction<CustomChatConfig>>;
   saveConfig: (config: CustomChatConfig) => Promise<boolean>;
-  setCurrentView: React.Dispatch<React.SetStateAction<'chat' | 'finetuning'>>;
+  setCurrentView: React.Dispatch<React.SetStateAction<'chat' | 'finetuning' | 'metrics'>>;
   setIsMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedChatIndex: React.Dispatch<React.SetStateAction<number>>;
   selectedChatIndex: number;
@@ -48,8 +48,10 @@ export const useAppHandlers = ({
     if (appError && !appError.toLowerCase().includes("google maps") && !appError.includes("API_KEY") && appError !== MAPS_API_KEY_INVALID_ERROR_MESSAGE) {
       setAppError(null);
     }
+    // Ensure we leave finetuning/metrics and show chat
+    setCurrentView('chat');
     if (isMobile) setIsMenuOpen(false);
-  }, [handleNewChat, appError, setAppError, isMobile, setIsMenuOpen]);
+  }, [handleNewChat, appError, setAppError, isMobile, setIsMenuOpen, setCurrentView]);
 
   const handleSetCurrentLanguageCode = useCallback(async (newLangCode: string) => {
     const updatedConfig = { ...chatConfig, currentLanguageCode: newLangCode };
@@ -113,8 +115,10 @@ export const useAppHandlers = ({
       setCurrentConversationId(conversation.id);
       setSelectedChatIndex(index);
     }
+    // Ensure we leave finetuning/metrics and show chat
+    setCurrentView('chat');
     if (isMobile) setIsMenuOpen(false);
-  }, [setCurrentConversationId, setSelectedChatIndex, conversations, isMobile, setIsMenuOpen]);
+  }, [setCurrentConversationId, setSelectedChatIndex, conversations, isMobile, setIsMenuOpen, setCurrentView]);
 
   const handleMenuToggle = useCallback(() => {
     setIsMenuOpen(prev => !prev);
@@ -128,6 +132,10 @@ export const useAppHandlers = ({
     setCurrentView('finetuning');
   }, [setCurrentView]);
 
+  const handleOpenMetrics = useCallback(() => {
+    setCurrentView('metrics');
+  }, [setCurrentView]);
+
   return {
     handleNewChat: handleNewChatClick,
     handleSetCurrentLanguageCode,
@@ -136,6 +144,7 @@ export const useAppHandlers = ({
     handleSelectChat,
     handleMenuToggle,
     handleOpenFinetuning,
-    handleOpenSettings
+    handleOpenSettings,
+    handleOpenMetrics
   };
 };

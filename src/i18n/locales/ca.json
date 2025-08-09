@@ -173,7 +173,10 @@
     "accessMunicipalInfo": "Accedeix a informació sobre tràmits i serveis municipals",
     "assistance247": "Assistència 24/7",
     "instantHelp": "Obtén ajuda immediata amb el nostre assistent virtual",
-    "infoPage": "Aquesta és la pàgina d'informació de {{city}}. El xat està disponible només per a l'administrador."
+    "infoPage": "Aquesta és la pàgina d'informació de {{city}}. El xat està disponible només per a l'administrador.",
+    "noCityConfigured": "Encara no hi ha cap ciutat configurada",
+    "createCityHint": "Crea la teva ciutat per començar a configurar el teu assistent",
+    "createCity": "Crear ciutat"
   },
   "onboarding": {
     "welcome": "Benvingut a CityChat!",

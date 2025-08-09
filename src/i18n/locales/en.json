@@ -161,7 +161,10 @@
     "accessMunicipalInfo": "Access information about municipal procedures and services",
     "assistance247": "24/7 Assistance",
     "instantHelp": "Get immediate help with our virtual assistant",
-    "infoPage": "This is the info page for {{city}}. The chat is only available to the administrator."
+    "infoPage": "This is the info page for {{city}}. The chat is only available to the administrator.",
+    "noCityConfigured": "No city configured yet",
+    "createCityHint": "Create your city to start configuring your assistant",
+    "createCity": "Create city"
   },
   "theme": {
     "title": "Theme",
