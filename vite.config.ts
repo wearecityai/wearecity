@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
     // Expose Vercel environment variables
     __APP_ENV__: JSON.stringify(process.env.VITE_VERCEL_ENV || '')
   },
-  base: './',
+  base: '/',
   build: {
     assetsDir: 'assets',
     rollupOptions: {
