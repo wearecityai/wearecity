@@ -26,19 +26,18 @@ export default defineConfig(({ mode }) => ({
     // Expose Vercel environment variables
     __APP_ENV__: JSON.stringify(process.env.VITE_VERCEL_ENV || '')
   },
-  // Configuración de la ruta base para asegurar que los recursos estáticos se carguen correctamente
-  // Usar rutas absolutas en producción para evitar problemas de resolución
-  base: '/',
+  base: './',
   build: {
-    // Asegurar que los assets usen rutas relativas
     assetsDir: 'assets',
     rollupOptions: {
       output: {
-        // Configurar nombres de archivos para mejor caching
         assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js'
       }
-    }
+    },
+    cssCodeSplit: true,
+    minify: 'terser',
+    sourcemap: false
   }
 }));
