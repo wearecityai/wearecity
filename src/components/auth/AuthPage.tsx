@@ -44,7 +44,7 @@ const AuthPage = () => {
       <div className="bg-muted relative hidden lg:block">
         <img
           src="/lovable-uploads/valencia.png"
-          alt="City Chat Background"
+          alt={t('chat.title')}
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
       </div>
