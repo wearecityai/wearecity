@@ -30,7 +30,9 @@
     "dontHaveAccount": "Noch kein Konto?",
     "alreadyHaveAccount": "Bereits ein Konto?",
     "loginWithGoogle": "Mit Google anmelden",
-    "signupWithGoogle": "Mit Google registrieren"
+    "signupWithGoogle": "Mit Google registrieren",
+    "invalidCredentials": "Ungültige Anmeldedaten. Überprüfen Sie E-Mail und Passwort.",
+    "unexpectedLoginError": "Unerwarteter Fehler bei der Anmeldung."
   },
   "chat": {
     "title": "Stadt-Chat",
@@ -46,7 +48,15 @@
     "startConversation": "Unterhaltung beginnen",
     "errorSending": "Fehler beim Senden",
     "microphoneAccess": "Mikrofon-Zugriff",
-    "speechNotSupported": "Spracherkennung wird in diesem Browser nicht unterstützt"
+    "speechNotSupported": "Spracherkennung wird in diesem Browser nicht unterstützt",
+    "greeting": "Hallo! Ich bin {{name}}",
+    "defaultAssistant": "Ihr Assistent",
+    "howCanIHelp": "Wie kann ich Ihnen heute helfen?",
+    "helpExamples": "Sie können mich nach Diensten, Veranstaltungen, Verfahren und vielem mehr fragen.",
+    "assistantOf": "der Assistent von {{city}}",
+    "loginPrompt": "Für eine personalisierte Erfahrung melden Sie sich bitte an",
+    "specializedIn": "Spezialisiert auf {{city}}",
+    "specializedDescription": "Dieser Assistent ist konfiguriert, um bei Informationen und Diensten in {{city}} zu helfen."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -65,7 +75,9 @@
     "unexpectedError": "Unerwarteter Fehler",
     "tryAgain": "Erneut versuchen",
     "networkError": "Netzwerkfehler",
-    "serverError": "Serverfehler"
+    "serverError": "Serverfehler",
+    "offlineNotice": "Verbindungshinweis",
+    "apiConfigError": "API-Konfigurationsfehler"
   },
   "geolocation": {
     "detecting": "Standort wird erkannt...",
@@ -74,7 +86,10 @@
     "permission": "Standortberechtigung",
     "notSupported": "Ortung nicht unterstützt",
     "timeout": "Zeitüberschreitung",
-    "unknownError": "Unbekannter Ortungsfehler"
+    "unknownError": "Unbekannter Ortungsfehler",
+    "currentLocation": "Aktueller Standort",
+    "unknownLocation": "Unbekannter Standort",
+    "addressNotAvailable": "Adresse nicht verfügbar"
   },
   "events": {
     "title": "Veranstaltungen",
@@ -83,11 +98,17 @@
     "location": "Ort",
     "source": "Quelle",
     "noEvents": "Keine Veranstaltungen gefunden",
-    "viewMore": "Mehr anzeigen",
+    "viewMore": "Details anzeigen",
     "today": "Heute",
     "tomorrow": "Morgen",
     "thisWeek": "Diese Woche",
-    "nextWeek": "Nächste Woche"
+    "nextWeek": "Nächste Woche",
+    "checkingLink": "Link wird überprüft...",
+    "linkVerified": "Link überprüft",
+    "linkNotFound": "Link nicht gefunden (404)",
+    "serverError": "Serverfehler",
+    "linkCheckFailed": "Link konnte nicht überprüft werden",
+    "openLink": "Link öffnen"
   },
   "places": {
     "title": "Orte",
@@ -113,6 +134,35 @@
     "portuguese": "Portugiesisch",
     "dutch": "Niederländisch"
   },
+  "sidebar": {
+    "alreadyInSearchMode": "Sie sind bereits im Suchmodus",
+    "discoverCities": "Städte entdecken",
+    "searchingCities": "Städte suchen...",
+    "defaultCity": "Standardstadt",
+    "conversations": "Gespräche",
+    "noConversationsYet": "Sie haben noch keine Gespräche"
+  },
+  "auth": {
+    "user": "Benutzer"
+  },
+  "city": {
+    "privateNeedsLogin": "Diese Stadt ist privat. Sie müssen sich anmelden, um Zugang zu erhalten.",
+    "privateNoPermission": "Sie haben keine Berechtigung für diese private Stadt.",
+    "errorLoading": "Fehler beim Laden der Stadt",
+    "verifyingAccess": "Zugang wird überprüft...",
+    "accessDenied": "Zugang Verweigert",
+    "redirecting": "Weiterleitung zum Chat...",
+    "welcomeTo": "Willkommen in {{city}}",
+    "privateInfo": "Dies ist eine private Stadt. Nur der Administrator kann auf den Chat zugreifen.",
+    "privateCity": "Private Stadt",
+    "privateCityDesc": "Diese Stadt ist als privat konfiguriert. Nur der Administrator kann auf den Chat zugreifen und Einstellungen ändern.",
+    "findPlaces": "Finden Sie Orte, Dienste und Sehenswürdigkeiten in {{city}}",
+    "publicServices": "Öffentliche Dienste",
+    "accessMunicipalInfo": "Zugang zu Informationen über Verfahren und städtische Dienste",
+    "assistance247": "24/7 Betreuung",
+    "instantHelp": "Sofortige Hilfe mit unserem virtuellen Assistenten",
+    "infoPage": "Dies ist die Informationsseite für {{city}}. Der Chat ist nur für den Administrator verfügbar."
+  },
   "theme": {
     "title": "Design",
     "light": "Hell",
@@ -133,5 +183,58 @@
     "messagesSaved": "Nachrichten erfolgreich gespeichert",
     "settingsUpdated": "Einstellungen aktualisiert",
     "profileUpdated": "Profil aktualisiert"
+  },
+  "onboarding": {
+    "welcome": "Willkommen bei CityChat!",
+    "description": "Entdecken Sie Ihre Stadt und beginnen Sie mit dem virtuellen Assistenten Ihrer Gemeinde zu interagieren",
+    "selectCity": "Wählen Sie Ihre Stadt",
+    "findAssistant": "Finden Sie den virtuellen Assistenten Ihrer Gemeinde zum Starten",
+    "searchPlaceholder": "Stadt suchen...",
+    "noCitiesFound": "Keine Städte gefunden",
+    "noCitiesAvailable": "Keine Städte verfügbar",
+    "tryAnotherSearch": "Versuchen Sie einen anderen Suchbegriff",
+    "moreCitiesSoon": "Bald werden weitere Städte verfügbar sein",
+    "selected": "Ausgewählt",
+    "continueWithoutSelecting": "Ohne Auswahl fortfahren",
+    "continueWithCity": "Mit {{city}} fortfahren"
+  },
+  "features": {
+    "smartChat": "Intelligenter Chat",
+    "smartChatDesc": "Fragen Sie nach Verfahren, Diensten und Veranstaltungen Ihrer Stadt",
+    "localInfo": "Lokale Information",
+    "localInfoDesc": "Zugang zu aktuellen Informationen Ihrer Gemeinde",
+    "citizenService": "Bürgerdienst",
+    "citizenServiceDesc": "Lösen Sie Fragen und verwalten Sie Verfahren einfach"
+  },
+  "chatInput": {
+    "listening": "Höre zu...",
+    "processing": "Verarbeitung...",
+    "noSpeech": "Keine Sprache erkannt. Versuchen Sie es erneut.",
+    "audioCaptureError": "Audio-Aufnahmefehler.",
+    "micPermissionDenied": "Mikrofon-Berechtigung verweigert.",
+    "networkError": "Netzwerkfehler.",
+    "recognitionError": "Erkennungsfehler.",
+    "startRecording": "Aufnahme starten",
+    "recordingNotSupported": "Aufnahme nicht unterstützt",
+    "sendMessage": "Nachricht senden",
+    "location": "Standort",
+    "locationActive": "Standort aktiv",
+    "placeholderAbout": "Schreiben Sie Ihre Frage über {{city}}..."
+  },
+  "loading": {
+    "events": "Veranstaltungen suchen...",
+    "places": "Orte suchen...",
+    "restaurants": "Restaurants suchen...",
+    "information": "Informationen suchen...",
+    "procedures": "Verfahren suchen...",
+    "wait": "Einen Moment..."
+  },
+  "publicChat": {
+    "loadingChat": "Chat wird geladen...",
+    "invalidSlugTitle": "Ungültiger Chat-Slug",
+    "invalidSlugDesc": "Die Chat-URL ist ungültig. Überprüfen Sie, ob der Link korrekt ist.",
+    "backHome": "Zurück zur Startseite",
+    "cityNotFoundTitle": "Stadt nicht gefunden",
+    "cityNotFoundDesc": "Die Stadt \"{{city}}\" existiert nicht oder ist nicht öffentlich verfügbar."
   }
 }

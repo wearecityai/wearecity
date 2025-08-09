@@ -30,7 +30,9 @@
     "dontHaveAccount": "Geen account?",
     "alreadyHaveAccount": "Al een account?",
     "loginWithGoogle": "Inloggen met Google",
-    "signupWithGoogle": "Registreren met Google"
+    "signupWithGoogle": "Registreren met Google",
+    "invalidCredentials": "Onjuiste inloggegevens. Controleer email en wachtwoord.",
+    "unexpectedLoginError": "Onverwachte fout bij inloggen."
   },
   "chat": {
     "title": "Stad Chat",
@@ -46,7 +48,15 @@
     "startConversation": "Start een gesprek",
     "errorSending": "Fout bij verzenden",
     "microphoneAccess": "Microfoon toegang",
-    "speechNotSupported": "Spraakherkenning wordt niet ondersteund in deze browser"
+    "speechNotSupported": "Spraakherkenning wordt niet ondersteund in deze browser",
+    "greeting": "Hallo! Ik ben {{name}}",
+    "defaultAssistant": "je assistent",
+    "howCanIHelp": "Hoe kan ik je vandaag helpen?",
+    "helpExamples": "Je kunt me vragen over diensten, evenementen, procedures en veel meer.",
+    "assistantOf": "de assistent van {{city}}",
+    "loginPrompt": "Voor een gepersonaliseerde ervaring, log in",
+    "specializedIn": "Gespecialiseerd in {{city}}",
+    "specializedDescription": "Deze assistent is geconfigureerd om te helpen met informatie en diensten van {{city}}."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -65,7 +75,9 @@
     "unexpectedError": "Onverwachte fout",
     "tryAgain": "Probeer opnieuw",
     "networkError": "Netwerkfout",
-    "serverError": "Serverfout"
+    "serverError": "Serverfout",
+    "offlineNotice": "Verbindingsmelding",
+    "apiConfigError": "API configuratiefout"
   },
   "geolocation": {
     "detecting": "Locatie detecteren...",
@@ -87,7 +99,13 @@
     "today": "Vandaag",
     "tomorrow": "Morgen",
     "thisWeek": "Deze week",
-    "nextWeek": "Volgende week"
+    "nextWeek": "Volgende week",
+    "checkingLink": "Link controleren...",
+    "linkVerified": "Link geverifieerd",
+    "linkNotFound": "Link niet gevonden (404)",
+    "serverError": "Serverfout",
+    "linkCheckFailed": "Kon link niet verifiëren",
+    "openLink": "Link openen"
   },
   "places": {
     "title": "Plaatsen",
@@ -124,6 +142,93 @@
     "placeholder": "Stad zoeken...",
     "noResults": "Geen steden gevonden",
     "current": "Huidige stad"
+  },
+  "sidebar": {
+    "alreadyInSearchMode": "Je bent al in zoekmodus",
+    "discoverCities": "Steden ontdekken",
+    "searchingCities": "Steden zoeken...",
+    "defaultCity": "Standaard stad",
+    "conversations": "Gesprekken",
+    "noConversationsYet": "Je hebt nog geen gesprekken"
+  },
+  "geolocation": {
+    "currentLocation": "Huidige locatie",
+    "unknownLocation": "Onbekende locatie",
+    "addressNotAvailable": "Adres niet beschikbaar"
+  },
+  "auth": {
+    "user": "Gebruiker"
+  },
+  "city": {
+    "privateNeedsLogin": "Deze stad is privé. Je moet inloggen om toegang te krijgen.",
+    "privateNoPermission": "Je hebt geen toestemming voor deze privé stad.",
+    "errorLoading": "Fout bij laden van stad",
+    "verifyingAccess": "Toegang verifiëren...",
+    "accessDenied": "Toegang Geweigerd",
+    "redirecting": "Doorverwijzen naar chat...",
+    "welcomeTo": "Welkom in {{city}}",
+    "privateInfo": "Dit is een privé stad. Alleen de beheerder kan de chat gebruiken.",
+    "privateCity": "Privé Stad",
+    "privateCityDesc": "Deze stad is geconfigureerd als privé. Alleen de beheerder kan de chat gebruiken en instellingen wijzigen.",
+    "findPlaces": "Vind plaatsen, diensten en bezienswaardigheden in {{city}}",
+    "publicServices": "Openbare Diensten",
+    "accessMunicipalInfo": "Toegang tot informatie over procedures en gemeentelijke diensten",
+    "assistance247": "24/7 Assistentie",
+    "instantHelp": "Krijg directe hulp met onze virtuele assistent",
+    "infoPage": "Dit is de informatiepagina voor {{city}}. De chat is alleen beschikbaar voor de beheerder."
+  },
+  "onboarding": {
+    "welcome": "Welkom bij CityChat!",
+    "description": "Ontdek je stad en begin te communiceren met de virtuele assistent van je gemeente",
+    "selectCity": "Selecteer je stad",
+    "findAssistant": "Vind de virtuele assistent van je gemeente om te beginnen",
+    "searchPlaceholder": "Stad zoeken...",
+    "noCitiesFound": "Geen steden gevonden",
+    "noCitiesAvailable": "Geen steden beschikbaar",
+    "tryAnotherSearch": "Probeer een andere zoekterm",
+    "moreCitiesSoon": "Binnenkort zijn er meer steden beschikbaar",
+    "selected": "Geselecteerd",
+    "continueWithoutSelecting": "Doorgaan zonder selecteren",
+    "continueWithCity": "Doorgaan met {{city}}"
+  },
+  "features": {
+    "smartChat": "Slimme Chat",
+    "smartChatDesc": "Vraag naar procedures, diensten en evenementen van je stad",
+    "localInfo": "Lokale Informatie",
+    "localInfoDesc": "Toegang tot actuele informatie van je gemeente",
+    "citizenService": "Burgerdienst",
+    "citizenServiceDesc": "Los vragen op en beheer procedures eenvoudig"
+  },
+  "chatInput": {
+    "listening": "Luisteren...",
+    "processing": "Verwerken...",
+    "noSpeech": "Geen spraak gedetecteerd. Probeer opnieuw.",
+    "audioCaptureError": "Audio opname fout.",
+    "micPermissionDenied": "Microfoon toestemming geweigerd.",
+    "networkError": "Netwerkfout.",
+    "recognitionError": "Herkenningsfout.",
+    "startRecording": "Opname starten",
+    "recordingNotSupported": "Opname niet ondersteund",
+    "sendMessage": "Bericht verzenden",
+    "location": "Locatie",
+    "locationActive": "Locatie actief",
+    "placeholderAbout": "Typ je vraag over {{city}}..."
+  },
+  "loading": {
+    "events": "Evenementen zoeken...",
+    "places": "Plaatsen zoeken...",
+    "restaurants": "Restaurants zoeken...",
+    "information": "Informatie zoeken...",
+    "procedures": "Procedures zoeken...",
+    "wait": "Een moment..."
+  },
+  "publicChat": {
+    "loadingChat": "Chat laden...",
+    "invalidSlugTitle": "Ongeldige chat slug",
+    "invalidSlugDesc": "De chat URL is ongeldig. Controleer of de link correct is.",
+    "backHome": "Terug naar home",
+    "cityNotFoundTitle": "Stad niet gevonden",
+    "cityNotFoundDesc": "De stad \"{{city}}\" bestaat niet of is niet openbaar beschikbaar."
   },
   "notifications": {
     "success": "Succes",

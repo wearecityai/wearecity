@@ -30,7 +30,9 @@
     "dontHaveAccount": "No tens un compte?",
     "alreadyHaveAccount": "Ja tens un compte?",
     "loginWithGoogle": "Iniciar sessió amb Google",
-    "signupWithGoogle": "Registrar-se amb Google"
+    "signupWithGoogle": "Registrar-se amb Google",
+    "invalidCredentials": "Credencials incorrectes. Verifica el teu email i contrasenya.",
+    "unexpectedLoginError": "Error inesperat en iniciar sessió."
   },
   "chat": {
     "title": "Xat de la Ciutat",
@@ -82,7 +84,9 @@
     "unexpectedError": "Error inesperat",
     "tryAgain": "Torna-ho a intentar",
     "networkError": "Error de connexió",
-    "serverError": "Error del servidor"
+    "serverError": "Error del servidor",
+    "offlineNotice": "Avís de connexió",
+    "apiConfigError": "Error de configuració d'API"
   },
   "geolocation": {
     "detecting": "Detectant ubicació...",
@@ -141,6 +145,85 @@
     "placeholder": "Cercar ciutat...",
     "noResults": "No s'han trobat ciutats",
     "current": "Ciutat actual"
+  },
+  "sidebar": {
+    "alreadyInSearchMode": "Ja estàs en mode cerca",
+    "discoverCities": "Descobrir ciutats",
+    "searchingCities": "Cercant ciutats...",
+    "defaultCity": "Ciutat predeterminada",
+    "conversations": "Converses",
+    "noConversationsYet": "Encara no tens converses"
+  },
+  "city": {
+    "privateNeedsLogin": "Aquesta ciutat és privada. Has d'iniciar sessió per accedir.",
+    "privateNoPermission": "No tens permisos per accedir a aquesta ciutat privada.",
+    "errorLoading": "Error en carregar la ciutat",
+    "verifyingAccess": "Verificant accés...",
+    "accessDenied": "Accés Denegat",
+    "redirecting": "Redirigint al xat...",
+    "welcomeTo": "Benvingut a {{city}}",
+    "privateInfo": "Aquesta és una ciutat privada. Només l'administrador pot accedir al xat.",
+    "privateCity": "Ciutat Privada",
+    "privateCityDesc": "Aquesta ciutat està configurada com a privada. Només l'administrador pot accedir al xat i modificar la configuració.",
+    "findPlaces": "Troba llocs, serveis i punts d'interès a {{city}}",
+    "publicServices": "Serveis Públics",
+    "accessMunicipalInfo": "Accedeix a informació sobre tràmits i serveis municipals",
+    "assistance247": "Assistència 24/7",
+    "instantHelp": "Obtén ajuda immediata amb el nostre assistent virtual",
+    "infoPage": "Aquesta és la pàgina d'informació de {{city}}. El xat està disponible només per a l'administrador."
+  },
+  "onboarding": {
+    "welcome": "Benvingut a CityChat!",
+    "description": "Descobreix la teva ciutat i comença a interactuar amb l'assistent virtual del teu municipi",
+    "selectCity": "Selecciona la teva ciutat",
+    "findAssistant": "Troba l'assistent virtual del teu municipi per començar",
+    "searchPlaceholder": "Cercar ciutat...",
+    "noCitiesFound": "No s'han trobat ciutats",
+    "noCitiesAvailable": "No hi ha ciutats disponibles",
+    "tryAnotherSearch": "Prova amb un altre terme de cerca",
+    "moreCitiesSoon": "Aviat estaran disponibles més ciutats",
+    "selected": "Seleccionada",
+    "continueWithoutSelecting": "Continuar sense seleccionar",
+    "continueWithCity": "Continuar amb {{city}}"
+  },
+  "features": {
+    "smartChat": "Xat Intel·ligent",
+    "smartChatDesc": "Pregunta per tràmits, serveis i esdeveniments de la teva ciutat",
+    "localInfo": "Informació Local",
+    "localInfoDesc": "Accedeix a informació actualitzada del teu municipi",
+    "citizenService": "Servei Ciutadà",
+    "citizenServiceDesc": "Resol dubtes i gestiona tràmits de forma senzilla"
+  },
+  "chatInput": {
+    "listening": "Escoltant...",
+    "processing": "Processant...",
+    "noSpeech": "No s'ha detectat veu. Torna a provar.",
+    "audioCaptureError": "Error en capturar àudio.",
+    "micPermissionDenied": "Permís de micròfon denegat.",
+    "networkError": "Error de xarxa.",
+    "recognitionError": "Error de reconeixement.",
+    "startRecording": "Iniciar gravació",
+    "recordingNotSupported": "Gravació no suportada",
+    "sendMessage": "Enviar missatge",
+    "location": "Ubicació",
+    "locationActive": "Ubicació activa",
+    "placeholderAbout": "Escriu la teva consulta sobre {{city}}..."
+  },
+  "loading": {
+    "events": "Cercant esdeveniments...",
+    "places": "Cercant llocs...",
+    "restaurants": "Cercant restaurants...",
+    "information": "Cercant informació...",
+    "procedures": "Cercant tràmits...",
+    "wait": "Un moment..."
+  },
+  "publicChat": {
+    "loadingChat": "Carregant xat...",
+    "invalidSlugTitle": "Slug de xat no vàlid",
+    "invalidSlugDesc": "La URL del xat no és vàlida. Verifica que l'enllaç sigui correcte.",
+    "backHome": "Tornar a l'inici",
+    "cityNotFoundTitle": "Ciutat no trobada",
+    "cityNotFoundDesc": "La ciutat \"{{city}}\" no existeix o no està disponible públicament."
   },
   "notifications": {
     "success": "Èxit",

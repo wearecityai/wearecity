@@ -30,7 +30,9 @@
     "dontHaveAccount": "Non hai un account?",
     "alreadyHaveAccount": "Hai già un account?",
     "loginWithGoogle": "Accedi con Google",
-    "signupWithGoogle": "Registrati con Google"
+    "signupWithGoogle": "Registrati con Google",
+    "invalidCredentials": "Credenziali errate. Verifica email e password.",
+    "unexpectedLoginError": "Errore imprevisto durante l'accesso."
   },
   "chat": {
     "title": "Chat della Città",
@@ -46,7 +48,15 @@
     "startConversation": "Inizia una conversazione",
     "errorSending": "Errore nell'invio del messaggio",
     "microphoneAccess": "Accesso al microfono",
-    "speechNotSupported": "Il riconoscimento vocale non è supportato in questo browser"
+    "speechNotSupported": "Il riconoscimento vocale non è supportato in questo browser",
+    "greeting": "Ciao! Sono {{name}}",
+    "defaultAssistant": "il tuo assistente",
+    "howCanIHelp": "Come posso aiutarti oggi?",
+    "helpExamples": "Puoi chiedermi di servizi, eventi, procedure e molto altro.",
+    "assistantOf": "l'assistente di {{city}}",
+    "loginPrompt": "Per un'esperienza personalizzata, accedi",
+    "specializedIn": "Specializzato in {{city}}",
+    "specializedDescription": "Questo assistente è configurato per aiutare con informazioni e servizi di {{city}}."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -65,7 +75,9 @@
     "unexpectedError": "Errore imprevisto",
     "tryAgain": "Riprova",
     "networkError": "Errore di rete",
-    "serverError": "Errore del server"
+    "serverError": "Errore del server",
+    "offlineNotice": "Avviso di connessione",
+    "apiConfigError": "Errore di configurazione API"
   },
   "geolocation": {
     "detecting": "Rilevamento posizione...",
@@ -87,7 +99,13 @@
     "today": "Oggi",
     "tomorrow": "Domani",
     "thisWeek": "Questa settimana",
-    "nextWeek": "Prossima settimana"
+    "nextWeek": "Prossima settimana",
+    "checkingLink": "Verifica del link...",
+    "linkVerified": "Link verificato",
+    "linkNotFound": "Link non trovato (404)",
+    "serverError": "Errore del server",
+    "linkCheckFailed": "Impossibile verificare il link",
+    "openLink": "Apri link"
   },
   "places": {
     "title": "Luoghi",
@@ -124,6 +142,93 @@
     "placeholder": "Cerca città...",
     "noResults": "Nessuna città trovata",
     "current": "Città attuale"
+  },
+  "sidebar": {
+    "alreadyInSearchMode": "Sei già in modalità ricerca",
+    "discoverCities": "Scopri città",
+    "searchingCities": "Cercando città...",
+    "defaultCity": "Città predefinita",
+    "conversations": "Conversazioni",
+    "noConversationsYet": "Non hai ancora conversazioni"
+  },
+  "geolocation": {
+    "currentLocation": "Posizione attuale",
+    "unknownLocation": "Posizione sconosciuta",
+    "addressNotAvailable": "Indirizzo non disponibile"
+  },
+  "auth": {
+    "user": "Utente"
+  },
+  "city": {
+    "privateNeedsLogin": "Questa città è privata. Devi accedere per entrare.",
+    "privateNoPermission": "Non hai i permessi per accedere a questa città privata.",
+    "errorLoading": "Errore nel caricamento della città",
+    "verifyingAccess": "Verifica dell'accesso...",
+    "accessDenied": "Accesso Negato",
+    "redirecting": "Reindirizzamento alla chat...",
+    "welcomeTo": "Benvenuto a {{city}}",
+    "privateInfo": "Questa è una città privata. Solo l'amministratore può accedere alla chat.",
+    "privateCity": "Città Privata",
+    "privateCityDesc": "Questa città è configurata come privata. Solo l'amministratore può accedere alla chat e modificare le impostazioni.",
+    "findPlaces": "Trova luoghi, servizi e punti di interesse a {{city}}",
+    "publicServices": "Servizi Pubblici",
+    "accessMunicipalInfo": "Accedi alle informazioni su procedure e servizi municipali",
+    "assistance247": "Assistenza 24/7",
+    "instantHelp": "Ottieni aiuto immediato con il nostro assistente virtuale",
+    "infoPage": "Questa è la pagina informazioni di {{city}}. La chat è disponibile solo per l'amministratore."
+  },
+  "onboarding": {
+    "welcome": "Benvenuto su CityChat!",
+    "description": "Scopri la tua città e inizia a interagire con l'assistente virtuale del tuo comune",
+    "selectCity": "Seleziona la tua città",
+    "findAssistant": "Trova l'assistente virtuale del tuo comune per iniziare",
+    "searchPlaceholder": "Cerca città...",
+    "noCitiesFound": "Nessuna città trovata",
+    "noCitiesAvailable": "Nessuna città disponibile",
+    "tryAnotherSearch": "Prova con un altro termine di ricerca",
+    "moreCitiesSoon": "Presto saranno disponibili più città",
+    "selected": "Selezionata",
+    "continueWithoutSelecting": "Continua senza selezionare",
+    "continueWithCity": "Continua con {{city}}"
+  },
+  "features": {
+    "smartChat": "Chat Intelligente",
+    "smartChatDesc": "Chiedi di procedure, servizi ed eventi della tua città",
+    "localInfo": "Informazioni Locali",
+    "localInfoDesc": "Accedi a informazioni aggiornate del tuo comune",
+    "citizenService": "Servizio Cittadino",
+    "citizenServiceDesc": "Risolvi dubbi e gestisci procedure facilmente"
+  },
+  "chatInput": {
+    "listening": "In ascolto...",
+    "processing": "Elaborazione...",
+    "noSpeech": "Nessun parlato rilevato. Riprova.",
+    "audioCaptureError": "Errore di cattura audio.",
+    "micPermissionDenied": "Permesso microfono negato.",
+    "networkError": "Errore di rete.",
+    "recognitionError": "Errore di riconoscimento.",
+    "startRecording": "Inizia registrazione",
+    "recordingNotSupported": "Registrazione non supportata",
+    "sendMessage": "Invia messaggio",
+    "location": "Posizione",
+    "locationActive": "Posizione attiva",
+    "placeholderAbout": "Scrivi la tua domanda su {{city}}..."
+  },
+  "loading": {
+    "events": "Cercando eventi...",
+    "places": "Cercando luoghi...",
+    "restaurants": "Cercando ristoranti...",
+    "information": "Cercando informazioni...",
+    "procedures": "Cercando procedure...",
+    "wait": "Un momento..."
+  },
+  "publicChat": {
+    "loadingChat": "Caricamento chat...",
+    "invalidSlugTitle": "Slug chat non valido",
+    "invalidSlugDesc": "L'URL della chat non è valido. Verifica che il link sia corretto.",
+    "backHome": "Torna alla home",
+    "cityNotFoundTitle": "Città non trovata",
+    "cityNotFoundDesc": "La città \"{{city}}\" non esiste o non è disponibile pubblicamente."
   },
   "notifications": {
     "success": "Successo",
