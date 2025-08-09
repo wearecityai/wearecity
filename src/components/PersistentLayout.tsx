@@ -15,6 +15,7 @@ import { CitySelector } from './CitySelector';
 import { OnboardingFlow } from './OnboardingFlow';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
+import AdminMetrics from '@/pages/AdminMetrics';
 import { City } from '@/types';
 import { Sparkles, Building2 } from 'lucide-react';
 import { Badge } from './ui/badge';
@@ -448,14 +449,7 @@ const PersistentLayout: React.FC = () => {
 
     // Página de métricas (solo admins)
     if (currentView === 'metrics') {
-      return (
-        <div className="flex-1 overflow-auto bg-background">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-xl font-semibold mb-2">{t('navigation.metrics', { defaultValue: 'Metrics' })}</div>
-            <div className="text-sm text-muted-foreground">Dashboard coming soon</div>
-          </div>
-        </div>
-      );
+      return <AdminMetrics />;
     }
 
     // Vista de búsqueda de ciudades (estado local)

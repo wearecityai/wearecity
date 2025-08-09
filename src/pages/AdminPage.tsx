@@ -14,7 +14,7 @@ const AdminPage = () => {
   const {
     isMobile,
     currentView,
-    setCurrentView,
+    setCurrentView: setCurrentViewTyped,
     chatTitles,
     selectedChatIndex,
     setSelectedChatIndex,
@@ -74,8 +74,8 @@ const AdminPage = () => {
       isMobile={isMobile}
       isGeminiReady={isGeminiReady}
       appError={appError}
-      currentView={currentView}
-      setCurrentView={setCurrentView}
+      currentView={currentView as 'chat' | 'finetuning'}
+      setCurrentView={setCurrentViewTyped as React.Dispatch<React.SetStateAction<'chat' | 'finetuning'>>}
       chatTitles={chatTitles}
       selectedChatIndex={selectedChatIndex}
       setSelectedChatIndex={setSelectedChatIndex}
