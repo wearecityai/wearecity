@@ -152,8 +152,8 @@ const PersistentLayout: React.FC = () => {
     handleToggleLocation
   } = useAppState(citySlug);
 
-  // Verificación más estricta que incluye chatConfig (después de su declaración)
-  const isAppFullyInitialized = isAppInitialized && chatConfig && chatConfig.assistantName;
+  // Verificación más estable que no cambie durante el uso normal de la app
+  const isAppFullyInitialized = isAppInitialized && chatConfig;
   
   // Asegurar que chatConfig tenga un valor válido
   const safeChatConfig = chatConfig || {
@@ -200,6 +200,11 @@ const PersistentLayout: React.FC = () => {
     // Only run this effect if chatConfig is available
     if (!chatConfig) return;
     
+    // No activar timeout si la app ya está funcionando normalmente
+    if (isAppInitialized && chatConfig) {
+      return;
+    }
+    
     const timer = setTimeout(() => {
       if (!isAppFullyInitialized && !isResuming) {
         console.log('🔍 Production Debug - App not fully initialized:', {
@@ -217,10 +222,16 @@ const PersistentLayout: React.FC = () => {
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [chatConfig, isAppFullyInitialized, isResuming, user, profile, authLoading, cityNavigationLoading, isNavigating, isFullyLoaded, isLoading]);
+  }, [chatConfig, isAppInitialized, isAppFullyInitialized, isResuming, user, profile, authLoading, cityNavigationLoading, isNavigating, isFullyLoaded, isLoading]);
 
   // Safety timeout para evitar carga infinita en producción
   useEffect(() => {
+    // Solo activar timeout si realmente hay un problema de inicialización
+    // No activar si la app ya está funcionando normalmente
+    if (isAppInitialized && chatConfig) {
+      return; // La app ya está funcionando, no necesitamos timeout
+    }
+
     const timer = setTimeout(() => {
       if (!isAppFullyInitialized && !isResuming) {
         console.warn('⚠️ Safety timeout triggered - forcing app initialization');
@@ -236,19 +247,21 @@ const PersistentLayout: React.FC = () => {
         });
         setSafetyTimeout(true);
       }
-    }, 10000); // Reducido a 10 segundos
+    }, 15000); // Aumentado a 15 segundos para ser menos agresivo
 
-    // Timeout extremo para casos críticos
+    // Timeout extremo solo para casos realmente críticos
     const extremeTimer = setTimeout(() => {
-      console.error('🚨 EXTREME TIMEOUT - Force app to work without full config');
-      setSafetyTimeout(true);
-    }, 20000); // 20 segundos
+      if (!isAppInitialized) {
+        console.error('🚨 EXTREME TIMEOUT - Force app to work without full config');
+        setSafetyTimeout(true);
+      }
+    }, 30000); // Aumentado a 30 segundos
 
     return () => {
       clearTimeout(timer);
       clearTimeout(extremeTimer);
     };
-  }, [isAppFullyInitialized, isResuming, user, profile, authLoading, cityNavigationLoading, isNavigating, chatConfig, isFullyLoaded, isLoading]);
+  }, [isAppInitialized, isAppFullyInitialized, isResuming, user, profile, authLoading, cityNavigationLoading, isNavigating, chatConfig, isFullyLoaded, isLoading]);
 
   // Cargar ciudad del admin y redirigir a /admin/:slug si existe
   useEffect(() => {
@@ -582,7 +595,7 @@ const PersistentLayout: React.FC = () => {
     // Verificación adicional: solo mostrar loading inicial si no estamos reanudando
     // O si se activó el safety timeout
     if ((!isAppInitialized && !isResuming) || safetyTimeout) {
-      if (safetyTimeout) {
+      if (safetyTimeout && !isAppInitialized) {
         console.log('🚨 Safety timeout active - showing fallback content');
         return (
           <div className="flex-1 overflow-auto bg-background">
