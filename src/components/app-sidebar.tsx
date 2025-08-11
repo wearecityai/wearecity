@@ -47,7 +47,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
-import { useDefaultChat } from "@/hooks/useDefaultChat"
+import { useCityNavigation } from "@/hooks/useCityNavigation"
+import { useState, useEffect } from "react"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onNewChat?: (title?: string) => void
@@ -93,15 +94,21 @@ export function AppSidebar({
   const { t } = useTranslation();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrativo';
-  const [starUpdateTrigger, setStarUpdateTrigger] = React.useState(0);
+  const [starUpdateTrigger, setStarUpdateTrigger] = useState(0);
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
-  const { defaultChat, setDefaultChat, removeDefaultChat, isDefaultChat, loading } = useDefaultChat()
+  const isAdminContext = isAdmin && location.pathname.startsWith('/admin/');
+  const { 
+    defaultChat, 
+    setDefaultCity, 
+    removeDefaultCity, 
+    isDefaultCity, 
+    loading 
+  } = useCityNavigation()
 
   // Forzar re-renderización cuando cambie el defaultChat
-  React.useEffect(() => {
-    console.log('DefaultChat changed:', defaultChat);
+  useEffect(() => {
     setStarUpdateTrigger(prev => prev + 1);
   }, [defaultChat]);
 
@@ -307,7 +314,7 @@ export function AppSidebar({
           {/* Admin vs Citizen primary actions */}
           <SidebarGroup className="p-1 flex-shrink-0 pl-2">
             <SidebarMenu className="gap-0.5">
-              {isAdmin ? (
+              {isAdminContext ? (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton
@@ -361,14 +368,14 @@ export function AppSidebar({
                         const currentCitySlug = getCurrentCitySlug()
                         if (currentCitySlug) {
                           try {
-                            if (isDefaultChat(currentCitySlug)) {
-                              await removeDefaultChat()
+                            if (isDefaultCity(currentCitySlug)) {
+                              await removeDefaultCity()
                             } else {
-                              await setDefaultChat('', `Chat de ${currentCitySlug}`, currentCitySlug)
+                              await setDefaultCity(currentCitySlug)
                             }
                             setStarUpdateTrigger(prev => prev + 1)
                           } catch (error) {
-                            console.error('Error toggling default chat:', error)
+                            console.error('Error toggling default city:', error)
                           }
                         }
                       }}
@@ -380,7 +387,7 @@ export function AppSidebar({
                         "h-4 w-4 group-data-[collapsible=icon]:mx-auto",
                         (() => {
                           const currentSlug = getCurrentCitySlug()
-                          const isDefault = currentSlug && isDefaultChat(currentSlug)
+                          const isDefault = currentSlug && isDefaultCity(currentSlug)
                           return isDefault ? "text-sidebar-accent-foreground fill-current" : "text-sidebar-foreground"
                         })()
                       )} />
@@ -399,7 +406,7 @@ export function AppSidebar({
               <SidebarMenuButton
                 onClick={() => {
                   onNewChat();
-                  if (isAdmin) {
+                  if (isAdminContext) {
                     const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
                     if (slug) navigate(`/admin/${slug}`);
                   }
@@ -424,7 +431,7 @@ export function AppSidebar({
                         <SidebarMenuButton
                           onClick={() => {
                             onSelectChat(index);
-                            if (isAdmin) {
+                            if (isAdminContext) {
                               const slug = (chatConfig?.restrictedCity?.slug as string | undefined) || getCurrentCitySlug() || '';
                               if (slug) navigate(`/admin/${slug}`);
                             }

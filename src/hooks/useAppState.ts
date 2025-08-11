@@ -145,12 +145,12 @@ export const useAppState = (citySlug?: string) => {
     createConversation,
     updateConversationTitle,
     deleteConversation,
-    loadConversations
+    isLoading: conversationsLoading
   } = useConversations(citySlug);
 
   const { 
     messages, 
-    isLoading, 
+    isLoading: chatLoading, 
     handleSendMessage, 
     handleSeeMoreEvents, 
     clearMessages, 
@@ -172,6 +172,15 @@ export const useAppState = (citySlug?: string) => {
     },
     citySlug
   );
+
+  // Combinar estados de carga para evitar parpadeos
+  const isLoading = chatLoading || conversationsLoading;
+  
+  // Estado adicional para verificar si la configuración está completamente cargada
+  const isConfigReady = chatConfig && chatConfig.restrictedCity && chatConfig.assistantName;
+  
+  // Estado de carga consolidado que incluye la configuración
+  const isFullyLoaded = !isLoading && isConfigReady;
 
   // Clear processed cards when starting a new conversation
   useEffect(() => {
@@ -216,23 +225,31 @@ export const useAppState = (citySlug?: string) => {
           // 1. Está en estado de carga
           // 2. Tiene placeId o searchQuery
           // 3. NO ha sido procesada antes
-          // 4. NO tiene datos ya cargados
+          // 4. NO tiene datos ya cargados (rating, address, photoUrl, etc.)
+          // 5. NO tiene error
           if (card.isLoadingDetails && 
               (card.placeId || card.searchQuery) && 
               !processedCardsRef.current.has(cardKey) &&
               !card.rating && 
               !card.address && 
+              !card.photoUrl &&
+              !card.website &&
               !card.errorDetails) {
             
             console.log(`✅ Processing place card: ${card.name}`);
             processedCardsRef.current.add(cardKey);
             
             fetchPlaceDetailsAndUpdateMessage(msg.id, card.id, card.placeId, card.searchQuery, setMessages);
+          } else if (processedCardsRef.current.has(cardKey) && card.isLoadingDetails) {
+            // Si la tarjeta ya fue procesada pero sigue en estado de carga,
+            // marcar como no procesada para reintentar
+            console.log(`🔄 Re-processing place card: ${card.name} (was marked as processed but still loading)`);
+            processedCardsRef.current.delete(cardKey);
           }
         });
       }
     });
-  }, [messages, googleMapsScriptLoaded]); // Removed problematic dependencies
+  }, [messages, googleMapsScriptLoaded]);
 
   // Update selectedChatIndex when currentConversationId changes
   useEffect(() => {
@@ -313,6 +330,7 @@ export const useAppState = (citySlug?: string) => {
     googleMapsScriptLoaded,
     messages,
     isLoading,
+    isFullyLoaded,
     handleSendMessage: handleSendMessageWithTyping,
     handleSeeMoreEvents,
     clearMessages,

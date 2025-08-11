@@ -180,22 +180,39 @@ const MainContent: React.FC<MainContentProps> = ({
 
   useEffect(() => {
     const checkScrollPosition = () => {
-      if (scrollableBoxRef.current) {
-        const scrollContainer = scrollableBoxRef.current;
-        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-        
-        // Show button only when user has scrolled up significantly
-        const scrollThreshold = 200; // Minimum scroll up before showing button
-        const hasScrolledUp = scrollTop < scrollHeight - clientHeight - scrollThreshold;
-        setShowScrollButton(hasScrolledUp);
+      const container = scrollableBoxRef.current;
+      const inputEl = chatInputRef.current;
+      const endEl = messagesEndRef.current;
+      if (!container || !inputEl || !endEl) {
+        setShowScrollButton(false);
+        return;
       }
+
+      // Rects relative to viewport
+      const inputRect = inputEl.getBoundingClientRect();
+      const endRect = endEl.getBoundingClientRect();
+
+      // True when the end of real content (anchor before spacer) is hidden behind the input
+      const contentHiddenBehindInput = endRect.top > inputRect.top + 4;
+
+      // Also ensure the user is not already pinned to bottom (no need to show)
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const atBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 2;
+
+      setShowScrollButton(contentHiddenBehindInput && !atBottom);
     };
 
     // Check initially and on scroll
     checkScrollPosition();
-    if (scrollableBoxRef.current) {
-      scrollableBoxRef.current.addEventListener('scroll', checkScrollPosition);
-      return () => scrollableBoxRef.current?.removeEventListener('scroll', checkScrollPosition);
+    const el = scrollableBoxRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScrollPosition);
+      // Also recalc on resize (input height/position may change)
+      window.addEventListener('resize', checkScrollPosition);
+      return () => {
+        el.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
     }
   }, [messages]);
 
@@ -362,7 +379,9 @@ const MainContent: React.FC<MainContentProps> = ({
         >
           <button
             onClick={() => {
-              if (scrollableBoxRef.current) {
+              if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+              } else if (scrollableBoxRef.current) {
                 scrollableBoxRef.current.scrollTop = scrollableBoxRef.current.scrollHeight;
               }
             }}

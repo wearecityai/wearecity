@@ -19,6 +19,7 @@ export const useStrictSequentialReveal = ({
   messageId
 }: UseStrictSequentialRevealOptions) => {
   const [visibleCards, setVisibleCards] = useState(0);
+  const [hasStartedDelay, setHasStartedDelay] = useState(false);
 
   useEffect(() => {
     // If this message already has revealed cards, show them immediately
@@ -30,20 +31,28 @@ export const useStrictSequentialReveal = ({
 
     // Reset when content changes
     setVisibleCards(0);
+    setHasStartedDelay(false);
     
     // If there's no text content, start showing cards immediately
     if (!textContent || textContent.trim() === '') {
       if (totalCards > 0) {
-        showCardsSequentially();
+        // Add a small delay to prevent flashing
+        setTimeout(() => {
+          showCardsSequentially();
+        }, 100);
       }
       return;
     }
 
     // If there's text content, wait for typewriter to complete
-    if (typewriterIsComplete && totalCards > 0) {
-      showCardsSequentially();
+    if (typewriterIsComplete && totalCards > 0 && !hasStartedDelay) {
+      setHasStartedDelay(true);
+      // Add a 1 second delay after typewriter completes to prevent premature card display
+      setTimeout(() => {
+        showCardsSequentially();
+      }, 1000);
     }
-  }, [textContent, totalCards, typewriterIsComplete, cardDelay, messageId]);
+  }, [textContent, totalCards, typewriterIsComplete, cardDelay, messageId, hasStartedDelay]);
 
   const showCardsSequentially = () => {
     const timers: NodeJS.Timeout[] = [];
@@ -66,8 +75,11 @@ export const useStrictSequentialReveal = ({
 
   const shouldShowCard = (cardIndex: number): boolean => {
     // If there's text content, cards can only show after typewriter is complete
-    if (textContent && textContent.trim() !== '' && !typewriterIsComplete) {
-      return false;
+    // AND the text content must match the final content (no partial text)
+    if (textContent && textContent.trim() !== '') {
+      if (!typewriterIsComplete || !hasStartedDelay) {
+        return false;
+      }
     }
     
     // Show cards sequentially

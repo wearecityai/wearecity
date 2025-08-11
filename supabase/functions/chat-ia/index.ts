@@ -134,6 +134,45 @@ function safeParseJsonObject(jsonString: any, fallback: any = null): any {
   return fallback;
 }
 
+// Detección simple de intención para controlar qué instrucciones activar
+function detectIntents(userMessage?: string): Set<string> {
+  const intents = new Set<string>();
+  if (!userMessage) return intents;
+  const text = userMessage.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+
+  // Saludo/chit-chat
+  const greetingPatterns = [
+    /\b(hola|buenas|buenos dias|buenas tardes|buenas noches|hello|hi|hey|que tal|què tal|holi)\b/
+  ];
+  if (greetingPatterns.some((r) => r.test(text))) intents.add('greeting');
+
+  // Eventos
+  const eventsPatterns = [
+    /\b(eventos?|festival(es)?|concierto(s)?|agenda|planes|cosas que hacer|actividades?)\b/
+  ];
+  if (eventsPatterns.some((r) => r.test(text))) intents.add('events');
+
+  // Lugares
+  const placesPatterns = [
+    /\b(restaurante(s)?|donde comer|cafeter(i|\u00ED)a(s)?|bar(es)?|museo(s)?|hotel(es)?|tienda(s)?|parque(s)?|lugar(es)?|sitio(s)?|recomiend(a|as|ame)|recomendacion(es)?)\b/
+  ];
+  if (placesPatterns.some((r) => r.test(text))) intents.add('places');
+
+  // Trámites
+  const proceduresPatterns = [
+    /\b(tramite(s)?|ayuntamiento|sede electronica|empadronamiento|padron|licencia(s)?|tasa(s)?|impuesto(s)?|certificado(s)?|cita previa)\b/
+  ];
+  if (proceduresPatterns.some((r) => r.test(text))) intents.add('procedures');
+
+  // Transporte
+  const transportPatterns = [
+    /\b(autobus|autobuses|bus|metro|tranvia|tren|horario(s)?|linea(s)?|como llegar|direccion|ruta(s)?|parada(s)?|tarifa(s)?|bono(s)?|billete(s)?)\b/
+  ];
+  if (transportPatterns.some((r) => r.test(text))) intents.add('transport');
+
+  return intents;
+}
+
 // Función para cargar configuración del asistente
 async function loadAssistantConfig(userId: string | null | undefined) {
   try {
@@ -328,7 +367,7 @@ REGLAS CRÍTICAS PARA RESPONDER SOBRE TRÁMITES DEL AYUNTAMIENTO (${cityContext}
 }
 
 // Función para construir el prompt completo
-async function buildSystemPrompt(config: any, userLocation?: { lat: number, lng: number }) {
+async function buildSystemPrompt(config: any, userLocation?: { lat: number, lng: number }, userMessage?: string) {
   const parts: string[] = [];
 
   // Contexto de fecha
@@ -339,6 +378,14 @@ async function buildSystemPrompt(config: any, userLocation?: { lat: number, lng:
   const currentDay = currentDate.getDate();
   
   parts.push(`CONTEXTO DE FECHA ACTUAL: Hoy es ${currentDateString} (${currentDay}/${currentMonth}/${currentYear}). Cuando generes eventos, asegúrate de que las fechas sean apropiadas para la consulta del usuario y siempre en el futuro o presente, nunca en el pasado a menos que el usuario solicite explícitamente eventos históricos.`);
+
+  // Política general de comportamiento y anti-alucinación
+  const intents = detectIntents(userMessage);
+  parts.push(`POLÍTICA DE RESPUESTA:
+1) Responde SOLO a la intención detectada del usuario. Si el mensaje es ambiguo o es solo un saludo, NO recomiendes eventos ni lugares; responde con un saludo breve y pregunta de manera específica qué necesita.
+2) Si tienes dudas, pide una aclaración con una única pregunta concreta.
+3) NO inventes datos. Si no puedes verificar información específica de la ciudad restringida, dilo explícitamente.
+4) Mantén las respuestas concisas y útiles.`);
 
   // Instrucción del sistema personalizada o por defecto
   if (config?.system_instruction && config.system_instruction.trim()) {
@@ -352,9 +399,27 @@ async function buildSystemPrompt(config: any, userLocation?: { lat: number, lng:
     parts.push(SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION);
   }
 
-  // Instrucciones de tarjetas de eventos y lugares
-  parts.push(EVENT_CARD_SYSTEM_INSTRUCTION);
-  parts.push(PLACE_CARD_SYSTEM_INSTRUCTION);
+  // Instrucciones de tarjetas de eventos y lugares (condicionadas por intención)
+  if (intents.has('events')) {
+    parts.push(EVENT_CARD_SYSTEM_INSTRUCTION);
+  }
+  if (intents.has('places')) {
+    parts.push(PLACE_CARD_SYSTEM_INSTRUCTION);
+  }
+
+  // Transporte público (si aplica)
+  if (intents.has('transport')) {
+    parts.push(`INSTRUCCIONES DE TRANSPORTE PÚBLICO:
+- Proporciona líneas, horarios aproximados y paradas relevantes SOLO si son verificables para la ciudad restringida.
+- Si no puedes verificar horarios exactos, explica cómo consultarlos en la web/app oficial de transporte del municipio.
+- Cuando el usuario pida "cómo llegar", prioriza rutas sencillas y añade ${SHOW_MAP_MARKER_START}consulta de mapas${SHOW_MAP_MARKER_END} solo si la visualización es necesaria.`);
+  }
+
+  // Saludo: si solo es saludo, evitar recomendaciones
+  if (intents.has('greeting') && intents.size === 1) {
+    parts.push(`POLÍTICA DE SALUDO:
+Si el usuario solo saluda ("hola", "buenas", etc.), responde con un saludo breve y sugiere de forma no intrusiva categorías disponibles (eventos, lugares, transporte, trámites). No des recomendaciones ni listas hasta que el usuario lo pida.`);
+  }
 
   // Instrucciones dinámicas basadas en configuración
   const dynamicInstructions = await buildDynamicInstructions(config, userLocation);
@@ -492,6 +557,228 @@ async function getPlaceDetails(placeId: string) {
     console.error('Error obteniendo detalles del lugar:', error);
     return null;
   }
+}
+
+// --- Sanitización y verificación del contenido devuelto por la IA ---
+function escapeForRegex(lit: string) {
+  return lit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function toDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function startOfWeekTodayToSunday(): { today: string; weekEnd: string } {
+  const now = new Date();
+  const today = toDateString(now);
+  // Domingo como 0
+  const day = now.getDay();
+  const daysToSunday = 7 - day; // si hoy domingo (0) → 7
+  const end = new Date(now);
+  end.setDate(now.getDate() + (day === 0 ? 0 : daysToSunday));
+  const weekEnd = toDateString(end);
+  return { today, weekEnd };
+}
+
+function weekendRangeFridayToSunday(): { start: string; end: string } {
+  const now = new Date();
+  const day = now.getDay(); // 0=Dom, 5=Vie, 6=Sáb
+  const start = new Date(now);
+  if (day === 5 || day === 6) {
+    // Si es viernes o sábado, arranca hoy
+    // Domingo se considera próximo fin de semana
+  } else {
+    const daysToFriday = (5 - day + 7) % 7; // siguiente viernes
+    start.setDate(now.getDate() + daysToFriday);
+  }
+  const end = new Date(start);
+  // Si empieza viernes → sumar 2 días (hasta domingo), si sábado → sumar 1 día
+  const addDays = start.getDay() === 6 ? 1 : 2;
+  end.setDate(start.getDate() + addDays);
+  return { start: toDateString(start), end: toDateString(end) };
+}
+
+function detectEventWindow(userMessage?: string): { windowStart?: string; windowEnd?: string } {
+  if (!userMessage) return {};
+  const text = userMessage.toLowerCase();
+  const todayStr = toDateString(new Date());
+  if (/\b(hoy)\b/.test(text)) {
+    return { windowStart: todayStr, windowEnd: todayStr };
+  }
+  if (/\b(mañana|manana)\b/.test(text)) {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const s = toDateString(d);
+    return { windowStart: s, windowEnd: s };
+  }
+  if (/\b(esta\s+semana)\b/.test(text)) {
+    const { today, weekEnd } = startOfWeekTodayToSunday();
+    return { windowStart: today, windowEnd: weekEnd };
+  }
+  if (/\b(este\s+fin\s+de\s+semana)\b/.test(text)) {
+    const { start, end } = weekendRangeFridayToSunday();
+    return { windowStart: start, windowEnd: end };
+  }
+  return {};
+}
+
+async function sanitizeAIResponse(rawText: string, config: any, userMessage?: string): Promise<string> {
+  if (!rawText || typeof rawText !== 'string') return rawText;
+  let text = rawText;
+
+  const restrictedCity = safeParseJsonObject(config?.restricted_city) || config?.restrictedCity || null;
+  const restrictedCityName: string | undefined = restrictedCity?.name;
+  const currentYear = new Date().getFullYear();
+  const todayStr = toDateString(new Date());
+  const { windowStart, windowEnd } = detectEventWindow(userMessage);
+
+  // 1) Verificar y completar PLACE CARDs
+  try {
+    const placeStart = escapeForRegex(PLACE_CARD_START_MARKER);
+    const placeEnd = escapeForRegex(PLACE_CARD_END_MARKER);
+    const placeRegex = new RegExp(`${placeStart}([\n\r\t\s\S]*?)${placeEnd}`, 'g');
+    const replacements: Array<{ full: string; replacement: string }> = [];
+
+    let match;
+    while ((match = placeRegex.exec(text)) !== null) {
+      const full = match[0];
+      const jsonPart = match[1]?.trim();
+      let obj = safeParseJsonObject(jsonPart, null);
+      if (!obj || !obj.name) {
+        // Si no es JSON válido o falta nombre, eliminar tarjeta
+        replacements.push({ full, replacement: '' });
+        continue;
+      }
+
+      // Normalizar searchQuery para incluir ciudad restringida si existe
+      if (restrictedCityName) {
+        const desiredQuery = `${obj.name}, ${restrictedCityName}`;
+        if (!obj.searchQuery || typeof obj.searchQuery !== 'string' || !obj.searchQuery.toLowerCase().includes(restrictedCityName.toLowerCase())) {
+          obj.searchQuery = desiredQuery;
+        }
+      }
+
+      // Si no hay placeId, intentar resolver mediante Google Places
+      if (!obj.placeId && typeof obj.searchQuery === 'string') {
+        try {
+          const resolvedId = await searchPlaceId(obj.name, restrictedCityName);
+          if (resolvedId) {
+            obj.placeId = resolvedId;
+          } else {
+            // No verificable → eliminar la tarjeta para evitar alucinaciones
+            replacements.push({ full, replacement: '' });
+            continue;
+          }
+        } catch {
+          replacements.push({ full, replacement: '' });
+          continue;
+        }
+      }
+
+      // Reemplazar con JSON saneado
+      const replacement = `${PLACE_CARD_START_MARKER}${JSON.stringify({
+        name: obj.name,
+        placeId: obj.placeId,
+        searchQuery: obj.searchQuery
+      })}${PLACE_CARD_END_MARKER}`;
+      replacements.push({ full, replacement });
+    }
+
+    for (const r of replacements) {
+      text = text.replace(r.full, r.replacement);
+    }
+  } catch (e) {
+    console.error('Sanitize PlaceCards error:', e);
+  }
+
+  // 2) Verificar EVENT CARDs: exigir sourceUrl, año actual, y fechas no pasadas; aplicar ventana temporal si se pidió
+  try {
+    const evStart = escapeForRegex(EVENT_CARD_START_MARKER);
+    const evEnd = escapeForRegex(EVENT_CARD_END_MARKER);
+    const evRegex = new RegExp(`${evStart}([\n\r\t\s\S]*?)${evEnd}`, 'g');
+    const replacements: Array<{ full: string; replacement: string }> = [];
+    // Contar cuántas tarjetas existían inicialmente
+    const originalMatches = Array.from(text.matchAll(evRegex)).length;
+    // Reiniciar lastIndex para reutilizar el regex en el loop
+    evRegex.lastIndex = 0;
+
+    let match;
+    while ((match = evRegex.exec(text)) !== null) {
+      const full = match[0];
+      const jsonPart = match[1]?.trim();
+      const evt = safeParseJsonObject(jsonPart, null);
+      if (!evt || !evt.title || !evt.date) {
+        replacements.push({ full, replacement: '' });
+        continue;
+      }
+      const yearOk = /^(\d{4})-\d{2}-\d{2}$/.test(evt.date) && Number(evt.date.slice(0, 4)) === currentYear;
+      if (!yearOk) {
+        // Eliminar tarjetas no verificables
+        replacements.push({ full, replacement: '' });
+        continue;
+      }
+      const startDate: string = evt.date;
+      const endDate: string = evt.endDate && /^(\d{4})-\d{2}-\d{2}$/.test(evt.endDate) ? evt.endDate : startDate;
+      // Descartar eventos totalmente en el pasado
+      if (endDate < todayStr) {
+        replacements.push({ full, replacement: '' });
+        continue;
+      }
+      // Si hay ventana temporal solicitada, filtrar a esa ventana (intersección)
+      if (windowStart && windowEnd) {
+        // Mantener si el rango [startDate,endDate] intersecta [windowStart,windowEnd]
+        const intersects = !(endDate < windowStart || startDate > windowEnd);
+        if (!intersects) {
+          replacements.push({ full, replacement: '' });
+          continue;
+        }
+      }
+      // Normalizar objeto (opcional: recortar campos no esperados)
+      const normalized = {
+        title: evt.title,
+        date: evt.date,
+        endDate: evt.endDate,
+        time: evt.time,
+        location: evt.location,
+        sourceUrl: evt.sourceUrl,
+        sourceTitle: evt.sourceTitle
+      };
+      const replacement = `${EVENT_CARD_START_MARKER}${JSON.stringify(normalized)}${EVENT_CARD_END_MARKER}`;
+      replacements.push({ full, replacement });
+    }
+
+    for (const r of replacements) {
+      text = text.replace(r.full, r.replacement);
+    }
+
+    // Si la intención es eventos, reconstruir la salida solo con tarjetas válidas
+    const intents = detectIntents(userMessage);
+    if (intents.has('events')) {
+      const keptCards: string[] = [];
+      let m2;
+      const evRegex2 = new RegExp(`${evStart}([\n\r\t\s\S]*?)${evEnd}`, 'g');
+      while ((m2 = evRegex2.exec(text)) !== null) {
+        const full2 = m2[0];
+        keptCards.push(full2);
+      }
+      // Solo reconstruir si originalmente había tarjetas. Si no había, no sobreescribir el texto del modelo.
+      if (originalMatches > 0) {
+        const cityName = (restrictedCityName || 'tu ciudad');
+        if (keptCards.length === 0) {
+          text = `No he encontrado eventos futuros para ${cityName} en el rango solicitado.`;
+        } else {
+          text = `Aquí tienes los eventos solicitados:\n` + keptCards.join('\n');
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Sanitize EventCards error:', e);
+  }
+
+  return text;
 }
 
 // Función para geocodificación inversa (obtener dirección desde coordenadas)
@@ -768,14 +1055,15 @@ serve(async (req) => {
     });
 
     // Construir el prompt del sistema
-    const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation);
+    const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation, userMessage);
     console.log("🔍 DEBUG - Sistema de instrucciones construido (primeras 500 chars):", systemInstruction.substring(0, 500));
     console.log("🔍 DEBUG - Sistema de instrucciones construido (últimas 500 chars):", systemInstruction.substring(Math.max(0, systemInstruction.length - 500)));
 
     // Llamar a Gemini
     let responseText: string;
-    try {
-      responseText = await callGeminiAPI(systemInstruction, userMessage);
+      try {
+        const raw = await callGeminiAPI(systemInstruction, userMessage);
+        responseText = await sanitizeAIResponse(raw, assistantConfig, userMessage);
     } catch (e) {
       console.error("Error al llamar a Gemini:", e);
       responseText = "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.";

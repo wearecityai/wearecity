@@ -79,6 +79,18 @@
     "metrics": "Mètriques",
     "configureChat": "Configurar xat"
   },
+  "metrics": {
+    "period": {
+      "label": "Període",
+      "all": "Tot",
+      "last24h": "Últimes 24h",
+      "last7d": "Darrera setmana",
+      "last1m": "Darrer mes",
+      "last6m": "Darrers 6 mesos",
+      "last1y": "Darrer any",
+      "last5y": "Darrers 5 anys"
+    }
+  },
   "errors": {
     "pageNotFound": "Pàgina no trobada",
     "pageNotFoundDescription": "La pàgina que busques no existeix o ha estat moguda.",

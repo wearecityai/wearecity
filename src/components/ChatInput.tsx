@@ -36,19 +36,19 @@ const textareaStyles = `
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    background: transparent !important;
+    background: hsl(var(--sidebar-background)) !important;
   }
   .chat-textarea:focus {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    background: transparent !important;
+    background: hsl(var(--sidebar-background)) !important;
   }
   .chat-textarea:focus-visible {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    background: transparent !important;
+    background: hsl(var(--sidebar-background)) !important;
   }
 `;
 
@@ -350,231 +350,231 @@ const ChatInput: React.FC<ChatInputProps> = ({
         ? 'p-2 sm:p-4' 
         : 'pb-4 sm:pb-8 md:pb-12'
       }`}>
-      <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-[2rem] border-[0.5px] border-muted-foreground/30 ${isRecording ? 'border-red-500' : ''}`}>
-        <CardContent className="p-0">
-          <div className="flex items-center min-h-24 sm:min-h-20 px-2 sm:px-3 md:px-6 pt-3 pb-2 sm:pt-2 sm:pb-4">
-            <div className="flex-1 space-y-2 sm:space-y-3">
-              {isRecording ? (
-                // Recording mode - simplified interface
-                <div className="flex-1 space-y-2 sm:space-y-3">
-                  <div className="flex items-center justify-between min-h-[32px] sm:min-h-[40px]">
-                    <div className="flex-1">
+        <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-[2rem] border-[0.5px] border-muted-foreground/30 ${isRecording ? 'border-red-500' : ''} bg-sidebar`}>
+          <CardContent className="p-0">
+            <div className="flex items-center min-h-24 sm:min-h-20 px-2 sm:px-3 md:px-6 pt-3 pb-2 sm:pt-2 sm:pb-4">
+              <div className="flex-1 space-y-2 sm:space-y-3">
+                {isRecording ? (
+                  // Recording mode - simplified interface
+                  <div className="flex-1 space-y-2 sm:space-y-3">
+                    <div className="flex items-center justify-between min-h-[32px] sm:min-h-[40px]">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                            <span className="text-sm sm:text-base md:text-lg text-muted-foreground">{t('chatInput.listening', { defaultValue: 'Listening...' })}</span>
+                          </div>
+                          <div className="flex-1 flex items-center gap-0.5 min-w-0">
+                            {[...Array(170)].map((_, i) => {
+                              // Improved realistic frequency response simulation
+                              const frequency = i * 0.03;
+                              const time = Date.now() * 0.001; // For dynamic movement
+                              
+                              // Bass frequencies (low end)
+                              const bass = Math.sin(frequency * 0.5 + time * 0.5) * 0.6 + 0.4;
+                              
+                              // Mid frequencies (vocals, instruments)
+                              const mid = Math.sin(frequency * 1.5 + time * 0.8) * 0.4 + 0.6;
+                              
+                              // Treble frequencies (high end)
+                              const treble = Math.sin(frequency * 3 + time * 1.2) * 0.3 + 0.7;
+                              
+                              // Combine frequencies with realistic weighting
+                              const intensity = (bass * 0.4 + mid * 0.4 + treble * 0.2);
+                              
+                              // Add some randomness for more natural look
+                              const randomFactor = Math.sin(i * 0.7 + time * 0.3) * 0.1 + 0.9;
+                              const finalIntensity = intensity * randomFactor;
+                              
+                              // Map to height with more variation
+                              const height = Math.max(2, Math.floor(finalIntensity * 12));
+                              
+                              const heightClass = height <= 3 ? 'h-1' : 
+                                                height <= 5 ? 'h-2' : 
+                                                height <= 7 ? 'h-3' : 
+                                                height <= 9 ? 'h-4' : 
+                                                height <= 11 ? 'h-5' : 'h-6';
+                              
+                              // More varied animation delays
+                              const delayClass = i % 8 === 0 ? 'animate-pulse' : 
+                                               i % 8 === 1 ? 'animate-pulse delay-75' : 
+                                               i % 8 === 2 ? 'animate-pulse delay-150' : 
+                                               i % 8 === 3 ? 'animate-pulse delay-300' :
+                                               i % 8 === 4 ? 'animate-pulse delay-500' : 
+                                               i % 8 === 5 ? 'animate-pulse delay-700' :
+                                               i % 8 === 6 ? 'animate-pulse delay-1000' : 'animate-pulse delay-1500';
+                              
+                              return (
+                                <div
+                                  key={i}
+                                  className={`bg-primary rounded-full w-0.5 ${heightClass} ${delayClass}`}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Action buttons row - same structure as normal mode */}
+                    <div className="flex items-center justify-between mt-3 sm:mt-2">
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                          <span className="text-sm sm:text-base md:text-lg text-muted-foreground">{t('chatInput.listening', { defaultValue: 'Listening...' })}</span>
-                        </div>
-                        <div className="flex-1 flex items-center gap-0.5 min-w-0">
-                          {[...Array(170)].map((_, i) => {
-                            // Improved realistic frequency response simulation
-                            const frequency = i * 0.03;
-                            const time = Date.now() * 0.001; // For dynamic movement
-                            
-                            // Bass frequencies (low end)
-                            const bass = Math.sin(frequency * 0.5 + time * 0.5) * 0.6 + 0.4;
-                            
-                            // Mid frequencies (vocals, instruments)
-                            const mid = Math.sin(frequency * 1.5 + time * 0.8) * 0.4 + 0.6;
-                            
-                            // Treble frequencies (high end)
-                            const treble = Math.sin(frequency * 3 + time * 1.2) * 0.3 + 0.7;
-                            
-                            // Combine frequencies with realistic weighting
-                            const intensity = (bass * 0.4 + mid * 0.4 + treble * 0.2);
-                            
-                            // Add some randomness for more natural look
-                            const randomFactor = Math.sin(i * 0.7 + time * 0.3) * 0.1 + 0.9;
-                            const finalIntensity = intensity * randomFactor;
-                            
-                            // Map to height with more variation
-                            const height = Math.max(2, Math.floor(finalIntensity * 12));
-                            
-                            const heightClass = height <= 3 ? 'h-1' : 
-                                              height <= 5 ? 'h-2' : 
-                                              height <= 7 ? 'h-3' : 
-                                              height <= 9 ? 'h-4' : 
-                                              height <= 11 ? 'h-5' : 'h-6';
-                            
-                            // More varied animation delays
-                            const delayClass = i % 8 === 0 ? 'animate-pulse' : 
-                                             i % 8 === 1 ? 'animate-pulse delay-75' : 
-                                             i % 8 === 2 ? 'animate-pulse delay-150' : 
-                                             i % 8 === 3 ? 'animate-pulse delay-300' :
-                                             i % 8 === 4 ? 'animate-pulse delay-500' : 
-                                             i % 8 === 5 ? 'animate-pulse delay-700' :
-                                             i % 8 === 6 ? 'animate-pulse delay-1000' : 'animate-pulse delay-1500';
-                            
-                            return (
-                              <div
-                                key={i}
-                                className={`bg-primary rounded-full w-0.5 ${heightClass} ${delayClass}`}
-                              />
-                            );
-                          })}
-                        </div>
+                        <Toggle
+                          pressed={isLocationEnabled}
+                          onPressedChange={(pressed) => {
+                            setIsLocationEnabled(pressed);
+                            if (typeof onToggleLocation === 'function') onToggleLocation(pressed);
+                          }}
+                          aria-label="Activar ubicación"
+                          className="h-8 sm:h-7 px-3 sm:px-3 rounded-full border border-border/50 bg-background hover:bg-muted/50"
+                        >
+                          <Navigation className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                           <span className="text-sm sm:text-sm font-medium">{t('chatInput.location', { defaultValue: 'Location' })}</span>
+                        </Toggle>
+                      </div>
+                      
+                      {/* Microphone/Send button - now aligned with bottom buttons */}
+                      <div className="flex items-center">
+                        {inputValue.trim() ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  onClick={handleSubmit} 
+                                  disabled={isLoading || !inputValue.trim()}
+                                  size="icon"
+                                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg"
+                                >
+                                  {isLoading ? (
+                                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                                  ) : (
+                                    <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                               <TooltipContent>{t('chatInput.sendMessage', { defaultValue: 'Send message' })}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={toggleRecording} 
+                                  disabled={isLoading || !isSpeechApiSupported}
+                                  className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary md:hover:text-primary" : "text-muted-foreground"}`}
+                                >
+                                  {isSpeechApiSupported ? (
+                                    <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
+                                  ) : (
+                                    <MicOff className="h-5 w-5 sm:h-6 sm:w-6" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                 {isSpeechApiSupported ? t('chatInput.startRecording', { defaultValue: 'Start recording' }) : t('chatInput.recordingNotSupported', { defaultValue: 'Recording not supported' })}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </div>
                   </div>
-                  {/* Action buttons row - same structure as normal mode */}
-                  <div className="flex items-center justify-between mt-3 sm:mt-2">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <Toggle
-                        pressed={isLocationEnabled}
-                        onPressedChange={(pressed) => {
-                          setIsLocationEnabled(pressed);
-                          if (typeof onToggleLocation === 'function') onToggleLocation(pressed);
-                        }}
-                        aria-label="Activar ubicación"
-                        className="h-8 sm:h-7 px-3 sm:px-3 rounded-full border border-border/50 bg-background hover:bg-muted/50"
-                      >
-                        <Navigation className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                         <span className="text-sm sm:text-sm font-medium">{t('chatInput.location', { defaultValue: 'Location' })}</span>
-                      </Toggle>
-                    </div>
+                ) : (
+                  // Normal mode - full interface
+                  <>
+                    <Textarea
+                      ref={textareaRef}
+                      placeholder={placeholder}
+                      value={inputValue}
+                      onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
+                      onKeyDown={handleKeyDown}
+                      disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
+                      className="chat-textarea min-h-[64px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-0 -ml-1 sm:ml-0 text-sm sm:text-base md:text-lg overflow-hidden"
+                      rows={1}
+                    />
                     
-                    {/* Microphone/Send button - now aligned with bottom buttons */}
-                    <div className="flex items-center">
-                      {inputValue.trim() ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                onClick={handleSubmit} 
-                                disabled={isLoading || !inputValue.trim()}
-                                size="icon"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg"
-                              >
-                                {isLoading ? (
-                                  <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
-                                ) : (
-                                  <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                             <TooltipContent>{t('chatInput.sendMessage', { defaultValue: 'Send message' })}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost"
-                                size="icon"
-                                onClick={toggleRecording} 
-                                disabled={isLoading || !isSpeechApiSupported}
-                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary md:hover:text-primary" : "text-muted-foreground"}`}
-                              >
-                                {isSpeechApiSupported ? (
-                                  <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
-                                ) : (
-                                  <MicOff className="h-5 w-5 sm:h-6 sm:w-6" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                               {isSpeechApiSupported ? t('chatInput.startRecording', { defaultValue: 'Start recording' }) : t('chatInput.recordingNotSupported', { defaultValue: 'Recording not supported' })}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // Normal mode - full interface
-                <>
-                  <Textarea
-                    ref={textareaRef}
-                    placeholder={placeholder}
-                    value={inputValue}
-                    onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
-                    onKeyDown={handleKeyDown}
-                    disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
-                    className="chat-textarea min-h-[64px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-0 -ml-1 sm:ml-0 text-sm sm:text-base md:text-lg overflow-hidden"
-                    rows={1}
-                  />
-                  
-                  {/* Action buttons row */}
-                  <div className="flex items-center justify-between mt-3 sm:mt-2 px-3 sm:px-0">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      {/* Language info first */}
-                      <div className="flex items-center gap-2">
+                    {/* Action buttons row */}
+                    <div className="flex items-center justify-between mt-3 sm:mt-2 px-3 sm:px-0">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        {/* Language info first */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                            <span className="text-sm sm:text-sm font-medium text-muted-foreground">{getLanguageNativeName(i18n.language)}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Separator */}
+                        <div className="w-px h-4 sm:h-5 bg-sidebar-border"></div>
+                        
+                        {/* Location info */}
                         <div className="flex items-center gap-1">
-                          <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                          <span className="text-sm sm:text-sm font-medium text-muted-foreground">{getLanguageNativeName(i18n.language)}</span>
+                          <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-location" />
+                           <span className="text-sm sm:text-sm font-medium text-location">{t('chatInput.locationActive', { defaultValue: 'Location active' })}</span>
                         </div>
                       </div>
                       
-                      {/* Separator */}
-                      <div className="w-px h-4 sm:h-5 bg-border/50"></div>
-                      
-                      {/* Location info */}
-                      <div className="flex items-center gap-1">
-                        <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-blue-700" />
-                         <span className="text-sm sm:text-sm font-medium text-blue-700">{t('chatInput.locationActive', { defaultValue: 'Location active' })}</span>
+                      {/* Microphone/Send button - now aligned with bottom buttons */}
+                      <div className="flex items-center -mr-3 sm:-mr-2 md:-mr-3">
+                        {inputValue.trim() ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  onClick={handleSubmit} 
+                                  disabled={isLoading || !inputValue.trim()}
+                                  size="icon"
+                                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg"
+                                >
+                                  {isLoading ? (
+                                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                                  ) : (
+                                    <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                               <TooltipContent>{t('chatInput.sendMessage', { defaultValue: 'Send message' })}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={toggleRecording} 
+                                  disabled={isLoading || !isSpeechApiSupported}
+                                  className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                                >
+                                  {isSpeechApiSupported ? (
+                                    <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
+                                  ) : (
+                                    <MicOff className="h-5 w-5 sm:h-6 sm:w-6" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                 {isSpeechApiSupported ? t('chatInput.startRecording', { defaultValue: 'Start recording' }) : t('chatInput.recordingNotSupported', { defaultValue: 'Recording not supported' })}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </div>
-                    
-                    {/* Microphone/Send button - now aligned with bottom buttons */}
-                    <div className="flex items-center -mr-3 sm:-mr-2 md:-mr-3">
-                      {inputValue.trim() ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                onClick={handleSubmit} 
-                                disabled={isLoading || !inputValue.trim()}
-                                size="icon"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg"
-                              >
-                                {isLoading ? (
-                                  <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
-                                ) : (
-                                  <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                             <TooltipContent>{t('chatInput.sendMessage', { defaultValue: 'Send message' })}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost"
-                                size="icon"
-                                onClick={toggleRecording} 
-                                disabled={isLoading || !isSpeechApiSupported}
-                                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
-                              >
-                                {isSpeechApiSupported ? (
-                                  <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
-                                ) : (
-                                  <MicOff className="h-5 w-5 sm:h-6 sm:w-6" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                               {isSpeechApiSupported ? t('chatInput.startRecording', { defaultValue: 'Start recording' }) : t('chatInput.recordingNotSupported', { defaultValue: 'Recording not supported' })}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-          
+            
 
-        </CardContent>
-      </Card>
-    </div>
-    </>
-  );
-};
+          </CardContent>
+        </Card>
+      </div>
+      </>
+    );
+  };
 
 export default ChatInput;

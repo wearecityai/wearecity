@@ -76,6 +76,8 @@ export interface ChatMessage {
   groundingMetadata?: any;
   isTyping?: boolean;
   loadingType?: 'general' | 'events' | 'places' | 'restaurants' | 'information' | 'procedures';
+  // When true, play typewriter animation on first render only. Persisted messages should omit this.
+  shouldAnimate?: boolean;
 }
 
 export interface RestrictedCityInfo {
@@ -103,6 +105,7 @@ export interface CustomChatConfig {
   procedureSourceUrls: string[];
   uploadedProcedureDocuments: UploadedProcedureDocument[];
   restrictedCity: RestrictedCityInfo | null;
+  restrictedCountryCode?: string; // ISO 3166-1 alpha-2 for filtering cities
   sedeElectronicaUrl?: string; // URL for the City Council's Electronic Office
   profileImageUrl?: string; // Nueva propiedad para la foto de perfil
 }

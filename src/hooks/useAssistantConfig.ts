@@ -107,6 +107,7 @@ export const useAssistantConfig = () => {
           procedureSourceUrls: safeParseJsonArray<string>(data.procedure_source_urls, DEFAULT_CHAT_CONFIG.procedureSourceUrls),
           uploadedProcedureDocuments: safeParseJsonArray<UploadedProcedureDocument>(data.uploaded_procedure_documents, DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments),
           restrictedCity: safeParseJsonObject(data.restricted_city, DEFAULT_CHAT_CONFIG.restrictedCity),
+          restrictedCountryCode: (data as any).restricted_country_code || undefined,
           sedeElectronicaUrl: data.sede_electronica_url || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl,
           profileImageUrl: (data as any).profile_image_url || DEFAULT_CHAT_CONFIG.profileImageUrl, // Safe access with fallback
         };
@@ -146,7 +147,8 @@ export const useAssistantConfig = () => {
         current_language_code: newConfig.currentLanguageCode,
         procedure_source_urls: serializeForJson(newConfig.procedureSourceUrls),
         uploaded_procedure_documents: serializeForJson(newConfig.uploadedProcedureDocuments),
-        restricted_city: serializeForJson(newConfig.restrictedCity),
+         restricted_city: serializeForJson(newConfig.restrictedCity),
+         restricted_country_code: (newConfig as any).restrictedCountryCode || null,
         sede_electronica_url: newConfig.sedeElectronicaUrl,
         profile_image_url: newConfig.profileImageUrl, // This will be added to the database schema later
         is_active: true,
@@ -184,6 +186,7 @@ export const useAssistantConfig = () => {
           procedure_source_urls: JSON.stringify(newConfig.procedureSourceUrls || []),
           uploaded_procedure_documents: JSON.stringify(newConfig.uploadedProcedureDocuments || []),
           restricted_city: newConfig.restrictedCity ? JSON.stringify(newConfig.restrictedCity) : null,
+          restricted_country_code: (newConfig as any).restrictedCountryCode || null,
           sede_electronica_url: newConfig.sedeElectronicaUrl,
           profile_image_url: newConfig.profileImageUrl,
           is_public: true, // Por defecto las ciudades son públicas

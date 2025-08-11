@@ -2,6 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Transiciones suaves para evitar parpadeos */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Transiciones específicas para componentes que cambian de estado */
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* Transiciones para cambios de layout */
+.layout-transition {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Skeleton loading para evitar saltos de contenido */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 2s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Transiciones específicas para el chat */
+.chat-transition {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Evitar saltos de layout durante la carga */
+.layout-stable {
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Transiciones para el sidebar */
+.sidebar-transition {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Evitar parpadeos del sidebar */
+.sidebar-stable {
+  opacity: 0;
+  animation: fadeInSidebar 0.6s ease-out forwards;
+}
+
+@keyframes fadeInSidebar {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Shadcn/ui Design System - Enhanced Default Theme with Modern Components */
 
 @layer base {
@@ -67,6 +157,10 @@
     --error-foreground: 0 0% 98%;
     --info: 0 0% 9%;
     --info-foreground: 0 0% 98%;
+
+    /* Custom blue color for location indicator */
+    --location-blue: 221 83% 53%;
+    --location-blue-foreground: 0 0% 98%;
   }
 
   .dark {
@@ -108,6 +202,10 @@
     --chart-1: 0 0% 98%;
     --chart-2: 0 0% 85%;
     --chart-3: 0 0% 65%;
+
+    /* Custom blue color for location indicator - lighter in dark mode */
+    --location-blue: 221 83% 70%;
+    --location-blue-foreground: 0 0% 98%;
     --chart-4: 0 0% 45%;
     --chart-5: 0 0% 25%;
 
@@ -132,9 +230,9 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
   
-  /* Improved focus styles */
+  /* Improved focus styles - remove global ring to avoid thick white borders */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none ring-0 ring-offset-0;
   }
   
   /* Smooth transitions */

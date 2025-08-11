@@ -119,9 +119,21 @@ export const useGoogleMaps = (
 
     console.log(`🔍 Fetching details for place card ${placeCardId}:`, { placeId, searchQuery });
 
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log(`⏰ Timeout reached for place card ${placeCardId}`);
+      updatePlaceCardInMessage(messageId, placeCardId, { 
+        isLoadingDetails: false, 
+        errorDetails: "Tiempo de espera agotado." 
+      }, setMessages);
+    }, 30000); // 30 seconds timeout
+
     const requestFields = ['name', 'place_id', 'formatted_address', 'photo', 'rating', 'user_ratings_total', 'url', 'geometry', 'website'];
     
     const processPlaceResult = (place: google.maps.places.PlaceResult | null, status: google.maps.places.PlacesServiceStatus) => {
+      // Clear timeout since we got a result
+      clearTimeout(timeoutId);
+      
       console.log(`🔍 Process place result for ${placeCardId}:`, { status, placeName: place?.name });
       
       if (status === google.maps.places.PlacesServiceStatus.OK && place) {
@@ -184,6 +196,7 @@ export const useGoogleMaps = (
               }
             } else {
               console.log(`❌ SearchQuery fallback also failed (${searchStatus}) for: ${searchQuery}`);
+              clearTimeout(timeoutId); // Clear timeout on error
               updatePlaceCardInMessage(messageId, placeCardId, { 
                 isLoadingDetails: false, 
                 errorDetails: `No se encontraron detalles (${status}).` 
@@ -194,6 +207,7 @@ export const useGoogleMaps = (
         }
         
         console.log(`❌ Failed to load details for ${placeCardId}: ${status}`);
+        clearTimeout(timeoutId); // Clear timeout on error
         updatePlaceCardInMessage(messageId, placeCardId, { 
           isLoadingDetails: false, 
           errorDetails: `No se encontraron detalles (${status}).` 
@@ -225,6 +239,7 @@ export const useGoogleMaps = (
           } else processPlaceResult(results[0], status);
         } else {
           console.log(`❌ Text search failed for ${searchQuery}: ${status}`);
+          clearTimeout(timeoutId); // Clear timeout on error
           updatePlaceCardInMessage(messageId, placeCardId, { 
             isLoadingDetails: false, 
             errorDetails: `Lugar no encontrado (${status}).` 
@@ -233,12 +248,21 @@ export const useGoogleMaps = (
       });
     } else {
       console.log(`❌ No placeId or searchQuery provided for ${placeCardId}`);
+      clearTimeout(timeoutId); // Clear timeout on error
       updatePlaceCardInMessage(messageId, placeCardId, { 
         isLoadingDetails: false, 
         errorDetails: "Falta ID o consulta." 
       }, setMessages);
     }
   }, [userLocation, updatePlaceCardInMessage, currentLanguageCode, googleMapsScriptLoaded]);
+
+  // Cleanup function for timeouts
+  useEffect(() => {
+    return () => {
+      // This will run when the component unmounts
+      // Note: Individual timeouts are cleared in processPlaceResult and error handlers
+    };
+  }, []);
 
   const testGooglePlacesAPI = useCallback(() => {
     if (!googleMapsScriptLoaded || !placesServiceRef.current) {

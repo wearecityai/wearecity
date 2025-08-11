@@ -160,7 +160,8 @@ export const useMessageHandler = (
         id: crypto.randomUUID(),
         role: MessageRole.Model,
         content: responseText,
-        timestamp: new Date()
+        timestamp: new Date(),
+        shouldAnimate: true
       };
       // Parsea la respuesta como antes
       const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
@@ -198,6 +199,9 @@ export const useMessageHandler = (
       // 4. Guardar la respuesta en la base de datos
       await saveMessageOnly(parsedMessage, targetConversationId);
       
+      // 5. QUITAR EL LOADING DESPUÉS de que se complete la actualización
+      setIsLoading(false);
+      
     } catch (error) {
       console.error('Error en fetchChatIA:', error);
       const errorMessage: ChatMessage = {
@@ -229,8 +233,10 @@ export const useMessageHandler = (
       }
       
       // No llamar onError aquí para evitar mensajes duplicados
-    } finally {
+      
+      // QUITAR EL LOADING DESPUÉS del manejo de errores
       setIsLoading(false);
+    } finally {
       // Mantener la referencia hasta el final para evitar reprocesamiento
       setTimeout(() => {
         lastProcessedMessageRef.current = null;

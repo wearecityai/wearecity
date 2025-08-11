@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Calendar, MessageSquare, Users, TrendingUp, BarChart3, PieChart, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -38,6 +39,9 @@ const AdminMetrics: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [cityId, setCityId] = useState<string | null>(null);
+  const [period, setPeriod] = useState<
+    'all' | '24h' | '7d' | '1m' | '6m' | '1y' | '5y'
+  >('all');
 
   if (isLoading) return null;
   if (!user) return <Navigate to="/" replace />;
@@ -62,6 +66,21 @@ const AdminMetrics: React.FC = () => {
     fetchCityId();
   }, [user?.id]);
 
+  // Helper para calcular fecha inicial según periodo
+  const getFromDate = (): string | null => {
+    const now = new Date();
+    const d = new Date(now);
+    switch (period) {
+      case '24h': d.setDate(d.getDate() - 1); return d.toISOString();
+      case '7d': d.setDate(d.getDate() - 7); return d.toISOString();
+      case '1m': d.setMonth(d.getMonth() - 1); return d.toISOString();
+      case '6m': d.setMonth(d.getMonth() - 6); return d.toISOString();
+      case '1y': d.setFullYear(d.getFullYear() - 1); return d.toISOString();
+      case '5y': d.setFullYear(d.getFullYear() - 5); return d.toISOString();
+      default: return null;
+    }
+  };
+
   // Cargar métricas reales
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -70,11 +89,14 @@ const AdminMetrics: React.FC = () => {
       setLoading(true);
       
       try {
-        // Métricas totales
-        const { data: analyticsData } = await supabase
+        // Métricas totales (con filtro de periodo si aplica)
+        const fromIso = getFromDate();
+        let query = supabase
           .from('chat_analytics')
           .select('*')
           .eq('city_id', cityId);
+        if (fromIso) query = query.gte('created_at', fromIso);
+        const { data: analyticsData } = await query;
 
         const { data: categoriesData } = await supabase
           .from('chat_categories')
@@ -175,7 +197,7 @@ const AdminMetrics: React.FC = () => {
     if (cityId) {
       fetchMetrics();
     }
-  }, [cityId]);
+  }, [cityId, period]);
 
   if (loading || !metrics) {
     return (
@@ -194,17 +216,33 @@ const AdminMetrics: React.FC = () => {
     <div className="flex-1 overflow-auto bg-background">
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard de Métricas</h1>
             <p className="text-muted-foreground">
               Análisis detallado del uso del chat y patrones de consulta
             </p>
           </div>
-          <Badge variant="secondary" className="text-sm">
-            <Calendar className="h-4 w-4 mr-1" />
-            Última actualización: Hoy
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder={t('metrics.period.label', { defaultValue: 'Periodo' })} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('metrics.period.all', { defaultValue: 'Todo' })}</SelectItem>
+                <SelectItem value="24h">{t('metrics.period.last24h', { defaultValue: 'Últimas 24h' })}</SelectItem>
+                <SelectItem value="7d">{t('metrics.period.last7d', { defaultValue: 'Última semana' })}</SelectItem>
+                <SelectItem value="1m">{t('metrics.period.last1m', { defaultValue: 'Último mes' })}</SelectItem>
+                <SelectItem value="6m">{t('metrics.period.last6m', { defaultValue: 'Últimos 6 meses' })}</SelectItem>
+                <SelectItem value="1y">{t('metrics.period.last1y', { defaultValue: 'Último año' })}</SelectItem>
+                <SelectItem value="5y">{t('metrics.period.last5y', { defaultValue: 'Últimos 5 años' })}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Badge variant="secondary" className="text-sm">
+              <Calendar className="h-4 w-4 mr-1" />
+              Última actualización: Hoy
+            </Badge>
+          </div>
         </div>
 
         {/* Overview Cards */}

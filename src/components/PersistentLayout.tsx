@@ -4,6 +4,13 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useApiInitialization } from '@/hooks/useApiInitialization';
 import { useAppState } from '@/hooks/useAppState';
+import { useCityNavigation } from '@/hooks/useCityNavigation';
+import { useInitialNavigation } from '@/hooks/useInitialNavigation';
+import { useSidebarVisibility } from '@/hooks/useSidebarVisibility';
+import { LoadingScreen } from './ui/loading-screen';
+import { ChatSkeleton } from './ui/chat-skeleton';
+import { ChatPreloader } from './ui/chat-preloader';
+import { FullScreenLoader } from './ui/full-screen-loader';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from './ui/sidebar';
 import { AppSidebar } from './app-sidebar';
 import { NavActions } from './nav-actions';
@@ -46,16 +53,45 @@ const PersistentLayout: React.FC = () => {
   const { user, profile, isLoading: authLoading } = useAuth();
   const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
   const { viewportHeight, isSafari, isKeyboardOpen } = useSimpleViewport();
+  // Evitar flashes de loaders al volver de background
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
   
   // Estado para el onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
+  // Pestaña activa de Finetuning: 0=customize, 1=share
+  const [finetuningActiveTab, setFinetuningActiveTab] = useState(0);
   // Estado de ciudad del admin
   const [adminCitySlug, setAdminCitySlug] = useState<string | null>(null);
   const [adminCityLoading, setAdminCityLoading] = useState(false);
   
   // Estado para controlar la vista de búsqueda de ciudades
   const [showCitySearch, setShowCitySearch] = useState(false);
+  
+  // Hook para manejar la navegación de ciudades
+  const {
+    updateLastVisitedCity,
+    loading: cityNavigationLoading
+  } = useCityNavigation();
+  
+  // Hook para controlar la visibilidad del sidebar
+  const { shouldShowSidebar } = useSidebarVisibility();
+  
+  // Usar hook para navegación inicial
+  const { isNavigating } = useInitialNavigation();
+
+  // Al volver a la pestaña, dar un margen para evitar flashes de loaders
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        setIsResuming(true);
+        window.setTimeout(() => setIsResuming(false), 800);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
   
   // Extraer citySlug de la URL
   const getCitySlug = () => {
@@ -89,6 +125,7 @@ const PersistentLayout: React.FC = () => {
     googleMapsScriptLoaded,
     messages,
     isLoading,
+    isFullyLoaded,
     handleSendMessage,
     handleSeeMoreEvents,
     clearMessages,
@@ -136,17 +173,11 @@ const PersistentLayout: React.FC = () => {
     loadAdminCity();
   }, [user, profile?.role]);
 
-  // Enforce admin-only access to their own admin route; prevent /chat/:slug and other admin slugs
+  // Enforce admin-only access to their own admin route; allow admins to view public chats under /chat/:slug
   useEffect(() => {
     if (profile?.role !== 'administrativo') return;
     const path = location.pathname;
-    // If admin tries to access /chat/* or /city/*, redirect to their /admin/:slug (or /admin if none yet)
-    if (path.startsWith('/chat/') || path.startsWith('/city/')) {
-      if (adminCityLoading) return;
-      if (adminCitySlug) navigate(`/admin/${adminCitySlug}`, { replace: true });
-      else navigate('/admin', { replace: true });
-      return;
-    }
+    // Admins can access public chats at /chat/:slug like any citizen
     // If admin on /admin/:slug but slug doesn't match their own, redirect to own
     if (path.startsWith('/admin/')) {
       const current = getCitySlug();
@@ -210,6 +241,7 @@ const PersistentLayout: React.FC = () => {
     handleNewChat: handleNewChatClick,
     handleSelectChat,
     handleMenuToggle,
+    handleSaveCustomization,
     handleOpenFinetuning,
     handleOpenSettings,
     handleOpenMetrics
@@ -412,13 +444,57 @@ const PersistentLayout: React.FC = () => {
     };
 
     loadCityConfig();
-  }, [location.pathname, location.search]); // Incluir location.search para detectar cambios en parámetros
+  }, [location.pathname, location.search]);
+
+  // Actualizar última ciudad visitada cuando cambie la ciudad
+  useEffect(() => {
+    const updateLastVisited = async () => {
+      if (!user || profile?.role !== 'ciudadano' || !citySlug) {
+        return;
+      }
+
+      try {
+        await updateLastVisitedCity(citySlug);
+      } catch (error) {
+        console.error('Error updating last visited city:', error);
+      }
+    };
+
+    updateLastVisited();
+  }, [citySlug, user, profile?.role, updateLastVisitedCity]);
 
   // Determinar qué contenido mostrar basado en la ruta actual
   const getCurrentContent = () => {
     const path = location.pathname;
     const searchParams = new URLSearchParams(location.search);
     const isDiscoverPage = searchParams.get('focus') === 'search';
+
+    // Verificación adicional: solo mostrar loading inicial si no estamos reanudando
+    if (!isAppInitialized && !isResuming) {
+      return (
+        <FullScreenLoader size="md" />
+      );
+    }
+
+    // Si estamos navegando inicialmente, mostrar skeleton del chat para mantener layout
+    if (isNavigating) {
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <ChatSkeleton />
+        </div>
+      );
+    }
+    
+    // Solo mostrar ChatPreloader durante la carga inicial de la app, no durante el chat
+    if (!isFullyLoaded && !isResuming && !isAppInitialized) {
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <ChatPreloader 
+            cityName={chatConfig?.restrictedCity?.name || "tu ciudad"}
+          />
+        </div>
+      );
+    }
 
     // Mostrar onboarding si está activo
     if (showOnboarding) {
@@ -435,14 +511,14 @@ const PersistentLayout: React.FC = () => {
       return (
         <FinetuningPage
           currentConfig={chatConfig}
-          onSave={handleOpenFinetuning}
+          onSave={handleSaveCustomization}
           onCancel={() => setCurrentView('chat')}
           googleMapsScriptLoaded={googleMapsScriptLoaded}
           apiKeyForMaps=""
           profileImagePreview={undefined}
           setProfileImagePreview={() => {}}
-          activeTab={0}
-          onTabChange={() => {}}
+          activeTab={finetuningActiveTab}
+          onTabChange={setFinetuningActiveTab}
         />
       );
     }
@@ -583,48 +659,60 @@ const PersistentLayout: React.FC = () => {
     );
   };
 
-  if (authLoading) {
+  // Verificación más estricta de todos los estados necesarios
+  // Separar la carga inicial de la app de la carga del chat
+  const isAppInitialized = user && 
+    profile && 
+    !authLoading && 
+    !cityNavigationLoading && 
+    !isNavigating && 
+    chatConfig && 
+    chatConfig.restrictedCity;
+    
+  // Solo considerar isFullyLoaded para la carga inicial, no para el chat
+  const isCompletelyReady = isAppInitialized && isFullyLoaded;
+
+  // Solo mostrar loader general si la app no está inicializada
+  if (!isAppInitialized && !isResuming) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex items-center gap-2">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-          <span className="text-muted-foreground">{t('common.loading')}</span>
-        </div>
-      </div>
+      <FullScreenLoader size="lg" />
     );
   }
 
   return (
     <SidebarProvider>
       <div 
-        className="overflow-hidden bg-background flex w-full"
+        className="overflow-hidden bg-background flex w-full layout-transition layout-stable"
         style={{ 
           height: viewportHeight,
           minHeight: viewportHeight
         }}
       >
-        <AppSidebar 
-          onNewChat={showCitySearch ? handleNewChatInSearchMode : handleNewChatClick}
-          onOpenFinetuning={openFinetuningFromSidebar}
-          onOpenMetrics={openMetricsFromSidebar}
-          chatTitles={chatTitles}
-          chatIds={conversations.map(c => c.id)}
-          selectedChatIndex={selectedChatIndex}
-          onSelectChat={showCitySearch ? handleSelectChatInSearchMode : handleSelectChat}
-          onDeleteChat={deleteConversation}
-          chatConfig={chatConfig}
-          userLocation={userLocation}
-          geolocationStatus={geolocationStatus}
-          isPublicChat={false}
-          handleToggleLocation={handleToggleLocation}
-          onCitySelect={handleCitySelect}
-          onShowCitySearch={handleShowCitySearch}
-          isInSearchMode={showCitySearch}
-        />
+        {shouldShowSidebar && (
+          <AppSidebar 
+            onNewChat={showCitySearch ? handleNewChatInSearchMode : handleNewChatClick}
+            onOpenFinetuning={openFinetuningFromSidebar}
+            onOpenMetrics={openMetricsFromSidebar}
+            chatTitles={chatTitles}
+            chatIds={conversations.map(c => c.id)}
+            selectedChatIndex={selectedChatIndex}
+            onSelectChat={showCitySearch ? handleSelectChatInSearchMode : handleSelectChat}
+            onDeleteChat={deleteConversation}
+            chatConfig={chatConfig}
+            userLocation={userLocation}
+            geolocationStatus={geolocationStatus}
+            isPublicChat={false}
+            handleToggleLocation={handleToggleLocation}
+            onCitySelect={handleCitySelect}
+            onShowCitySearch={handleShowCitySearch}
+            isInSearchMode={showCitySearch}
+            className="sidebar-transition sidebar-stable"
+          />
+        )}
         <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+          <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 layout-transition">
             <div className="flex flex-1 items-center gap-2 px-3">
-              <SidebarTrigger />
+              {shouldShowSidebar && <SidebarTrigger />}
               <Separator
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
@@ -650,7 +738,7 @@ const PersistentLayout: React.FC = () => {
             </div>
           </header>
           
-          <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-hidden fade-in chat-transition">
             {getCurrentContent()}
           </div>
         </SidebarInset>

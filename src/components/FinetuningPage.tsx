@@ -32,6 +32,8 @@ import {
 } from '../constants';
 import { CityLinkManager } from './CityLinkManager';
 import CityGoogleAutocomplete from './CityGoogleAutocomplete';
+import CityCombobox from './CityCombobox';
+import CountryCombobox from './CountryCombobox';
 
 // Modern card component
 const ModernCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = React.memo(({ icon, title, children }) => {
@@ -92,6 +94,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
   const [newPromptIcon, setNewPromptIcon] = useState('help');
   const [currentLanguageCode, setCurrentLanguageCode] = useState<string>(currentConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE);
   const [municipalityInputName, setMunicipalityInputName] = useState<string>(currentConfig.restrictedCity?.name || '');
+  const [restrictedCity, setRestrictedCity] = useState<RestrictedCityInfo | null>(currentConfig.restrictedCity);
   const [procedureSourceUrls, setProcedureSourceUrls] = useState<string[]>(Array.isArray(currentConfig.procedureSourceUrls) ? currentConfig.procedureSourceUrls : []);
   const [newProcedureUrl, setNewProcedureUrl] = useState<string>('');
   const [uploadedProcedureDocuments, setUploadedProcedureDocuments] = useState<UploadedProcedureDocument[]>(Array.isArray(currentConfig.uploadedProcedureDocuments) ? currentConfig.uploadedProcedureDocuments : []);
@@ -126,6 +129,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
       setUploadedProcedureDocuments(Array.isArray(currentConfig.uploadedProcedureDocuments) ? currentConfig.uploadedProcedureDocuments : DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
       setSedeElectronicaUrl(currentConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
       setMunicipalityInputName(currentConfig.restrictedCity?.name || '');
+      setRestrictedCity(currentConfig.restrictedCity);
       setProfileImageUrl(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
       lastCityRef.current = currentConfig.restrictedCity?.name;
     }
@@ -371,8 +375,6 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
   };
 
   const handleSave = () => {
-    const finalRestrictedCity: RestrictedCityInfo | null = municipalityInputName.trim() ? { name: municipalityInputName.trim() } : null;
-    
     const configToSend = {
       assistantName: assistantName.trim() || DEFAULT_ASSISTANT_NAME,
       systemInstruction: systemInstruction.trim(), 
@@ -381,7 +383,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
       enableGoogleSearch, 
       allowMapDisplay, 
       allowGeolocation, 
-      restrictedCity: finalRestrictedCity,
+      restrictedCity: restrictedCity,
       currentLanguageCode, 
       procedureSourceUrls,
       uploadedProcedureDocuments,
@@ -408,6 +410,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
     setAllowMapDisplay(DEFAULT_CHAT_CONFIG.allowMapDisplay);
     setAllowGeolocation(DEFAULT_CHAT_CONFIG.allowGeolocation);
     setMunicipalityInputName(DEFAULT_CHAT_CONFIG.restrictedCity?.name || '');
+    setRestrictedCity(DEFAULT_CHAT_CONFIG.restrictedCity);
     setCurrentLanguageCode(DEFAULT_CHAT_CONFIG.currentLanguageCode);
     setProcedureSourceUrls([...DEFAULT_CHAT_CONFIG.procedureSourceUrls]); 
     setNewProcedureUrl('');
@@ -473,11 +476,13 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
     };
   }, [currentProcedureNameToUpload, currentPdfFile, uploadedProcedureDocuments]);
 
+  // (activeTab handling is declared earlier via internalActiveTab/externalActiveTab)
+
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background">
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto p-6">
+          <div className={`max-w-4xl mx-auto p-6 pb-28`}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full mb-6">
                 <TabsTrigger value="customize" className="flex-1">Personalizar</TabsTrigger>
@@ -563,34 +568,41 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                 <ModernCard icon={<MapPin className="h-5 w-5" />} title="Contexto y Restricciones">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Restringir a Municipio (Opcional)</Label>
-                      {currentConfig.restrictedCity ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{currentConfig.restrictedCity.name}</span>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => {
-                              setMunicipalityInputName('');
-                              onSave({ ...currentConfig, restrictedCity: null });
-                            }}
-                          >
-                            Cambiar ciudad
-                          </Button>
-                        </div>
-                      ) : (
-                        <CityGoogleAutocomplete
-                          onSelect={(cityObj) => {
-                            setMunicipalityInputName(cityObj.name);
-                            onSave({ ...currentConfig, restrictedCity: cityObj });
+                      <Label>Restringir a Municipio</Label>
+                      <div className="space-y-1">
+                        <CityCombobox
+                          value={restrictedCity}
+                          onChange={(city) => {
+                            setMunicipalityInputName(city?.name || '');
+                            setRestrictedCity(city);
                           }}
+                          countryCode={undefined}
+                          placeholder={restrictedCity?.name || 'Selecciona ciudad'}
                           disabled={false}
                         />
-                      )}
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="sede-url">URL Sede Electrónica (Opcional)</Label>
+                      <Label htmlFor="web-ayuntamiento">Web Oficial del Ayuntamiento</Label>
+                      <Input
+                        id="web-ayuntamiento"
+                        type="url"
+                        value={procedureSourceUrls[0] || ''}
+                        onChange={(e) => {
+                          const newUrls = [...procedureSourceUrls];
+                          newUrls[0] = e.target.value;
+                          setProcedureSourceUrls(newUrls);
+                        }}
+                        placeholder="https://www.ayuntamiento.ejemplo.es"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Enlace principal a la web oficial del ayuntamiento para información general.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="sede-url">URL Sede Electrónica</Label>
                       <Input
                         id="sede-url"
                         type="url"
@@ -858,10 +870,11 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                     </p>
                   </CardContent>
                 </Card>
+
               </TabsContent>
 
               <TabsContent value="share" className="space-y-6">
-                <CityLinkManager />
+                <CityLinkManager assistantNameOverride={assistantName} />
               </TabsContent>
             </Tabs>
           </div>

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useCityNavigation } from './useCityNavigation';
 
 interface Profile {
   id: string;
@@ -32,8 +33,8 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -104,31 +105,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(async () => {
             const profileData = await fetchProfile(session.user.id);
             setProfile(profileData);
-            setIsLoading(false);
             if (!profileData) {
               await supabase.auth.signOut();
               window.location.href = '/auth';
             } else {
               // Check for default chat and redirect if user just signed in
               if (event === 'SIGNED_IN') {
-                const storageKey = `defaultChat_${session.user.id}`;
-                const defaultChatData = localStorage.getItem(storageKey);
-                if (defaultChatData && window.location.pathname === '/') {
-                  try {
-                    const defaultChat = JSON.parse(defaultChatData);
-                    if (defaultChat.citySlug) {
-                      window.location.href = `/city/${defaultChat.citySlug}`;
-                    }
-                  } catch (error) {
-                    console.error('Error parsing default chat data:', error);
-                  }
-                }
+                // La redirección ahora se maneja en PersistentLayout usando useCityNavigation
+                console.log('User signed in, navigation will be handled by PersistentLayout');
               }
             }
-          }, 0);
+            // Delay más agresivo para asegurar que NO se muestre el sidebar prematuramente
+            setTimeout(() => {
+              setIsLoading(false);
+            }, 1500);
+          }, 500);
         } else {
           setProfile(null);
-          setIsLoading(false);
+          // Delay más agresivo para estabilizar completamente la UI
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 800);
         }
       }
     );

@@ -91,7 +91,8 @@ export const useMessages = (conversationId: string | null) => {
         };
       });
       
-      setMessages(chatMessages);
+      // Persisted messages should not animate typewriter on mount
+      setMessages(chatMessages.map(m => ({ ...m, shouldAnimate: false })));
     } catch (error) {
       console.error('Error loading messages:', error);
       setMessages([]);

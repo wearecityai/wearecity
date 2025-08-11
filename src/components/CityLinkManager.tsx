@@ -22,9 +22,8 @@ import QRCode from 'qrcode';
 import { useAssistantConfig } from '@/hooks/useAssistantConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { CityDebug } from './CityDebug';
 
-export const CityLinkManager: React.FC = () => {
+export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ assistantNameOverride }) => {
   const { user } = useAuth();
   const { config, saveConfig } = useAssistantConfig();
   const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
@@ -46,7 +45,7 @@ export const CityLinkManager: React.FC = () => {
       .replace(/-+/g, '-');
   };
 
-  const currentSlug = generateSlug(config.assistantName);
+  const currentSlug = generateSlug(assistantNameOverride || config.assistantName);
   const publicUrl = `${window.location.origin}/chat/${currentSlug}`;
 
   // Generar código QR
@@ -188,10 +187,7 @@ export const CityLinkManager: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Debug component - solo en desarrollo */}
-      {process.env.NODE_ENV === 'development' && (
-        <CityDebug />
-      )}
+      {/* Debug component removed per request */}
       
       <Card>
         <CardHeader>

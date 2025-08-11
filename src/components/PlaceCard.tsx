@@ -76,7 +76,28 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
   };
 
   return (
-            <Card className="w-full max-w-sm border-border md:hover:shadow-md transition-shadow">
+    <Card className="w-full max-w-sm border-border md:hover:shadow-md transition-shadow">
+      {/* Google Places Image */}
+      {place.photoUrl && (
+        <div className="relative w-full h-40 overflow-hidden rounded-t-lg">
+          <img
+            src={place.photoUrl}
+            alt={place.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Hide image on error
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+          />
+          {/* Photo attribution overlay */}
+          {place.photoAttributions && place.photoAttributions.length > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2">
+              <div dangerouslySetInnerHTML={{ __html: place.photoAttributions[0] }} />
+            </div>
+          )}
+        </div>
+      )}
 
       <CardHeader className="pb-3">
         <div className="space-y-2">

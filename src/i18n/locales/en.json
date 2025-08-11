@@ -70,6 +70,18 @@
     "metrics": "Metrics",
     "configureChat": "Configure chat"
   },
+  "metrics": {
+    "period": {
+      "label": "Period",
+      "all": "All",
+      "last24h": "Last 24h",
+      "last7d": "Last week",
+      "last1m": "Last month",
+      "last6m": "Last 6 months",
+      "last1y": "Last year",
+      "last5y": "Last 5 years"
+    }
+  },
   "errors": {
     "pageNotFound": "Page not found",
     "pageNotFoundDescription": "The page you're looking for doesn't exist or has been moved.",

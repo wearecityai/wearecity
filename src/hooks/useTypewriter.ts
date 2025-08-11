@@ -4,6 +4,7 @@ interface TypewriterOptions {
   speed?: number; // milliseconds per character
   startDelay?: number; // delay before starting
   messageId?: string; // unique identifier for the message
+  replayOnMount?: boolean; // if true, replays even if completed previously
 }
 
 // Global set to track completed messages
@@ -19,11 +20,11 @@ export const useTypewriter = (
   const indexRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { speed = 30, startDelay = 100, messageId } = options;
+  const { speed = 30, startDelay = 100, messageId, replayOnMount = false } = options;
 
   useEffect(() => {
-    // If this message was already completed, show it immediately
-    if (messageId && completedMessages.has(messageId)) {
+    // If this message was already completed, show it immediately unless replay requested
+    if (!replayOnMount && messageId && completedMessages.has(messageId)) {
       setDisplayText(targetText);
       setIsTyping(false);
       setIsComplete(true);
@@ -73,7 +74,7 @@ export const useTypewriter = (
         clearTimeout(timerRef.current);
       }
     };
-  }, [targetText, speed, startDelay, messageId]);
+  }, [targetText, speed, startDelay, messageId, replayOnMount]);
 
   const skipToEnd = () => {
     if (timerRef.current) {

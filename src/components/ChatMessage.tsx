@@ -24,11 +24,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const isUser = message.role === MessageRole.User;
   const timestamp = new Date(message.timestamp);
 
-  // Use typewriter effect for assistant messages that are not typing indicators
-  const shouldUseTypewriter = !isUser && !message.isTyping && !message.error && message.content;
+  // Use typewriter effect only when explicitly requested (e.g., first-time generation)
+  const shouldUseTypewriter = !!(message.shouldAnimate && !isUser && !message.isTyping && !message.error && message.content);
   const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
     shouldUseTypewriter ? message.content || '' : '',
-    { speed: 8, startDelay: 200, messageId: message.id }
+    { speed: 8, startDelay: 200, messageId: message.id, replayOnMount: false }
   );
 
   // Use typewriter text if active, otherwise use original content
@@ -37,9 +37,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   // Strict sequential reveal for cards - only after text is complete
   const totalCards = (message.events?.length || 0) + (message.placeCards?.length || 0);
   const { shouldShowCard } = useStrictSequentialReveal({
-    textContent: message.content,
+    textContent: contentToDisplay, // Use the content that's actually being displayed
     totalCards,
-    typewriterIsComplete: !typewriterIsTyping && !!message.content,
+    typewriterIsComplete: shouldUseTypewriter ? (!typewriterIsTyping && contentToDisplay === message.content) : true,
     cardDelay: 400,
     messageId: message.id
   });
