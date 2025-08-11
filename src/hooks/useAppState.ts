@@ -177,7 +177,8 @@ export const useAppState = (citySlug?: string) => {
   const isLoading = chatLoading || conversationsLoading;
   
   // Estado adicional para verificar si la configuración está completamente cargada
-  const isConfigReady = chatConfig && chatConfig.restrictedCity && chatConfig.assistantName;
+  // No requerir restrictedCity para evitar bucles infinitos
+  const isConfigReady = chatConfig && chatConfig.assistantName;
   
   // Estado de carga consolidado que incluye la configuración
   const isFullyLoaded = !isLoading && isConfigReady;

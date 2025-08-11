@@ -13,14 +13,14 @@ export const useSidebarVisibility = () => {
 
   useEffect(() => {
     // Solo mostrar el sidebar cuando TODO esté completamente listo
+    // No requerir restrictedCity para evitar bucles infinitos
     const isReady = user && 
       profile && 
       !authLoading && 
       !cityNavigationLoading && 
       !isNavigating && 
       isFullyLoaded && 
-      chatConfig && 
-      chatConfig.restrictedCity;
+      chatConfig;
 
     if (isReady) {
       // Agregar un pequeño delay adicional para asegurar estabilidad

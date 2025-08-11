@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
+import { PasswordInput } from "./PasswordInput"
 import { supabase } from "@/integrations/supabase/client"
 
 export function SignupForm() {
@@ -119,16 +120,14 @@ export function SignupForm() {
             />
           </div>
           
-          <div className="grid gap-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            label="Contraseña"
+            value={password}
+            onChange={setPassword}
+            required
+            disabled={isLoading}
+          />
 
           <div className="grid gap-2">
             <Label htmlFor="role">Tipo de usuario</Label>

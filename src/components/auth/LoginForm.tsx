@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
+import { PasswordInput } from "./PasswordInput"
 import { supabase } from "@/integrations/supabase/client"
 
 export function LoginForm() {
@@ -78,18 +79,14 @@ export function LoginForm() {
             />
           </div>
           
-          <div className="grid gap-2">
-            <div className="flex items-center">
-              <Label htmlFor="password">{t('auth.password')}</Label>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            label={t('auth.password')}
+            value={password}
+            onChange={setPassword}
+            required
+            disabled={isLoading}
+          />
           
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

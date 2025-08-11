@@ -56,6 +56,7 @@ const PersistentLayout: React.FC = () => {
   // Evitar flashes de loaders al volver de background
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
+  const [safetyTimeout, setSafetyTimeout] = useState(false);
   
   // Estado para el onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -81,6 +82,17 @@ const PersistentLayout: React.FC = () => {
   // Usar hook para navegación inicial
   const { isNavigating } = useInitialNavigation();
 
+  // Verificación más estricta de todos los estados necesarios
+  // Separar la carga inicial de la app de la carga del chat
+  const isAppInitialized = user && 
+    profile && 
+    !authLoading && 
+    !cityNavigationLoading && 
+    !isNavigating;
+    
+  // Verificar si la autenticación está en progreso
+  const isAuthInProgress = authLoading || (!user && !profile);
+
   // Al volver a la pestaña, dar un margen para evitar flashes de loaders
   useEffect(() => {
     const onVisibility = () => {
@@ -92,7 +104,7 @@ const PersistentLayout: React.FC = () => {
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
-  
+
   // Extraer citySlug de la URL
   const getCitySlug = () => {
     const path = location.pathname;
@@ -139,6 +151,104 @@ const PersistentLayout: React.FC = () => {
     shouldShowChatContainer,
     handleToggleLocation
   } = useAppState(citySlug);
+
+  // Verificación más estricta que incluye chatConfig (después de su declaración)
+  const isAppFullyInitialized = isAppInitialized && chatConfig && chatConfig.assistantName;
+  
+  // Asegurar que chatConfig tenga un valor válido
+  const safeChatConfig = chatConfig || {
+    assistantName: 'City Assistant',
+    systemInstruction: 'Eres un asistente de ciudad amigable y útil.',
+    currentLanguageCode: 'es',
+    restrictedCity: null,
+    recommendedPrompts: [],
+    uploadedProcedureDocuments: []
+  };
+  
+  // Debug logging para entender el estado de inicialización
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      console.log('🔍 Debug - Initialization state:', {
+        user: !!user,
+        profile: !!profile,
+        authLoading,
+        cityNavigationLoading,
+        isNavigating,
+        chatConfig: !!chatConfig,
+        isAppInitialized,
+        isAppFullyInitialized,
+        isFullyLoaded,
+        isLoading
+      });
+    }
+  }, [user, profile, authLoading, cityNavigationLoading, isNavigating, chatConfig, isAppInitialized, isAppFullyInitialized, isFullyLoaded, isLoading]);
+
+  // Redirigir a autenticación si no hay usuario después de un tiempo razonable
+  useEffect(() => {
+    if (!user && !authLoading && !isResuming) {
+      const timer = setTimeout(() => {
+        console.log('🔍 No user found after timeout, redirecting to auth');
+        window.location.href = '/auth';
+      }, 5000); // 5 segundos de espera
+
+      return () => clearTimeout(timer);
+    }
+  }, [user, authLoading, isResuming]);
+
+  // Additional safety timeout that depends on chatConfig (after it's declared)
+  useEffect(() => {
+    // Only run this effect if chatConfig is available
+    if (!chatConfig) return;
+    
+    const timer = setTimeout(() => {
+      if (!isAppFullyInitialized && !isResuming) {
+        console.log('🔍 Production Debug - App not fully initialized:', {
+          user: !!user,
+          profile: !!profile,
+          authLoading,
+          cityNavigationLoading,
+          isNavigating,
+          chatConfig: !!chatConfig,
+          restrictedCity: !!chatConfig?.restrictedCity,
+          isFullyLoaded,
+          isLoading
+        });
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [chatConfig, isAppFullyInitialized, isResuming, user, profile, authLoading, cityNavigationLoading, isNavigating, isFullyLoaded, isLoading]);
+
+  // Safety timeout para evitar carga infinita en producción
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isAppFullyInitialized && !isResuming) {
+        console.warn('⚠️ Safety timeout triggered - forcing app initialization');
+        console.log('🔍 Debug - Current state:', {
+          user: !!user,
+          profile: !!profile,
+          authLoading,
+          cityNavigationLoading,
+          isNavigating,
+          chatConfig: !!chatConfig,
+          isFullyLoaded,
+          isLoading
+        });
+        setSafetyTimeout(true);
+      }
+    }, 10000); // Reducido a 10 segundos
+
+    // Timeout extremo para casos críticos
+    const extremeTimer = setTimeout(() => {
+      console.error('🚨 EXTREME TIMEOUT - Force app to work without full config');
+      setSafetyTimeout(true);
+    }, 20000); // 20 segundos
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(extremeTimer);
+    };
+  }, [isAppFullyInitialized, isResuming, user, profile, authLoading, cityNavigationLoading, isNavigating, chatConfig, isFullyLoaded, isLoading]);
 
   // Cargar ciudad del admin y redirigir a /admin/:slug si existe
   useEffect(() => {
@@ -470,7 +580,27 @@ const PersistentLayout: React.FC = () => {
     const isDiscoverPage = searchParams.get('focus') === 'search';
 
     // Verificación adicional: solo mostrar loading inicial si no estamos reanudando
-    if (!isAppInitialized && !isResuming) {
+    // O si se activó el safety timeout
+    if ((!isAppInitialized && !isResuming) || safetyTimeout) {
+      if (safetyTimeout) {
+        console.log('🚨 Safety timeout active - showing fallback content');
+        return (
+          <div className="flex-1 overflow-auto bg-background">
+            <div className="container mx-auto px-4 py-8">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-4">Problema de Carga</h2>
+                <p className="text-muted-foreground mb-6">
+                  La aplicación está tardando más de lo esperado en cargar. 
+                  Intenta recargar la página o contacta con soporte.
+                </p>
+                <Button onClick={() => window.location.reload()}>
+                  Recargar Página
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      }
       return (
         <FullScreenLoader size="md" />
       );
@@ -492,6 +622,55 @@ const PersistentLayout: React.FC = () => {
           <ChatPreloader 
             cityName={chatConfig?.restrictedCity?.name || "tu ciudad"}
           />
+        </div>
+      );
+    }
+
+    // Si no hay configuración de ciudad y el usuario es administrativo, mostrar selector
+    if (!chatConfig?.restrictedCity && profile?.role === 'administrativo') {
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">Configura tu Ciudad</h2>
+              <p className="text-muted-foreground mb-6">
+                Para comenzar, necesitas configurar tu ciudad en el panel de administración.
+              </p>
+              <Button onClick={() => setCurrentView('finetuning')}>
+                Configurar Ciudad
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Si no hay configuración de ciudad y el usuario es ciudadano, mostrar selector
+    if (!chatConfig?.restrictedCity && profile?.role === 'ciudadano') {
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <CitySelector onCitySelect={handleCitySelect} />
+          </div>
+        </div>
+      );
+    }
+
+    // Si no hay configuración de ciudad pero la app está inicializada, mostrar chat básico
+    if (!chatConfig?.restrictedCity && isAppFullyInitialized) {
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">Bienvenido a City Chat</h2>
+              <p className="text-muted-foreground mb-6">
+                Selecciona una ciudad para comenzar a chatear.
+              </p>
+              <Button onClick={() => setShowCitySearch(true)}>
+                Seleccionar Ciudad
+              </Button>
+            </div>
+          </div>
         </div>
       );
     }
@@ -659,21 +838,57 @@ const PersistentLayout: React.FC = () => {
     );
   };
 
-  // Verificación más estricta de todos los estados necesarios
-  // Separar la carga inicial de la app de la carga del chat
-  const isAppInitialized = user && 
-    profile && 
-    !authLoading && 
-    !cityNavigationLoading && 
-    !isNavigating && 
-    chatConfig && 
-    chatConfig.restrictedCity;
-    
   // Solo considerar isFullyLoaded para la carga inicial, no para el chat
-  const isCompletelyReady = isAppInitialized && isFullyLoaded;
+  const isCompletelyReady = isAppFullyInitialized && isFullyLoaded;
 
   // Solo mostrar loader general si la app no está inicializada
   if (!isAppInitialized && !isResuming) {
+    // Log para debugging en producción
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      console.log('🔍 Production Debug - App not initialized:', {
+        user: !!user,
+        profile: !!profile,
+        authLoading,
+        cityNavigationLoading,
+        isNavigating,
+        chatConfig: !!chatConfig,
+        restrictedCity: !!chatConfig?.restrictedCity
+      });
+    }
+    
+    // Si no hay usuario y no está cargando, redirigir a autenticación
+    if (!user && !authLoading) {
+      console.log('🔍 No user found, redirecting to auth');
+      window.location.href = '/auth';
+      return null;
+    }
+    
+    // Si la autenticación está en progreso, mostrar loader
+    if (isAuthInProgress) {
+      return (
+        <FullScreenLoader size="lg" />
+      );
+    }
+    
+    // Si hay un problema con la autenticación, mostrar mensaje de error
+    if (!user && !authLoading) {
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">Error de Autenticación</h2>
+              <p className="text-muted-foreground mb-6">
+                No se pudo autenticar tu sesión. Por favor, inicia sesión nuevamente.
+              </p>
+              <Button onClick={() => window.location.href = '/auth'}>
+                Ir a Autenticación
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <FullScreenLoader size="lg" />
     );
@@ -698,7 +913,7 @@ const PersistentLayout: React.FC = () => {
             selectedChatIndex={selectedChatIndex}
             onSelectChat={showCitySearch ? handleSelectChatInSearchMode : handleSelectChat}
             onDeleteChat={deleteConversation}
-            chatConfig={chatConfig}
+            chatConfig={safeChatConfig}
             userLocation={userLocation}
             geolocationStatus={geolocationStatus}
             isPublicChat={false}
