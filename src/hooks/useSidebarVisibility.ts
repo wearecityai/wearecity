@@ -5,7 +5,7 @@ import { useAppState } from './useAppState';
 
 export const useSidebarVisibility = () => {
   const { user, profile, isLoading: authLoading } = useAuth();
-  const { loading: cityNavigationLoading, isNavigating } = useCityNavigation();
+  const { loading: cityNavigationLoading } = useCityNavigation();
   const { isFullyLoaded, chatConfig } = useAppState();
 
   const [shouldShowSidebar, setShouldShowSidebar] = useState(false);
@@ -17,7 +17,6 @@ export const useSidebarVisibility = () => {
       profile && 
       !authLoading && 
       !cityNavigationLoading && 
-      !isNavigating && 
       isFullyLoaded && 
       chatConfig && 
       chatConfig.restrictedCity;
@@ -34,7 +33,7 @@ export const useSidebarVisibility = () => {
     if (!hasShownOnce) {
       setShouldShowSidebar(false);
     }
-  }, [user, profile, authLoading, cityNavigationLoading, isNavigating, isFullyLoaded, chatConfig, hasShownOnce]);
+  }, [user, profile, authLoading, cityNavigationLoading, isFullyLoaded, chatConfig, hasShownOnce]);
 
   return { shouldShowSidebar };
 };
