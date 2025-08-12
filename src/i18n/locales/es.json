@@ -137,6 +137,17 @@
     "directions": "Cómo llegar",
     "noPlaces": "No se encontraron lugares"
   },
+  "geolocation": {
+    "getting": "Obteniendo ubicación...",
+    "located": "Ubicación obtenida",
+    "ready": "Ubicación lista",
+    "error": "Error de ubicación",
+    "idle": "Ubicación inactiva",
+    "retry": "Reintentar",
+    "permissionDenied": "Permiso de ubicación denegado",
+    "unavailable": "Ubicación no disponible",
+    "timeout": "Tiempo agotado"
+  },
   "language": {
     "title": "Idioma",
     "select": "Seleccionar idioma",

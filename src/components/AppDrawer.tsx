@@ -39,6 +39,7 @@ import {
 import { CustomChatConfig } from '../types';
 import { useDefaultChat } from '../hooks/useDefaultChat';
 import { StatusBadge } from './ui/status-badge';
+import { GeolocationIndicator } from './GeolocationIndicator';
 
 interface UserLocation {
   latitude: number;
@@ -122,7 +123,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
       setLocationInfo(prev => ({ ...prev, loading: true }));
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          getLocationInfo(position.coords.latitude, position.coords.longitude);
+          updateLocationFromCoords(position.coords.latitude, position.coords.longitude);
         },
         (error) => {
           console.error('Error obteniendo ubicación:', error);
@@ -339,33 +340,26 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
             <>
               <Separator className="my-2" />
               <div className="px-2 py-1">
-                <div className="flex items-center gap-3">
-                  <Navigation className="h-4 w-4 text-sidebar-foreground/60" />
-                  {!collapsed && (
-                    <div className="min-w-0 flex-1">
-                      <StatusBadge 
-                        status={geolocationStatus === 'success' ? 'success' : geolocationStatus === 'error' ? 'error' : 'loading'}
-                        className="text-xs"
-                      >
-                        {userLocation ? getDisplayCity() : 'Ubicación'}
-                      </StatusBadge>
-                      {userLocation && (
-                        <p className="text-xs text-sidebar-foreground/60 mt-1 line-clamp-2">
-                          {locationInfo.loading ? 'Obteniendo dirección...' : getDisplayAddress()}
-                        </p>
-                      )}
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={refreshLocation}
-                        disabled={locationInfo.loading}
-                        className="h-auto p-0 text-xs mt-1 text-sidebar-foreground/60"
-                      >
-                        {locationInfo.loading ? 'Actualizando...' : 'Actualizar ubicación'}
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                {!collapsed ? (
+                  <div className="space-y-2">
+                    <GeolocationIndicator
+                      status={geolocationStatus}
+                      userLocation={userLocation}
+                      onRetry={refreshLocation}
+                    />
+                    {userLocation && chatConfig.restrictedCity?.name && (
+                      <div className="text-xs text-sidebar-foreground/60">
+                        📍 {chatConfig.restrictedCity.name}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <GeolocationIndicator
+                    status={geolocationStatus}
+                    userLocation={userLocation}
+                    compact
+                  />
+                )}
               </div>
             </>
           )}

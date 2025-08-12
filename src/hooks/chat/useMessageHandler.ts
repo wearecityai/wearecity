@@ -151,14 +151,13 @@ export const useMessageHandler = (
 
       const conversationHistory = currentMessages
         .filter(msg => 
-          msg.role !== MessageRole.System && 
           !msg.isTyping && 
           !msg.error && 
           msg.content && 
           msg.content.trim().length > 0
         )
         .map(msg => ({
-          role: msg.role === MessageRole.User ? 'user' : 'assistant',
+          role: msg.role === MessageRole.User ? 'user' as const : 'assistant' as const,
           content: msg.content.trim()
         }))
         .slice(-8); // Enviar solo los últimos 8 mensajes para optimizar tokens y mantener contexto

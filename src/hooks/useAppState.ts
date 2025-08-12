@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useThemeContext } from '../theme/ThemeProvider';
-import { useGeolocation } from './useGeolocation';
+import { useAutoGeolocation } from './useAutoGeolocation';
 import { useApiInitialization } from './useApiInitialization';
 import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
@@ -72,7 +72,16 @@ export const useAppState = (citySlug?: string) => {
     } : 
     assistantConfigHook.saveConfig;
 
-  const { userLocation, geolocationError, geolocationStatus, startLocationTracking, stopLocationTracking } = useGeolocation();
+  const { userLocation, geolocationStatus } = useAutoGeolocation({
+    autoRequest: true,
+    trackLocation: true,
+    onLocationObtained: (location) => {
+      console.log('📍 Ubicación obtenida automáticamente en app:', location);
+    },
+    onLocationError: (error) => {
+      console.warn('⚠️ Error de geolocalización automática en app:', error);
+    }
+  });
 
   const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, loadGoogleMapsScript, placesServiceRef, testGooglePlacesAPI } = useGoogleMaps(
     userLocation,
@@ -80,11 +89,7 @@ export const useAppState = (citySlug?: string) => {
     setAppError
   );
 
-  // Always start geolocation tracking on app load
-  useEffect(() => {
-    startLocationTracking();
-    return () => { stopLocationTracking(); };
-  }, [startLocationTracking, stopLocationTracking]);
+  // Geolocalización ya se inicia automáticamente con useAutoGeolocation
 
   // Fetch Google Maps API key from backend
   useEffect(() => {
@@ -323,11 +328,8 @@ export const useAppState = (citySlug?: string) => {
     const updatedConfig = { ...chatConfig, allowGeolocation: enabled };
     setChatConfig(updatedConfig);
     
-    if (enabled) {
-      startLocationTracking();
-    } else {
-      stopLocationTracking();
-    }
+    // Con useAutoGeolocation, la ubicación se gestiona automáticamente
+    console.log(`📍 Geolocalización ${enabled ? 'activada' : 'desactivada'}`);
     
     await saveConfig(updatedConfig);
   };
@@ -351,7 +353,6 @@ export const useAppState = (citySlug?: string) => {
     setChatConfig,
     saveConfig,
     userLocation,
-    geolocationError,
     geolocationStatus,
     googleMapsScriptLoaded,
     messages,

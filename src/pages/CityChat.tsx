@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Users, MessageCircle, Lock } from 'lucide-react';
 import { useCities } from '@/hooks/useCities';
 import { useAuth } from '@/hooks/useAuth';
+import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 import { City } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,6 +20,18 @@ export const CityChat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Activar geolocalización automática al entrar al chat
+  const { userLocation, geolocationStatus } = useAutoGeolocation({
+    autoRequest: true,
+    trackLocation: true,
+    onLocationObtained: (location) => {
+      console.log('📍 Ubicación obtenida para el chat de ciudad:', location);
+    },
+    onLocationError: (error) => {
+      console.warn('⚠️ Error obteniendo ubicación:', error);
+    }
+  });
 
   useEffect(() => {
     const loadCity = async () => {

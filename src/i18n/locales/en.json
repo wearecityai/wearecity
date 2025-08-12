@@ -137,6 +137,17 @@
     "directions": "Directions",
     "noPlaces": "No places found"
   },
+  "geolocation": {
+    "getting": "Getting location...",
+    "located": "Location obtained",
+    "ready": "Location ready",
+    "error": "Location error",
+    "idle": "Location inactive",
+    "retry": "Retry",
+    "permissionDenied": "Location permission denied",
+    "unavailable": "Location unavailable",
+    "timeout": "Location timeout"
+  },
   "language": {
     "title": "Language",
     "select": "Select language",
