@@ -34,6 +34,7 @@ import { CityLinkManager } from './CityLinkManager';
 import CityGoogleAutocomplete from './CityGoogleAutocomplete';
 import CityCombobox from './CityCombobox';
 import CountryCombobox from './CountryCombobox';
+const LazyAyuntamientoCrawlerInline = React.lazy(() => import('./AyuntamientoCrawlerInline'));
 
 // Modern card component
 const ModernCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = React.memo(({ icon, title, children }) => {
@@ -599,6 +600,16 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                       <p className="text-sm text-muted-foreground">
                         Enlace principal a la web oficial del ayuntamiento para información general.
                       </p>
+                      <div className="mt-2">
+                        {/* Inline Crawler */}
+                        <div className="text-sm font-medium mb-1">Indexación automática</div>
+                        <React.Suspense fallback={null}>
+                          {procedureSourceUrls[0] && (
+                            // Carga perezosa para evitar coste si no se usa
+                            <LazyAyuntamientoCrawlerInline startUrl={procedureSourceUrls[0]} />
+                          )}
+                        </React.Suspense>
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
