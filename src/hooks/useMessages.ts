@@ -55,10 +55,8 @@ export const useMessages = (conversationId: string | null) => {
           const parsed = JSON.parse(local);
           setMessages(parsed.map((msg: any) => ({ ...msg, timestamp: new Date(msg.timestamp) })));
         } catch {
-          setMessages([]);
+          // Keep existing messages instead of clearing to avoid flicker
         }
-      } else {
-        setMessages([]);
       }
       return;
     }
@@ -74,7 +72,7 @@ export const useMessages = (conversationId: string | null) => {
 
       if (error) {
         console.error('Error loading messages:', error);
-        setMessages([]);
+        // Do not clear local messages on error
         return;
       }
       
@@ -91,11 +89,20 @@ export const useMessages = (conversationId: string | null) => {
         };
       });
       
-      // Persisted messages should not animate typewriter on mount
-      setMessages(chatMessages.map(m => ({ ...m, shouldAnimate: false })));
+      // Merge with existing local messages to avoid dropping optimistic typing/unsaved
+      setMessages(prev => {
+        const byId = new Map<string, ChatMessage>();
+        // Start with previous (preserve any typing/optimistic entries)
+        for (const m of prev) byId.set(m.id, m);
+        // Overlay server messages
+        for (const m of chatMessages) byId.set(m.id, { ...m, shouldAnimate: false });
+        // Sort by timestamp asc if available, else keep insertion order
+        const merged = Array.from(byId.values()).sort((a, b) => (a.timestamp?.getTime?.() || 0) - (b.timestamp?.getTime?.() || 0));
+        return merged;
+      });
     } catch (error) {
       console.error('Error loading messages:', error);
-      setMessages([]);
+      // Do not clear local messages on error
     } finally {
       setIsLoading(false);
     }
@@ -156,25 +163,26 @@ export const useMessages = (conversationId: string | null) => {
   const addMessage = async (message: ChatMessage, targetConversationId?: string) => {
     const conversationIdToUse = targetConversationId || conversationId;
     if (!conversationIdToUse) return;
+
+    // 1) Always add to local state immediately (optimistic update)
+    setMessages(prev => [...prev, message]);
+
+    // 2) Persist depending on auth state (in background for speed)
     if (!user) {
-      // Guardar en localStorage
-      setMessages(prev => {
-        const updated = [...prev, message];
-        localStorage.setItem(`chat_messages_${conversationIdToUse}`, JSON.stringify(updated));
-        return updated;
-      });
+      // Unauthenticated: mirror to localStorage
+      const existing = localStorage.getItem(`chat_messages_${conversationIdToUse}`);
+      const local = existing ? JSON.parse(existing) : [];
+      local.push(message);
+      localStorage.setItem(`chat_messages_${conversationIdToUse}`, JSON.stringify(local));
       return;
     }
-    
-    // Save to database first
-    await saveMessageOnly(message, conversationIdToUse);
-    
-    // Always add to local state when we have a targetConversationId
-    // This ensures consistent behavior for the first message in a conversation
-    if (targetConversationId) {
-      setMessages(prev => [...prev, message]);
-    } else if (conversationIdToUse === conversationId) {
-      setMessages(prev => [...prev, message]);
+
+    // Authenticated: save to database without blocking UI
+    try {
+      await saveMessageOnly(message, conversationIdToUse);
+    } catch (error) {
+      console.error('Error saving message (optimistic add already applied):', error);
+      // Optionally mark message with an error state here if needed
     }
   };
 

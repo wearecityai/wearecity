@@ -1,26 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useGeolocation } from './useGeolocation';
 
-interface UseAutoGeolocationOptions {
-  /** Si debe solicitar geolocalización automáticamente */
+export interface UseAutoGeolocationOptions {
   autoRequest?: boolean;
-  /** Si debe seguir la ubicación continuamente */
   trackLocation?: boolean;
-  /** Tiempo en ms para volver a solicitar geolocalización si falla */
   retryDelay?: number;
-  /** Callback cuando se obtiene la ubicación exitosamente */
   onLocationObtained?: (location: { latitude: number; longitude: number }) => void;
-  /** Callback cuando hay un error de geolocalización */
   onLocationError?: (error: string) => void;
+  persistentTracking?: boolean; // Nueva opción para seguimiento persistente
 }
 
 export const useAutoGeolocation = (options: UseAutoGeolocationOptions = {}) => {
   const {
     autoRequest = true,
-    trackLocation = false,
+    trackLocation = true,
     retryDelay = 30000, // 30 segundos
     onLocationObtained,
-    onLocationError
+    onLocationError,
+    persistentTracking = true // Por defecto, seguimiento persistente
   } = options;
 
   const {
@@ -36,6 +33,7 @@ export const useAutoGeolocation = (options: UseAutoGeolocationOptions = {}) => {
   const hasRequestedInitially = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notificationShownRef = useRef(false);
+  const persistentTrackingRef = useRef(persistentTracking);
 
   // Solicitar geolocalización automáticamente al montar el componente
   useEffect(() => {
@@ -74,51 +72,88 @@ export const useAutoGeolocation = (options: UseAutoGeolocationOptions = {}) => {
     }
   }, [userLocation, geolocationStatus, onLocationObtained]);
 
-  // Manejar errores y reintentos
+  // Manejar errores de geolocalización con reintentos automáticos
   useEffect(() => {
-    if (geolocationStatus === 'error' && geolocationError) {
-      console.error('❌ Error de geolocalización:', geolocationError);
+    if (geolocationStatus === 'error' && persistentTrackingRef.current) {
+      console.log('⚠️ Error de geolocalización, reintentando en', retryDelay / 1000, 'segundos...');
       
-      if (onLocationError) {
-        onLocationError(geolocationError);
+      // Limpiar timeout anterior si existe
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
       
-      // Solo reintentar si no es un error de permisos denegados
-      if (!geolocationError.includes('denegado') && !geolocationError.includes('denied')) {
-        console.log(`🔄 Reintentando geolocalización en ${retryDelay / 1000} segundos...`);
-        
-        retryTimeoutRef.current = setTimeout(() => {
-          console.log('🔄 Reintentando obtener geolocalización...');
-          if (trackLocation) {
-            startLocationTracking();
-          } else {
-            refreshLocation();
-          }
-        }, retryDelay);
-      }
+      // Programar reintento automático
+      retryTimeoutRef.current = setTimeout(() => {
+        console.log('🔄 Reintentando geolocalización automáticamente...');
+        if (trackLocation) {
+          startLocationTracking();
+        } else {
+          refreshLocation();
+        }
+      }, retryDelay);
     }
-  }, [geolocationStatus, geolocationError, onLocationError, retryDelay, trackLocation, startLocationTracking, refreshLocation]);
+  }, [geolocationStatus, retryDelay, trackLocation, startLocationTracking, refreshLocation]);
 
-  // Cleanup
+  // Mantener seguimiento activo si está habilitado
+  useEffect(() => {
+    if (persistentTracking && trackLocation && !isWatching && geolocationStatus === 'success') {
+      console.log('🔄 Reiniciando seguimiento de geolocalización...');
+      startLocationTracking();
+    }
+  }, [persistentTracking, trackLocation, isWatching, geolocationStatus, startLocationTracking]);
+
+  // Limpiar timeout al desmontar
   useEffect(() => {
     return () => {
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
-      if (isWatching) {
-        stopLocationTracking();
-      }
     };
-  }, [isWatching, stopLocationTracking]);
+  }, []);
+
+  // Función para forzar la activación de geolocalización
+  const forceEnableGeolocation = useCallback(() => {
+    console.log('🔧 Forzando activación de geolocalización...');
+    if (trackLocation) {
+      startLocationTracking();
+    } else {
+      refreshLocation();
+    }
+    hasRequestedInitially.current = true;
+  }, [trackLocation, startLocationTracking, refreshLocation]);
+
+  // Función para desactivar seguimiento persistente
+  const disablePersistentTracking = useCallback(() => {
+    persistentTrackingRef.current = false;
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    console.log('⏹️ Seguimiento persistente de geolocalización desactivado');
+  }, []);
+
+  // Función para activar seguimiento persistente
+  const enablePersistentTracking = useCallback(() => {
+    persistentTrackingRef.current = true;
+    console.log('▶️ Seguimiento persistente de geolocalización activado');
+    
+    // Si no hay ubicación activa, intentar obtenerla
+    if (geolocationStatus === 'idle' || geolocationStatus === 'error') {
+      forceEnableGeolocation();
+    }
+  }, [geolocationStatus, forceEnableGeolocation]);
 
   return {
     userLocation,
     geolocationError,
     geolocationStatus,
+    refreshLocation,
+    startLocationTracking,
+    stopLocationTracking,
     isWatching,
-    // Funciones manuales para control explícito
-    requestLocation: refreshLocation,
-    startTracking: startLocationTracking,
-    stopTracking: stopLocationTracking
+    forceEnableGeolocation,
+    disablePersistentTracking,
+    enablePersistentTracking,
+    isPersistentTrackingEnabled: persistentTrackingRef.current
   };
 };

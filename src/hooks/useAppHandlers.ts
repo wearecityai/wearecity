@@ -76,15 +76,24 @@ export const useAppHandlers = ({
     console.log('🔧 Final config to save:', configToSave);
     
     setChatConfig(configToSave);
-    const success = await saveConfig(configToSave);
     
-    if (success) {
-      setCurrentView('chat');
-      clearMessages();
-      setIsMenuOpen(false);
-      if (appError && !appError.includes("API_KEY") && !appError.toLowerCase().includes("google maps") && !appError.toLowerCase().includes("offline") && !appError.toLowerCase().includes("network") && appError !== MAPS_API_KEY_INVALID_ERROR_MESSAGE) {
-        setAppError(null);
+    try {
+      console.log('🚀 Llamando a saveConfig...');
+      const success = await saveConfig(configToSave);
+      console.log('✅ saveConfig completado con resultado:', success);
+      
+      if (success) {
+        setCurrentView('chat');
+        clearMessages();
+        setIsMenuOpen(false);
+        if (appError && !appError.includes("API_KEY") && !appError.toLowerCase().includes("google maps") && !appError.toLowerCase().includes("offline") && !appError.toLowerCase().includes("network") && appError !== MAPS_API_KEY_INVALID_ERROR_MESSAGE) {
+          setAppError(null);
+        }
+      } else {
+        console.error('❌ saveConfig falló');
       }
+    } catch (error) {
+      console.error('❌ Error en saveConfig:', error);
     }
   }, [setChatConfig, saveConfig, setCurrentView, clearMessages, setIsMenuOpen, appError, setAppError]);
 

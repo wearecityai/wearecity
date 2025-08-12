@@ -16,7 +16,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
 // Configuración de Gemini
 const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-const GEMINI_MODEL_NAME = "gemini-1.5-pro-latest";
+// Permitir configurar el modelo por variable de entorno. Por defecto usar Gemini 2.0 Flash
+const GEMINI_MODEL_NAME = Deno.env.get("GEMINI_MODEL_NAME") || "gemini-2.0-flash";
 
 // Configuración de Google APIs
 const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
@@ -249,6 +250,33 @@ async function loadCityConfig({ citySlug, cityId, adminUserId }: { citySlug?: st
   return data;
 }
 
+// Cargar configuración del panel (assistant_config) por usuario
+async function loadAssistantPanelConfig(userId?: string | null) {
+  try {
+    if (!userId) return null;
+    console.log('Cargando assistant_config para usuario:', userId);
+    const { data, error } = await supabase
+      .from('assistant_config')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (error) {
+      console.error('Error cargando assistant_config:', error);
+      return null;
+    }
+    if (!data) {
+      console.log('No se encontró assistant_config activo para el usuario');
+      return null;
+    }
+    console.log('assistant_config cargado:', data);
+    return data;
+  } catch (e) {
+    console.error('Excepción en loadAssistantPanelConfig:', e);
+    return null;
+  }
+}
+
 // Función para construir instrucciones dinámicas
 async function buildDynamicInstructions(config: any, userLocation?: { lat: number, lng: number }) {
   const instructions: string[] = [];
@@ -272,8 +300,8 @@ PREVENCIÓN DE ALUCINACIONES:
 - Prefiere responder "No tengo esa información específica para ${restrictedCity.name}" antes que inventar datos`);
   }
 
-  // Geolocalización con contexto inteligente
-  const allowGeolocation = config?.allow_geolocation !== false; // true por defecto
+  // Geolocalización con contexto inteligente - SIEMPRE ACTIVA
+  const allowGeolocation = config?.allow_geolocation !== false;
   
   if (allowGeolocation && userLocation) {
     // No hacer reverse geocoding automático para ahorrar costes; usar coordenadas por defecto
@@ -304,40 +332,61 @@ PREVENCIÓN DE ALUCINACIONES:
         }
       }
       
-      instructions.push(`UBICACIÓN GPS ACTUAL DEL USUARIO: ${locationContext} (Coordenadas exactas: ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)})
+      instructions.push(`🌍 UBICACIÓN GPS ACTUAL DEL USUARIO - SIEMPRE ACTIVA: ${locationContext} (Coordenadas exactas: ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)})
 
-INSTRUCCIONES CRÍTICAS PARA USO DE UBICACIÓN:
-1. **Uso Automático e Inteligente**: Siempre que sea relevante o útil, usa automáticamente la ubicación del usuario para proporcionar respuestas más precisas y contextuales.
+INSTRUCCIONES CRÍTICAS PARA USO AUTOMÁTICO DE UBICACIÓN:
+1. **USO OBLIGATORIO Y AUTOMÁTICO**: SIEMPRE que sea relevante o útil, usa automáticamente la ubicación del usuario para proporcionar respuestas más precisas y contextuales.
 
-2. **Casos de Uso Prioritarios**:
+2. **Casos de Uso Prioritarios (SIEMPRE usar ubicación)**:
    - Búsquedas de lugares: "restaurantes", "farmacias", "hoteles", "tiendas", etc. → Usa la ubicación para encontrar lugares cercanos
    - Información local: "clima", "eventos", "noticias locales" → Contextualiza según la ubicación
    - Direcciones y rutas: "cómo llegar a...", "dónde está..." → Usa como punto de partida
    - Servicios públicos: "ayuntamiento", "hospital", "comisaría" → Encuentra los más cercanos
    - Transporte: "autobuses", "metro", "taxis" → Información específica de la zona
+   - Cualquier consulta que implique "cerca", "cercano", "en mi zona", "local" → Usa ubicación automáticamente
 
-3. **Contextualización Inteligente**:
+3. **Contextualización Inteligente y Proactiva**:
    - Si mencionan "aquí", "cerca", "en mi zona" → Automáticamente referencia su ubicación actual
    - Para consultas generales que pueden beneficiarse de contexto local → Incluye información específica de su área
    - Cuando sea útil, menciona la distancia aproximada a lugares sugeridos
+   - NO esperes a que el usuario mencione "cerca de mí" - si la ubicación es relevante, úsala proactivamente
 
 4. **Integración con Google Places**:
    - Usa las coordenadas exactas para búsquedas precisas en Google Places API
    - Prioriza resultados dentro de un radio razonable (1-10km según el tipo de búsqueda)
    - Para Place Cards, incluye siempre el placeId cuando esté disponible
+   - Calcula y muestra distancias aproximadas desde la ubicación del usuario
 
-5. **Respuestas Proactivas**:
-   - No esperes a que el usuario mencione "cerca de mí" - si la ubicación es relevante, úsala
+5. **Respuestas Proactivas y Contextuales**:
    - Proporciona información local adicional cuando sea valiosa
    - Sugiere alternativas cercanas cuando sea apropiado
+   - Menciona la ubicación del usuario cuando sea relevante para la respuesta
+   - Usa la ubicación para personalizar recomendaciones y sugerencias
+
+IMPORTANTE: Esta ubicación está SIEMPRE ACTIVA y debe ser usada automáticamente para cualquier consulta que pueda beneficiarse de contexto geográfico. No esperes a que el usuario mencione "cerca" - si la ubicación es relevante, úsala proactivamente.
 
 Ubicación completa para referencia: ${fullAddress || locationContext}`);
     } catch (error) {
       console.error('Error procesando geolocalización:', error);
-      instructions.push(`UBICACIÓN GPS DEL USUARIO: Coordenadas ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}. 
+      instructions.push(`🌍 UBICACIÓN GPS DEL USUARIO - SIEMPRE ACTIVA: Coordenadas ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}. 
 
-Usa esta ubicación automáticamente para cualquier consulta que pueda beneficiarse de contexto geográfico: lugares cercanos, servicios locales, clima, eventos, direcciones, transporte, etc. No esperes a que el usuario mencione "cerca" - si la ubicación es relevante, úsala proactivamente.`);
+USO OBLIGATORIO Y AUTOMÁTICO DE UBICACIÓN:
+- Usa esta ubicación automáticamente para cualquier consulta que pueda beneficiarse de contexto geográfico
+- Casos prioritarios: lugares cercanos, servicios locales, clima, eventos, direcciones, transporte
+- NO esperes a que el usuario mencione "cerca" - si la ubicación es relevante, úsala proactivamente
+- Calcula distancias aproximadas desde la ubicación del usuario cuando sea útil
+- Contextualiza todas las respuestas según la ubicación geográfica del usuario`);
     }
+  } else if (allowGeolocation) {
+    // Si la geolocalización está habilitada pero no hay ubicación disponible
+    instructions.push(`⚠️ GEOLOCALIZACIÓN HABILITADA PERO NO DISPONIBLE:
+La aplicación tiene geolocalización habilitada pero no se ha podido obtener tu ubicación actual. 
+
+INSTRUCCIONES:
+1. Cuando el usuario pregunte por lugares "cercanos" o "en mi zona", solicita que active la geolocalización
+2. Para búsquedas generales, usa la ciudad restringida como contexto
+3. Si el usuario menciona "aquí" o "cerca", pide que habilite la ubicación para respuestas más precisas
+4. Sugiere que verifique los permisos de ubicación en su navegador`);
   }
 
   // Ciudad restringida - REFUERZO ADICIONAL
@@ -387,105 +436,72 @@ REGLAS CRÍTICAS PARA RESPONDER SOBRE TRÁMITES DEL AYUNTAMIENTO (${cityContext}
   return instructions.join('\n\n');
 }
 
-// Función para construir el prompt completo
-async function buildSystemPrompt(config: any, userLocation?: { lat: number, lng: number }, userMessage?: string) {
+// Función para construir el prompt completo (VERSIÓN MINIMAL - FASE 1)
+async function buildSystemPrompt(
+  config: any,
+  userLocation?: { lat: number, lng: number },
+  userMessage?: string,
+  conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>
+) {
   const parts: string[] = [];
 
-  // Contexto de fecha
-  const currentDate = new Date();
-  const currentDateString = currentDate.toISOString().split('T')[0];
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentDay = currentDate.getDate();
-  
-  parts.push(`CONTEXTO DE FECHA ACTUAL: Hoy es ${currentDateString} (${currentDay}/${currentMonth}/${currentYear}). Cuando generes eventos, asegúrate de que las fechas sean apropiadas para la consulta del usuario y siempre en el futuro o presente, nunca en el pasado a menos que el usuario solicite explícitamente eventos históricos.`);
-
-  // Política general de comportamiento y anti-alucinación
-  const intents = detectIntents(userMessage);
-  parts.push(`POLÍTICA DE RESPUESTA:
-1) Responde SOLO a la intención detectada del usuario. Si el mensaje es ambiguo o es solo un saludo, NO recomiendes eventos ni lugares; responde con un saludo breve y pregunta de manera específica qué necesita.
-2) Si tienes dudas, pide una aclaración con una única pregunta concreta.
-3) NO inventes datos. Si no puedes verificar información específica de la ciudad restringida, dilo explícitamente.
-4) Mantén las respuestas concisas y útiles.`);
-
-  // Instrucción del sistema personalizada o por defecto
-  if (config?.system_instruction && config.system_instruction.trim()) {
-    parts.push(config.system_instruction.trim());
+  // 1) Identidad y objetivo mínimo
+  // Extraer nombre de ciudad restringida desde múltiples posibles fuentes del panel
+  const restrictedCityFromSnake = typeof config?.restricted_city === 'string'
+    ? safeParseJsonObject(config.restricted_city)
+    : (config?.restricted_city || null);
+  const restrictedCityName =
+    restrictedCityFromSnake?.name ||
+    config?.restrictedCity?.name ||
+    config?.restricted_city_name ||
+    config?.restrictedCityName ||
+    null;
+  if (restrictedCityName) {
+    parts.push(
+      `Eres un asistente local. Responde únicamente para la ciudad: ${restrictedCityName}.
+- Si te preguntan por otra ciudad o contexto fuera de ${restrictedCityName}, responde que solo puedes ayudar para ${restrictedCityName}.
+- Evita datos no verificables y no inventes información.`
+    );
   } else {
-    parts.push(INITIAL_SYSTEM_INSTRUCTION);
+    parts.push(
+      `Eres un asistente. Responde con precisión y sin inventar datos. Si falta contexto, pide una aclaración breve.`
+    );
   }
 
-  // Mapas (si están habilitados)
-  if (config?.allow_map_display) {
-    parts.push(SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION);
+  // 2) Coherencia mínima con historial
+  if (conversationHistory && conversationHistory.length > 0) {
+    const historyContext = conversationHistory
+      .slice(-6)
+      .map((msg) => `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content}`)
+      .join('\n');
+    parts.push(
+      `Contexto reciente (usa este contexto para mantener coherencia, no repitas lo ya dicho):\n${historyContext}`
+    );
   }
 
-  // Instrucciones de tarjetas de eventos y lugares (condicionadas por intención)
-  console.log('🔍 DEBUG - Intents detectados:', Array.from(intents));
-  
-  if (intents.has('events')) {
-    console.log('🔍 DEBUG - Agregando instrucciones de eventos');
-    parts.push(EVENT_CARD_SYSTEM_INSTRUCTION);
-  }
-  if (intents.has('places')) {
-    console.log('🔍 DEBUG - Agregando instrucciones de place cards');
-    console.log('🔍 DEBUG - PLACE_CARD_SYSTEM_INSTRUCTION length:', PLACE_CARD_SYSTEM_INSTRUCTION.length);
-    console.log('🔍 DEBUG - PLACE_CARD_SYSTEM_INSTRUCTION preview:', PLACE_CARD_SYSTEM_INSTRUCTION.substring(0, 200) + '...');
-    parts.push(PLACE_CARD_SYSTEM_INSTRUCTION);
-    console.log('🔍 DEBUG - Instrucciones de place cards agregadas al prompt');
-  } else {
-    console.log('🔍 DEBUG - NO se agregaron instrucciones de place cards - intent "places" no detectado');
+  // 3) Geolocalización (simple y opcional)
+  if (userLocation && typeof userLocation.lat === 'number' && typeof userLocation.lng === 'number') {
+    parts.push(
+      `El usuario ha compartido su ubicación aproximada (lat: ${userLocation.lat.toFixed(5)}, lng: ${userLocation.lng.toFixed(5)}). Utilízala solo si ayuda a responder más precisamente (por ejemplo, distancias o cercanía).`
+    );
   }
 
-  // Transporte público (si aplica)
-  if (intents.has('transport')) {
-    parts.push(`INSTRUCCIONES DE TRANSPORTE PÚBLICO:
-- Proporciona líneas, horarios aproximados y paradas relevantes SOLO si son verificables para la ciudad restringida.
-- Si no puedes verificar horarios exactos, explica cómo consultarlos en la web/app oficial de transporte del municipio.
-- Cuando el usuario pida "cómo llegar", prioriza rutas sencillas y añade ${SHOW_MAP_MARKER_START}consulta de mapas${SHOW_MAP_MARKER_END} solo si la visualización es necesaria.`);
+  // 4) Estilo de respuesta mínimo
+  parts.push(
+    `Reglas de estilo:
+- Sé claro y conciso (3-6 frases cuando sea posible).
+- Responde exactamente a la pregunta del usuario.
+- Si falta información clave, pide UNA aclaración breve.
+- No repitas información ya mencionada en esta conversación.`
+  );
+
+  // 5) Custom del panel (opcional): se permite pero no se mezcla con bloques extensos
+  if (config?.system_instruction && typeof config.system_instruction === 'string') {
+    const custom = config.system_instruction.trim();
+    if (custom) parts.push(custom);
   }
 
-  // Saludo: si solo es saludo, evitar recomendaciones
-  if (intents.has('greeting') && intents.size === 1) {
-    parts.push(`POLÍTICA DE SALUDO:
-Si el usuario solo saluda ("hola", "buenas", etc.), responde con un saludo breve y sugiere de forma no intrusiva categorías disponibles (eventos, lugares, transporte, trámites). No des recomendaciones ni listas hasta que el usuario lo pida.`);
-  }
-
-  // Instrucciones dinámicas basadas en configuración
-  const dynamicInstructions = await buildDynamicInstructions(config, userLocation);
-  if (dynamicInstructions) {
-    parts.push(dynamicInstructions);
-  }
-
-  // Formato de texto enriquecido
-  parts.push(RICH_TEXT_FORMATTING_SYSTEM_INSTRUCTION);
-
-  // Cláusula anti-leak
-  parts.push(ANTI_LEAK_CLAUSE);
-
-  const finalPrompt = parts.join('\n\n').trim();
-  console.log('🔍 DEBUG - Prompt final construido (primeros 500 chars):', finalPrompt.substring(0, 500));
-  console.log('🔍 DEBUG - Prompt final length:', finalPrompt.length);
-  
-  // Verificar si el prompt contiene las instrucciones de place cards
-  const hasPlaceCardInstructions = finalPrompt.includes('[PLACE_CARD_START]') || finalPrompt.includes('PLACE_CARD_START_MARKER');
-  console.log('🔍 DEBUG - ¿El prompt contiene instrucciones de place cards?', hasPlaceCardInstructions);
-  
-  if (hasPlaceCardInstructions) {
-    console.log('🔍 DEBUG - ✅ Instrucciones de place cards encontradas en el prompt final');
-  } else {
-    console.log('🔍 DEBUG - ❌ NO se encontraron instrucciones de place cards en el prompt final');
-    console.log('🔍 DEBUG - Buscando en el prompt...');
-    const placeCardIndex = finalPrompt.indexOf('PLACE_CARD');
-    if (placeCardIndex !== -1) {
-      console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
-      console.log('🔍 DEBUG - Contexto alrededor:', finalPrompt.substring(Math.max(0, placeCardIndex - 100), placeCardIndex + 100));
-    } else {
-      console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards en el prompt');
-    }
-  }
-  
-  return finalPrompt;
+  return parts.join('\n\n').trim();
 }
 
 // Función para llamar a Gemini
@@ -503,26 +519,47 @@ function extractGeminiText(data: any): string {
   return "";
 }
 
-async function callGeminiAPI(systemInstruction: string, userMessage: string): Promise<string> {
+async function callGeminiAPI(systemInstruction: string, userMessage: string, conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>): Promise<string> {
   if (!GEMINI_API_KEY) {
     console.error("❌ ERROR: GOOGLE_GEMINI_API_KEY no está configurada");
     return "Lo siento, el servicio de IA no está disponible en este momento. Por favor, contacta al administrador para configurar las claves de API necesarias.";
   }
   
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
+  // Construir el contenido de la conversación
+  const contents: any[] = [];
+  
+  // Agregar historial de conversación si está disponible
+  if (conversationHistory && conversationHistory.length > 0) {
+    // Agregar mensajes del historial (excluyendo el mensaje actual del usuario)
+    conversationHistory.forEach(msg => {
+      contents.push({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      });
+    });
+  }
+  
+  // Agregar el mensaje actual del usuario
+  contents.push({
+    role: "user",
+    parts: [{ text: `${systemInstruction}\n\n${userMessage}` }]
+  });
+  
+  // Gemini 2.0 usa `google_search`; Gemini 1.x usa `googleSearchRetrieval`
+  const tools = GEMINI_MODEL_NAME.startsWith('gemini-2.')
+    ? [{ google_search: {} }]
+    : [{ googleSearchRetrieval: {} }];
+
   const body = {
-    contents: [
-      { role: "user", parts: [{ text: `${systemInstruction}\n\n${userMessage}` }] }
-    ],
-    tools: [
-      {
-        googleSearchRetrieval: {}
-      }
-    ]
+    contents: contents,
+    tools
   };
   
   console.log("Prompt enviado a Gemini:", JSON.stringify(body));
   
+  // Para modelos 2.x, el endpoint estable es v1 (v1beta también responde, pero el doc recomienda v1)
+  const apiVersion = GEMINI_MODEL_NAME.startsWith('gemini-2.') ? 'v1' : 'v1beta';
+  const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${GEMINI_MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -971,7 +1008,16 @@ serve(async (req) => {
     });
   }
 
-  const { userMessage, userId, geocodeOnly, userLocation, citySlug, cityId, requestType } = body;
+  const { userMessage, userId, geocodeOnly, userLocation, citySlug, cityId, requestType, conversationHistory = [] } = body;
+  
+  console.log("🔍 DEBUG - Variables extraídas del body:", {
+    userMessage: userMessage?.substring(0, 100),
+    userId,
+    citySlug,
+    cityId,
+    conversationHistoryLength: conversationHistory?.length || 0,
+    conversationHistoryType: typeof conversationHistory
+  });
 
   // Manejo especial para obtener API key
   if (requestType === 'get_api_key') {
@@ -1113,15 +1159,20 @@ serve(async (req) => {
       }
     }
 
+  // Declarar responseText en el scope correcto
+  let responseText: string = "";
+  
   try {
-    // Usar configuración enviada desde el cliente o cargar desde base de datos como fallback
-    let assistantConfig = null;
-    if (citySlug || cityId || userId) {
+    // 1) Cargar assistant_config del panel por usuario (PRIORIDAD)
+    let assistantConfig = await loadAssistantPanelConfig(userId);
+    
+    // 2) Si no hay assistant_config, intentar cargar config de city (fallback)
+    if (!assistantConfig && (citySlug || cityId || userId)) {
       assistantConfig = await loadCityConfig({ citySlug, cityId, adminUserId: userId });
     }
-    // Si no hay config, usar defaults
+    // 3) Defaults si no hay ninguna
     if (!assistantConfig) {
-      console.log('No se encontró configuración de ciudad, usando defaults');
+      console.log('No se encontró configuración de panel ni de ciudad, usando defaults');
       assistantConfig = {};
     }
     
@@ -1147,54 +1198,57 @@ serve(async (req) => {
     });
 
     // Construir el prompt del sistema
-    const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation, userMessage);
+    const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation, userMessage, conversationHistory);
     console.log("🔍 DEBUG - Sistema de instrucciones construido (primeras 500 chars):", systemInstruction.substring(0, 500));
     console.log("🔍 DEBUG - Sistema de instrucciones construido (últimas 500 chars):", systemInstruction.substring(Math.max(0, systemInstruction.length - 500)));
 
     // Llamar a Gemini
-    let responseText: string;
-      try {
-        console.log('🔍 DEBUG - Llamando a Gemini con prompt de', systemInstruction.length, 'caracteres');
-        const raw = await callGeminiAPI(systemInstruction, userMessage);
-        console.log('🔍 DEBUG - Respuesta raw de Gemini recibida, longitud:', raw.length);
-        console.log('🔍 DEBUG - Respuesta raw preview (primeros 500 chars):', raw.substring(0, 500));
-        
-        responseText = await sanitizeAIResponse(raw, assistantConfig, userMessage);
-        console.log('🔍 DEBUG - Respuesta sanitizada, longitud:', responseText.length);
-        console.log('🔍 DEBUG - Respuesta sanitizada preview (primeros 500 chars):', responseText.substring(0, 500));
-        
-        // Verificar si la respuesta contiene place cards
-        const hasPlaceCardMarkers = responseText.includes('[PLACE_CARD_START]') && responseText.includes('[PLACE_CARD_END]');
-        console.log('🔍 DEBUG - ¿La respuesta contiene marcadores de place cards?', hasPlaceCardMarkers);
-        
-        if (hasPlaceCardMarkers) {
-          console.log('🔍 DEBUG - ✅ Place cards encontradas en la respuesta de la IA');
-          const placeCardMatches = responseText.match(/\[PLACE_CARD_START\]([\s\S]*?)\[PLACE_CARD_END\]/g);
-          console.log('🔍 DEBUG - Número de place cards encontradas:', placeCardMatches ? placeCardMatches.length : 0);
-          if (placeCardMatches) {
-            placeCardMatches.forEach((match, index) => {
-              console.log(`🔍 DEBUG - Place card ${index + 1}:`, match.substring(0, 200) + '...');
-            });
-          }
-        } else {
-          console.log('🔍 DEBUG - ❌ NO se encontraron place cards en la respuesta de la IA');
-          console.log('🔍 DEBUG - Buscando cualquier referencia a place cards...');
-          const placeCardIndex = responseText.indexOf('PLACE_CARD');
-          if (placeCardIndex !== -1) {
-            console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
-          } else {
-            console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards');
-          }
+    try {
+      console.log('🔍 DEBUG - Llamando a Gemini con prompt de', systemInstruction.length, 'caracteres');
+      const raw = await callGeminiAPI(systemInstruction, userMessage, conversationHistory);
+      console.log('🔍 DEBUG - Respuesta raw de Gemini recibida, longitud:', raw.length);
+      console.log('🔍 DEBUG - Respuesta raw preview (primeros 500 chars):', raw.substring(0, 500));
+      
+      responseText = await sanitizeAIResponse(raw, assistantConfig, userMessage);
+      console.log('🔍 DEBUG - Respuesta sanitizada, longitud:', responseText.length);
+      console.log('🔍 DEBUG - Respuesta sanitizada preview (primeros 500 chars):', responseText.substring(0, 500));
+      
+      // Verificar si la respuesta contiene place cards
+      const hasPlaceCardMarkers = responseText.includes('[PLACE_CARD_START]') && responseText.includes('[PLACE_CARD_END]');
+      console.log('🔍 DEBUG - ¿La respuesta contiene marcadores de place cards?', hasPlaceCardMarkers);
+      
+      if (hasPlaceCardMarkers) {
+        console.log('🔍 DEBUG - ✅ Place cards encontradas en la respuesta de la IA');
+        const placeCardMatches = responseText.match(/\[PLACE_CARD_START\]([\s\S]*?)\[PLACE_CARD_END\]/g);
+        console.log('🔍 DEBUG - Número de place cards encontradas:', placeCardMatches ? placeCardMatches.length : 0);
+        if (placeCardMatches) {
+          placeCardMatches.forEach((match, index) => {
+            console.log(`🔍 DEBUG - Place card ${index + 1}:`, match.substring(0, 200) + '...');
+          });
         }
-        
+      } else {
+        console.log('🔍 DEBUG - ❌ NO se encontraron place cards en la respuesta de la IA');
+        console.log('🔍 DEBUG - Buscando cualquier referencia a place cards...');
+        const placeCardIndex = responseText.indexOf('PLACE_CARD');
+        if (placeCardIndex !== -1) {
+          console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
+        } else {
+          console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards');
+        }
+      }
+      
     } catch (e) {
       console.error("Error al llamar a Gemini:", e);
       responseText = "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.";
     }
 
-  if (!responseText) {
+    if (!responseText) {
       console.error("Gemini no devolvió texto. Prompt:", systemInstruction, "Mensaje:", userMessage);
-    responseText = "Lo siento, no pude generar una respuesta en este momento.";
+      responseText = "Lo siento, no pude generar una respuesta en este momento.";
+    }
+  } catch (error) {
+    console.error("Error general en el procesamiento:", error);
+    responseText = "Lo siento, ha ocurrido un error interno. Por favor, inténtalo de nuevo más tarde.";
   }
 
   const endTime = Date.now();
@@ -1234,14 +1288,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error en la lógica principal:", error);
-    return new Response(JSON.stringify({ error: "Error interno del servidor" }), { 
-      status: 500, 
-      headers: corsHeaders 
-    });
-  }
-
-  } catch (error) {
-    console.error("Error general en la función:", error);
     return new Response(JSON.stringify({ error: "Error interno del servidor" }), { 
       status: 500, 
       headers: corsHeaders 

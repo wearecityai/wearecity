@@ -54,7 +54,7 @@
     "defaultAssistant": "your assistant",
     "howCanIHelp": "How can I help you today?",
     "helpExamples": "You can ask me about services, events, procedures, and much more.",
-    "assistantOf": "the assistant of {{city}}",
+    "assistantOf": "{{city}}",
     "loginPrompt": "For a personalized experience, please log in",
     "specializedIn": "Specialized in {{city}}",
     "specializedDescription": "This assistant is tailored to help with information and services in {{city}}."
@@ -246,7 +246,8 @@
     "sendMessage": "Send message",
     "location": "Location",
     "locationActive": "Location active",
-    "placeholderAbout": "Type your message about {{city}}..."
+    "unknownCity": "Unknown city",
+    "placeholderAbout": "What do you want to know?"
   },
   "loading": {
     "events": "Searching events...",

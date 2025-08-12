@@ -28,11 +28,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const shouldUseTypewriter = !!(message.shouldAnimate && !isUser && !message.isTyping && !message.error && message.content);
   const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
     shouldUseTypewriter ? message.content || '' : '',
-    { speed: 8, startDelay: 200, messageId: message.id, replayOnMount: false }
+    { speed: 8, startDelay: 0, messageId: message.id, replayOnMount: false }
   );
 
   // Use typewriter text if active, otherwise use original content
   const contentToDisplay = shouldUseTypewriter ? displayText : message.content;
+
+  // Fallback: while typewriter has not started and there is no text yet, show the loading row
+  const showPendingTypewriter = shouldUseTypewriter && !typewriterIsTyping && (!contentToDisplay || contentToDisplay.trim() === '');
 
   // Strict sequential reveal for cards - only after text is complete
   const totalCards = (message.events?.length || 0) + (message.placeCards?.length || 0);
@@ -174,6 +177,15 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       <p className="text-sm text-destructive">{message.error}</p>
                     </CardContent>
                   </Card>
+                ) : showPendingTypewriter ? (
+                  <div className="flex items-center space-x-3 h-10">
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    </div>
+                    <div className="text-muted-foreground text-sm animate-pulse">
+                      {getLoadingMessage(message.loadingType)}
+                    </div>
+                  </div>
                 ) : (
                   <>
                     {(contentToDisplay && contentToDisplay.trim() !== "") && (

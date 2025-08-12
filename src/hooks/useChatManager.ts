@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { CustomChatConfig } from '../types';
 import { useMessages } from './useMessages';
 import { useChatSession } from './chat/useChatSession';
@@ -38,6 +38,7 @@ export const useChatManager = (
   
   const { 
     messages, 
+    isLoading: messagesLoading, 
     addMessage, 
     saveMessageOnly,
     updateMessage, 
@@ -155,9 +156,15 @@ export const useChatManager = (
     }
   }, [isGeminiReady, initializeChatSession]);
 
+  // Calcular estado de carga combinando isLoading del handler con presencia de mensajes typing
+  const finalIsLoading = useMemo(() => {
+    const hasTypingMessage = messages.some(msg => msg.isTyping);
+    return isLoading || hasTypingMessage || messagesLoading;
+  }, [isLoading, messagesLoading, messages]);
+
   return {
     messages,
-    isLoading,
+    isLoading: finalIsLoading,
     handleSendMessage,
     handleSeeMoreEvents,
     clearMessages: () => handleClearMessages(clearMessages),

@@ -219,6 +219,30 @@ export function AppSidebar({
     }
   }
 
+  // Función para forzar la activación de geolocalización
+  const forceEnableLocation = () => {
+    if (navigator.geolocation) {
+      setLocationInfo(prev => ({ ...prev, loading: true }))
+      console.log('🔧 Forzando activación de geolocalización...')
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          updateLocationFromCoords(position.coords.latitude, position.coords.longitude)
+          console.log('✅ Geolocalización forzada exitosa')
+        },
+        (error) => {
+          console.error('Error obteniendo ubicación forzada:', error)
+          setLocationInfo({
+            city: 'Error de ubicación',
+            address: 'No se pudo obtener la ubicación',
+            loading: false
+          })
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      )
+    }
+  }
+
   const getDisplayCity = () => {
     if (chatConfig.restrictedCity?.name) {
       return chatConfig.restrictedCity.name
@@ -234,7 +258,9 @@ export function AppSidebar({
     if (chatConfig.restrictedCity?.formattedAddress) {
       return chatConfig.restrictedCity.formattedAddress
     }
-    // Mostrar coordenadas por defecto; no hacer reverse geocoding automático
+    if (locationInfo.address) {
+      return locationInfo.address
+    }
     if (geolocationStatus === 'success' && userLocation) {
       return `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`
     }
@@ -412,17 +438,17 @@ export function AppSidebar({
                             <span className="truncate group-data-[collapsible=icon]:hidden">{title}</span>
                           </div>
                           <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                            <div
+                              role="button"
+                              aria-label={t('chat.delete', { defaultValue: 'Delete chat' })}
                               onClick={(e) => {
                                 e.stopPropagation()
                                 onDeleteChat(chatIds[index])
                               }}
-                              className="h-6 w-6 p-0 opacity-0 group-hover/menu-item:opacity-100 transition-opacity"
+                              className="h-6 w-6 p-0 opacity-0 group-hover/menu-item:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                             >
                               <Trash2 className="h-3 w-3" />
-                            </Button>
+                            </div>
                           </div>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

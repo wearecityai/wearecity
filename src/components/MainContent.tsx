@@ -33,9 +33,10 @@ interface MainContentProps {
   isInFinetuningMode?: boolean;
   shouldShowChatContainer?: boolean;
   handleToggleLocation: (enabled: boolean) => Promise<void>;
+    geolocationStatus?: 'idle' | 'pending' | 'success' | 'error';
 }
 
-const MainContent: React.FC<MainContentProps> = ({
+  const MainContent: React.FC<MainContentProps> = ({
   theme,
   isMobile,
   isMenuOpen,
@@ -54,8 +55,9 @@ const MainContent: React.FC<MainContentProps> = ({
   handleSeeMoreEvents,
   handleSetCurrentLanguageCode,
   isInFinetuningMode = false,
-  shouldShowChatContainer = true,
-  handleToggleLocation
+    shouldShowChatContainer = true,
+    handleToggleLocation,
+    geolocationStatus = 'idle'
 }) => {
   const { t } = useTranslation();
   const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -291,9 +293,9 @@ const MainContent: React.FC<MainContentProps> = ({
             currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
             onSetLanguageCode={handleSetCurrentLanguageCode}
             isInFinetuningMode={true}
-            // La geolocalización permanece activa; no exponer toggle aquí
-            onToggleLocation={async () => {}}
+            onToggleLocation={handleToggleLocation}
             chatConfig={chatConfig}
+            geolocationStatus={geolocationStatus}
           />
         </div>
       </div>
@@ -311,7 +313,10 @@ const MainContent: React.FC<MainContentProps> = ({
                 icon={getCityAvatar()}
                 title={t('chat.greeting', {
                   name: chatConfig?.restrictedCity?.name
-                    ? t('chat.assistantOf', { city: chatConfig.restrictedCity.name, defaultValue: 'the assistant of {{city}}' })
+                    ? t('chat.assistantOf', { 
+                        city: chatConfig.restrictedCity.name.split(',')[0].trim(), 
+                        defaultValue: 'the assistant of {{city}}' 
+                      })
                     : t('chat.defaultAssistant')
                 })}
                 description={`${t('chat.howCanIHelp')} ${t('chat.helpExamples', { defaultValue: 'You can ask me about services, events, procedures, and much more.' })}`}
@@ -365,8 +370,9 @@ const MainContent: React.FC<MainContentProps> = ({
               recommendedPrompts={chatConfig.recommendedPrompts}
               currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
               onSetLanguageCode={handleSetCurrentLanguageCode}
-              onToggleLocation={async () => {}}
+              onToggleLocation={handleToggleLocation}
               chatConfig={chatConfig}
+              geolocationStatus={geolocationStatus}
             />
           </div>
         </div>

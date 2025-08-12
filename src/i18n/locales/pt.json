@@ -53,7 +53,7 @@
     "defaultAssistant": "seu assistente",
     "howCanIHelp": "Como posso ajudá-lo hoje?",
     "helpExamples": "Você pode me perguntar sobre serviços, eventos, procedimentos e muito mais.",
-    "assistantOf": "o assistente de {{city}}",
+    "assistantOf": "{{city}}",
     "loginPrompt": "Para uma experiência personalizada, faça login",
     "specializedIn": "Especializado em {{city}}",
     "specializedDescription": "Este assistente está configurado para ajudar com informações e serviços de {{city}}."
@@ -212,7 +212,8 @@
     "sendMessage": "Enviar mensagem",
     "location": "Localização",
     "locationActive": "Localização ativa",
-    "placeholderAbout": "Digite sua pergunta sobre {{city}}..."
+    "unknownCity": "Cidade desconhecida",
+    "placeholderAbout": "O que você quer saber?"
   },
   "loading": {
     "events": "Pesquisando eventos...",

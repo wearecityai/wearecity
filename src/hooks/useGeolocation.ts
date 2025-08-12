@@ -16,6 +16,7 @@ interface UseGeolocationReturn {
   refreshLocation: () => void;
   startLocationTracking: () => void;
   stopLocationTracking: () => void;
+  restartLocationTracking: () => void;
   isWatching: boolean;
 }
 
@@ -83,7 +84,7 @@ export const useGeolocation = (): UseGeolocationReturn => {
     setGeolocationError("Obteniendo ubicación precisa...");
     setIsWatching(true);
 
-    // Opciones para máxima precisión
+    // Opciones para máxima precisión y seguimiento continuo
     const options: PositionOptions = {
       enableHighAccuracy: true,
       timeout: 15000,
@@ -97,7 +98,7 @@ export const useGeolocation = (): UseGeolocationReturn => {
       options
     );
 
-    // Luego iniciar seguimiento continuo
+    // Luego iniciar seguimiento continuo con opciones optimizadas
     watchIdRef.current = navigator.geolocation.watchPosition(
       handleLocationSuccess,
       handleLocationError,
@@ -137,6 +138,22 @@ export const useGeolocation = (): UseGeolocationReturn => {
     }
   }, [handleLocationSuccess, handleLocationError]);
 
+  // Función para reiniciar el seguimiento si se detiene
+  const restartLocationTracking = useCallback(() => {
+    if (isWatching && watchIdRef.current === null) {
+      console.log('🔄 Reiniciando seguimiento de geolocalización...');
+      startLocationTracking();
+    }
+  }, [isWatching, startLocationTracking]);
+
+  // Verificar y mantener el seguimiento activo
+  useEffect(() => {
+    if (isWatching && watchIdRef.current === null) {
+      console.log('⚠️ Seguimiento de geolocalización perdido, reiniciando...');
+      restartLocationTracking();
+    }
+  }, [isWatching, restartLocationTracking]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -151,6 +168,7 @@ export const useGeolocation = (): UseGeolocationReturn => {
     refreshLocation,
     startLocationTracking,
     stopLocationTracking,
+    restartLocationTracking,
     isWatching
   };
 };

@@ -54,7 +54,7 @@
     "defaultAssistant": "el teu assistent",
     "howCanIHelp": "Com et puc ajudar avui?",
     "helpExamples": "Pots preguntar-me sobre serveis, esdeveniments, procediments i molt més.",
-    "assistantOf": "l'assistent de {{city}}",
+    "assistantOf": "{{city}}",
     "loginPrompt": "Per a una experiència personalitzada, si us plau inicia sessió",
     "specializedIn": "Especialitzat en {{city}}",
     "specializedDescription": "Aquest assistent està adaptat per ajudar amb informació i serveis de {{city}}."
@@ -225,7 +225,8 @@
     "sendMessage": "Enviar missatge",
     "location": "Ubicació",
     "locationActive": "Ubicació activa",
-    "placeholderAbout": "Escriu la teva consulta sobre {{city}}..."
+    "unknownCity": "Ciutat desconeguda",
+    "placeholderAbout": "Què vols saber?"
   },
   "loading": {
     "events": "Cercant esdeveniments...",

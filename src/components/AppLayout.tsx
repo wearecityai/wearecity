@@ -11,6 +11,9 @@ import { Card, CardContent } from './ui/card';
 import { ResizablePanelGroup, ResizablePanel } from './ui/resizable';
 import { SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { Menu, X, Globe, User, Sparkles } from 'lucide-react';
+import { GeolocationNotification } from './GeolocationNotification';
+import { GeolocationStatusBar } from './GeolocationStatusBar';
+import { ConversationDebug } from './ConversationDebug';
 
 interface User {
   id: string;
@@ -329,10 +332,12 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
   // Vista normal: header, side menu y chat con SidebarProvider
   return (
     <SidebarProvider>
-      <div className="h-screen overflow-hidden bg-background flex w-full">
+      <div className="flex h-screen bg-background">
+        {/* Sidebar */}
         <AppSidebar
           onNewChat={handleNewChat}
           onOpenFinetuning={handleOpenFinetuningWithAuth}
+          onOpenMetrics={() => {}} // Placeholder for handleOpenMetrics
           chatTitles={chatTitles}
           chatIds={chatIds}
           selectedChatIndex={selectedChatIndex}
@@ -343,32 +348,67 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           geolocationStatus={geolocationStatus}
           isPublicChat={isPublicChat}
           handleToggleLocation={handleToggleLocation}
+          onCitySelect={() => {}} // Placeholder for handleCitySelect
+          onShowCitySearch={() => {}} // Placeholder for handleShowCitySearch
+          isInSearchMode={false} // Placeholder for isInSearchMode
         />
-        <div className="flex-1 flex flex-col">
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
           {modernHeader}
-          <MainContent
-            theme={theme}
-            isMobile={isMobile}
-            isMenuOpen={isMenuOpen}
-            handleMenuToggle={handleMenuToggle}
-            currentThemeMode={currentThemeMode}
-            toggleTheme={toggleTheme}
-            handleOpenSettings={handleOpenSettings}
-            user={user}
-            onLogin={onLogin}
-            messages={messages}
-            isLoading={isLoading}
-            appError={appError}
-            chatConfig={chatConfig}
-            handleSendMessage={handleSendMessage}
-            handleDownloadPdf={handleDownloadPdf}
-            handleSeeMoreEvents={handleSeeMoreEvents}
-            handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
-            shouldShowChatContainer={shouldShowChatContainer}
-            handleToggleLocation={handleToggleLocation}
-          />
+
+          {/* Geolocation Notification */}
+          <GeolocationNotification className="mx-4 mt-2" />
+
+          {/* Conversation Debug (solo en desarrollo) */}
+          <ConversationDebug messages={messages} className="mx-4 mt-2" />
+
+          {/* Main content area */}
+          <div className="flex-1 overflow-hidden">
+            {currentView === 'chat' && (
+              <MainContent
+                theme={theme}
+                isMobile={isMobile}
+                isMenuOpen={isMenuOpen}
+                handleMenuToggle={handleMenuToggle}
+                currentThemeMode={currentThemeMode}
+                toggleTheme={toggleTheme}
+                handleOpenSettings={handleOpenSettings}
+                user={user}
+                onLogin={onLogin}
+                messages={messages}
+                isLoading={isLoading}
+                appError={appError}
+                chatConfig={chatConfig}
+                handleSendMessage={handleSendMessage}
+                handleDownloadPdf={handleDownloadPdf}
+                handleSeeMoreEvents={handleSeeMoreEvents}
+                handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
+                shouldShowChatContainer={shouldShowChatContainer}
+                handleToggleLocation={handleToggleLocation}
+              />
+            )}
+
+            {currentView === 'finetuning' && (
+              <FinetuningPage
+                currentConfig={chatConfig}
+                onSave={handleSaveCustomizationWithToast}
+                onCancel={() => {setCurrentView('chat'); setIsMenuOpen(false);}}
+                googleMapsScriptLoaded={googleMapsScriptLoaded}
+                apiKeyForMaps=""
+                profileImagePreview={profileImagePreview}
+                setProfileImagePreview={setProfileImagePreview}
+                activeTab={finetuningActiveTab}
+                onTabChange={setFinetuningActiveTab}
+              />
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Barra de estado de geolocalización */}
+      <GeolocationStatusBar />
       
       {/* Toast de compartir */}
       {showShareToast && (

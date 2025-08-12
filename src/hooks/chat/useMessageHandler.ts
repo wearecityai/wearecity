@@ -160,7 +160,7 @@ export const useMessageHandler = (
           role: msg.role === MessageRole.User ? 'user' as const : 'assistant' as const,
           content: msg.content.trim()
         }))
-        .slice(-8); // Enviar solo los últimos 8 mensajes para optimizar tokens y mantener contexto
+        .slice(-10); // Enviar los últimos 10 mensajes para mantener contexto
 
       console.log('🔍 DEBUG - Enviando historial de conversación:', {
         historyLength: conversationHistory.length,
@@ -191,12 +191,17 @@ export const useMessageHandler = (
         }
       }
 
+      // Elegir modo de respuesta: rápido para preguntas simples, calidad para búsquedas complejas
+      const mode: 'fast' | 'quality' = loadingType === 'general' ? 'fast' : 'quality';
+      const historyWindow = mode === 'fast' ? 4 : 10;
       const responseText = await fetchChatIA(contextualizedMessage, { 
         allowMapDisplay: chatConfig.allowMapDisplay,
         userId: user?.id,
         userLocation: userLocationData,
         citySlug: finalCitySlug, // Enviar solo el slug en lugar de la configuración completa
-        conversationHistory: conversationHistory // Incluir el historial de la conversación
+        conversationHistory: conversationHistory.slice(-historyWindow),
+        mode,
+        timeoutMs: mode === 'fast' ? 12000 : 45000
       });
       
       console.log('🔍 DEBUG - Respuesta de fetchChatIA:', {
@@ -258,7 +263,7 @@ export const useMessageHandler = (
       // 4. Guardar la respuesta en la base de datos
       await saveMessageOnly(parsedMessage, targetConversationId);
       
-      // 5. QUITAR EL LOADING DESPUÉS de que se complete la actualización
+      // 5. QUITAR EL LOADING inmediatamente después de reemplazar el spinner
       setIsLoading(false);
       
     } catch (error) {
@@ -293,14 +298,14 @@ export const useMessageHandler = (
       
       // No llamar onError aquí para evitar mensajes duplicados
       
-      // QUITAR EL LOADING DESPUÉS del manejo de errores
+      // QUITAR EL LOADING inmediatamente después de reemplazar el spinner con error
       setIsLoading(false);
-    } finally {
-      // Mantener la referencia hasta el final para evitar reprocesamiento
-      setTimeout(() => {
-        lastProcessedMessageRef.current = null;
-      }, 1000);
     }
+    
+    // Mantener la referencia hasta el final para evitar reprocesamiento
+    setTimeout(() => {
+      lastProcessedMessageRef.current = null;
+    }, 1000);
   }, [parseAIResponse, onError, chatConfig, user?.id, userLocation, i18n]);
 
   return {

@@ -210,6 +210,7 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
               handleSetCurrentLanguageCode={handleSetCurrentLanguageCode}
               shouldShowChatContainer={shouldShowChatContainer}
               handleToggleLocation={handleToggleLocation}
+              geolocationStatus={geolocationStatus}
             />
           </div>
         </SidebarInset>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useThemeContext } from '../theme/ThemeProvider';
 import { useAutoGeolocation } from './useAutoGeolocation';
+import { usePersistentGeolocation } from './usePersistentGeolocation';
 import { useApiInitialization } from './useApiInitialization';
 import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
@@ -63,25 +64,18 @@ export const useAppState = (citySlug?: string) => {
     }
   }, [citySlug, chatConfig?.restrictedCity]);
   
-  const saveConfig = effectiveCitySlug ? 
-    // Para chats públicos, solo guardar en localStorage
+  const saveConfig = (effectiveCitySlug && !assistantConfigHook.config) ? 
+    // Para chats públicos sin configuración de admin, solo guardar en localStorage
     async (config: CustomChatConfig) => {
       localStorage.setItem('chatConfig', JSON.stringify(config));
       setPublicChatConfig(config);
       return true;
     } : 
+    // Para admins o cuando hay configuración de admin, usar assistantConfigHook.saveConfig
     assistantConfigHook.saveConfig;
 
-  const { userLocation, geolocationStatus } = useAutoGeolocation({
-    autoRequest: true,
-    trackLocation: true,
-    onLocationObtained: (location) => {
-      console.log('📍 Ubicación obtenida automáticamente en app:', location);
-    },
-    onLocationError: (error) => {
-      console.warn('⚠️ Error de geolocalización automática en app:', error);
-    }
-  });
+  // Usar geolocalización persistente en lugar de auto-geolocalización
+  const { userLocation, geolocationStatus, isHealthy: geolocationHealthy } = usePersistentGeolocation();
 
   const { googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage, loadGoogleMapsScript, placesServiceRef, testGooglePlacesAPI } = useGoogleMaps(
     userLocation,
@@ -185,7 +179,8 @@ export const useAppState = (citySlug?: string) => {
   );
 
   // Combinar estados de carga para evitar parpadeos
-  const isLoading = chatLoading || conversationsLoading;
+  // Solo usar chatLoading para el estado de carga del chat, no conversationsLoading
+  const isLoading = chatLoading;
   
   // Estado adicional para verificar si la configuración está completamente cargada
   // No requerir restrictedCity para evitar bucles infinitos

@@ -54,7 +54,7 @@
     "defaultAssistant": "votre assistant",
     "howCanIHelp": "Comment puis-je vous aider aujourd'hui ?",
     "helpExamples": "Vous pouvez me demander des services, événements, procédures et bien plus.",
-    "assistantOf": "l'assistant de {{city}}",
+    "assistantOf": "{{city}}",
     "loginPrompt": "Pour une expérience personnalisée, veuillez vous connecter",
     "specializedIn": "Spécialisé en {{city}}",
     "specializedDescription": "Cet assistant est configuré pour vous aider avec les informations et services de {{city}}."
@@ -233,8 +233,9 @@
     "recordingNotSupported": "Enregistrement non supporté",
     "sendMessage": "Envoyer le message",
     "location": "Position",
-    "locationActive": "Position active",
-    "placeholderAbout": "Tapez votre question sur {{city}}..."
+    "locationActive": "Localisation active",
+    "unknownCity": "Ville inconnue",
+    "placeholderAbout": "Que voulez-vous savoir?"
   },
   "loading": {
     "events": "Recherche d'événements...",

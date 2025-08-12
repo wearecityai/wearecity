@@ -788,6 +788,7 @@ const PersistentLayout: React.FC = () => {
             handleSetCurrentLanguageCode={() => {}}
             shouldShowChatContainer={shouldShowChatContainer}
             handleToggleLocation={handleToggleLocation}
+            geolocationStatus={geolocationStatus}
           />
         );
       }
@@ -823,6 +824,7 @@ const PersistentLayout: React.FC = () => {
           handleSetCurrentLanguageCode={() => {}} // Implementar si es necesario
           shouldShowChatContainer={shouldShowChatContainer}
           handleToggleLocation={handleToggleLocation}
+          geolocationStatus={geolocationStatus}
         />
       );
     }

@@ -61,6 +61,7 @@ interface ChatInputProps {
   isInFinetuningMode?: boolean;
   onToggleLocation?: (enabled: boolean) => void;
   chatConfig?: any;
+  geolocationStatus?: 'idle' | 'pending' | 'success' | 'error';
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -71,7 +72,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onSetLanguageCode,
   isInFinetuningMode = false,
   onToggleLocation,
-  chatConfig
+  chatConfig,
+  geolocationStatus = 'idle'
 }) => {
   const [inputValue, setInputValue] = useState('');
   const { t, i18n } = useTranslation();
@@ -337,12 +339,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const placeholder = isRecording
-    ? (speechError || (chatConfig?.restrictedCity?.name 
-        ? t('chatInput.placeholderAbout', { city: chatConfig.restrictedCity.name, defaultValue: 'Type your message about {{city}}...' })
-        : t('chat.placeholder')))
-    : (chatConfig?.restrictedCity?.name 
-        ? t('chatInput.placeholderAbout', { city: chatConfig.restrictedCity.name, defaultValue: 'Type your message about {{city}}...' })
-        : t('chat.placeholder'));
+    ? (speechError || t('chatInput.placeholderAbout', { defaultValue: 'What do you want to know?' }))
+    : t('chatInput.placeholderAbout', { defaultValue: 'What do you want to know?' });
 
   return (
     <>
@@ -513,7 +511,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         {/* Location info */}
                         <div className="flex items-center gap-1">
                           <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-location" />
-                           <span className="text-sm sm:text-sm font-medium text-location">{t('chatInput.locationActive', { defaultValue: 'Location active' })}</span>
+                           <span className="text-sm sm:text-sm font-medium text-location">
+                             {chatConfig?.restrictedCity?.name 
+                               ? chatConfig.restrictedCity.name.split(',')[0].trim()
+                               : t('chatInput.unknownCity', { defaultValue: 'Unknown city' })
+                             }
+                           </span>
                         </div>
                       </div>
                       

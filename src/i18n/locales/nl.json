@@ -53,7 +53,7 @@
     "defaultAssistant": "je assistent",
     "howCanIHelp": "Hoe kan ik je vandaag helpen?",
     "helpExamples": "Je kunt me vragen over diensten, evenementen, procedures en veel meer.",
-    "assistantOf": "de assistent van {{city}}",
+    "assistantOf": "{{city}}",
     "loginPrompt": "Voor een gepersonaliseerde ervaring, log in",
     "specializedIn": "Gespecialiseerd in {{city}}",
     "specializedDescription": "Deze assistent is geconfigureerd om te helpen met informatie en diensten van {{city}}."
@@ -212,7 +212,8 @@
     "sendMessage": "Bericht verzenden",
     "location": "Locatie",
     "locationActive": "Locatie actief",
-    "placeholderAbout": "Typ je vraag over {{city}}..."
+    "unknownCity": "Onbekende stad",
+    "placeholderAbout": "Wat wil je weten?"
   },
   "loading": {
     "events": "Evenementen zoeken...",
