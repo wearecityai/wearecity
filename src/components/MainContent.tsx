@@ -291,7 +291,8 @@ const MainContent: React.FC<MainContentProps> = ({
             currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
             onSetLanguageCode={handleSetCurrentLanguageCode}
             isInFinetuningMode={true}
-            onToggleLocation={handleToggleLocation}
+            // La geolocalización permanece activa; no exponer toggle aquí
+            onToggleLocation={async () => {}}
             chatConfig={chatConfig}
           />
         </div>
@@ -364,7 +365,7 @@ const MainContent: React.FC<MainContentProps> = ({
               recommendedPrompts={chatConfig.recommendedPrompts}
               currentLanguageCode={chatConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE}
               onSetLanguageCode={handleSetCurrentLanguageCode}
-              onToggleLocation={handleToggleLocation}
+              onToggleLocation={async () => {}}
               chatConfig={chatConfig}
             />
           </div>

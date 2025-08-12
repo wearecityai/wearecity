@@ -4,9 +4,12 @@
 */
 import { chromium } from 'playwright';
 import * as cheerio from 'cheerio';
-import pdf from 'pdf-parse';
-import { GoogleGenerativeAI } from '@google/genai';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 type Args = { start: string; crawlId: string };
 
@@ -40,6 +43,15 @@ function urlToPath(crawlId: string, url: string, ext: string): string {
   return `ayuntamientos/${crawlId}${safe}${ext}`;
 }
 
+function getPdfJsAssetUrl(subdir: 'standard_fonts' | 'cmaps'): string {
+  const require = createRequire(import.meta.url);
+  const pkgPath = require.resolve('pdfjs-dist/package.json');
+  const baseDir = path.dirname(pkgPath);
+  const dirPath = path.join(baseDir, subdir);
+  const url = pathToFileURL(dirPath).toString();
+  return url.endsWith('/') ? url : `${url}/`;
+}
+
 async function embed(genAI: GoogleGenerativeAI, text: string) {
   if (!text) return null;
   const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
@@ -47,11 +59,34 @@ async function embed(genAI: GoogleGenerativeAI, text: string) {
   return (res?.embedding?.values as number[]) ?? null;
 }
 
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  const loadingTask = getDocument({
+    data: bytes,
+    standardFontDataUrl: getPdfJsAssetUrl('standard_fonts'),
+    cMapUrl: getPdfJsAssetUrl('cmaps'),
+    cMapPacked: true,
+    isEvalSupported: false,
+    useWorkerFetch: false,
+    useSystemFonts: false,
+    disableFontFace: true,
+  } as any);
+  const pdf = await (loadingTask as any).promise;
+  let combined = '';
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+    const strings = content.items.map((it: any) => (typeof it.str === 'string' ? it.str : '')).join(' ');
+    combined += strings + '\n';
+  }
+  if (typeof pdf.cleanup === 'function') await pdf.cleanup();
+  return combined.replace(/\s+/g, ' ').trim();
+}
+
 async function main() {
   const { start, crawlId } = parseArgs();
   const base = new URL(start);
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const genAI = new GoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY! });
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 
   const browser = await chromium.launch();
   const context = await browser.newContext();
@@ -89,8 +124,7 @@ async function main() {
             const res = await fetch(abs);
             if (!res.ok) throw new Error(String(res.status));
             const bytes = new Uint8Array(await res.arrayBuffer());
-            const parsed = await pdf(bytes);
-            const text = parsed.text?.replace(/\s+/g, ' ').trim() || '';
+            const text = await extractPdfText(bytes);
             const path = urlToPath(crawlId, abs, '');
             await supabase.storage.from('ayuntamientos').upload(path, bytes, { upsert: true, contentType: 'application/pdf' });
             const embedding = await embed(genAI, text);

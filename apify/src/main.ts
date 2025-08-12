@@ -1,9 +1,12 @@
 import { Actor } from 'apify';
 import { PlaywrightCrawler, log, RequestQueue } from 'apify';
 import * as cheerio from 'cheerio';
-import { GoogleGenerativeAI } from '@google/genai';
-import pdf from 'pdf-parse';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { createClient } from '@supabase/supabase-js';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 type Input = {
   startUrl: string;
@@ -48,13 +51,47 @@ async function embed(genAI: GoogleGenerativeAI, text: string): Promise<number[] 
   return (res?.embedding?.values as number[]) ?? null;
 }
 
+function getPdfJsAssetUrl(subdir: 'standard_fonts' | 'cmaps'): string {
+  const require = createRequire(import.meta.url);
+  const pkgPath = require.resolve('pdfjs-dist/package.json');
+  const baseDir = path.dirname(pkgPath);
+  const dirPath = path.join(baseDir, subdir);
+  const url = pathToFileURL(dirPath).toString();
+  return url.endsWith('/') ? url : `${url}/`;
+}
+
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  const loadingTask = getDocument({
+    data: bytes,
+    // Ensure PDF.js can load built-in fonts and CMaps in Node
+    standardFontDataUrl: getPdfJsAssetUrl('standard_fonts'),
+    cMapUrl: getPdfJsAssetUrl('cmaps'),
+    cMapPacked: true,
+    // Node-friendly flags
+    isEvalSupported: false,
+    useWorkerFetch: false,
+    useSystemFonts: false,
+    disableFontFace: true,
+  } as any);
+  const pdf = await (loadingTask as any).promise;
+  let combined = '';
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+    const strings = content.items.map((it: any) => (typeof it.str === 'string' ? it.str : '')).join(' ');
+    combined += strings + '\n';
+  }
+  if (typeof pdf.cleanup === 'function') await pdf.cleanup();
+  return combined.replace(/\s+/g, ' ').trim();
+}
+
 async function run() {
   await Actor.init();
   const input = (await Actor.getInput()) as Input;
   const { startUrl, crawlId, supabaseUrl, supabaseServiceRoleKey, storageBucket = 'ayuntamientos' } = input;
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
-  const genAI = new GoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY! });
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
   const base = new URL(startUrl);
   const queue = await RequestQueue.open();
   await queue.addRequest({ url: startUrl });
@@ -122,8 +159,7 @@ async function run() {
             const res = await fetch(pdfUrl);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const array = new Uint8Array(await res.arrayBuffer());
-            const parsed = await pdf(array);
-            const text = parsed.text?.replace(/\s+/g, ' ').trim() || '';
+            const text = await extractPdfText(array);
             const path = urlToStoragePath(crawlId, pdfUrl, '');
             await supabase.storage.from(storageBucket).upload(path, array, { upsert: true, contentType: 'application/pdf' });
             const embedding = await embed(genAI, text);

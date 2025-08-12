@@ -80,6 +80,12 @@ export const useAppState = (citySlug?: string) => {
     setAppError
   );
 
+  // Always start geolocation tracking on app load
+  useEffect(() => {
+    startLocationTracking();
+    return () => { stopLocationTracking(); };
+  }, [startLocationTracking, stopLocationTracking]);
+
   // Fetch Google Maps API key from backend
   useEffect(() => {
     const fetchApiKey = async () => {

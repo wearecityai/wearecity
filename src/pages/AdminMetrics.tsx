@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import CrawlManager from '@/components/CrawlManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
@@ -216,14 +215,7 @@ const AdminMetrics: React.FC = () => {
   return (
     <div className="flex-1 overflow-auto bg-background">
       <div className="container mx-auto px-4 py-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Indexer de Ayuntamientos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CrawlManager />
-          </CardContent>
-        </Card>
+        
         {/* Header */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>

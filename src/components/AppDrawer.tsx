@@ -92,50 +92,19 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
     loading: false
   });
 
-  // Función para obtener información de ubicación desde coordenadas
-  const getLocationInfo = async (lat: number, lng: number) => {
-    setLocationInfo(prev => ({ ...prev, loading: true }));
-    
-    try {
-      // Usar la edge function para geocodificación inversa
-      const response = await fetch("https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userMessage: "geocode", // Mensaje dummy requerido
-          userId: null,
-          userLocation: { lat, lng },
-          geocodeOnly: true
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error en la respuesta del servidor');
-      }
-      
-      const data = await response.json();
-      
-      // Usar la información devuelta por la edge function
-      setLocationInfo({
-        city: data.city || `Ubicación ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-        address: data.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        loading: false
-      });
-      
-    } catch (error) {
-      console.error('Error obteniendo información de ubicación:', error);
-      setLocationInfo({
-        city: 'Ubicación actual',
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        loading: false
-      });
-    }
+  // Evitar geocodificación automática: sólo mostrar coordenadas hasta que el usuario lo solicite
+  const updateLocationFromCoords = (lat: number, lng: number) => {
+    setLocationInfo({
+      city: 'Ubicación actual',
+      address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      loading: false
+    });
   };
 
-  // Actualizar información de ubicación cuando cambien las coordenadas
+  // Actualizar sólo coordenadas cuando cambien (sin reverse geocoding automático)
   useEffect(() => {
     if (userLocation && geolocationStatus === 'success') {
-      getLocationInfo(userLocation.latitude, userLocation.longitude);
+      updateLocationFromCoords(userLocation.latitude, userLocation.longitude);
     } else if (!userLocation) {
       setLocationInfo({
         city: '',

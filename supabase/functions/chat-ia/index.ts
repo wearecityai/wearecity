@@ -276,9 +276,9 @@ PREVENCIÓN DE ALUCINACIONES:
   const allowGeolocation = config?.allow_geolocation !== false; // true por defecto
   
   if (allowGeolocation && userLocation) {
-    // Obtener información de la ubicación actual
+    // No hacer reverse geocoding automático para ahorrar costes; usar coordenadas por defecto
     try {
-      const locationInfo = await reverseGeocode(userLocation.lat, userLocation.lng);
+      const locationInfo = null; // Desactivar reverse geocode automático
       let locationContext = `latitud: ${userLocation.lat}, longitud: ${userLocation.lng}`;
       let cityName = '';
       let countryName = '';

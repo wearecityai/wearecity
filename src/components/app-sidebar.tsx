@@ -177,48 +177,19 @@ export function AppSidebar({
     );
   };
 
-  // Función para obtener información de ubicación desde coordenadas
-  const getLocationInfo = async (lat: number, lng: number) => {
-    setLocationInfo(prev => ({ ...prev, loading: true }))
-    
-    try {
-      const response = await fetch("https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userMessage: "geocode",
-          userId: null,
-          userLocation: { lat, lng },
-          geocodeOnly: true
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error('Error en la respuesta del servidor')
-      }
-      
-      const data = await response.json()
-      
-      setLocationInfo({
-        city: data.city || `Ubicación ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-        address: data.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        loading: false
-      })
-      
-    } catch (error) {
-      console.error('Error obteniendo información de ubicación:', error)
-      setLocationInfo({
-        city: t('geolocation.currentLocation', { defaultValue: 'Current location' }),
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        loading: false
-      })
-    }
+  // Evitar geocodificación automática: solo guardar coordenadas y marcar loading como false
+  const updateLocationFromCoords = (lat: number, lng: number) => {
+    setLocationInfo({
+      city: t('geolocation.currentLocation', { defaultValue: 'Current location' }),
+      address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      loading: false
+    })
   }
 
-  // Actualizar información de ubicación cuando cambien las coordenadas
+  // Actualizar sólo coordenadas cuando cambien (sin reverse geocoding automático)
   React.useEffect(() => {
     if (userLocation && geolocationStatus === 'success') {
-      getLocationInfo(userLocation.latitude, userLocation.longitude)
+      updateLocationFromCoords(userLocation.latitude, userLocation.longitude)
     } else if (!userLocation) {
       setLocationInfo({
         city: '',
@@ -233,7 +204,7 @@ export function AppSidebar({
       setLocationInfo(prev => ({ ...prev, loading: true }))
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          getLocationInfo(position.coords.latitude, position.coords.longitude)
+          updateLocationFromCoords(position.coords.latitude, position.coords.longitude)
         },
         (error) => {
           console.error('Error obteniendo ubicación:', error)
@@ -252,9 +223,7 @@ export function AppSidebar({
     if (chatConfig.restrictedCity?.name) {
       return chatConfig.restrictedCity.name
     }
-    if (locationInfo.city) {
-      return locationInfo.city
-    }
+    // Mostrar únicamente ubicación genérica o coordenadas, sin traducir
     if (userLocation) {
       return t('geolocation.currentLocation', { defaultValue: 'Current location' })
     }
@@ -265,9 +234,7 @@ export function AppSidebar({
     if (chatConfig.restrictedCity?.formattedAddress) {
       return chatConfig.restrictedCity.formattedAddress
     }
-    if (locationInfo.address) {
-      return locationInfo.address
-    }
+    // Mostrar coordenadas por defecto; no hacer reverse geocoding automático
     if (geolocationStatus === 'success' && userLocation) {
       return `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`
     }

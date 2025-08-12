@@ -134,7 +134,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   // Sync local state with global state
   useEffect(() => {
-    setIsLocationEnabled(chatConfig?.allowGeolocation || false);
+    // Forzar geolocalización activa siempre en el chat
+    setIsLocationEnabled(true);
   }, [chatConfig?.allowGeolocation]);
 
   useLayoutEffect(() => {
