@@ -44,7 +44,7 @@ export const GeolocationIndicator: React.FC<GeolocationIndicatorProps> = ({
           ? t('geolocation.located', { defaultValue: 'Ubicación obtenida' })
           : t('geolocation.ready', { defaultValue: 'Ubicación lista' });
       case 'error':
-        return t('geolocation.error', { defaultValue: 'Error de ubicación' });
+        return t('geolocation.denied', { defaultValue: 'Ubicación denegada' });
       default:
         return t('geolocation.idle', { defaultValue: 'Ubicación inactiva' });
     }
@@ -57,7 +57,7 @@ export const GeolocationIndicator: React.FC<GeolocationIndicatorProps> = ({
       case 'success':
         return 'default';
       case 'error':
-        return 'destructive';
+        return 'outline';
       default:
         return 'outline';
     }

@@ -141,6 +141,7 @@
     "getting": "Getting location...",
     "located": "Location obtained",
     "ready": "Location ready",
+    "denied": "Location denied",
     "error": "Location error",
     "idle": "Location inactive",
     "retry": "Retry",

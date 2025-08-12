@@ -141,6 +141,7 @@
     "getting": "Obteniendo ubicación...",
     "located": "Ubicación obtenida",
     "ready": "Ubicación lista",
+    "denied": "Ubicación denegada",
     "error": "Error de ubicación",
     "idle": "Ubicación inactiva",
     "retry": "Reintentar",
