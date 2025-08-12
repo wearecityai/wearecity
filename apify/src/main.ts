@@ -1,7 +1,7 @@
 import { Actor } from 'apify';
 import { PlaywrightCrawler, log, RequestQueue } from 'apify';
 import * as cheerio from 'cheerio';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/genai';
 import pdf from 'pdf-parse';
 import { createClient } from '@supabase/supabase-js';
 
@@ -40,14 +40,12 @@ function urlToStoragePath(crawlId: string, url: string, ext: string): string {
   return `ayuntamientos/${crawlId}${filename}`;
 }
 
-async function embed(openai: OpenAI, text: string): Promise<number[] | null> {
+async function embed(genAI: GoogleGenerativeAI, text: string): Promise<number[] | null> {
   if (!text) return null;
-  const content = text.slice(0, 100000); // safeguard
-  const res = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: content
-  });
-  return res.data[0]?.embedding ?? null;
+  const content = text.slice(0, 100000);
+  const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  const res = await model.embedContent(content);
+  return (res?.embedding?.values as number[]) ?? null;
 }
 
 async function run() {
@@ -56,7 +54,7 @@ async function run() {
   const { startUrl, crawlId, supabaseUrl, supabaseServiceRoleKey, storageBucket = 'ayuntamientos' } = input;
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const genAI = new GoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY! });
   const base = new URL(startUrl);
   const queue = await RequestQueue.open();
   await queue.addRequest({ url: startUrl });
@@ -92,7 +90,7 @@ async function run() {
         await supabase.storage.from(storageBucket).upload(htmlPath, htmlBlob, { upsert: true, contentType: 'text/html' });
 
         // Create doc row with embedding
-        const embedding = await embed(openai, text);
+        const embedding = await embed(genAI, text);
         await supabase.from('documents').insert({
           crawl_id: crawlId,
           url: request.url,
@@ -128,7 +126,7 @@ async function run() {
             const text = parsed.text?.replace(/\s+/g, ' ').trim() || '';
             const path = urlToStoragePath(crawlId, pdfUrl, '');
             await supabase.storage.from(storageBucket).upload(path, array, { upsert: true, contentType: 'application/pdf' });
-            const embedding = await embed(openai, text);
+            const embedding = await embed(genAI, text);
             await supabase.from('documents').insert({
               crawl_id: crawlId,
               url: pdfUrl,

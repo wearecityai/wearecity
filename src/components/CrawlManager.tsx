@@ -79,6 +79,14 @@ export default function CrawlManager() {
           <div key={r.id} className="rounded border p-3">
             <div className="text-sm font-medium">{r.domain}</div>
             <div className="text-xs text-muted-foreground break-all">{r.start_url}</div>
+            <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-2">
+              <span className="font-mono break-all">id: {r.id}</span>
+              <button
+                className="px-1.5 py-0.5 border rounded text-[10px] hover:bg-muted"
+                onClick={() => navigator.clipboard.writeText(r.id)}
+                title="Copiar id"
+              >copiar</button>
+            </div>
             <div className="text-xs mt-1">{renderStatus(r)}</div>
             {r.status === 'error' && r.error_message && (
               <div className="text-xs text-red-600 mt-1">{r.error_message}</div>

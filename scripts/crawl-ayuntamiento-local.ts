@@ -5,7 +5,7 @@
 import { chromium } from 'playwright';
 import * as cheerio from 'cheerio';
 import pdf from 'pdf-parse';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
 type Args = { start: string; crawlId: string };
@@ -40,17 +40,18 @@ function urlToPath(crawlId: string, url: string, ext: string): string {
   return `ayuntamientos/${crawlId}${safe}${ext}`;
 }
 
-async function embed(openai: OpenAI, text: string) {
+async function embed(genAI: GoogleGenerativeAI, text: string) {
   if (!text) return null;
-  const res = await openai.embeddings.create({ model: 'text-embedding-3-small', input: text.slice(0, 100000) });
-  return res.data[0]?.embedding ?? null;
+  const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  const res = await model.embedContent(text.slice(0, 100000));
+  return (res?.embedding?.values as number[]) ?? null;
 }
 
 async function main() {
   const { start, crawlId } = parseArgs();
   const base = new URL(start);
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const genAI = new GoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
   const browser = await chromium.launch();
   const context = await browser.newContext();
@@ -74,7 +75,7 @@ async function main() {
       const { title, text } = extractText(html);
       const htmlPath = urlToPath(crawlId, url, url.endsWith('.html') ? '' : '.html');
       await supabase.storage.from('ayuntamientos').upload(htmlPath, new Blob([html], { type: 'text/html' }), { upsert: true, contentType: 'text/html' });
-      const embedding = await embed(openai, text);
+      const embedding = await embed(genAI, text);
       await supabase.from('documents').insert({ crawl_id: crawlId, url, title, doc_type: 'html', storage_path: htmlPath, content: text, embedding });
       pagesCrawled++; docsIndexed++;
 
@@ -92,7 +93,7 @@ async function main() {
             const text = parsed.text?.replace(/\s+/g, ' ').trim() || '';
             const path = urlToPath(crawlId, abs, '');
             await supabase.storage.from('ayuntamientos').upload(path, bytes, { upsert: true, contentType: 'application/pdf' });
-            const embedding = await embed(openai, text);
+            const embedding = await embed(genAI, text);
             await supabase.from('documents').insert({ crawl_id: crawlId, url: abs, title: abs.split('/').pop() || 'PDF', doc_type: 'pdf', storage_path: path, content: text, embedding });
             pdfsDownloaded++; docsIndexed++;
           } catch { errorsCount++; }
