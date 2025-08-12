@@ -139,37 +139,58 @@ function detectIntents(userMessage?: string): Set<string> {
   const intents = new Set<string>();
   if (!userMessage) return intents;
   const text = userMessage.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  
+  console.log('🔍 DEBUG - detectIntents - Texto normalizado:', text);
 
   // Saludo/chit-chat
   const greetingPatterns = [
     /\b(hola|buenas|buenos dias|buenas tardes|buenas noches|hello|hi|hey|que tal|què tal|holi)\b/
   ];
-  if (greetingPatterns.some((r) => r.test(text))) intents.add('greeting');
+  if (greetingPatterns.some((r) => r.test(text))) {
+    intents.add('greeting');
+    console.log('🔍 DEBUG - Intent "greeting" detectado');
+  }
 
   // Eventos
   const eventsPatterns = [
     /\b(eventos?|festival(es)?|concierto(s)?|agenda|planes|cosas que hacer|actividades?)\b/
   ];
-  if (eventsPatterns.some((r) => r.test(text))) intents.add('events');
+  if (eventsPatterns.some((r) => r.test(text))) {
+    intents.add('events');
+    console.log('🔍 DEBUG - Intent "events" detectado');
+  }
 
   // Lugares
   const placesPatterns = [
-    /\b(restaurante(s)?|donde comer|cafeter(i|\u00ED)a(s)?|bar(es)?|museo(s)?|hotel(es)?|tienda(s)?|parque(s)?|lugar(es)?|sitio(s)?|recomiend(a|as|ame)|recomendacion(es)?)\b/
+    /\b(restaurante(s)?|donde comer|cafeter(i|\u00ED)a(s)?|bar(es)?|museo(s)?|hotel(es)?|tienda(s)?|parque(s)?|lugar(es)?|sitio(s)?|recomiend(a|as|ame)|recomendacion(es)?)\b/,
+    /\b(quiero comer|donde puedo tomar|busco un|necesito un|me gustaria|me gustaría|sugiere|sugerir|opciones de|alternativas de)\b/,
+    /\b(paella|pizza|pasta|sushi|hamburguesa|tapas|mariscos|pescado|carne|vegetariano|vegano|italiano|español|japones|chino|mexicano|indio|mediterraneo)\b/,
+    /\b(cafe|té|te|cerveza|vino|cocktail|bebida|postre|dulce|helado|pastel|tarta)\b/
   ];
-  if (placesPatterns.some((r) => r.test(text))) intents.add('places');
+  if (placesPatterns.some((r) => r.test(text))) {
+    intents.add('places');
+    console.log('🔍 DEBUG - Intent "places" detectado');
+  }
 
   // Trámites
   const proceduresPatterns = [
     /\b(tramite(s)?|ayuntamiento|sede electronica|empadronamiento|padron|licencia(s)?|tasa(s)?|impuesto(s)?|certificado(s)?|cita previa)\b/
   ];
-  if (proceduresPatterns.some((r) => r.test(text))) intents.add('procedures');
+  if (proceduresPatterns.some((r) => r.test(text))) {
+    intents.add('procedures');
+    console.log('🔍 DEBUG - Intent "procedures" detectado');
+  }
 
   // Transporte
   const transportPatterns = [
     /\b(autobus|autobuses|bus|metro|tranvia|tren|horario(s)?|linea(s)?|como llegar|direccion|ruta(s)?|parada(s)?|tarifa(s)?|bono(s)?|billete(s)?)\b/
   ];
-  if (transportPatterns.some((r) => r.test(text))) intents.add('transport');
+  if (transportPatterns.some((r) => r.test(text))) {
+    intents.add('transport');
+    console.log('🔍 DEBUG - Intent "transport" detectado');
+  }
 
+  console.log('🔍 DEBUG - Intents finales detectados:', Array.from(intents));
   return intents;
 }
 
@@ -400,11 +421,20 @@ async function buildSystemPrompt(config: any, userLocation?: { lat: number, lng:
   }
 
   // Instrucciones de tarjetas de eventos y lugares (condicionadas por intención)
+  console.log('🔍 DEBUG - Intents detectados:', Array.from(intents));
+  
   if (intents.has('events')) {
+    console.log('🔍 DEBUG - Agregando instrucciones de eventos');
     parts.push(EVENT_CARD_SYSTEM_INSTRUCTION);
   }
   if (intents.has('places')) {
+    console.log('🔍 DEBUG - Agregando instrucciones de place cards');
+    console.log('🔍 DEBUG - PLACE_CARD_SYSTEM_INSTRUCTION length:', PLACE_CARD_SYSTEM_INSTRUCTION.length);
+    console.log('🔍 DEBUG - PLACE_CARD_SYSTEM_INSTRUCTION preview:', PLACE_CARD_SYSTEM_INSTRUCTION.substring(0, 200) + '...');
     parts.push(PLACE_CARD_SYSTEM_INSTRUCTION);
+    console.log('🔍 DEBUG - Instrucciones de place cards agregadas al prompt');
+  } else {
+    console.log('🔍 DEBUG - NO se agregaron instrucciones de place cards - intent "places" no detectado');
   }
 
   // Transporte público (si aplica)
@@ -433,7 +463,29 @@ Si el usuario solo saluda ("hola", "buenas", etc.), responde con un saludo breve
   // Cláusula anti-leak
   parts.push(ANTI_LEAK_CLAUSE);
 
-  return parts.join('\n\n').trim();
+  const finalPrompt = parts.join('\n\n').trim();
+  console.log('🔍 DEBUG - Prompt final construido (primeros 500 chars):', finalPrompt.substring(0, 500));
+  console.log('🔍 DEBUG - Prompt final length:', finalPrompt.length);
+  
+  // Verificar si el prompt contiene las instrucciones de place cards
+  const hasPlaceCardInstructions = finalPrompt.includes('[PLACE_CARD_START]') || finalPrompt.includes('PLACE_CARD_START_MARKER');
+  console.log('🔍 DEBUG - ¿El prompt contiene instrucciones de place cards?', hasPlaceCardInstructions);
+  
+  if (hasPlaceCardInstructions) {
+    console.log('🔍 DEBUG - ✅ Instrucciones de place cards encontradas en el prompt final');
+  } else {
+    console.log('🔍 DEBUG - ❌ NO se encontraron instrucciones de place cards en el prompt final');
+    console.log('🔍 DEBUG - Buscando en el prompt...');
+    const placeCardIndex = finalPrompt.indexOf('PLACE_CARD');
+    if (placeCardIndex !== -1) {
+      console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
+      console.log('🔍 DEBUG - Contexto alrededor:', finalPrompt.substring(Math.max(0, placeCardIndex - 100), placeCardIndex + 100));
+    } else {
+      console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards en el prompt');
+    }
+  }
+  
+  return finalPrompt;
 }
 
 // Función para llamar a Gemini
@@ -637,17 +689,36 @@ async function sanitizeAIResponse(rawText: string, config: any, userMessage?: st
 
   // 1) Verificar y completar PLACE CARDs
   try {
+    console.log('🔍 DEBUG - Sanitizando place cards...');
+    console.log('🔍 DEBUG - Texto original length:', text.length);
+    
     const placeStart = escapeForRegex(PLACE_CARD_START_MARKER);
     const placeEnd = escapeForRegex(PLACE_CARD_END_MARKER);
     const placeRegex = new RegExp(`${placeStart}([\n\r\t\s\S]*?)${placeEnd}`, 'g');
+    
+    console.log('🔍 DEBUG - Place regex:', placeRegex);
+    
+    // Contar place cards originales
+    const originalPlaceCards = Array.from(text.matchAll(placeRegex));
+    console.log('🔍 DEBUG - Place cards encontradas originalmente:', originalPlaceCards.length);
+    
     const replacements: Array<{ full: string; replacement: string }> = [];
 
     let match;
+    let processedCount = 0;
     while ((match = placeRegex.exec(text)) !== null) {
+      processedCount++;
+      console.log(`🔍 DEBUG - Procesando place card ${processedCount}:`, match[0].substring(0, 200) + '...');
+      
       const full = match[0];
       const jsonPart = match[1]?.trim();
+      console.log('🔍 DEBUG - JSON part:', jsonPart);
+      
       let obj = safeParseJsonObject(jsonPart, null);
+      console.log('🔍 DEBUG - Objeto parseado:', obj);
+      
       if (!obj || !obj.name) {
+        console.log('🔍 DEBUG - ❌ Place card eliminada: JSON inválido o falta nombre');
         // Si no es JSON válido o falta nombre, eliminar tarjeta
         replacements.push({ full, replacement: '' });
         continue;
@@ -663,19 +734,30 @@ async function sanitizeAIResponse(rawText: string, config: any, userMessage?: st
 
       // Si no hay placeId, intentar resolver mediante Google Places
       if (!obj.placeId && typeof obj.searchQuery === 'string') {
+        console.log('🔍 DEBUG - No hay placeId, intentando resolver con Google Places...');
+        console.log('🔍 DEBUG - Nombre del lugar:', obj.name);
+        console.log('🔍 DEBUG - Ciudad restringida:', restrictedCityName);
+        
         try {
           const resolvedId = await searchPlaceId(obj.name, restrictedCityName);
+          console.log('🔍 DEBUG - PlaceId resuelto:', resolvedId);
+          
           if (resolvedId) {
             obj.placeId = resolvedId;
+            console.log('🔍 DEBUG - ✅ PlaceId asignado correctamente');
           } else {
+            console.log('🔍 DEBUG - ❌ PlaceId no resuelto, eliminando place card');
             // No verificable → eliminar la tarjeta para evitar alucinaciones
             replacements.push({ full, replacement: '' });
             continue;
           }
-        } catch {
+        } catch (error) {
+          console.log('🔍 DEBUG - ❌ Error resolviendo placeId:', error);
           replacements.push({ full, replacement: '' });
           continue;
         }
+      } else {
+        console.log('🔍 DEBUG - PlaceId ya existe o no hay searchQuery:', { placeId: obj.placeId, searchQuery: obj.searchQuery });
       }
 
       // Reemplazar con JSON saneado
@@ -690,6 +772,16 @@ async function sanitizeAIResponse(rawText: string, config: any, userMessage?: st
     for (const r of replacements) {
       text = text.replace(r.full, r.replacement);
     }
+    
+    // Verificar cuántas place cards quedan después de la sanitización
+    const finalPlaceCards = Array.from(text.matchAll(placeRegex));
+    console.log('🔍 DEBUG - Place cards después de la sanitización:', finalPlaceCards.length);
+    console.log('🔍 DEBUG - Place cards eliminadas:', originalPlaceCards.length - finalPlaceCards.length);
+    
+    if (finalPlaceCards.length === 0 && originalPlaceCards.length > 0) {
+      console.log('🔍 DEBUG - ⚠️ TODAS las place cards fueron eliminadas durante la sanitización');
+    }
+    
   } catch (e) {
     console.error('Sanitize PlaceCards error:', e);
   }
@@ -1062,8 +1154,39 @@ serve(async (req) => {
     // Llamar a Gemini
     let responseText: string;
       try {
+        console.log('🔍 DEBUG - Llamando a Gemini con prompt de', systemInstruction.length, 'caracteres');
         const raw = await callGeminiAPI(systemInstruction, userMessage);
+        console.log('🔍 DEBUG - Respuesta raw de Gemini recibida, longitud:', raw.length);
+        console.log('🔍 DEBUG - Respuesta raw preview (primeros 500 chars):', raw.substring(0, 500));
+        
         responseText = await sanitizeAIResponse(raw, assistantConfig, userMessage);
+        console.log('🔍 DEBUG - Respuesta sanitizada, longitud:', responseText.length);
+        console.log('🔍 DEBUG - Respuesta sanitizada preview (primeros 500 chars):', responseText.substring(0, 500));
+        
+        // Verificar si la respuesta contiene place cards
+        const hasPlaceCardMarkers = responseText.includes('[PLACE_CARD_START]') && responseText.includes('[PLACE_CARD_END]');
+        console.log('🔍 DEBUG - ¿La respuesta contiene marcadores de place cards?', hasPlaceCardMarkers);
+        
+        if (hasPlaceCardMarkers) {
+          console.log('🔍 DEBUG - ✅ Place cards encontradas en la respuesta de la IA');
+          const placeCardMatches = responseText.match(/\[PLACE_CARD_START\]([\s\S]*?)\[PLACE_CARD_END\]/g);
+          console.log('🔍 DEBUG - Número de place cards encontradas:', placeCardMatches ? placeCardMatches.length : 0);
+          if (placeCardMatches) {
+            placeCardMatches.forEach((match, index) => {
+              console.log(`🔍 DEBUG - Place card ${index + 1}:`, match.substring(0, 200) + '...');
+            });
+          }
+        } else {
+          console.log('🔍 DEBUG - ❌ NO se encontraron place cards en la respuesta de la IA');
+          console.log('🔍 DEBUG - Buscando cualquier referencia a place cards...');
+          const placeCardIndex = responseText.indexOf('PLACE_CARD');
+          if (placeCardIndex !== -1) {
+            console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
+          } else {
+            console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards');
+          }
+        }
+        
     } catch (e) {
       console.error("Error al llamar a Gemini:", e);
       responseText = "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.";

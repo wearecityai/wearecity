@@ -63,7 +63,8 @@ export const useMessageHandler = (
     saveMessageOnly: (message: ChatMessage, targetConversationId?: string) => Promise<void>,
     setMessages: (messages: any) => void,
     _isGeminiReady: boolean,
-    targetConversationId: string
+    targetConversationId: string,
+    currentMessages: ChatMessage[] // ✅ NUEVO: historial de mensajes actual
   ) => {
     if (lastProcessedMessageRef.current === userMessage.id) {
       return;
@@ -142,19 +143,78 @@ export const useMessageHandler = (
         restrictedCityName: chatConfig.restrictedCity?.name
       });
       
-      const responseText = await fetchChatIA(inputText, { 
+      // Preparar el historial de la conversación para la IA
+      console.log('🔍 DEBUG - Mensajes disponibles para historial:', {
+        totalMessages: currentMessages.length,
+        messages: currentMessages.map(m => ({ id: m.id, role: m.role, content: m.content?.substring(0, 50) }))
+      });
+
+      const conversationHistory = currentMessages
+        .filter(msg => 
+          msg.role !== MessageRole.System && 
+          !msg.isTyping && 
+          !msg.error && 
+          msg.content && 
+          msg.content.trim().length > 0
+        )
+        .map(msg => ({
+          role: msg.role === MessageRole.User ? 'user' : 'assistant',
+          content: msg.content.trim()
+        }))
+        .slice(-8); // Enviar solo los últimos 8 mensajes para optimizar tokens y mantener contexto
+
+      console.log('🔍 DEBUG - Enviando historial de conversación:', {
+        historyLength: conversationHistory.length,
+        history: conversationHistory,
+        filteredMessages: conversationHistory.map(m => ({ role: m.role, content: m.content.substring(0, 100) }))
+      });
+
+      // Crear un mensaje contextualizado que incluya información relevante del historial
+      let contextualizedMessage = inputText;
+      
+      // Si hay historial, agregar contexto relevante de manera más inteligente
+      if (conversationHistory.length > 0) {
+        // Obtener los últimos mensajes relevantes (excluyendo el actual)
+        const relevantHistory = conversationHistory
+          .filter(msg => msg.role === 'user' && msg.content !== inputText)
+          .slice(-3); // Últimos 3 mensajes del usuario
+        
+        if (relevantHistory.length > 0) {
+          // Crear un contexto más natural y legible
+          const contextSummary = relevantHistory
+            .map((msg, index) => {
+              const prefix = index === relevantHistory.length - 1 ? 'y' : index === 0 ? 'Primero' : 'Después';
+              return `${prefix} preguntaste sobre: ${msg.content}`;
+            })
+            .join('. ');
+          
+          contextualizedMessage = `Contexto de nuestra conversación: ${contextSummary}.\n\nAhora me preguntas: ${inputText}`;
+        }
+      }
+
+      const responseText = await fetchChatIA(contextualizedMessage, { 
         allowMapDisplay: chatConfig.allowMapDisplay,
         userId: user?.id,
         userLocation: userLocationData,
-        citySlug: finalCitySlug // Enviar solo el slug en lugar de la configuración completa
+        citySlug: finalCitySlug, // Enviar solo el slug en lugar de la configuración completa
+        conversationHistory: conversationHistory // Incluir el historial de la conversación
       });
       
       console.log('🔍 DEBUG - Respuesta de fetchChatIA:', {
         responseText: responseText,
         responseTextType: typeof responseText,
         responseTextLength: responseText?.length,
-        isEmpty: !responseText || responseText.trim() === ''
+        isEmpty: !responseText || responseText.trim() === '',
+        containsPlaceCardMarkers: responseText?.includes('[PLACE_CARD_START]') || false,
+        containsEventCardMarkers: responseText?.includes('[EVENT_CARD_START]') || false
       });
+      
+      // Log adicional para ver si hay marcadores de place cards
+      if (responseText && responseText.includes('[PLACE_CARD_START]')) {
+        console.log('🔍 DEBUG - Found PLACE_CARD_START markers in response');
+        const placeCardMatches = responseText.match(/\[PLACE_CARD_START\]([\s\S]*?)\[PLACE_CARD_END\]/g);
+        console.log('🔍 DEBUG - Place card matches found:', placeCardMatches);
+      }
       
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),

@@ -34,8 +34,12 @@ export const useMessageParser = () => {
     }
 
     // Parse place cards FIRST from original content (before removing markers)
+    console.log("🔍 DEBUG - About to parse place cards from content length:", content.length);
+    console.log("🔍 DEBUG - Content preview:", content.substring(0, 200) + "...");
+    
     const { placeCardsForMessage } = parsePlaceCards(content);
     console.log("🔍 DEBUG - Place cards found:", placeCardsForMessage.length);
+    console.log("🔍 DEBUG - Place cards details:", placeCardsForMessage);
 
     // Parse events and remove event markers from content
     const { eventsForThisMessage, showSeeMoreButtonForThisMessage, storedUserQueryForEvents, introText } = parseEvents(content, inputText);

@@ -218,9 +218,24 @@ export const useAppState = (citySlug?: string) => {
     
     messages.forEach((msg, msgIndex) => {
       if (msg.role === MessageRole.Model && msg.placeCards) {
+        console.log(`🔍 DEBUG - Message ${msgIndex} has ${msg.placeCards.length} place cards:`, msg.placeCards.map(c => ({ name: c.name, isLoadingDetails: c.isLoadingDetails, placeId: c.placeId, searchQuery: c.searchQuery })));
+        
         msg.placeCards.forEach((card, cardIndex) => {
           // Create a unique identifier for this card
           const cardKey = `${msg.id}-${card.id}`;
+          
+          console.log(`🔍 DEBUG - Processing place card ${cardIndex}: ${card.name}`, {
+            cardKey,
+            isLoadingDetails: card.isLoadingDetails,
+            hasPlaceId: !!card.placeId,
+            hasSearchQuery: !!card.searchQuery,
+            alreadyProcessed: processedCardsRef.current.has(cardKey),
+            hasRating: !!card.rating,
+            hasAddress: !!card.address,
+            hasPhotoUrl: !!card.photoUrl,
+            hasWebsite: !!card.website,
+            hasError: !!card.errorDetails
+          });
           
           // Solo cargar si:
           // 1. Está en estado de carga
@@ -246,8 +261,12 @@ export const useAppState = (citySlug?: string) => {
             // marcar como no procesada para reintentar
             console.log(`🔄 Re-processing place card: ${card.name} (was marked as processed but still loading)`);
             processedCardsRef.current.delete(cardKey);
+          } else {
+            console.log(`⏭️ Skipping place card: ${card.name} - conditions not met`);
           }
         });
+      } else if (msg.role === MessageRole.Model) {
+        console.log(`🔍 DEBUG - Message ${msgIndex} has no place cards`);
       }
     });
   }, [messages, googleMapsScriptLoaded]);

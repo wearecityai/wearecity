@@ -3,12 +3,14 @@ export async function fetchChatIA(userMessage: string, options?: {
   customSystemInstruction?: string, 
   userId?: string,
   userLocation?: { lat: number, lng: number },
-  citySlug?: string // Cambiar chatConfig por citySlug
+  citySlug?: string, // Cambiar chatConfig por citySlug
+  conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }> // Historial de la conversación
 }) {
   console.log('🔍 DEBUG - fetchChatIA called with:', {
     userMessage,
     options,
-    citySlug: options?.citySlug
+    citySlug: options?.citySlug,
+    conversationHistoryLength: options?.conversationHistory?.length || 0
   });
 
   const requestBody = {
@@ -17,7 +19,8 @@ export async function fetchChatIA(userMessage: string, options?: {
     userLocation: options?.userLocation,
     allowMapDisplay: options?.allowMapDisplay ?? false,
     customSystemInstruction: options?.customSystemInstruction ?? "",
-    citySlug: options?.citySlug // Enviar el slug en lugar de la configuración completa
+    citySlug: options?.citySlug, // Enviar el slug en lugar de la configuración completa
+    conversationHistory: options?.conversationHistory || [] // Incluir el historial de la conversación
   };
 
   console.log('🔍 DEBUG - Request body:', requestBody);

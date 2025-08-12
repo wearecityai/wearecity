@@ -1,0 +1,28 @@
+{
+  "actorSpecification": 1,
+  "name": "wearecity-ayuntamientos-crawler",
+  "title": "WeAreCity Ayuntamiento Crawler",
+  "version": "0.0",
+  "buildTag": "latest",
+  "environmentVariables": [
+    { "name": "OPENAI_API_KEY", "value": "" }
+  ],
+  "storages": {},
+  "input": {
+    "title": "Crawl input",
+    "type": "object",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "startUrl": { "type": "string" },
+        "crawlId": { "type": "string" },
+        "supabaseUrl": { "type": "string" },
+        "supabaseServiceRoleKey": { "type": "string" },
+        "storageBucket": { "type": "string", "default": "ayuntamientos" }
+      },
+      "required": ["startUrl","crawlId","supabaseUrl","supabaseServiceRoleKey"]
+    }
+  }
+}
+
+

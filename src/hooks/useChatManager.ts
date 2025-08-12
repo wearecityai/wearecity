@@ -126,7 +126,8 @@ export const useChatManager = (
         saveMessageOnly,
         setMessages,
         isGeminiReady,
-        targetConversationId // Pass the conversation ID explicitly
+        targetConversationId, // Pass the conversation ID explicitly
+        messages // ✅ NUEVO: pasar el historial de mensajes actual
       );
 
       // Step 4: Update the current conversation ID if we created a new one
