@@ -28,6 +28,7 @@ const AyuntamientoCrawlerInline: React.FC<Props> = ({ startUrl = '' }) => {
   const [mode, setMode] = useState<'local' | 'apify'>('apify');
   const [loading, setLoading] = useState(false);
   const [crawl, setCrawl] = useState<CrawlRow | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setUrl(startUrl || '');
@@ -44,34 +45,83 @@ const AyuntamientoCrawlerInline: React.FC<Props> = ({ startUrl = '' }) => {
     return Math.min(95, completed % 96);
   }, [crawl]);
 
+  function parseDomain(u: string): string {
+    try { return new URL(u).hostname; } catch { return u; }
+  }
+
   const start = useCallback(async () => {
     if (!url) return;
     setLoading(true);
+    setMessage(null);
     try {
-      const res = await fetch('/functions/v1/crawl-manager', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ start_url: url, mode })
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      const id = data.id as string;
-
-      // Load initial row
-      const { data: row } = await supabase.from('crawls').select('*').eq('id', id).single();
-      if (row) setCrawl(row as CrawlRow);
-
-      // Subscribe for updates
-      const channel = supabase
-        .channel(`crawls-${id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'crawls', filter: `id=eq.${id}` }, (payload) => {
-          if (payload.new) setCrawl(payload.new as CrawlRow);
-        })
-        .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
+      if (mode === 'local') {
+        // Direct DB insert for local mode (no Edge Function needed)
+        const { data: row, error } = await supabase
+          .from('crawls')
+          .insert({
+            domain: parseDomain(url),
+            start_url: url,
+            mode: 'local',
+            status: 'processing',
+          })
+          .select('*')
+          .single();
+        if (error || !row) throw new Error(error?.message || 'No se pudo crear el crawl');
+        const id = (row as any).id as string;
+        setCrawl(row as CrawlRow);
+        const channel = supabase
+          .channel(`crawls-${id}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'crawls', filter: `id=eq.${id}` }, (payload) => {
+            if (payload.new) setCrawl(payload.new as CrawlRow);
+          })
+          .subscribe();
+        return () => { supabase.removeChannel(channel); };
+      } else {
+        // Try Edge Function for Apify mode
+        const res = await fetch('/functions/v1/crawl-manager', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ start_url: url, mode: 'apify' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const id = data.id as string;
+          const { data: row } = await supabase.from('crawls').select('*').eq('id', id).single();
+          if (row) setCrawl(row as CrawlRow);
+          const channel = supabase
+            .channel(`crawls-${id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'crawls', filter: `id=eq.${id}` }, (payload) => {
+              if (payload.new) setCrawl(payload.new as CrawlRow);
+            })
+            .subscribe();
+          return () => { supabase.removeChannel(channel); };
+        }
+        // Fallback: create DB row but Apify no iniciado (útil en dev)
+        setMessage('No se pudo invocar la función. Creando registro sin iniciar Apify.');
+        const { data: row, error } = await supabase
+          .from('crawls')
+          .insert({
+            domain: parseDomain(url),
+            start_url: url,
+            mode: 'apify',
+            status: 'pending',
+          })
+          .select('*')
+          .single();
+        if (error || !row) throw new Error(error?.message || 'No se pudo crear el crawl');
+        const id = (row as any).id as string;
+        setCrawl(row as CrawlRow);
+        const channel = supabase
+          .channel(`crawls-${id}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'crawls', filter: `id=eq.${id}` }, (payload) => {
+            if (payload.new) setCrawl(payload.new as CrawlRow);
+          })
+          .subscribe();
+        return () => { supabase.removeChannel(channel); };
+      }
     } catch (e) {
       console.error(e);
+      setMessage('Error al iniciar la indexación. Revisa la consola.');
     } finally {
       setLoading(false);
     }
@@ -105,6 +155,7 @@ const AyuntamientoCrawlerInline: React.FC<Props> = ({ startUrl = '' }) => {
             <div className="text-xs">docs: {crawl.stats?.docsIndexed ?? 0} · pages: {crawl.stats?.pagesCrawled ?? 0} · pdfs: {crawl.stats?.pdfsDownloaded ?? 0} · err: {crawl.stats?.errorsCount ?? 0}</div>
           </div>
           <Progress value={progressValue} />
+          {message && <div className="text-[11px] text-muted-foreground mt-1">{message}</div>}
           {crawl.status === 'error' && crawl.error_message && (
             <div className="text-xs text-red-600 mt-1">{crawl.error_message}</div>
           )}
