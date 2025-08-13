@@ -390,7 +390,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
               />
             )}
 
-            {(currentView as 'chat' | 'finetuning') === 'finetuning' && (
+            {currentView === 'finetuning' && (
               <FinetuningPage
                 currentConfig={chatConfig}
                 onSave={handleSaveCustomizationWithToast}
