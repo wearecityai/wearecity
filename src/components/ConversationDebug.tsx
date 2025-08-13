@@ -24,7 +24,7 @@ export const ConversationDebug: React.FC<ConversationDebugProps> = ({ messages, 
     !msg.error && 
     msg.content && 
     msg.content.trim().length > 0 &&
-    msg.role !== MessageRole.System
+    msg.role !== MessageRole.Model
   );
 
   const conversationHistory = filteredMessages
