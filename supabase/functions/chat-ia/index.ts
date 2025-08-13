@@ -1339,7 +1339,45 @@ async function searchPlaceId(placeName: string, location?: string): Promise<stri
   }
 }
 
-// Function to perform Google Custom Search for events and places
+// Function to search in specific event sources
+async function searchEventSources(agendaUrls: string[], searchQuery: string, cityName?: string): Promise<Array<{ title?: string; url?: string; description?: string }>> {
+  const results: Array<{ title?: string; url?: string; description?: string }> = [];
+  
+  console.log('🔍 DEBUG - Buscando en fuentes específicas de eventos:', agendaUrls);
+  
+  for (const url of agendaUrls) {
+    try {
+      console.log('🔍 DEBUG - Consultando fuente de eventos:', url);
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; EventBot/1.0)'
+        }
+      });
+      
+      if (response.ok) {
+        const content = await response.text();
+        console.log(`🔍 DEBUG - Contenido obtenido de ${url} (${content.length} chars)`);
+        
+        // Crear un resultado que incluya información de la fuente
+        results.push({
+          title: `Eventos desde ${new URL(url).hostname}`,
+          url: url,
+          description: content.substring(0, 1500) // Primeros 1500 chars para análisis
+        });
+        
+      } else {
+        console.error(`🔍 DEBUG - Error al acceder a ${url}:`, response.status);
+      }
+    } catch (error) {
+      console.error(`🔍 DEBUG - Error al consultar ${url}:`, error);
+    }
+  }
+  
+  console.log(`🔍 DEBUG - Encontrados ${results.length} resultados de fuentes específicas`);
+  return results;
+}
+
+// Function to perform Google Custom Search for events and places (fallback)
 async function performGoogleCustomSearch(query: string, cityName?: string, searchType: 'events' | 'places' = 'events'): Promise<Array<{ title?: string; url?: string; description?: string }>> {
   if (!GOOGLE_CSE_KEY || !GOOGLE_CSE_CX) {
     console.log('❌ Google Custom Search not configured');
@@ -1629,12 +1667,35 @@ serve(async (req) => {
     console.log('🔍 DEBUG - Google CSE Key configurado:', !!GOOGLE_CSE_KEY);
     console.log('🔍 DEBUG - Google CSE CX configurado:', !!GOOGLE_CSE_CX);
     
-    if (GOOGLE_CSE_KEY && GOOGLE_CSE_CX && (intentsForProactiveSearch.has('events') || intentsForProactiveSearch.has('places'))) {
+    // Primero intentar buscar en fuentes específicas de eventos si están configuradas
+    if (intentsForProactiveSearch.has('events') && assistantConfig?.agenda_eventos_urls) {
+      const agendaUrls = safeParseJsonArray(assistantConfig.agenda_eventos_urls, []);
+      console.log('🔍 DEBUG - URLs de agenda encontradas:', agendaUrls);
+      
+      if (agendaUrls.length > 0) {
+        try {
+          const restrictedCity = safeParseJsonObject(assistantConfig?.restricted_city) || assistantConfig?.restrictedCity || null;
+          const cityName: string | undefined = restrictedCity?.name;
+          
+          console.log('🔍 DEBUG - Buscando eventos en fuentes específicas para ciudad:', cityName);
+          webResults = await searchEventSources(agendaUrls, userMessage, cityName);
+          
+          if (webResults && webResults.length > 0) {
+            console.log(`🔍 DEBUG - Encontrados ${webResults.length} resultados en fuentes específicas`);
+          }
+        } catch (error) {
+          console.error('🔍 DEBUG - Error buscando en fuentes de eventos:', error);
+        }
+      }
+    }
+    
+    // Búsqueda fallback con Google CSE si no se encontraron resultados en fuentes específicas
+    if (!webResults?.length && GOOGLE_CSE_KEY && GOOGLE_CSE_CX && (intentsForProactiveSearch.has('events') || intentsForProactiveSearch.has('places'))) {
       try {
         const restrictedCity = safeParseJsonObject(assistantConfig?.restricted_city) || assistantConfig?.restrictedCity || null;
         const cityName: string | undefined = restrictedCity?.name;
         
-        console.log('🔍 DEBUG - Realizando búsqueda proactiva para:', Array.from(intentsForProactiveSearch), 'en ciudad:', cityName);
+        console.log('🔍 DEBUG - Realizando búsqueda fallback con Google CSE para:', Array.from(intentsForProactiveSearch), 'en ciudad:', cityName);
         
         if (intentsForProactiveSearch.has('events')) {
           // Search for events
@@ -1663,12 +1724,12 @@ serve(async (req) => {
           webResults = await performGoogleCustomSearch(searchQuery, cityName, 'places');
         }
         
-        console.log(`🔍 Proactive search completed. Found ${webResults?.length || 0} results`);
+        console.log(`🔍 Fallback search completed. Found ${webResults?.length || 0} results`);
       } catch (e) {
-        console.error('Google CSE proactive search error:', e);
+        console.error('Google CSE fallback search error:', e);
       }
-    } else {
-      console.log('🔍 DEBUG - Google CSE no configurado o no hay intents de events/places detectados');
+    } else if (!webResults?.length) {
+      console.log('🔍 DEBUG - No se realizaron búsquedas (sin fuentes específicas ni Google CSE configurado)');
       if (!GOOGLE_CSE_KEY) console.log('🔍 DEBUG - Falta GOOGLE_CSE_KEY');
       if (!GOOGLE_CSE_CX) console.log('🔍 DEBUG - Falta GOOGLE_CSE_CX');
     }
