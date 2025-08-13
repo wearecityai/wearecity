@@ -548,6 +548,7 @@ const PersistentLayout: React.FC = () => {
               procedureSourceUrls: safeParseJsonArray(cityData.procedure_source_urls, []),
               uploadedProcedureDocuments: safeParseJsonObject(cityData.uploaded_procedure_documents, {}),
               sedeElectronicaUrl: cityData.sede_electronica_url || '',
+              agendaEventosUrls: safeParseJsonArray(cityData.agenda_eventos_urls, []),
               restrictedCity: safeParseJsonObject(cityData.restricted_city, null),
               profileImageUrl: cityData.profile_image_url || undefined
             };

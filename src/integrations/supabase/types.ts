@@ -95,6 +95,7 @@ export type Database = {
       cities: {
         Row: {
           admin_user_id: string | null
+          agenda_eventos_urls: Json | null
           allow_geolocation: boolean | null
           allow_map_display: boolean | null
           assistant_name: string | null
@@ -120,6 +121,7 @@ export type Database = {
         }
         Insert: {
           admin_user_id?: string | null
+          agenda_eventos_urls?: Json | null
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null
@@ -145,6 +147,7 @@ export type Database = {
         }
         Update: {
           admin_user_id?: string | null
+          agenda_eventos_urls?: Json | null
           allow_geolocation?: boolean | null
           allow_map_display?: boolean | null
           assistant_name?: string | null

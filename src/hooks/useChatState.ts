@@ -29,6 +29,7 @@ export const useChatState = () => {
           uploadedProcedureDocuments: savedConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments,
           restrictedCity: savedConfig.restrictedCity !== undefined ? savedConfig.restrictedCity : DEFAULT_CHAT_CONFIG.restrictedCity,
           sedeElectronicaUrl: savedConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl,
+          agendaEventosUrls: savedConfig.agendaEventosUrls || DEFAULT_CHAT_CONFIG.agendaEventosUrls || [],
         };
       }
     } catch (error) {

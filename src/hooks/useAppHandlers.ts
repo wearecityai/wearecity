@@ -71,6 +71,7 @@ export const useAppHandlers = ({
     configToSave.procedureSourceUrls = newConfig.procedureSourceUrls || DEFAULT_CHAT_CONFIG.procedureSourceUrls;
     configToSave.uploadedProcedureDocuments = newConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments;
     configToSave.sedeElectronicaUrl = newConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl;
+    configToSave.agendaEventosUrls = newConfig.agendaEventosUrls || DEFAULT_CHAT_CONFIG.agendaEventosUrls || [];
     configToSave.profileImageUrl = newConfig.profileImageUrl || DEFAULT_CHAT_CONFIG.profileImageUrl;
 
     console.log('🔧 Final config to save:', configToSave);
