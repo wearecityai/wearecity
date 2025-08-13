@@ -2,7 +2,14 @@ import React from 'react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { RefreshCw, MapPin, AlertCircle, Loader2 } from 'lucide-react';
-import { UserLocation } from '../hooks/useGeolocation';
+import { useGeolocation } from '../hooks/useGeolocation';
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp?: number;
+}
 
 interface GeolocationIndicatorProps {
   status: 'idle' | 'pending' | 'success' | 'error';

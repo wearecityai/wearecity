@@ -413,40 +413,63 @@ REGLAS CRÍTICAS PARA RESPONDER SOBRE TRÁMITES DEL AYUNTAMIENTO (${cityContext}
   return instructions.join('\n\n');
 }
 
-// Función para construir el prompt completo (VERSIÓN MINIMAL - FASE 1)
+// Función para construir el prompt del sistema
 async function buildSystemPrompt(
   config: any,
   userLocation?: { lat: number, lng: number },
   userMessage?: string,
   conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>,
   webResults?: Array<{ title?: string; url?: string; description?: string }>
-) {
-  const parts: string[] = [];
+): Promise<string> {
+  const parts: string[] = [INITIAL_SYSTEM_INSTRUCTION];
+  
+  console.log('🔍 DEBUG - buildSystemPrompt - userMessage:', userMessage?.substring(0, 100));
+  
+  // Detectar intenciones del mensaje para activar instrucciones específicas
+  const intents = detectIntents(userMessage);
 
-  // 1) Identidad y objetivo mínimo
-  // Extraer nombre de ciudad restringida desde múltiples posibles fuentes del panel
-  const restrictedCityFromSnake = typeof config?.restricted_city === 'string'
-    ? safeParseJsonObject(config.restricted_city)
-    : (config?.restricted_city || null);
-  const restrictedCityName =
-    restrictedCityFromSnake?.name ||
-    config?.restrictedCity?.name ||
-    config?.restricted_city_name ||
-    config?.restrictedCityName ||
-    null;
-  if (restrictedCityName) {
-    parts.push(
-      `Eres un asistente local. Responde únicamente para la ciudad: ${restrictedCityName}.
-- Si te preguntan por otra ciudad o contexto fuera de ${restrictedCityName}, responde que solo puedes ayudar para ${restrictedCityName}.
-- Evita datos no verificables y no inventes información.`
-    );
-  } else {
-    parts.push(
-      `Eres un asistente. Responde con precisión y sin inventar datos. Si falta contexto, pide una aclaración breve.`
-    );
+  // Configuraciones dinámicas
+  const dynamicInstructions = await buildDynamicInstructions(config, userLocation);
+  parts.push(...dynamicInstructions);
+
+  // Activar mapas solo si están habilitados
+  const allowMapDisplay = config?.allow_map_display !== false;
+  if (allowMapDisplay) {
+    parts.push(SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION);
   }
 
-  // 2) Coherencia mínima con historial
+  // Agregar instrucciones para eventos y lugares SIEMPRE - CRÍTICO para funcionamiento
+  console.log('🔍 DEBUG - Añadiendo instrucciones de eventos y lugares - Intents:', Array.from(intents));
+  parts.push(EVENT_CARD_SYSTEM_INSTRUCTION);
+  parts.push(PLACE_CARD_SYSTEM_INSTRUCTION);
+  
+  // Si se detecta intención de eventos, hacer extra énfasis
+  if (intents.has('events')) {
+    parts.push(`
+🎯 INTENCIÓN DE EVENTOS DETECTADA: El usuario está preguntando específicamente sobre eventos. DEBES:
+1. USAR OBLIGATORIAMENTE los marcadores ${EVENT_CARD_START_MARKER} y ${EVENT_CARD_END_MARKER} para cada evento
+2. NO proporcionar solo texto - los eventos DEBEN ir en tarjetas JSON
+3. Si no encuentras eventos específicos, di claramente "No he encontrado eventos específicos" pero NO inventes eventos
+4. Cada evento debe ir en formato: ${EVENT_CARD_START_MARKER}{"title": "Nombre", "date": "YYYY-MM-DD", "location": "Lugar"}${EVENT_CARD_END_MARKER}
+5. EJEMPLO DE USO CORRECTO:
+   ${EVENT_CARD_START_MARKER}{"title": "Festival de Primavera", "date": "2025-08-20", "location": "Plaza Mayor"}${EVENT_CARD_END_MARKER}
+`);
+  }
+  
+  // Si se detecta intención de lugares, hacer extra énfasis  
+  if (intents.has('places')) {
+    parts.push(`
+🎯 INTENCIÓN DE LUGARES DETECTADA: El usuario está preguntando específicamente sobre lugares/restaurantes. DEBES:
+1. USAR OBLIGATORIAMENTE los marcadores ${PLACE_CARD_START_MARKER} y ${PLACE_CARD_END_MARKER} para cada lugar
+2. NO proporcionar solo texto - los lugares DEBEN ir en tarjetas JSON
+3. Si no tienes información específica, di claramente "No tengo información específica" pero NO inventes lugares
+4. Cada lugar debe ir en formato: ${PLACE_CARD_START_MARKER}{"name": "Nombre", "searchQuery": "Nombre, Ciudad"}${PLACE_CARD_END_MARKER}
+5. EJEMPLO DE USO CORRECTO:
+   ${PLACE_CARD_START_MARKER}{"name": "Restaurante La Plaza", "searchQuery": "Restaurante La Plaza, Finestrat"}${PLACE_CARD_END_MARKER}
+`);
+  }
+
+  // Coherencia mínima con historial
   if (conversationHistory && conversationHistory.length > 0) {
     const historyContext = conversationHistory
       .slice(-6)
@@ -457,36 +480,7 @@ async function buildSystemPrompt(
     );
   }
 
-  // 3) Geolocalización (simple y opcional)
-  if (userLocation && typeof userLocation.lat === 'number' && typeof userLocation.lng === 'number') {
-    parts.push(
-      `El usuario ha compartido su ubicación aproximada (lat: ${userLocation.lat.toFixed(5)}, lng: ${userLocation.lng.toFixed(5)}). Utilízala solo si ayuda a responder más precisamente (por ejemplo, distancias o cercanía).`
-    );
-  }
-
-  // 4) Estilo de respuesta mínimo
-  parts.push(
-    `Reglas de estilo:
-- Sé claro y conciso (3-6 frases cuando sea posible).
-- Responde exactamente a la pregunta del usuario.
-- Si falta información clave, pide UNA aclaración breve.
-- No repitas información ya mencionada en esta conversación.`
-  );
-
-  // 5) Custom del panel (opcional): se permite pero no se mezcla con bloques extensos
-  if (config?.system_instruction && typeof config.system_instruction === 'string') {
-    const custom = config.system_instruction.trim();
-    if (custom) parts.push(custom);
-  }
-
-  // 6) Indicar que el backend puede usar búsqueda web cuando sea necesario (Google CSE)
-  if (GOOGLE_CSE_KEY && GOOGLE_CSE_CX) {
-    parts.push(
-      `El backend puede realizar búsquedas web automáticamente cuando sea necesario para verificar eventos y lugares. Los resultados de búsqueda se proporcionan como contexto adicional. No incluyas explicaciones largas de tu proceso de búsqueda: limita la salida a tarjetas de eventos o place cards según corresponda.`
-    );
-  }
-
-  // 7) Anexar resultados web (si ya fueron obtenidos) como contexto para el modelo
+  // Anexar resultados web (si ya fueron obtenidos) como contexto para el modelo
   if (webResults && webResults.length > 0) {
     const bullets = webResults
       .map((it, i) => `${i + 1}. ${it.title || it.url} (${it.url})`)
@@ -495,22 +489,11 @@ async function buildSystemPrompt(
       `Resultados web recientes (úsalos para verificar y genera tarjetas correctamente, no los repitas tal cual):\n${bullets}`
     );
   }
+  
+  parts.push(RICH_TEXT_FORMATTING_SYSTEM_INSTRUCTION);
+  parts.push(ANTI_LEAK_CLAUSE);
 
-  // 8) Refuerzo para consultas de eventos: no pidas aclaraciones, devuelve tarjetas
-  try {
-    const intents = detectIntents(userMessage);
-    if (intents.has('events')) {
-      parts.push(`MODO EVENTOS ESTRICTO:
-- No hagas preguntas de aclaración previas. Primero intenta devolver tarjetas de eventos con la información disponible.
-- Si no se especifica rango temporal, devuelve eventos del AÑO ACTUAL para los próximos 14 días o el próximo fin de semana (lo que produzca mejores resultados).
-- El backend puede realizar búsquedas web automáticamente para encontrar eventos actualizados.
-- La salida debe consistir en 3 a 8 tarjetas como máximo, cada una en su marcador ${EVENT_CARD_START_MARKER}...${EVENT_CARD_END_MARKER}, con JSON válido y fechas YYYY-MM-DD del año actual.
-- Fuera de los marcadores JSON NO incluyas listados de eventos; solo, como mucho, una frase introductoria muy breve.
-- Si no encuentras nada verificable tras buscar, devuelve: "No he encontrado eventos futuros para [CIUDAD]".`);
-    }
-  } catch {}
-
-  return parts.join('\n\n').trim();
+  return parts.join('\n\n');
 }
 
 // Función para llamar a Gemini
@@ -1620,10 +1603,16 @@ serve(async (req) => {
     let webResults: Array<{ title?: string; url?: string; description?: string }> | undefined = undefined;
     const intentsForProactiveSearch = detectIntents(userMessage);
     
+    console.log('🔍 DEBUG - Intents detectados:', Array.from(intentsForProactiveSearch));
+    console.log('🔍 DEBUG - Google CSE Key configurado:', !!GOOGLE_CSE_KEY);
+    console.log('🔍 DEBUG - Google CSE CX configurado:', !!GOOGLE_CSE_CX);
+    
     if (GOOGLE_CSE_KEY && GOOGLE_CSE_CX && (intentsForProactiveSearch.has('events') || intentsForProactiveSearch.has('places'))) {
       try {
         const restrictedCity = safeParseJsonObject(assistantConfig?.restricted_city) || assistantConfig?.restrictedCity || null;
         const cityName: string | undefined = restrictedCity?.name;
+        
+        console.log('🔍 DEBUG - Realizando búsqueda proactiva para:', Array.from(intentsForProactiveSearch), 'en ciudad:', cityName);
         
         if (intentsForProactiveSearch.has('events')) {
           // Search for events
@@ -1656,6 +1645,10 @@ serve(async (req) => {
       } catch (e) {
         console.error('Google CSE proactive search error:', e);
       }
+    } else {
+      console.log('🔍 DEBUG - Google CSE no configurado o no hay intents de events/places detectados');
+      if (!GOOGLE_CSE_KEY) console.log('🔍 DEBUG - Falta GOOGLE_CSE_KEY');
+      if (!GOOGLE_CSE_CX) console.log('🔍 DEBUG - Falta GOOGLE_CSE_CX');
     }
 
     // Construir el prompt del sistema
@@ -1674,9 +1667,24 @@ serve(async (req) => {
         console.log('🔍 DEBUG - Respuesta sanitizada, longitud:', responseText.length);
         console.log('🔍 DEBUG - Respuesta sanitizada preview (primeros 500 chars):', responseText.substring(0, 500));
         
+        // Verificar si la respuesta contiene event cards
+        const hasEventCardMarkers = responseText.includes('[EVENT_CARD_START]') && responseText.includes('[EVENT_CARD_END]');
+        console.log('🔍 DEBUG - ¿La respuesta contiene marcadores de event cards?', hasEventCardMarkers);
+        
         // Verificar si la respuesta contiene place cards
         const hasPlaceCardMarkers = responseText.includes('[PLACE_CARD_START]') && responseText.includes('[PLACE_CARD_END]');
         console.log('🔍 DEBUG - ¿La respuesta contiene marcadores de place cards?', hasPlaceCardMarkers);
+        
+        console.log('🔍 DEBUG - Resumen de marcadores:');
+        console.log('🔍 DEBUG - Event cards:', hasEventCardMarkers ? '✅' : '❌');
+        console.log('🔍 DEBUG - Place cards:', hasPlaceCardMarkers ? '✅' : '❌');
+        console.log('🔍 DEBUG - Intents detectados:', Array.from(intents));
+        console.log('🔍 DEBUG - Texto de la respuesta (primeros 300 chars):', responseText.substring(0, 300));
+        
+        if (hasEventCardMarkers) {
+          const eventCardMatches = responseText.match(/\[EVENT_CARD_START\]([\s\S]*?)\[EVENT_CARD_END\]/g);
+          console.log('🔍 DEBUG - Número de event cards encontradas:', eventCardMatches ? eventCardMatches.length : 0);
+        }
         
         if (hasPlaceCardMarkers) {
           console.log('🔍 DEBUG - ✅ Place cards encontradas en la respuesta de la IA');
@@ -1687,15 +1695,14 @@ serve(async (req) => {
               console.log(`🔍 DEBUG - Place card ${index + 1}:`, match.substring(0, 200) + '...');
             });
           }
-        } else {
-          console.log('🔍 DEBUG - ❌ NO se encontraron place cards en la respuesta de la IA');
-          console.log('🔍 DEBUG - Buscando cualquier referencia a place cards...');
-          const placeCardIndex = responseText.indexOf('PLACE_CARD');
-          if (placeCardIndex !== -1) {
-            console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
-          } else {
-            console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards');
-          }
+        } else if (intents.has('places')) {
+          console.log('🔍 DEBUG - ❌ NO se encontraron place cards pero se detectó intent de places');
+          console.log('🔍 DEBUG - Esto indica que las instrucciones no están funcionando correctamente');
+        }
+        
+        if (!hasEventCardMarkers && intents.has('events')) {
+          console.log('🔍 DEBUG - ❌ NO se encontraron event cards pero se detectó intent de events');
+          console.log('🔍 DEBUG - Esto indica que las instrucciones de eventos no están funcionando correctamente');
         }
         
     } catch (e) {

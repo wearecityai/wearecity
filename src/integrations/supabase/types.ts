@@ -205,6 +205,92 @@ export type Database = {
           },
         ]
       }
+      crawls: {
+        Row: {
+          apify_run_id: string | null
+          created_at: string
+          domain: string
+          error_message: string | null
+          id: string
+          mode: string
+          start_url: string
+          stats: Json
+          status: Database["public"]["Enums"]["crawl_status"]
+          updated_at: string
+        }
+        Insert: {
+          apify_run_id?: string | null
+          created_at?: string
+          domain: string
+          error_message?: string | null
+          id?: string
+          mode: string
+          start_url: string
+          stats?: Json
+          status?: Database["public"]["Enums"]["crawl_status"]
+          updated_at?: string
+        }
+        Update: {
+          apify_run_id?: string | null
+          created_at?: string
+          domain?: string
+          error_message?: string | null
+          id?: string
+          mode?: string
+          start_url?: string
+          stats?: Json
+          status?: Database["public"]["Enums"]["crawl_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          content: string | null
+          crawl_id: string
+          created_at: string
+          doc_type: string
+          embedding: string | null
+          id: string
+          metadata: Json
+          storage_path: string
+          title: string | null
+          url: string
+        }
+        Insert: {
+          content?: string | null
+          crawl_id: string
+          created_at?: string
+          doc_type: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          storage_path: string
+          title?: string | null
+          url: string
+        }
+        Update: {
+          content?: string | null
+          crawl_id?: string
+          created_at?: string
+          doc_type?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          storage_path?: string
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "crawls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -281,6 +367,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      binary_quantize: {
+        Args: { "": string } | { "": unknown }
+        Returns: unknown
+      }
       classify_message: {
         Args: { message_text: string }
         Returns: string
@@ -337,12 +427,101 @@ export type Database = {
           updated_at: string
         }[]
       }
+      halfvec_avg: {
+        Args: { "": number[] }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      hnsw_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnswhandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       is_slug_available: {
         Args: { city_slug: string }
         Returns: boolean
       }
+      ivfflat_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      l2_norm: {
+        Args: { "": unknown } | { "": unknown }
+        Returns: number
+      }
+      l2_normalize: {
+        Args: { "": string } | { "": unknown } | { "": unknown }
+        Returns: string
+      }
+      sparsevec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      vector_avg: {
+        Args: { "": number[] }
+        Returns: string
+      }
+      vector_dims: {
+        Args: { "": string } | { "": unknown }
+        Returns: number
+      }
+      vector_norm: {
+        Args: { "": string }
+        Returns: number
+      }
+      vector_out: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: { "": string }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
     }
     Enums: {
+      crawl_status: "pending" | "processing" | "completed" | "error"
       user_role: "admin" | "citizen" | "ciudadano" | "administrativo"
     }
     CompositeTypes: {
@@ -471,6 +650,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      crawl_status: ["pending", "processing", "completed", "error"],
       user_role: ["admin", "citizen", "ciudadano", "administrativo"],
     },
   },
