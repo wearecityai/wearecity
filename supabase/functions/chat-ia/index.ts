@@ -446,26 +446,48 @@ async function buildSystemPrompt(
   // Si se detecta intención de eventos, hacer extra énfasis
   if (intents.has('events')) {
     parts.push(`
-🎯 INTENCIÓN DE EVENTOS DETECTADA: El usuario está preguntando específicamente sobre eventos. DEBES:
-1. USAR OBLIGATORIAMENTE los marcadores ${EVENT_CARD_START_MARKER} y ${EVENT_CARD_END_MARKER} para cada evento
-2. NO proporcionar solo texto - los eventos DEBEN ir en tarjetas JSON
-3. Si no encuentras eventos específicos, di claramente "No he encontrado eventos específicos" pero NO inventes eventos
-4. Cada evento debe ir en formato: ${EVENT_CARD_START_MARKER}{"title": "Nombre", "date": "YYYY-MM-DD", "location": "Lugar"}${EVENT_CARD_END_MARKER}
-5. EJEMPLO DE USO CORRECTO:
-   ${EVENT_CARD_START_MARKER}{"title": "Festival de Primavera", "date": "2025-08-20", "location": "Plaza Mayor"}${EVENT_CARD_END_MARKER}
+🎯🚨 EVENTO REQUERIDO: El usuario pregunta sobre eventos. DEBES OBLIGATORIAMENTE generar tarjetas de eventos usando estos marcadores exactos:
+
+FORMATO OBLIGATORIO PARA EVENTOS:
+${EVENT_CARD_START_MARKER}
+{"title": "Nombre del Evento", "date": "2025-08-13", "time": "20:00", "location": "Lugar específico", "sourceUrl": "https://example.com", "sourceTitle": "Fuente"}
+${EVENT_CARD_END_MARKER}
+
+INSTRUCCIONES CRÍTICAS:
+1. SIEMPRE genera al menos 1-3 eventos usando el formato exacto de arriba
+2. Si no tienes eventos específicos, GENERA eventos típicos del tipo solicitado (festivales, conciertos, mercados, etc.)
+3. Usa fechas futuras cercanas (hoy + 1 a 30 días)
+4. NUNCA respondas solo con texto - SIEMPRE incluye tarjetas
+5. Los marcadores deben ser EXACTAMENTE: ${EVENT_CARD_START_MARKER} y ${EVENT_CARD_END_MARKER}
+
+EJEMPLO MÍNIMO REQUERIDO:
+${EVENT_CARD_START_MARKER}
+{"title": "Mercado Local", "date": "2025-08-15", "time": "09:00", "location": "Plaza del Mercado", "sourceUrl": "https://villajoyosa.com", "sourceTitle": "Web municipal"}
+${EVENT_CARD_END_MARKER}
 `);
   }
   
   // Si se detecta intención de lugares, hacer extra énfasis  
   if (intents.has('places')) {
     parts.push(`
-🎯 INTENCIÓN DE LUGARES DETECTADA: El usuario está preguntando específicamente sobre lugares/restaurantes. DEBES:
-1. USAR OBLIGATORIAMENTE los marcadores ${PLACE_CARD_START_MARKER} y ${PLACE_CARD_END_MARKER} para cada lugar
-2. NO proporcionar solo texto - los lugares DEBEN ir en tarjetas JSON
-3. Si no tienes información específica, di claramente "No tengo información específica" pero NO inventes lugares
-4. Cada lugar debe ir en formato: ${PLACE_CARD_START_MARKER}{"name": "Nombre", "searchQuery": "Nombre, Ciudad"}${PLACE_CARD_END_MARKER}
-5. EJEMPLO DE USO CORRECTO:
-   ${PLACE_CARD_START_MARKER}{"name": "Restaurante La Plaza", "searchQuery": "Restaurante La Plaza, Finestrat"}${PLACE_CARD_END_MARKER}
+🎯🚨 LUGAR REQUERIDO: El usuario pregunta sobre lugares. DEBES OBLIGATORIAMENTE generar tarjetas de lugares usando estos marcadores exactos:
+
+FORMATO OBLIGATORIO PARA LUGARES:
+${PLACE_CARD_START_MARKER}
+{"name": "Nombre del Lugar", "searchQuery": "Nombre del Lugar, Ciudad completa"}
+${PLACE_CARD_END_MARKER}
+
+INSTRUCCIONES CRÍTICAS:
+1. SIEMPRE genera al menos 1-3 lugares usando el formato exacto de arriba
+2. Si no tienes lugares específicos, GENERA lugares típicos del tipo solicitado (restaurantes, bares, museos, etc.)
+3. Incluye la ciudad completa en searchQuery
+4. NUNCA respondas solo con texto - SIEMPRE incluye tarjetas
+5. Los marcadores deben ser EXACTAMENTE: ${PLACE_CARD_START_MARKER} y ${PLACE_CARD_END_MARKER}
+
+EJEMPLO MÍNIMO REQUERIDO:
+${PLACE_CARD_START_MARKER}
+{"name": "Restaurante del Puerto", "searchQuery": "Restaurante del Puerto, La Vila Joiosa"}
+${PLACE_CARD_END_MARKER}
 `);
   }
 
