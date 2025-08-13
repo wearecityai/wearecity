@@ -76,6 +76,7 @@ export const DEFAULT_CHAT_CONFIG: CustomChatConfig = {
   uploadedProcedureDocuments: [],
   restrictedCity: null,
   sedeElectronicaUrl: '',
+  agendaEventosUrls: [], // URLs for event calendars and agendas
   profileImageUrl: '', // Nueva propiedad por defecto
 };
 

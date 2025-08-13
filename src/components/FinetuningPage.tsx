@@ -104,6 +104,8 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
   const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sedeElectronicaUrl, setSedeElectronicaUrl] = useState<string>(currentConfig.sedeElectronicaUrl || '');
+  const [agendaEventosUrls, setAgendaEventosUrls] = useState<string[]>(Array.isArray(currentConfig.agendaEventosUrls) ? currentConfig.agendaEventosUrls : []);
+  const [newAgendaEventosUrl, setNewAgendaEventosUrl] = useState<string>('');
   const [profileImageUrl, setProfileImageUrl] = useState<string>(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
@@ -129,6 +131,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
       setProcedureSourceUrls(Array.isArray(currentConfig.procedureSourceUrls) ? currentConfig.procedureSourceUrls : DEFAULT_CHAT_CONFIG.procedureSourceUrls);
       setUploadedProcedureDocuments(Array.isArray(currentConfig.uploadedProcedureDocuments) ? currentConfig.uploadedProcedureDocuments : DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments);
       setSedeElectronicaUrl(currentConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
+      setAgendaEventosUrls(Array.isArray(currentConfig.agendaEventosUrls) ? currentConfig.agendaEventosUrls : DEFAULT_CHAT_CONFIG.agendaEventosUrls || []);
       setMunicipalityInputName(currentConfig.restrictedCity?.name || '');
       setRestrictedCity(currentConfig.restrictedCity);
       setProfileImageUrl(profileImagePreview !== undefined ? profileImagePreview : (currentConfig.profileImageUrl || ''));
@@ -389,6 +392,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
       procedureSourceUrls,
       uploadedProcedureDocuments,
       sedeElectronicaUrl: sedeElectronicaUrl.trim() || undefined,
+      agendaEventosUrls: agendaEventosUrls.filter(url => url.trim()),
       profileImageUrl: profileImageUrl.trim() || undefined,
     };
     
@@ -420,6 +424,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
     setCurrentProcedureNameToUpload(''); 
     setPdfUploadError(null);
     setSedeElectronicaUrl(DEFAULT_CHAT_CONFIG.sedeElectronicaUrl || '');
+    setAgendaEventosUrls([...DEFAULT_CHAT_CONFIG.agendaEventosUrls || []]);
     setProfileImageUrl(DEFAULT_CHAT_CONFIG.profileImageUrl || '');
     if (profileImageInputRef.current) profileImageInputRef.current.value = "";
   };
@@ -612,19 +617,74 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="sede-url">URL Sede Electrónica</Label>
-                      <Input
-                        id="sede-url"
-                        type="url"
-                        value={sedeElectronicaUrl}
-                        onChange={(e) => setSedeElectronicaUrl(e.target.value)}
-                        placeholder="https://sede.ejemplo.es"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Enlace principal a la Sede Electrónica para trámites.
-                      </p>
-                    </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="sede-url">URL Sede Electrónica</Label>
+                       <Input
+                         id="sede-url"
+                         type="url"
+                         value={sedeElectronicaUrl}
+                         onChange={(e) => setSedeElectronicaUrl(e.target.value)}
+                         placeholder="https://sede.ejemplo.es"
+                       />
+                       <p className="text-sm text-muted-foreground">
+                         Enlace principal a la Sede Electrónica para trámites.
+                       </p>
+                     </div>
+
+                     <div className="space-y-2">
+                       <Label>Agenda de Eventos</Label>
+                       <div className="space-y-2">
+                         {agendaEventosUrls.map((url, index) => (
+                           <div key={index} className="flex gap-2">
+                             <Input
+                               type="url"
+                               value={url}
+                               onChange={(e) => {
+                                 const newUrls = [...agendaEventosUrls];
+                                 newUrls[index] = e.target.value;
+                                 setAgendaEventosUrls(newUrls);
+                               }}
+                               placeholder="https://agenda.ejemplo.es"
+                               className="flex-1"
+                             />
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => {
+                                 const newUrls = agendaEventosUrls.filter((_, i) => i !== index);
+                                 setAgendaEventosUrls(newUrls);
+                               }}
+                             >
+                               <Trash2 className="h-4 w-4" />
+                             </Button>
+                           </div>
+                         ))}
+                         <div className="flex gap-2">
+                           <Input
+                             type="url"
+                             value={newAgendaEventosUrl}
+                             onChange={(e) => setNewAgendaEventosUrl(e.target.value)}
+                             placeholder="https://agenda.ejemplo.es"
+                             className="flex-1"
+                           />
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => {
+                               if (newAgendaEventosUrl.trim()) {
+                                 setAgendaEventosUrls([...agendaEventosUrls, newAgendaEventosUrl.trim()]);
+                                 setNewAgendaEventosUrl('');
+                               }
+                             }}
+                           >
+                             Añadir
+                           </Button>
+                         </div>
+                       </div>
+                       <p className="text-sm text-muted-foreground">
+                         Enlaces a calendarios y agendas de eventos. La IA buscará aquí primero antes de usar fuentes externas.
+                       </p>
+                     </div>
                   </div>
                 </ModernCard>
 

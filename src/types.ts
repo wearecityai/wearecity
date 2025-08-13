@@ -107,6 +107,7 @@ export interface CustomChatConfig {
   restrictedCity: RestrictedCityInfo | null;
   restrictedCountryCode?: string; // ISO 3166-1 alpha-2 for filtering cities
   sedeElectronicaUrl?: string; // URL for the City Council's Electronic Office
+  agendaEventosUrls?: string[]; // URLs for event calendars and agendas
   profileImageUrl?: string; // Nueva propiedad para la foto de perfil
 }
 

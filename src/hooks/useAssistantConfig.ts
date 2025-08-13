@@ -85,6 +85,7 @@ export const useAssistantConfig = () => {
           restrictedCity: safeParseJsonObject(cityData.restricted_city, DEFAULT_CHAT_CONFIG.restrictedCity),
           restrictedCountryCode: undefined,
           sedeElectronicaUrl: cityData.sede_electronica_url || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl,
+          agendaEventosUrls: safeParseJsonArray(cityData.agenda_eventos_urls, DEFAULT_CHAT_CONFIG.agendaEventosUrls || []),
           profileImageUrl: cityData.profile_image_url || DEFAULT_CHAT_CONFIG.profileImageUrl,
         };
         setConfig(loadedConfig);
@@ -159,6 +160,7 @@ export const useAssistantConfig = () => {
             uploaded_procedure_documents: JSON.stringify(newConfig.uploadedProcedureDocuments || []),
             restricted_city: newConfig.restrictedCity as any,
             sede_electronica_url: newConfig.sedeElectronicaUrl,
+            agenda_eventos_urls: newConfig.agendaEventosUrls,
             profile_image_url: newConfig.profileImageUrl,
             is_public: true,
             is_active: true,
@@ -190,6 +192,7 @@ export const useAssistantConfig = () => {
           uploaded_procedure_documents: JSON.stringify(newConfig.uploadedProcedureDocuments || []),
           restricted_city: newConfig.restrictedCity as any,
           sede_electronica_url: newConfig.sedeElectronicaUrl,
+          agenda_eventos_urls: newConfig.agendaEventosUrls,
           profile_image_url: newConfig.profileImageUrl,
           updated_at: new Date().toISOString()
         };
