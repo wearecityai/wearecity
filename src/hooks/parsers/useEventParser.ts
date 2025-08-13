@@ -81,11 +81,14 @@ export const useEventParser = () => {
     // Process events
     const currentYear = new Date().getFullYear();
     
+    // Permitir eventos del año actual y del anterior (para testing y casos edge)
+    const allowedYears = [currentYear, currentYear - 1];
+    
     const currentYearRawEvents = rawParsedEventsFromAI.filter(event => {
       const eventYear = new Date(event.date).getFullYear();
-      const isCurrentYear = eventYear === currentYear;
-      console.log("🗓️ EVENT YEAR CHECK:", { title: event.title, date: event.date, eventYear, currentYear, isCurrentYear });
-      return isCurrentYear;
+      const isAllowedYear = allowedYears.includes(eventYear);
+      console.log("🗓️ EVENT YEAR CHECK:", { title: event.title, date: event.date, eventYear, currentYear, allowedYears, isAllowedYear });
+      return isAllowedYear;
     });
     
     console.log("🔍 CURRENT YEAR EVENTS:", currentYearRawEvents);
@@ -156,6 +159,13 @@ export const useEventParser = () => {
     
     console.log("🔍 FINAL EVENTS FOR MESSAGE:", eventsForThisMessage);
     console.log("🔍 SHOW SEE MORE BUTTON:", showSeeMoreButtonForThisMessage);
+    console.log("🔍 EVENTS COUNT BREAKDOWN:", {
+      rawParsed: rawParsedEventsFromAI.length,
+      afterYearFilter: currentYearRawEvents.length,
+      afterGrouping: tempGroupedEvents.length,
+      afterNewFilter: eventsForThisMessageCandidate.length,
+      final: eventsForThisMessage.length
+    });
     
     if (eventsForThisMessage.length > 0) { 
       lastUserQueryThatLedToEvents.current = inputText; 

@@ -229,6 +229,15 @@ export const useMessageHandler = (
       };
       // Parsea la respuesta como antes
       const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
+      
+      console.log('🔍 DEBUG - Parsed response:', {
+        processedContent: parsed.processedContent?.substring(0, 200),
+        eventsCount: parsed.eventsForThisMessage?.length || 0,
+        events: parsed.eventsForThisMessage,
+        placeCardsCount: parsed.placeCardsForMessage?.length || 0,
+        placeCards: parsed.placeCardsForMessage
+      });
+      
       const parsedMessage: ChatMessage = {
           ...aiMessage,
           content: parsed.processedContent,

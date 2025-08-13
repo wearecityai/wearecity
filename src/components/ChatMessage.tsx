@@ -32,13 +32,49 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   );
 
   // Use typewriter text if active, otherwise use original content
-  const contentToDisplay = shouldUseTypewriter ? displayText : message.content;
+  let contentToDisplay = shouldUseTypewriter ? displayText : message.content;
+  
+  // IMPORTANTE: Si hay eventos o place cards, NO mostrar las tarjetas en el texto
+  // porque se renderizan como componentes separados
+  if (message.events && message.events.length > 0 || message.placeCards && message.placeCards.length > 0) {
+    // Si hay tarjetas, solo mostrar el texto introductorio (sin las tarjetas)
+    if (contentToDisplay && typeof contentToDisplay === 'string') {
+      // Eliminar marcadores de eventos y place cards del texto
+      contentToDisplay = contentToDisplay
+        .replace(/\[EVENT_CARD_START\][\s\S]*?\[EVENT_CARD_END\]/g, '')
+        .replace(/\[PLACE_CARD_START\][\s\S]*?\[PLACE_CARD_END\]/g, '')
+        .replace(/```json[\s\S]*?```/g, '')
+        .replace(/```/g, '')
+        .replace(/^`?json\s*$/i, '')
+        .trim();
+    }
+  } else {
+    // Si no hay tarjetas, solo limpiar formato JSON
+    if (contentToDisplay && typeof contentToDisplay === 'string') {
+      contentToDisplay = contentToDisplay
+        .replace(/```json[\s\S]*?```/g, '')
+        .replace(/```/g, '')
+        .replace(/^`?json\s*$/i, '');
+    }
+  }
 
   // Fallback: while typewriter has not started and there is no text yet, show the loading row
   const showPendingTypewriter = shouldUseTypewriter && !typewriterIsTyping && (!contentToDisplay || contentToDisplay.trim() === '');
 
   // Strict sequential reveal for cards - only after text is complete
   const totalCards = (message.events?.length || 0) + (message.placeCards?.length || 0);
+  
+  console.log('🔍 DEBUG - ChatMessage render:', {
+    messageId: message.id,
+    hasEvents: !!message.events?.length,
+    eventsCount: message.events?.length || 0,
+    hasPlaceCards: !!message.placeCards?.length,
+    placeCardsCount: message.placeCards?.length || 0,
+    totalCards,
+    contentToDisplay: contentToDisplay?.substring(0, 100),
+    messageContent: message.content?.substring(0, 100)
+  });
+  
   const { shouldShowCard } = useStrictSequentialReveal({
     textContent: contentToDisplay, // Use the content that's actually being displayed
     totalCards,
@@ -198,8 +234,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     )}
                      {message.events && message.events.length > 0 && (
                        <div className="mt-3 space-y-2">
+                         {(() => {
+                           console.log('🔍 DEBUG - Rendering events:', message.events);
+                           return null;
+                         })()}
                          {message.events.map((event, index) => {
                            const shouldShow = shouldShowCard(index);
+                           console.log(`🔍 DEBUG - Event ${index}:`, { event, shouldShow });
                            return (
                              <div
                                key={`${message.id}-event-${index}`}

@@ -2,6 +2,17 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+/**
+ * Edge Function para Chat IA con Gemini 2.0 Flash
+ * 
+ * CAMBIOS PRINCIPALES PARA GEMINI 2.0:
+ * - Modelo por defecto: gemini-2.0-flash (más rápido y eficiente)
+ * - Eliminado googleSearchRetrieval para modelos 2.x (no soportado)
+ * - Integración con Google Custom Search Engine (CSE) para búsquedas web
+ * - Endpoint v1 para Gemini 2.x, v1beta para Gemini 1.x
+ * - Búsquedas proactivas automáticas para eventos y lugares
+ */
+
 // Configuración de función - No requiere JWT
 // Esta función es pública y maneja autenticación internamente
 const FUNCTION_CONFIG = {
@@ -23,6 +34,10 @@ const GEMINI_MODEL_NAME = Deno.env.get("GEMINI_MODEL_NAME") || "gemini-2.0-flash
 const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
 const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY") || GOOGLE_MAPS_API_KEY;
 
+// Google Custom Search (CSE)
+const GOOGLE_CSE_KEY = Deno.env.get("GOOGLE_CSE_KEY");
+const GOOGLE_CSE_CX = Deno.env.get("GOOGLE_CSE_CX");
+
 // Instrucciones base del sistema
 const INITIAL_SYSTEM_INSTRUCTION = "Eres 'Asistente de Ciudad', un IA amigable y servicial especializado en información sobre ciudades. Proporciona respuestas concisas y directas a consultas sobre turismo, servicios locales, eventos, transporte y vida urbana. Si una pregunta requiere contexto de una ciudad específica y el usuario no la ha mencionado, pide amablemente que especifique la ciudad. De lo contrario, responde de la mejor manera posible con información general si aplica.";
 
@@ -34,63 +49,25 @@ const SHOW_MAP_PROMPT_SYSTEM_INSTRUCTION = `Cuando discutas una ubicación geogr
 
 const EVENT_CARD_START_MARKER = "[EVENT_CARD_START]";
 const EVENT_CARD_END_MARKER = "[EVENT_CARD_END]";
-const EVENT_CARD_SYSTEM_INSTRUCTION = `INSTRUCCIONES CRÍTICAS PARA EVENT CARDS - SIGUE ESTO AL PIE DE LA LETRA:
-
-Cuando informes sobre eventos, sigue ESTRICTAMENTE este formato:
-1. OPCIONAL Y MUY IMPORTANTE: Comienza con UNA SOLA frase introductoria MUY CORTA Y GENÉRICA si es absolutamente necesario (ej: "Aquí tienes los eventos para esas fechas:"). NO menciones NINGÚN detalle de eventos específicos, fechas, lugares, ni otras recomendaciones en este texto introductorio. TODO debe estar en las tarjetas.
-2. INMEDIATAMENTE DESPUÉS de la introducción (si la hay, sino directamente), para CADA evento que menciones, DEBES usar el formato de tarjeta JSON: ${EVENT_CARD_START_MARKER}{"title": "Nombre del Evento", "date": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" (opcional), "time": "HH:mm" (opcional), "location": "Lugar del Evento" (opcional), "sourceUrl": "https://ejemplo.com/evento" (opcional), "sourceTitle": "Nombre de la Fuente del Evento" (opcional)}${EVENT_CARD_END_MARKER}. No debe haber ningún texto NI LÍNEAS EN BLANCO entre las tarjetas de evento, solo las tarjetas una tras otra.
-3. REGLA CRÍTICA E INQUEBRANTABLE: TODO el detalle de cada evento debe estar contenido EXCLUSIVAMENTE dentro de su marcador JSON. NO escribas NINGÚN detalle, lista, resumen o mención de eventos específicos en el texto fuera de estos marcadores.
-4. Asegúrate de que el JSON dentro del marcador sea válido. Las fechas DEBEN estar en formato AAAA-MM-DD.
-5. Filtro de Año: A menos que el usuario solicite explícitamente eventos de un año diferente, asegúrate de que todos los eventos que proporciones correspondan al AÑO ACTUAL.
-
-**BÚSQUEDA WEB INTELIGENTE PARA EVENTOS**:
-Cuando el usuario busque eventos (palabras clave: "eventos", "festivales", "conciertos", "actividades", "cosas que hacer", etc.), realizarás automáticamente búsquedas web específicas para encontrar eventos locales actualizados desde múltiples fuentes:
-
-FUENTES PRIORITARIAS A BUSCAR:
-- Redes sociales: "eventos [ciudad] site:instagram.com", "actividades [ciudad] site:facebook.com/events"
-- Plataformas de eventos: "eventos [ciudad] site:eventbrite.es", "eventos [ciudad] site:meetup.com"
-- Webs oficiales: "eventos [ciudad] site:ayuntamiento", "agenda cultural [ciudad]"
-- Medios locales: "eventos [ciudad] site:[periodico-local]"
-
-TÉRMINOS DE BÚSQUEDA OPTIMIZADOS:
-- Para eventos este fin de semana: "eventos este fin de semana [ciudad] 2025"
-- Para conciertos: "conciertos [ciudad] 2025 site:instagram.com OR site:facebook.com"
-- Para festivales: "festivales [ciudad] 2025 site:eventbrite.es OR site:meetup.com"
-- Para actividades familiares: "actividades familiares [ciudad] 2025"
-
-IMPORTANTE: Valida que las fechas de eventos encontrados sean futuras o actuales, nunca eventos pasados.`;
+const EVENT_CARD_SYSTEM_INSTRUCTION = `Cuando informes sobre eventos, sigue ESTRICTAMENTE este formato:
+1. OPCIONAL Y MUY IMPORTANTE: Comienza con UNA SOLA frase introductoria MUY CORTA Y GENÉRICA si es absolutamente necesario (ej: "Aquí tienes los eventos para esas fechas:"). NO menciones NINGÚN detalle de eventos específicos, fechas, lugares, ni otras recomendaciones (como exposiciones, enlaces al ayuntamiento, etc.) en este texto introductorio. TODO debe estar en las tarjetas. **EVITA LÍNEAS EN BLANCO** antes de la primera tarjeta.
+2. INMEDIATAMENTE DESPUÉS de la introducción (si la hay, sino directamente), para CADA evento que menciones, DEBES usar el formato: ${EVENT_CARD_START_MARKER}{"title": "Nombre del Evento", "date": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" (opcional), "time": "HH:mm" (opcional), "location": "Lugar del Evento" (opcional), "sourceUrl": "https://ejemplo.com/evento" (opcional), "sourceTitle": "Nombre de la Fuente del Evento" (opcional)}${EVENT_CARD_END_MARKER}. No debe haber texto **NI LÍNEAS EN BLANCO** entre tarjetas, solo tarjetas consecutivas.
+   * "date": Fecha de inicio (YYYY-MM-DD).
+   * "endDate": (opcional) Solo si el MISMO título se extiende en días CONSECUTIVOS.
+3. REGLA CRÍTICA: TODO el detalle de cada evento (nombre, fecha/s, hora, lugar, fuente si aplica) debe ir EXCLUSIVAMENTE en su JSON. Fuera de los marcadores, únicamente la breve introducción opcional.
+4. El JSON debe ser válido. 'time' solo si es relevante. 'location' es el lugar o dirección. 'sourceUrl' y 'sourceTitle' son opcionales; inclúyelos si provienes de búsqueda web con URL fiable.
+5. No inventes URLs. Si no hay URL, omítelas.
+6. A menos que el usuario pida otro año, devuelve eventos del AÑO ACTUAL.
+7. "Ver más": si el usuario lista eventos ya vistos, devuelve eventos distintos (evita repetir títulos/fechas ya mostrados).`;
 
 const PLACE_CARD_START_MARKER = "[PLACE_CARD_START]";
 const PLACE_CARD_END_MARKER = "[PLACE_CARD_END]";
-const PLACE_CARD_SYSTEM_INSTRUCTION = `INSTRUCCIONES CRÍTICAS PARA PLACE CARDS - SIGUE ESTO AL PIE DE LA LETRA:
-
-Cuando recomiendes un lugar específico (restaurante, tienda, museo, hotel, etc.), DEBES seguir este formato EXACTO:
-
-1. OBLIGATORIO: Proporciona una explicación detallada de POR QUÉ recomiendas este lugar específico. Incluye:
-   - Qué lo hace especial o destacado
-   - Por qué es relevante para la consulta del usuario
-   - Características únicas (especialidades, ambiente, historia, etc.)
-   - Cualquier información adicional que justifique tu recomendación
-
-2. OBLIGATORIO: Después de la explicación, usa EXACTAMENTE este formato para la place card:
-${PLACE_CARD_START_MARKER}{"name": "Nombre Oficial del Lugar", "placeId": "IDdeGooglePlaceDelLugar", "searchQuery": "Nombre del Lugar, Ciudad"}${PLACE_CARD_END_MARKER}
-
-**EJEMPLO CORRECTO:**
-"Te recomiendo **Restaurante Genérico** porque es un establecimiento muy valorado en la ciudad configurada, conocido por su excelente cocina y ambiente acogedor. Es ideal para disfrutar de una comida especial en [CIUDAD].
-
-${PLACE_CARD_START_MARKER}{"name": "Restaurante Genérico", "placeId": "ID_DE_EJEMPLO", "searchQuery": "Restaurante Genérico, [CIUDAD]"}${PLACE_CARD_END_MARKER}"
-
-**REGLAS INQUEBRANTABLES:**
-- ✅ SIEMPRE explica POR QUÉ recomiendas el lugar ANTES de mostrar la place card
-- ✅ SIEMPRE usa ${PLACE_CARD_START_MARKER} y ${PLACE_CARD_END_MARKER}
-- ❌ NUNCA uses [PLT] o [PL] - ESTÁN PROHIBIDOS
-- ❌ NUNCA cambies el formato de los marcadores
-- ❌ NUNCA muestres solo la place card sin explicación
-- ❌ NUNCA uses comillas simples en el JSON, solo comillas dobles
-- ✅ SIEMPRE incluye "name", "placeId" y "searchQuery" en el JSON
-- ✅ Si no tienes un placeId válido, usa "searchQuery" con el nombre y ciudad del lugar
-
-La explicación debe ser informativa y ayudar al usuario a entender por qué ese lugar es una buena opción para su consulta.`;
+const PLACE_CARD_SYSTEM_INSTRUCTION = `Cuando recomiendes un lugar y quieras mostrar tarjeta:
+1. OPCIONAL: Una sola frase introductoria corta.
+2. A continuación, para cada lugar usa: ${PLACE_CARD_START_MARKER}{"name": "Nombre Oficial del Lugar", "placeId": "IDdeGooglePlaceDelLugar", "searchQuery": "Nombre del Lugar, Ciudad"}${PLACE_CARD_END_MARKER}.
+   * 'name' obligatorio; prioriza 'placeId'; si no, 'searchQuery' específica.
+3. REGLA CRÍTICA: Todo el detalle debe ir en el JSON; fuera, solo la frase introductoria opcional.
+4. JSON válido; no inventes IDs.`;
 
 const RICH_TEXT_FORMATTING_SYSTEM_INSTRUCTION = `
 GUÍA DE FORMATO DE TEXTO ENRIQUECIDO:
@@ -441,7 +418,8 @@ async function buildSystemPrompt(
   config: any,
   userLocation?: { lat: number, lng: number },
   userMessage?: string,
-  conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>
+  conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>,
+  webResults?: Array<{ title?: string; url?: string; description?: string }>
 ) {
   const parts: string[] = [];
 
@@ -501,6 +479,37 @@ async function buildSystemPrompt(
     if (custom) parts.push(custom);
   }
 
+  // 6) Indicar que el backend puede usar búsqueda web cuando sea necesario (Google CSE)
+  if (GOOGLE_CSE_KEY && GOOGLE_CSE_CX) {
+    parts.push(
+      `El backend puede realizar búsquedas web automáticamente cuando sea necesario para verificar eventos y lugares. Los resultados de búsqueda se proporcionan como contexto adicional. No incluyas explicaciones largas de tu proceso de búsqueda: limita la salida a tarjetas de eventos o place cards según corresponda.`
+    );
+  }
+
+  // 7) Anexar resultados web (si ya fueron obtenidos) como contexto para el modelo
+  if (webResults && webResults.length > 0) {
+    const bullets = webResults
+      .map((it, i) => `${i + 1}. ${it.title || it.url} (${it.url})`)
+      .join('\n');
+    parts.push(
+      `Resultados web recientes (úsalos para verificar y genera tarjetas correctamente, no los repitas tal cual):\n${bullets}`
+    );
+  }
+
+  // 8) Refuerzo para consultas de eventos: no pidas aclaraciones, devuelve tarjetas
+  try {
+    const intents = detectIntents(userMessage);
+    if (intents.has('events')) {
+      parts.push(`MODO EVENTOS ESTRICTO:
+- No hagas preguntas de aclaración previas. Primero intenta devolver tarjetas de eventos con la información disponible.
+- Si no se especifica rango temporal, devuelve eventos del AÑO ACTUAL para los próximos 14 días o el próximo fin de semana (lo que produzca mejores resultados).
+- El backend puede realizar búsquedas web automáticamente para encontrar eventos actualizados.
+- La salida debe consistir en 3 a 8 tarjetas como máximo, cada una en su marcador ${EVENT_CARD_START_MARKER}...${EVENT_CARD_END_MARKER}, con JSON válido y fechas YYYY-MM-DD del año actual.
+- Fuera de los marcadores JSON NO incluyas listados de eventos; solo, como mucho, una frase introductoria muy breve.
+- Si no encuentras nada verificable tras buscar, devuelve: "No he encontrado eventos futuros para [CIUDAD]".`);
+    }
+  } catch {}
+
   return parts.join('\n\n').trim();
 }
 
@@ -539,27 +548,26 @@ async function callGeminiAPI(systemInstruction: string, userMessage: string, con
     });
   }
   
-  // Agregar el mensaje actual del usuario
-  contents.push({
-    role: "user",
-    parts: [{ text: `${systemInstruction}\n\n${userMessage}` }]
-  });
+  // Agregar el mensaje actual del usuario (con instrucción del sistema al inicio)
+  let finalUserMessage = `${systemInstruction}\n\n${userMessage}`;
+  contents.push({ role: "user", parts: [{ text: finalUserMessage }] });
   
-  // Gemini 2.0 usa `google_search`; Gemini 1.x usa `googleSearchRetrieval`
-  const tools = GEMINI_MODEL_NAME.startsWith('gemini-2.')
-    ? [{ google_search: {} }]
-    : [{ googleSearchRetrieval: {} }];
-
-  const body = {
-    contents: contents,
-    tools
+  // Gemini 2.x no soporta tools, solo Gemini 1.x
+  const body: any = {
+    contents: contents
   };
+  
+  // Solo agregar tools para modelos Gemini 1.x
+  if (GEMINI_MODEL_NAME.startsWith('gemini-1.')) {
+    body.tools = [{ googleSearchRetrieval: {} }];
+  }
   
   console.log("Prompt enviado a Gemini:", JSON.stringify(body));
   
-  // Para modelos 2.x, el endpoint estable es v1 (v1beta también responde, pero el doc recomienda v1)
+  // Para modelos 2.x, usar endpoint v1; para 1.x usar v1beta
   const apiVersion = GEMINI_MODEL_NAME.startsWith('gemini-2.') ? 'v1' : 'v1beta';
   const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${GEMINI_MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
+  
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -693,30 +701,188 @@ function weekendRangeFridayToSunday(): { start: string; end: string } {
 function detectEventWindow(userMessage?: string): { windowStart?: string; windowEnd?: string } {
   if (!userMessage) return {};
   const text = userMessage.toLowerCase();
-  const todayStr = toDateString(new Date());
-  if (/\b(hoy)\b/.test(text)) {
-    return { windowStart: todayStr, windowEnd: todayStr };
-  }
+  const today = new Date();
+  const todayStr = toDateString(today);
+
+  // hoy / mañana
+  if (/\b(hoy)\b/.test(text)) return { windowStart: todayStr, windowEnd: todayStr };
   if (/\b(mañana|manana)\b/.test(text)) {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    const s = toDateString(d);
+    const d = new Date(); d.setDate(d.getDate() + 1); const s = toDateString(d);
     return { windowStart: s, windowEnd: s };
   }
+
+  // esta semana / este fin de semana
   if (/\b(esta\s+semana)\b/.test(text)) {
     const { today, weekEnd } = startOfWeekTodayToSunday();
     return { windowStart: today, windowEnd: weekEnd };
   }
-  if (/\b(este\s+fin\s+de\s+semana)\b/.test(text)) {
+  if (/\b(este\s+fin\s+de\s+semana|fin\s*de\s*semana)\b/.test(text)) {
     const { start, end } = weekendRangeFridayToSunday();
+    return { windowStart: start, windowEnd: end };
+  }
+
+  // este mes / próximo mes
+  if (/\b(este\s+mes)\b/.test(text)) {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { windowStart: toDateString(start), windowEnd: toDateString(end) };
+  }
+  if (/\b(próximo\s+mes|proximo\s+mes)\b/.test(text)) {
+    const start = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+    return { windowStart: toDateString(start), windowEnd: toDateString(end) };
+  }
+
+  // día de la semana (próximo)
+  const weekdays: Record<string, number> = { 'domingo':0,'lunes':1,'martes':2,'miércoles':3,'miercoles':3,'jueves':4,'viernes':5,'sábado':6,'sabado':6 };
+  for (const name in weekdays) {
+    if (new RegExp(`\\b${name}\\b`).test(text)) {
+      const target = weekdays[name];
+      const d = new Date();
+      const delta = (target - d.getDay() + 7) % 7 || 7; // próximo día (si hoy, ir a la próxima semana)
+      d.setDate(d.getDate() + delta);
+      const s = toDateString(d);
+      return { windowStart: s, windowEnd: s };
+    }
+  }
+
+  // fechas explícitas: dd/mm(/yyyy) o dd-mm(-yyyy)
+  const m1 = text.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{4}))?\b/);
+  if (m1) {
+    const d = parseInt(m1[1],10); const mo = parseInt(m1[2],10)-1; const y = m1[3]?parseInt(m1[3],10):today.getFullYear();
+    const dt = new Date(y, mo, d); const s = toDateString(dt); return { windowStart: s, windowEnd: s };
+  }
+
+  // "15 de agosto (de 2025)"
+  const months: Record<string, number> = { 'enero':0,'febrero':1,'marzo':2,'abril':3,'mayo':4,'junio':5,'julio':6,'agosto':7,'septiembre':8,'setiembre':8,'octubre':9,'noviembre':10,'diciembre':11 };
+  const m2 = text.match(/\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/);
+  if (m2) {
+    const d = parseInt(m2[1],10); const mo = months[m2[2]]; const y = m2[3]?parseInt(m2[3],10):today.getFullYear();
+    const dt = new Date(y, mo, d); const s = toDateString(dt); return { windowStart: s, windowEnd: s };
+  }
+
+  // "próximos eventos" → próximos 60 días
+  if (/\b(próximos\s+eventos|proximos\s+eventos|próximos\s+días|proximos\s+dias)\b/.test(text)) {
+    const start = todayStr; const endD = new Date(); endD.setDate(endD.getDate()+60); const end = toDateString(endD);
     return { windowStart: start, windowEnd: end };
   }
   return {};
 }
 
-async function sanitizeAIResponse(rawText: string, config: any, userMessage?: string): Promise<string> {
+// Heurística: extraer tarjetas desde HTML de resultados de búsqueda web
+async function buildEventCardsFromPages(
+  results: Array<{ title?: string; url?: string; description?: string }>,
+  cityName?: string
+): Promise<string[]> {
+  const extractEventsFromJsonLd = async (html: string) => {
+    const cards: string[] = [];
+    try {
+      const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+      let m;
+      const year = new Date().getFullYear();
+      const todayStr = toDateString(new Date());
+      while ((m = scriptRegex.exec(html)) !== null) {
+        const raw = m[1].trim();
+        let json;
+        try { json = JSON.parse(raw); } catch { continue; }
+        const collect = (node: any) => {
+          if (!node) return;
+          if (Array.isArray(node)) { node.forEach(collect); return; }
+          const t = (node['@type'] || node['type']);
+          const types = Array.isArray(t) ? t.map((x:any)=>String(x).toLowerCase()) : [String(t||'').toLowerCase()];
+          if (types.includes('event')) {
+            const title = node.name || node.headline || node.title;
+            const startDate = node.startDate || node.start_date || node.date || node.dtstart;
+            const endDate = node.endDate || node.end_date || node.dtend;
+            if (title && startDate) {
+              const sd = typeof startDate === 'string' ? startDate.substring(0,10) : '';
+              if (sd && sd >= todayStr && sd.startsWith(String(year))) {
+                const obj: any = { title, date: sd };
+                if (endDate && typeof endDate === 'string') obj.endDate = endDate.substring(0,10);
+                cards.push(`${EVENT_CARD_START_MARKER}${JSON.stringify(obj)}${EVENT_CARD_END_MARKER}`);
+              }
+            }
+          }
+          for (const k of Object.keys(node)) if (typeof node[k] === 'object') collect(node[k]);
+        };
+        collect(json);
+      }
+    } catch {}
+    return cards;
+  };
+  const monthMap: Record<string, string> = {
+    'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06',
+    'julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'
+  };
+  const normalizeDate = (s: string): string[] => {
+    const year = new Date().getFullYear();
+    const found: string[] = [];
+    // yyyy-mm-dd
+    for (const m of s.matchAll(/(20\d{2})[-\/](\d{1,2})[-\/](\d{1,2})/g)) {
+      const y = m[1];
+      const mo = m[2].padStart(2,'0');
+      const d = m[3].padStart(2,'0');
+      if (y === String(year)) found.push(`${y}-${mo}-${d}`);
+    }
+    // dd/mm/yyyy
+    for (const m of s.matchAll(/(\d{1,2})[\/](\d{1,2})[\/](20\d{2})/g)) {
+      const d = m[1].padStart(2,'0');
+      const mo = m[2].padStart(2,'0');
+      const y = m[3];
+      if (y === String(year)) found.push(`${y}-${mo}-${d}`);
+    }
+    // "dd de mes [de yyyy]"
+    for (const m of s.matchAll(/(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de\s+(20\d{2}))?/gi)) {
+      const d = m[1].padStart(2,'0');
+      const mo = monthMap[m[2].toLowerCase()];
+      const y = (m[3] || String(year));
+      if (y === String(year)) found.push(`${y}-${mo}-${d}`);
+    }
+    return Array.from(new Set(found));
+  };
+
+  const todayStr = toDateString(new Date());
+  const built: string[] = [];
+  for (const r of results) {
+    try {
+      if (!r?.url) continue;
+      const res = await fetch(r.url, { headers: { 'Accept': 'text/html' } });
+      if (!res.ok) continue;
+      const html = await res.text();
+      // Filtrar por ciudad si se especifica
+      if (cityName && !(`${r.title} ${r.description} ${html}`.toLowerCase().includes(cityName.toLowerCase()))) continue;
+      const dates = normalizeDate(`${r.title || ''} ${r.description || ''} ${html}`);
+      for (const date of dates) {
+        if (date < todayStr) continue;
+        const title = (r.title || 'Evento').replace(/\s+\|.*/,'').trim();
+        const obj: any = { title, date, sourceUrl: r.url, sourceTitle: 'Google CSE/HTML' };
+        built.push(`${EVENT_CARD_START_MARKER}${JSON.stringify(obj)}${EVENT_CARD_END_MARKER}`);
+        if (built.length >= 6) break;
+      }
+      if (built.length >= 6) break;
+    } catch {}
+  }
+  return built;
+}
+
+async function sanitizeAIResponse(
+  rawText: string,
+  config: any,
+  userMessage?: string,
+  webResults?: Array<{ title?: string; url?: string; description?: string }>
+): Promise<string> {
   if (!rawText || typeof rawText !== 'string') return rawText;
   let text = rawText;
+
+  // 0) Limpiar marcadores obsoletos si el modelo los incluyó por prompt previo
+  try {
+    // Limpiar cualquier marcador de búsqueda obsoleto
+    if (/\[BRAVE_SEARCH:[^\]]+\]/i.test(text)) {
+      text = text.replace(/\[BRAVE_SEARCH:[^\]]+\]/ig, '');
+    }
+  } catch (e) {
+    console.error('Error limpiando marcadores obsoletos:', e);
+  }
 
   const restrictedCity = safeParseJsonObject(config?.restricted_city) || config?.restrictedCity || null;
   const restrictedCityName: string | undefined = restrictedCity?.name;
@@ -825,46 +991,106 @@ async function sanitizeAIResponse(rawText: string, config: any, userMessage?: st
 
   // 2) Verificar EVENT CARDs: exigir sourceUrl, año actual, y fechas no pasadas; aplicar ventana temporal si se pidió
   try {
-    const evStart = escapeForRegex(EVENT_CARD_START_MARKER);
-    const evEnd = escapeForRegex(EVENT_CARD_END_MARKER);
-    const evRegex = new RegExp(`${evStart}([\n\r\t\s\S]*?)${evEnd}`, 'g');
+    // Regex más robusto que capture el formato de Gemini con bloques de código
+    const evStart = EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const evEnd = EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const evRegex = new RegExp(`${evStart}([\\s\\S]*?)${evEnd}`, 'g');
+    
+    console.log(`🔍 DEBUG - EVENT CARDS: Regex construido:`, evRegex.source);
+    console.log(`🔍 DEBUG - EVENT CARDS: Marcadores:`, { start: evStart, end: evEnd });
     const replacements: Array<{ full: string; replacement: string }> = [];
+    
     // Contar cuántas tarjetas existían inicialmente
     const originalMatches = Array.from(text.matchAll(evRegex)).length;
+    console.log(`🔍 DEBUG - EVENT CARDS: Encontradas ${originalMatches} tarjetas originalmente`);
+    
     // Reiniciar lastIndex para reutilizar el regex en el loop
     evRegex.lastIndex = 0;
 
     let match;
+    let processedCount = 0;
     while ((match = evRegex.exec(text)) !== null) {
+      processedCount++;
       const full = match[0];
-      const jsonPart = match[1]?.trim();
+      let jsonPart = match[1]?.trim();
+      
+      // Limpiar bloques de código Markdown si existen
+      if (jsonPart) {
+        // Remover ```json y ``` del inicio y final
+        jsonPart = jsonPart.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+        // También remover ``` sueltos
+        jsonPart = jsonPart.replace(/```/g, '');
+        jsonPart = jsonPart.trim();
+      }
+      
+      console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: JSON part original:`, match[1]?.substring(0, 100));
+      console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: JSON part limpio:`, jsonPart?.substring(0, 100));
+      
       const evt = safeParseJsonObject(jsonPart, null);
+      
+      // Permitir eventos del año actual y del año anterior para casos edge
+      const eventYear = Number(evt.date?.slice(0, 4));
+      const yearOk = evt?.date ? /^(\d{4})-\d{2}-\d{2}$/.test(evt.date) && (eventYear === currentYear || eventYear === currentYear - 1) : false;
+      
+      console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: Procesando tarjeta:`, {
+        hasTitle: !!evt?.title,
+        hasDate: !!evt?.date,
+        title: evt?.title?.substring(0, 50),
+        date: evt?.date,
+        eventYear,
+        currentYear,
+        yearOk
+      });
+      
       if (!evt || !evt.title || !evt.date) {
+        console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: ❌ Eliminada - falta título o fecha`);
         replacements.push({ full, replacement: '' });
         continue;
       }
-      const yearOk = /^(\d{4})-\d{2}-\d{2}$/.test(evt.date) && Number(evt.date.slice(0, 4)) === currentYear;
+      
+      console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: Año del evento: ${eventYear}, Año actual: ${currentYear}, ¿Año válido? ${yearOk}`);
       if (!yearOk) {
-        // Eliminar tarjetas no verificables
+        console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: ❌ Eliminada - año incorrecto (${evt.date})`);
         replacements.push({ full, replacement: '' });
         continue;
       }
+      
       const startDate: string = evt.date;
       const endDate: string = evt.endDate && /^(\d{4})-\d{2}-\d{2}$/.test(evt.endDate) ? evt.endDate : startDate;
-      // Descartar eventos totalmente en el pasado
-      if (endDate < todayStr) {
-        replacements.push({ full, replacement: '' });
-        continue;
-      }
-      // Si hay ventana temporal solicitada, filtrar a esa ventana (intersección)
-      if (windowStart && windowEnd) {
-        // Mantener si el rango [startDate,endDate] intersecta [windowStart,windowEnd]
-        const intersects = !(endDate < windowStart || startDate > windowEnd);
-        if (!intersects) {
+      
+      // Descartar eventos totalmente en el pasado (pero permitir eventos del año anterior si son futuros)
+      const today = new Date();
+      const eventDate = new Date(endDate);
+      
+      // Si el evento es del año anterior, solo descartarlo si ya pasó completamente
+      if (eventYear < currentYear) {
+        // Para eventos del año anterior, solo descartar si ya terminaron completamente
+        if (eventDate < today) {
+          console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: ❌ Eliminada - evento del año anterior ya terminó (${endDate})`);
+          replacements.push({ full, replacement: '' });
+          continue;
+        }
+      } else {
+        // Para eventos del año actual, descartar si ya pasaron
+        if (endDate < todayStr) {
+          console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: ❌ Eliminada - fecha pasada (${endDate})`);
           replacements.push({ full, replacement: '' });
           continue;
         }
       }
+      
+      // Si hay ventana temporal solicitada, filtrar a esa ventana (intersección)
+      if (windowStart && windowEnd) {
+        const intersects = !(endDate < windowStart || startDate > windowEnd);
+        if (!intersects) {
+          console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: ❌ Eliminada - fuera de ventana temporal`);
+          replacements.push({ full, replacement: '' });
+          continue;
+        }
+      }
+      
+      console.log(`🔍 DEBUG - EVENT CARD ${processedCount}: ✅ Válida - manteniendo`);
+      
       // Normalizar objeto (opcional: recortar campos no esperados)
       const normalized = {
         title: evt.title,
@@ -882,30 +1108,167 @@ async function sanitizeAIResponse(rawText: string, config: any, userMessage?: st
     for (const r of replacements) {
       text = text.replace(r.full, r.replacement);
     }
+    
+    console.log(`🔍 DEBUG - EVENT CARDS: Aplicadas ${replacements.length} reemplazos`);
+    console.log(`🔍 DEBUG - EVENT CARDS: Texto después de reemplazos:`, text.substring(0, 200) + '...');
 
     // Si la intención es eventos, reconstruir la salida solo con tarjetas válidas
     const intents = detectIntents(userMessage);
     if (intents.has('events')) {
       const keptCards: string[] = [];
       let m2;
-      const evRegex2 = new RegExp(`${evStart}([\n\r\t\s\S]*?)${evEnd}`, 'g');
+      // Usar las constantes directamente, no las variables del scope anterior
+      const evRegex2 = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+      
+      console.log(`🔍 DEBUG - EVENT CARDS: Regex para contar tarjetas finales:`, evRegex2.source);
+      console.log(`🔍 DEBUG - EVENT CARDS: Texto a analizar:`, text.substring(0, 300) + '...');
+      
       while ((m2 = evRegex2.exec(text)) !== null) {
         const full2 = m2[0];
         keptCards.push(full2);
+        console.log(`🔍 DEBUG - EVENT CARDS: Encontrada tarjeta ${keptCards.length}:`, full2.substring(0, 100) + '...');
       }
-      // Solo reconstruir si originalmente había tarjetas. Si no había, no sobreescribir el texto del modelo.
-      if (originalMatches > 0) {
+      
+      console.log(`🔍 DEBUG - EVENT CARDS: Tarjetas mantenidas después de sanitización: ${keptCards.length}`);
+      if (keptCards.length > 0) {
+        console.log(`🔍 DEBUG - EVENT CARDS: Primera tarjeta mantenida:`, keptCards[0].substring(0, 200) + '...');
+      }
+      
+      // Solo reconstruir si originalmente había tarjetas Y si se eliminaron todas durante la sanitización
+      if (originalMatches > 0 && keptCards.length === 0) {
         const cityName = (restrictedCityName || 'tu ciudad');
-        if (keptCards.length === 0) {
-          text = `No he encontrado eventos futuros para ${cityName} en el rango solicitado.`;
-        } else {
+        console.log(`🔍 DEBUG - EVENT CARDS: Todas las tarjetas fueron eliminadas, reconstruyendo mensaje de "no encontrado"`);
+        text = `No he encontrado eventos futuros para ${cityName} en el rango solicitado.`;
+      } else if (keptCards.length > 0) {
+        // Si hay tarjetas válidas, mantenerlas pero agregar una introducción si no la hay
+        if (!text.trim().startsWith('Aquí tienes') && !text.trim().startsWith('Eventos')) {
+          console.log(`🔍 DEBUG - EVENT CARDS: Agregando introducción a tarjetas válidas`);
           text = `Aquí tienes los eventos solicitados:\n` + keptCards.join('\n');
+        } else {
+          console.log(`🔍 DEBUG - EVENT CARDS: Manteniendo texto original con tarjetas válidas`);
         }
       }
+
+      // Fallback: si NO hubo tarjetas válidas y tenemos resultados de búsqueda web, intenta construir tarjetas heurísticas
+      if (keptCards.length === 0 && webResults && webResults.length > 0) {
+        const monthMap: Record<string, string> = {
+          'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06',
+          'julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'
+        };
+        const normalizeDate = (s: string): string | null => {
+          s = s.toLowerCase();
+          // yyyy-mm-dd
+          let m = s.match(/(20\d{2})[-\/](\d{1,2})[-\/](\d{1,2})/);
+          if (m) {
+            const y = m[1]; const mo = m[2].padStart(2,'0'); const d = m[3].padStart(2,'0');
+            return `${y}-${mo}-${d}`;
+          }
+          // dd/mm/yyyy
+          m = s.match(/(\d{1,2})[\/](\d{1,2})[\/](20\d{2})/);
+          if (m) {
+            const d = m[1].padStart(2,'0'); const mo = m[2].padStart(2,'0'); const y = m[3];
+            return `${y}-${mo}-${d}`;
+          }
+          // "dd de mes" opcionalmente con año
+          m = s.match(/(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de\s+(20\d{2}))?/);
+          if (m) {
+            const d = m[1].padStart(2,'0'); const mo = monthMap[m[2]]; const y = m[3] || String(new Date().getFullYear());
+            return `${y}-${mo}-${d}`;
+          }
+          return null;
+        };
+
+        const todayStr = toDateString(new Date());
+        const year = new Date().getFullYear();
+        const built: string[] = [];
+        for (const r of webResults) {
+          const blob = `${r.title || ''} ${r.description || ''}`;
+          const date = normalizeDate(blob);
+          if (!date) continue;
+          if (date < todayStr || !date.startsWith(String(year))) continue;
+          const title = (r.title || 'Evento');
+          const normalized = { title, date, sourceUrl: r.url, sourceTitle: 'Google CSE' } as any;
+          built.push(`${EVENT_CARD_START_MARKER}${JSON.stringify(normalized)}${EVENT_CARD_END_MARKER}`);
+          if (built.length >= 6) break;
+        }
+        if (built.length === 0) {
+          // Segunda pasada: scrapeo HTML de las páginas para extraer fechas
+          const builtFromPages = await buildEventCardsFromPages(webResults, restrictedCityName);
+          built.push(...builtFromPages);
+        }
+        if (built.length > 0) {
+          const cityName = (restrictedCityName || 'tu ciudad');
+          text = `Aquí tienes los eventos solicitados:\n` + built.join('\n');
+        }
+      }
+
+      // Fallback extra A: si el modelo devolvió bloques ```json con objetos {title,date,...}, envolverlos como tarjetas
+      if (!/\[EVENT_CARD_START\]/.test(text)) {
+        try {
+          const jsonBlocks = Array.from(text.matchAll(/```json\s*([\s\S]*?)```/gi)).map(m => m[1]);
+          const fromJsonBlocks: string[] = [];
+          for (const jb of jsonBlocks) {
+            // Puede haber múltiples objetos en línea: intenta dividir por "}\s*,\s*{"
+            const pieces = jb.trim().startsWith('{') && jb.trim().endsWith('}')
+              ? [jb.trim()]
+              : jb.split(/\}\s*,\s*\{/g).map((p,i,arr)=>{
+                  let s=p; if (i>0) s='{'+s; if (i<arr.length-1) s=s+'}'; return s;
+                });
+            for (const p of pieces) {
+              try {
+                const obj = JSON.parse(p);
+                if (obj?.title && obj?.date) {
+                  const card = { title: obj.title, date: String(obj.date).substring(0,10), endDate: obj.endDate ? String(obj.endDate).substring(0,10) : undefined, location: obj.location, sourceUrl: obj.link || obj.url };
+                  fromJsonBlocks.push(`${EVENT_CARD_START_MARKER}${JSON.stringify(card)}${EVENT_CARD_END_MARKER}`);
+                }
+              } catch {}
+            }
+          }
+          if (fromJsonBlocks.length > 0) {
+            text = `Aquí tienes los eventos solicitados:\n` + fromJsonBlocks.join('\n');
+          }
+        } catch {}
+      }
+
+      // Fallback extra B: eliminar tarjetas vacías y, si quedan 0, intentar construir desde webResults
+      try {
+        const emptyCardsRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+        const before = text;
+        text = text.replace(emptyCardsRegex, '');
+        if (before !== text) {
+          // si tras limpiar no hay ninguna tarjeta
+          if (!/\[EVENT_CARD_START\][\s\S]*?\[EVENT_CARD_END\]/.test(text)) {
+            const built: string[] = [];
+            if (webResults && webResults.length > 0) {
+              const builtFromPages = await buildEventCardsFromPages(webResults, restrictedCityName);
+              built.push(...builtFromPages);
+            }
+            if (built.length > 0) {
+              text = `Aquí tienes los eventos solicitados:\n` + built.join('\n');
+            } else {
+              text = 'No he encontrado eventos futuros para ' + (restrictedCityName || 'tu ciudad') + '.';
+            }
+          }
+        }
+      } catch {}
     }
   } catch (e) {
     console.error('Sanitize EventCards error:', e);
   }
+
+  // Limpieza final de restos de bloques de código (conservando el contenido)
+  try {
+    // Convierte ```json ... ``` en su contenido sin fences
+    text = text.replace(/```json\s*([\s\S]*?)```/gi, (_m, g1) => g1);
+    // Quita fences sueltos si quedaran
+    text = text.replace(/```/g, '');
+    text = text.trim();
+    // Quita prefijos/residuos como "`json" que algunos modelos devuelven
+    text = text.replace(/^`?json\s*$/i, '').trim();
+  } catch {}
+  
+  console.log(`🔍 DEBUG - EVENT CARDS: Texto final después de toda la sanitización:`, text.substring(0, 300) + '...');
+  console.log(`🔍 DEBUG - EVENT CARDS: ¿Contiene marcadores de evento al final?`, /\[EVENT_CARD_START\]/.test(text));
 
   return text;
 }
@@ -968,6 +1331,62 @@ async function searchPlaceId(placeName: string, location?: string): Promise<stri
   } catch (error) {
     console.error('❌ Error searching for place:', error);
     return null;
+  }
+}
+
+// Function to perform Google Custom Search for events and places
+async function performGoogleCustomSearch(query: string, cityName?: string, searchType: 'events' | 'places' = 'events'): Promise<Array<{ title?: string; url?: string; description?: string }>> {
+  if (!GOOGLE_CSE_KEY || !GOOGLE_CSE_CX) {
+    console.log('❌ Google Custom Search not configured');
+    return [];
+  }
+
+  try {
+    // Build search query with city context
+    let searchQuery = query;
+    if (cityName) {
+      searchQuery += ` ${cityName}`;
+    }
+    
+    // Add search type specific terms
+    if (searchType === 'events') {
+      searchQuery += ' eventos agenda programación';
+    } else if (searchType === 'places') {
+      searchQuery += ' restaurantes lugares sitios';
+    }
+    
+    // Add current year for events
+    if (searchType === 'events') {
+      searchQuery += ` ${new Date().getFullYear()}`;
+    }
+    
+    console.log(`🔍 Performing Google Custom Search: "${searchQuery}"`);
+    
+    const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_CSE_KEY}&cx=${GOOGLE_CSE_CX}&q=${encodeURIComponent(searchQuery)}&num=10&hl=es&lr=lang_es`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Google CSE API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.items && Array.isArray(data.items)) {
+      const results = data.items.map((item: any) => ({
+        title: item.title,
+        url: item.link,
+        description: item.snippet
+      }));
+      
+      console.log(`✅ Google CSE found ${results.length} results`);
+      return results;
+    } else {
+      console.log('❌ No results from Google CSE');
+      return [];
+    }
+  } catch (error) {
+    console.error('❌ Error in Google Custom Search:', error);
+    return [];
   }
 }
 
@@ -1163,7 +1582,7 @@ serve(async (req) => {
   let responseText: string = "";
   
   try {
-    // 1) Cargar assistant_config del panel por usuario (PRIORIDAD)
+  // 1) Cargar assistant_config del panel por usuario (PRIORIDAD)
     let assistantConfig = await loadAssistantPanelConfig(userId);
     
     // 2) Si no hay assistant_config, intentar cargar config de city (fallback)
@@ -1197,54 +1616,96 @@ serve(async (req) => {
       systemInstruction: assistantConfig?.systemInstruction ? 'sí' : 'no'
     });
 
+    // Si la intención es eventos/lugares, ejecutar Google CSE proactivamente y pasar resultados como contexto
+    let webResults: Array<{ title?: string; url?: string; description?: string }> | undefined = undefined;
+    const intentsForProactiveSearch = detectIntents(userMessage);
+    
+    if (GOOGLE_CSE_KEY && GOOGLE_CSE_CX && (intentsForProactiveSearch.has('events') || intentsForProactiveSearch.has('places'))) {
+      try {
+        const restrictedCity = safeParseJsonObject(assistantConfig?.restricted_city) || assistantConfig?.restrictedCity || null;
+        const cityName: string | undefined = restrictedCity?.name;
+        
+        if (intentsForProactiveSearch.has('events')) {
+          // Search for events
+          const eventQuery = userMessage.toLowerCase();
+          const wantsWeekend = /(fin\s*de\s*semana|weekend)/i.test(eventQuery);
+          const wantsToday = /(hoy|today)/i.test(eventQuery);
+          const wantsTomorrow = /(mañana|manana|tomorrow)/i.test(eventQuery);
+          
+          let searchQuery = 'eventos agenda programación';
+          if (wantsWeekend) searchQuery += ' fin de semana';
+          if (wantsToday) searchQuery += ' hoy';
+          if (wantsTomorrow) searchQuery += ' mañana';
+          
+          webResults = await performGoogleCustomSearch(searchQuery, cityName, 'events');
+        } else if (intentsForProactiveSearch.has('places')) {
+          // Search for places
+          const placeQuery = userMessage.toLowerCase();
+          let searchQuery = 'restaurantes lugares sitios';
+          
+          // Add specific place types if mentioned
+          if (/(restaurante|comida|donde comer)/i.test(placeQuery)) searchQuery += ' restaurantes';
+          if (/(café|cafe|bar|cerveza)/i.test(placeQuery)) searchQuery += ' cafés bares';
+          if (/(museo|galería|galeria)/i.test(placeQuery)) searchQuery += ' museos galerías';
+          if (/(hotel|alojamiento)/i.test(placeQuery)) searchQuery += ' hoteles alojamiento';
+          
+          webResults = await performGoogleCustomSearch(searchQuery, cityName, 'places');
+        }
+        
+        console.log(`🔍 Proactive search completed. Found ${webResults?.length || 0} results`);
+      } catch (e) {
+        console.error('Google CSE proactive search error:', e);
+      }
+    }
+
     // Construir el prompt del sistema
-    const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation, userMessage, conversationHistory);
+    const systemInstruction = await buildSystemPrompt(assistantConfig, userLocation, userMessage, conversationHistory, webResults);
     console.log("🔍 DEBUG - Sistema de instrucciones construido (primeras 500 chars):", systemInstruction.substring(0, 500));
     console.log("🔍 DEBUG - Sistema de instrucciones construido (últimas 500 chars):", systemInstruction.substring(Math.max(0, systemInstruction.length - 500)));
 
     // Llamar a Gemini
-    try {
-      console.log('🔍 DEBUG - Llamando a Gemini con prompt de', systemInstruction.length, 'caracteres');
+      try {
+        console.log('🔍 DEBUG - Llamando a Gemini con prompt de', systemInstruction.length, 'caracteres');
       const raw = await callGeminiAPI(systemInstruction, userMessage, conversationHistory);
-      console.log('🔍 DEBUG - Respuesta raw de Gemini recibida, longitud:', raw.length);
-      console.log('🔍 DEBUG - Respuesta raw preview (primeros 500 chars):', raw.substring(0, 500));
-      
-      responseText = await sanitizeAIResponse(raw, assistantConfig, userMessage);
-      console.log('🔍 DEBUG - Respuesta sanitizada, longitud:', responseText.length);
-      console.log('🔍 DEBUG - Respuesta sanitizada preview (primeros 500 chars):', responseText.substring(0, 500));
-      
-      // Verificar si la respuesta contiene place cards
-      const hasPlaceCardMarkers = responseText.includes('[PLACE_CARD_START]') && responseText.includes('[PLACE_CARD_END]');
-      console.log('🔍 DEBUG - ¿La respuesta contiene marcadores de place cards?', hasPlaceCardMarkers);
-      
-      if (hasPlaceCardMarkers) {
-        console.log('🔍 DEBUG - ✅ Place cards encontradas en la respuesta de la IA');
-        const placeCardMatches = responseText.match(/\[PLACE_CARD_START\]([\s\S]*?)\[PLACE_CARD_END\]/g);
-        console.log('🔍 DEBUG - Número de place cards encontradas:', placeCardMatches ? placeCardMatches.length : 0);
-        if (placeCardMatches) {
-          placeCardMatches.forEach((match, index) => {
-            console.log(`🔍 DEBUG - Place card ${index + 1}:`, match.substring(0, 200) + '...');
-          });
-        }
-      } else {
-        console.log('🔍 DEBUG - ❌ NO se encontraron place cards en la respuesta de la IA');
-        console.log('🔍 DEBUG - Buscando cualquier referencia a place cards...');
-        const placeCardIndex = responseText.indexOf('PLACE_CARD');
-        if (placeCardIndex !== -1) {
-          console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
+        console.log('🔍 DEBUG - Respuesta raw de Gemini recibida, longitud:', raw.length);
+        console.log('🔍 DEBUG - Respuesta raw preview (primeros 500 chars):', raw.substring(0, 500));
+        
+      responseText = await sanitizeAIResponse(raw, assistantConfig, userMessage, webResults);
+        console.log('🔍 DEBUG - Respuesta sanitizada, longitud:', responseText.length);
+        console.log('🔍 DEBUG - Respuesta sanitizada preview (primeros 500 chars):', responseText.substring(0, 500));
+        
+        // Verificar si la respuesta contiene place cards
+        const hasPlaceCardMarkers = responseText.includes('[PLACE_CARD_START]') && responseText.includes('[PLACE_CARD_END]');
+        console.log('🔍 DEBUG - ¿La respuesta contiene marcadores de place cards?', hasPlaceCardMarkers);
+        
+        if (hasPlaceCardMarkers) {
+          console.log('🔍 DEBUG - ✅ Place cards encontradas en la respuesta de la IA');
+          const placeCardMatches = responseText.match(/\[PLACE_CARD_START\]([\s\S]*?)\[PLACE_CARD_END\]/g);
+          console.log('🔍 DEBUG - Número de place cards encontradas:', placeCardMatches ? placeCardMatches.length : 0);
+          if (placeCardMatches) {
+            placeCardMatches.forEach((match, index) => {
+              console.log(`🔍 DEBUG - Place card ${index + 1}:`, match.substring(0, 200) + '...');
+            });
+          }
         } else {
-          console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards');
+          console.log('🔍 DEBUG - ❌ NO se encontraron place cards en la respuesta de la IA');
+          console.log('🔍 DEBUG - Buscando cualquier referencia a place cards...');
+          const placeCardIndex = responseText.indexOf('PLACE_CARD');
+          if (placeCardIndex !== -1) {
+            console.log('🔍 DEBUG - Encontrado "PLACE_CARD" en posición:', placeCardIndex);
+          } else {
+            console.log('🔍 DEBUG - NO se encontró ninguna referencia a place cards');
+          }
         }
-      }
-      
+        
     } catch (e) {
       console.error("Error al llamar a Gemini:", e);
       responseText = "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.";
     }
 
-    if (!responseText) {
+  if (!responseText) {
       console.error("Gemini no devolvió texto. Prompt:", systemInstruction, "Mensaje:", userMessage);
-      responseText = "Lo siento, no pude generar una respuesta en este momento.";
+    responseText = "Lo siento, no pude generar una respuesta en este momento.";
     }
   } catch (error) {
     console.error("Error general en el procesamiento:", error);
