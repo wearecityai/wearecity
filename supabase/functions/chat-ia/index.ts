@@ -1678,7 +1678,7 @@ serve(async (req) => {
         console.log('🔍 DEBUG - Resumen de marcadores:');
         console.log('🔍 DEBUG - Event cards:', hasEventCardMarkers ? '✅' : '❌');
         console.log('🔍 DEBUG - Place cards:', hasPlaceCardMarkers ? '✅' : '❌');
-        console.log('🔍 DEBUG - Intents detectados:', Array.from(intents));
+        console.log('🔍 DEBUG - Intents detectados:', Array.from(intentsForProactiveSearch));
         console.log('🔍 DEBUG - Texto de la respuesta (primeros 300 chars):', responseText.substring(0, 300));
         
         if (hasEventCardMarkers) {
@@ -1695,12 +1695,12 @@ serve(async (req) => {
               console.log(`🔍 DEBUG - Place card ${index + 1}:`, match.substring(0, 200) + '...');
             });
           }
-        } else if (intents.has('places')) {
+        } else if (intentsForProactiveSearch.has('places')) {
           console.log('🔍 DEBUG - ❌ NO se encontraron place cards pero se detectó intent de places');
           console.log('🔍 DEBUG - Esto indica que las instrucciones no están funcionando correctamente');
         }
         
-        if (!hasEventCardMarkers && intents.has('events')) {
+        if (!hasEventCardMarkers && intentsForProactiveSearch.has('events')) {
           console.log('🔍 DEBUG - ❌ NO se encontraron event cards pero se detectó intent de events');
           console.log('🔍 DEBUG - Esto indica que las instrucciones de eventos no están funcionando correctamente');
         }
