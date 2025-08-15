@@ -46,6 +46,7 @@ interface AppContainerProps {
   handleSendMessage: (message: string) => void;
   handleSeeMoreEvents: (originalUserQuery: string) => void;
   clearMessages: () => void;
+  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   setAppError: (error: string | null) => void;
   setIsGeminiReady: (ready: boolean) => void;
   handleNewChat: () => Promise<void>;
@@ -86,6 +87,7 @@ const AppContainer: React.FC<AppContainerProps> = ({
   handleSendMessage,
   handleSeeMoreEvents,
   clearMessages,
+  setMessages,
   setAppError,
   setIsGeminiReady,
   handleNewChat,

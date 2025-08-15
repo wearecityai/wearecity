@@ -1,28 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Bot, Download, ExternalLink, Plus, ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Building2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
+import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
-import { ChatMessage as ChatMessageType, MessageRole } from '../types';
+import { ChatMessage as ChatMessageType, MessageRole, PlaceCardInfo } from '../types';
 import EventCard from './EventCard';
 import PlaceCard from './PlaceCard';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { useStrictSequentialReveal } from '../hooks/useStrictSequentialReveal';
+import { usePlaceCardRetry } from '../hooks/usePlaceCardRetry';
+import { usePlaceCardFilter } from '../hooks/usePlaceCardFilter';
 
 interface ChatMessageProps {
   message: ChatMessageType;
   onDownloadPdf?: (pdfInfo: NonNullable<ChatMessageType['downloadablePdfInfo']>) => void;
   configuredSedeElectronicaUrl?: string;
   onSeeMoreEvents?: (originalUserQuery: string) => void;
+  setMessages?: React.Dispatch<React.SetStateAction<ChatMessageType[]>>;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents, setMessages }) => {
   const { t } = useTranslation();
+  const { retryPlaceCard } = usePlaceCardRetry();
+  const { filterPlaceCards, isFiltering } = usePlaceCardFilter();
   const isUser = message.role === MessageRole.User;
   const timestamp = new Date(message.timestamp);
+  
+  // Estado para PlaceCard filtradas
+  const [filteredPlaceCards, setFilteredPlaceCards] = useState<PlaceCardInfo[]>([]);
+  
+  // Filtrar PlaceCard cuando cambien o cuando se monte el componente
+  useEffect(() => {
+    if (message.placeCards && message.placeCards.length > 0) {
+      console.log('🔍 Filtering place cards before rendering...');
+      
+      // Por ahora, permitir todas las PlaceCard para evitar bloqueos
+      // El filtrado real se hará en el backend y en la validación de Google Places
+      console.log('⚠️ Temporarily allowing all place cards to avoid blocking');
+      setFilteredPlaceCards(message.placeCards);
+      
+      // TODO: Implementar filtrado real cuando tengamos acceso al chatConfig
+      // const restrictedCityName = getRestrictedCityFromContext();
+      // filterPlaceCards(message.placeCards, restrictedCityName).then(filtered => {
+      //   console.log(`✅ Place cards filtered: ${filtered.length}/${message.placeCards!.length} valid`);
+      //   setFilteredPlaceCards(filtered);
+      // });
+    } else {
+      setFilteredPlaceCards([]);
+    }
+  }, [message.placeCards]);
 
   // Use typewriter effect only when explicitly requested (e.g., first-time generation)
   const shouldUseTypewriter = !!(message.shouldAnimate && !isUser && !message.isTyping && !message.error && message.content);
@@ -257,9 +286,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                          })}
                        </div>
                      )}
-                     {message.placeCards && message.placeCards.length > 0 && (
+                     {/* Place Cards - Solo mostrar las filtradas */}
+                     {filteredPlaceCards.length > 0 && (
                        <div className="mt-3 space-y-2">
-                         {message.placeCards.map((place, index) => {
+                         {isFiltering && (
+                           <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
+                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                             Validando ubicaciones de lugares...
+                           </div>
+                         )}
+                         {filteredPlaceCards.map((place, index) => {
                            const cardIndex = (message.events?.length || 0) + index;
                            const shouldShow = shouldShowCard(cardIndex);
                            return (
@@ -272,10 +308,29 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                                }`}
                                style={{ display: shouldShow ? 'block' : 'none' }}
                              >
-                               <PlaceCard place={place} />
+                               <PlaceCard 
+                                 place={place} 
+                                 onRetry={(placeId) => {
+                                   if (setMessages) {
+                                     const placeCard = message.placeCards?.find(card => card.id === placeId);
+                                     if (placeCard) {
+                                       retryPlaceCard(message.id, placeCard, setMessages);
+                                     }
+                                   }
+                                 }}
+                               />
                              </div>
                            );
                          })}
+                       </div>
+                     )}
+                     
+                     {/* Mostrar mensaje si se filtraron PlaceCard */}
+                     {message.placeCards && message.placeCards.length > 0 && filteredPlaceCards.length === 0 && !isFiltering && (
+                       <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                         <p className="text-sm text-yellow-800">
+                           ⚠️ Los lugares sugeridos no están en la ciudad configurada y han sido filtrados por seguridad.
+                         </p>
                        </div>
                      )}
                     {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (

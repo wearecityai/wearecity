@@ -32,6 +32,7 @@ interface EventDateDisplayParts {
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const [linkStatus, setLinkStatus] = useState<LinkStatus>('idle');
+  const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const { i18n, t } = useTranslation();
 
   useEffect(() => {
@@ -169,97 +170,177 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     }
   };
 
-  const renderDateBadge = () => {
+  const renderCalendarDate = () => {
     if (!dateParts) return null;
 
     return (
-      <div className="flex items-center space-x-1">
-        <Calendar className="h-4 w-4 text-muted-foreground" />
-        <div className="flex items-center space-x-1">
-          <Badge variant="outline" className="text-xs font-semibold">
-            {dateParts.endDay ? 
-              `${dateParts.day}-${dateParts.endDay} ${dateParts.monthAbbr}${dateParts.endYear ? ` ${dateParts.endYear}` : ''}` :
-              `${dateParts.day} ${dateParts.monthAbbr}${dateParts.year ? ` ${dateParts.year}` : ''}`
-            }
-          </Badge>
+      <div className="flex-shrink-0 flex flex-col justify-center items-center min-w-[70px] relative">
+        <div className="text-xs font-medium text-primary/70 uppercase tracking-wide">
+          {dateParts.monthAbbr}
         </div>
+        <div className="text-3xl font-bold text-primary leading-none mt-1">
+          {dateParts.day}
+        </div>
+        {dateParts.year && (
+          <div className="text-xs text-primary/60 mt-1 font-medium">
+            {dateParts.year}
+          </div>
+        )}
+        {/* Separador vertical a la derecha */}
+        <div className="absolute -right-2 top-0 bottom-0 w-px bg-border"></div>
       </div>
     );
   };
 
+  const addToDeviceCalendar = async () => {
+    if (!event.date || !event.time) {
+      // Mostrar mensaje de error si no hay fecha o hora
+      alert(t('events.noDateOrTime', { defaultValue: 'This event does not have a date or time specified' }));
+      return;
+    }
+
+    setIsAddingToCalendar(true);
+    
+    try {
+      // Crear objeto de evento para el calendario
+      const eventData = {
+        title: event.titleTranslations?.[i18n.language?.split('-')[0] || 'es'] || event.title,
+        location: event.location || '',
+        startDate: event.date,
+        endDate: event.endDate || event.date, // Usar endDate si está disponible
+        startTime: event.time?.split(' - ')[0] || '',
+        endTime: event.time?.split(' - ')[1] || event.time?.split(' - ')[0] || '',
+        url: event.sourceUrl || ''
+      };
+
+      // Crear archivo .ics (iCalendar)
+      const icsContent = generateICSFile(eventData);
+      
+      // Crear blob y descargar
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `event-${event.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error adding event to calendar:', error);
+      alert(t('events.calendarError', { defaultValue: 'Error adding event to calendar' }));
+    } finally {
+      setIsAddingToCalendar(false);
+    }
+  };
+
+  const generateICSFile = (eventData: any) => {
+    const formatDate = (dateStr: string, timeStr: string = '') => {
+      const date = new Date(dateStr);
+      if (timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        date.setHours(hours || 0, minutes || 0, 0, 0);
+      }
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+
+    const startDateTime = formatDate(eventData.startDate, eventData.startTime);
+    const endDateTime = formatDate(eventData.endDate, eventData.endTime);
+
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//City Chat//Event Calendar//EN',
+      'BEGIN:VEVENT',
+      `UID:${Date.now()}@citychat.app`,
+      `DTSTART:${startDateTime}`,
+      `DTEND:${endDateTime}`,
+      `SUMMARY:${eventData.title}`,
+      `LOCATION:${eventData.location}`,
+      `URL:${eventData.url}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+  };
+
   return (
-            <Card className="w-full max-w-sm border-border md:hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="space-y-2">
-          <h3 className="font-semibold text-sm leading-tight line-clamp-2">
-            {(() => {
-              const lang = (i18n.language || 'es').split('-')[0];
-              const translated = event.titleTranslations?.[lang];
-              return translated || event.title;
-            })()}
-          </h3>
-          
-          <div className="flex flex-wrap gap-2 text-xs">
-            {renderDateBadge()}
-            
-            {event.time && (
-              <div className="flex items-center space-x-1">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <Badge variant="outline" className="text-xs">
-                  {formatTimeRange(event.time)}
-                </Badge>
+    <Card className="w-full max-w-md border-border md:hover:shadow-md transition-shadow">
+      <div className="flex gap-4 p-4">
+        {/* Fecha del calendario a la izquierda */}
+        {renderCalendarDate()}
+        
+        {/* Contenido del evento a la derecha */}
+        <div className="flex-1 min-w-0">
+          <div className="space-y-3">
+            <div>
+              <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-2">
+                {(() => {
+                  const lang = (i18n.language || 'es').split('-')[0];
+                  const translated = event.titleTranslations?.[lang];
+                  return translated || event.title;
+                })()}
+              </h3>
+              
+                             {event.time && (
+                 <div className="flex items-center space-x-2 mb-2">
+                   <Clock className="h-4 w-4 text-muted-foreground" />
+                   <span className="text-sm text-muted-foreground">
+                     {formatTimeRange(event.time)}
+                   </span>
+                 </div>
+               )}
+            </div>
+
+            {event.location && (
+              <div className="flex items-start space-x-2">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <span className="text-sm text-muted-foreground line-clamp-2">
+                  {event.location}
+                </span>
               </div>
             )}
+
+            {/* Botones de acción */}
+            <div className="flex gap-2 pt-2">
+              {/* Botón Ver detalles - con estilo similar a PlaceCard */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                asChild
+                disabled={!event.sourceUrl}
+              >
+                <a
+                  href={event.sourceUrl || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center space-x-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Ver detalles</span>
+                </a>
+              </Button>
+
+              {/* Botón Añadir al calendario */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                onClick={addToDeviceCalendar}
+                disabled={isAddingToCalendar || !event.date}
+              >
+                {isAddingToCalendar ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                ) : (
+                  <Calendar className="h-4 w-4 mr-1" />
+                )}
+                <span>Añadir al calendario</span>
+              </Button>
+            </div>
           </div>
         </div>
-      </CardHeader>
-
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          {event.location && (
-            <div className="flex items-start space-x-2">
-              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-muted-foreground line-clamp-2">
-                {event.location}
-              </span>
-            </div>
-          )}
-
-
-          {event.sourceUrl && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`w-full ${getLinkStatusColor()}`}
-                    asChild
-                  >
-                    <a
-                      href={event.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center space-x-2"
-                    >
-                      {getLinkStatusIcon()}
-                      <span>{t('events.viewMore', { defaultValue: 'View more' })}</span>
-                    </a>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {linkStatus === 'loading' && t('events.checkingLink', { defaultValue: 'Checking link...' })}
-                  {linkStatus === 'valid' && t('events.linkVerified', { defaultValue: 'Link verified' })}
-                  {linkStatus === 'notFound' && t('events.linkNotFound', { defaultValue: 'Link not found (404)' })}
-                  {linkStatus === 'serverError' && t('events.serverError', { defaultValue: 'Server error' })}
-                  {linkStatus === 'networkOrCorsError' && t('events.linkCheckFailed', { defaultValue: 'Could not verify link' })}
-                  {linkStatus === 'idle' && t('events.openLink', { defaultValue: 'Open link' })}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
-      </CardContent>
+      </div>
     </Card>
   );
 };

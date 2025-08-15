@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { useThemeContext } from '../theme/ThemeProvider';
 import { useAutoGeolocation } from './useAutoGeolocation';
 import { usePersistentGeolocation } from './usePersistentGeolocation';
@@ -328,6 +328,68 @@ export const useAppState = (citySlug?: string) => {
     
     await saveConfig(updatedConfig);
   };
+
+  // Hook para detectar visibilidad de la pestaña
+  const usePageVisibility = () => {
+    const [isVisible, setIsVisible] = useState(!document.hidden);
+    
+    useEffect(() => {
+      const handleVisibilityChange = () => {
+        setIsVisible(!document.hidden);
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+    
+    return isVisible;
+  };
+
+  const isPageVisible = usePageVisibility();
+
+  // Función para reintentar cargar PlaceCard que estén en estado de carga infinita
+  const retryStuckPlaceCards = useCallback(() => {
+    if (!googleMapsScriptLoaded) return;
+    
+    console.log('🔄 Retrying stuck place cards due to page visibility change...');
+    
+    messages.forEach((msg) => {
+      if (msg.role === MessageRole.Model && msg.placeCards) {
+        msg.placeCards.forEach((card) => {
+          // Si la tarjeta está en estado de carga pero no tiene datos y no tiene error
+          if (card.isLoadingDetails && 
+              !card.rating && 
+              !card.address && 
+              !card.photoUrl &&
+              !card.website &&
+              !card.errorDetails &&
+              (card.placeId || card.searchQuery)) {
+            
+            console.log(`🔄 Retrying stuck place card: ${card.name}`);
+            
+            // Remover de la lista de procesadas para reintentar
+            const cardKey = `${msg.id}-${card.id}`;
+            processedCardsRef.current.delete(cardKey);
+            
+            // Reintentar cargar los detalles
+            fetchPlaceDetailsAndUpdateMessage(msg.id, card.id, card.placeId, card.searchQuery, setMessages);
+          }
+        });
+      }
+    });
+  }, [messages, googleMapsScriptLoaded, fetchPlaceDetailsAndUpdateMessage]);
+
+  // Efecto para reintentar PlaceCard cuando la pestaña vuelve a estar activa
+  useEffect(() => {
+    if (isPageVisible && googleMapsScriptLoaded) {
+      // Pequeño delay para asegurar que la página esté completamente cargada
+      const timeoutId = setTimeout(() => {
+        retryStuckPlaceCards();
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isPageVisible, googleMapsScriptLoaded, retryStuckPlaceCards]);
 
   return {
     isMobile,

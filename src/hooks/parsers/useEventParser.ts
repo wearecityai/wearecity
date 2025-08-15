@@ -128,29 +128,63 @@ export const useEventParser = () => {
 
     console.log("🔍 GROUPED EVENTS:", tempGroupedEvents);
 
-    // Filter new events
+    // MODIFICACIÓN: Lógica menos restrictiva para el filtro de eventos "nuevos"
+    // Si es una consulta nueva sobre eventos (diferente a la última), mostrar todos los eventos
+    const isNewEventQuery = inputText !== lastUserQueryThatLedToEvents.current;
+    console.log("🔍 NEW EVENT QUERY CHECK:", { 
+      currentInput: inputText, 
+      lastQuery: lastUserQueryThatLedToEvents.current, 
+      isNewEventQuery 
+    });
+
     const eventsForThisMessageCandidate: EventInfo[] = [];
-    for (const event of tempGroupedEvents) {
-      const startDate = parseDate(event.date); 
-      const endDate = event.endDate ? parseDate(event.endDate) : startDate;
-      let isNew = false; 
-      const eventIndividualDateKeys: string[] = [];
+    
+    if (isNewEventQuery) {
+      // Para consultas nuevas, mostrar todos los eventos y limpiar el tracking
+      console.log("🔍 NEW EVENT QUERY - Showing all events and clearing tracking");
+      displayedEventUniqueKeys.current.clear();
+      eventsForThisMessageCandidate.push(...tempGroupedEvents);
       
-      if (startDate && endDate) {
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-          const dayKey = `${event.title.toLowerCase()}+${formatDate(d)}`; 
+      // Agregar las claves únicas para evitar duplicados en la misma consulta
+      for (const event of tempGroupedEvents) {
+        const startDate = parseDate(event.date); 
+        const endDate = event.endDate ? parseDate(event.endDate) : startDate;
+        
+        if (startDate && endDate) {
+          for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dayKey = `${event.title.toLowerCase()}+${formatDate(d)}`; 
+            displayedEventUniqueKeys.current.add(dayKey);
+          }
+        } else {
+          const dayKey = `${event.title.toLowerCase()}+${event.date}`; 
+          displayedEventUniqueKeys.current.add(dayKey);
+        }
+      }
+    } else {
+      // Para la misma consulta, usar la lógica original de filtrado
+      console.log("🔍 SAME EVENT QUERY - Using original filtering logic");
+      for (const event of tempGroupedEvents) {
+        const startDate = parseDate(event.date); 
+        const endDate = event.endDate ? parseDate(event.endDate) : startDate;
+        let isNew = false; 
+        const eventIndividualDateKeys: string[] = [];
+        
+        if (startDate && endDate) {
+          for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dayKey = `${event.title.toLowerCase()}+${formatDate(d)}`; 
+            eventIndividualDateKeys.push(dayKey);
+            if (!displayedEventUniqueKeys.current.has(dayKey)) isNew = true;
+          }
+        } else {
+          const dayKey = `${event.title.toLowerCase()}+${event.date}`; 
           eventIndividualDateKeys.push(dayKey);
           if (!displayedEventUniqueKeys.current.has(dayKey)) isNew = true;
         }
-      } else {
-        const dayKey = `${event.title.toLowerCase()}+${event.date}`; 
-        eventIndividualDateKeys.push(dayKey);
-        if (!displayedEventUniqueKeys.current.has(dayKey)) isNew = true;
-      }
-      
-      if (isNew) { 
-        eventsForThisMessageCandidate.push(event); 
-        eventIndividualDateKeys.forEach(key => displayedEventUniqueKeys.current.add(key)); 
+        
+        if (isNew) { 
+          eventsForThisMessageCandidate.push(event); 
+          eventIndividualDateKeys.forEach(key => displayedEventUniqueKeys.current.add(key)); 
+        }
       }
     }
 
@@ -164,7 +198,9 @@ export const useEventParser = () => {
       afterYearFilter: currentYearRawEvents.length,
       afterGrouping: tempGroupedEvents.length,
       afterNewFilter: eventsForThisMessageCandidate.length,
-      final: eventsForThisMessage.length
+      final: eventsForThisMessage.length,
+      isNewEventQuery,
+      lastQuery: lastUserQueryThatLedToEvents.current
     });
     
     if (eventsForThisMessage.length > 0) { 

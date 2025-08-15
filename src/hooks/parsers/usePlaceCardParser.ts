@@ -3,6 +3,7 @@ import {
   PLACE_CARD_START_MARKER,
   PLACE_CARD_END_MARKER,
 } from '../../constants';
+import { validateCityInSearchQuery } from '../../constants/cities';
 
 export const usePlaceCardParser = () => {
   const parsePlaceCards = (content: string) => {
@@ -33,6 +34,32 @@ export const usePlaceCardParser = () => {
         console.log('🔍 Parsed place data:', placeData);
         
         if (placeData.name && (placeData.placeId || placeData.searchQuery)) {
+          // VALIDACIÓN CRÍTICA: Verificar que el searchQuery contenga la ciudad restringida
+          if (placeData.searchQuery) {
+            // Verificar que el searchQuery contenga al menos una ciudad española válida
+            if (!validateCityInSearchQuery(placeData.searchQuery)) {
+              console.warn('⚠️ Place card searchQuery validation failed:', placeData.searchQuery);
+              
+              // INTELIGENCIA ADICIONAL: Verificar si el nombre del lugar contiene indicadores de ciudad
+              const placeNameLower = placeData.name.toLowerCase();
+              const hasCityIndicators = placeNameLower.includes('valencia') || 
+                                      placeNameLower.includes('alicante') || 
+                                      placeNameLower.includes('villajoyosa') ||
+                                      placeNameLower.includes('la vila') ||
+                                      placeNameLower.includes('benidorm') ||
+                                      placeNameLower.includes('torrevieja');
+              
+              if (hasCityIndicators) {
+                console.log('✅ Place card accepted by name validation:', placeData.name);
+              } else {
+                console.warn('❌ Place card rejected: no valid city found in searchQuery or name');
+                continue; // Saltar esta place card
+              }
+            }
+            
+            console.log('✅ Place card city validation passed:', placeData.searchQuery);
+          }
+          
           const placeCard = { 
             id: crypto.randomUUID(), 
             name: placeData.name, 

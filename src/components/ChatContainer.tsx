@@ -21,6 +21,7 @@ interface ChatContainerProps {
   onlyGreeting?: boolean;
   user?: { id: string; email?: string } | null;
   onLogin?: () => void;
+  setMessages?: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
@@ -34,7 +35,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   onSetLanguageCode,
   onlyGreeting = false,
   user,
-  onLogin
+  onLogin,
+  setMessages
 }) => {
   const { t } = useTranslation();
   
@@ -138,6 +140,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           onDownloadPdf={onDownloadPdf}
           configuredSedeElectronicaUrl={chatConfig.sedeElectronicaUrl}
           onSeeMoreEvents={onSeeMoreEvents}
+          setMessages={setMessages}
         />
       )}
     </div>

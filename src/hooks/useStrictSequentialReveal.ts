@@ -33,7 +33,19 @@ export const useStrictSequentialReveal = ({
     setVisibleCards(0);
     setHasStartedDelay(false);
     
-    // If there's no text content, start showing cards immediately
+    // MODIFICACIÓN: Lógica más rápida para mostrar cards
+    // Si no hay typewriter activo (typewriterIsComplete = true), mostrar cards inmediatamente
+    if (typewriterIsComplete) {
+      if (totalCards > 0) {
+        // Add a small delay to prevent flashing
+        setTimeout(() => {
+          showCardsSequentially();
+        }, 200);
+      }
+      return;
+    }
+
+    // Si no hay textContent, mostrar cards inmediatamente
     if (!textContent || textContent.trim() === '') {
       if (totalCards > 0) {
         // Add a small delay to prevent flashing
@@ -44,13 +56,13 @@ export const useStrictSequentialReveal = ({
       return;
     }
 
-    // If there's text content, wait for typewriter to complete
+    // Si hay typewriter activo, esperar a que se complete
     if (typewriterIsComplete && totalCards > 0 && !hasStartedDelay) {
       setHasStartedDelay(true);
-      // Add a 1 second delay after typewriter completes to prevent premature card display
+      // Reducir el delay después del typewriter de 1000ms a 300ms
       setTimeout(() => {
         showCardsSequentially();
-      }, 1000);
+      }, 300);
     }
   }, [textContent, totalCards, typewriterIsComplete, cardDelay, messageId, hasStartedDelay]);
 
@@ -74,12 +86,20 @@ export const useStrictSequentialReveal = ({
   };
 
   const shouldShowCard = (cardIndex: number): boolean => {
-    // If there's text content, cards can only show after typewriter is complete
-    // AND the text content must match the final content (no partial text)
-    if (textContent && textContent.trim() !== '') {
-      if (!typewriterIsComplete || !hasStartedDelay) {
-        return false;
-      }
+    // MODIFICACIÓN: Lógica más simple y rápida
+    // Si el typewriter está completo, mostrar cards inmediatamente
+    if (typewriterIsComplete) {
+      return cardIndex < visibleCards;
+    }
+    
+    // Si no hay textContent, mostrar cards inmediatamente
+    if (!textContent || textContent.trim() === '') {
+      return cardIndex < visibleCards;
+    }
+    
+    // Si hay typewriter activo, esperar a que se complete
+    if (!hasStartedDelay) {
+      return false;
     }
     
     // Show cards sequentially

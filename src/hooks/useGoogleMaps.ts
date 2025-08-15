@@ -124,19 +124,50 @@ export const useGoogleMaps = (
       console.log(`⏰ Timeout reached for place card ${placeCardId}`);
       updatePlaceCardInMessage(messageId, placeCardId, { 
         isLoadingDetails: false, 
-        errorDetails: "Tiempo de espera agotado." 
+        errorDetails: "Tiempo de espera agotado. Haz clic para reintentar." 
       }, setMessages);
-    }, 30000); // 30 seconds timeout
+    }, 15000); // Reducido a 15 segundos para mejor UX
+
+    // Add retry mechanism
+    const retryTimeoutId = setTimeout(() => {
+      console.log(`🔄 Auto-retry timeout for place card ${placeCardId}`);
+      // Si después de 10 segundos no hay respuesta, marcar como error pero permitir reintento manual
+      updatePlaceCardInMessage(messageId, placeCardId, { 
+        isLoadingDetails: false, 
+        errorDetails: "Carga lenta. Haz clic para reintentar." 
+      }, setMessages);
+    }, 10000);
 
     const requestFields = ['name', 'place_id', 'formatted_address', 'photo', 'rating', 'user_ratings_total', 'url', 'geometry', 'website'];
     
     const processPlaceResult = (place: google.maps.places.PlaceResult | null, status: google.maps.places.PlacesServiceStatus) => {
-      // Clear timeout since we got a result
+      // Clear both timeouts since we got a result
       clearTimeout(timeoutId);
+      clearTimeout(retryTimeoutId);
       
       console.log(`🔍 Process place result for ${placeCardId}:`, { status, placeName: place?.name });
       
       if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+        // VALIDACIÓN CRÍTICA: Verificar que el lugar esté en la ciudad correcta
+        if (userLocation && place.geometry?.location) {
+          const placeLocation = new google.maps.LatLng(place.geometry.location.lat(), place.geometry.location.lng());
+          const currentUserLocation = new google.maps.LatLng(userLocation.latitude, userLocation.longitude);
+          const distInMeters = google.maps.geometry.spherical.computeDistanceBetween(currentUserLocation, placeLocation);
+          
+          // Aumentar el radio a 50km para evitar bloquear lugares válidos de la misma ciudad
+          // Muchas ciudades tienen barrios y áreas que están a más de 20km del centro
+          if (distInMeters > 50000) {
+            console.log(`❌ Place ${place.name} is too far from user location: ${(distInMeters/1000).toFixed(1)}km`);
+            updatePlaceCardInMessage(messageId, placeCardId, { 
+              isLoadingDetails: false, 
+              errorDetails: "Este lugar no está en la ciudad configurada." 
+            }, setMessages);
+            return;
+          }
+          
+          console.log(`✅ Place ${place.name} distance validated: ${(distInMeters/1000).toFixed(1)}km from user`);
+        }
+        
         let photoUrl: string | undefined = undefined;
         let photoAttributions: string[] | undefined = undefined;
         
@@ -197,9 +228,10 @@ export const useGoogleMaps = (
             } else {
               console.log(`❌ SearchQuery fallback also failed (${searchStatus}) for: ${searchQuery}`);
               clearTimeout(timeoutId); // Clear timeout on error
+              clearTimeout(retryTimeoutId);
               updatePlaceCardInMessage(messageId, placeCardId, { 
                 isLoadingDetails: false, 
-                errorDetails: `No se encontraron detalles (${status}).` 
+                errorDetails: `No se encontraron detalles (${status}). Haz clic para reintentar.` 
               }, setMessages);
             }
           });
@@ -208,9 +240,10 @@ export const useGoogleMaps = (
         
         console.log(`❌ Failed to load details for ${placeCardId}: ${status}`);
         clearTimeout(timeoutId); // Clear timeout on error
+        clearTimeout(retryTimeoutId);
         updatePlaceCardInMessage(messageId, placeCardId, { 
           isLoadingDetails: false, 
-          errorDetails: `No se encontraron detalles (${status}).` 
+          errorDetails: `No se encontraron detalles (${status}). Haz clic para reintentar.` 
         }, setMessages);
       }
     };
@@ -256,6 +289,181 @@ export const useGoogleMaps = (
     }
   }, [userLocation, updatePlaceCardInMessage, currentLanguageCode, googleMapsScriptLoaded]);
 
+  // Función para validar que una PlaceCard esté en la ciudad correcta ANTES del renderizado
+  const validatePlaceCardLocation = useCallback(async (
+    placeCard: PlaceCardInfo,
+    restrictedCityName?: string
+  ): Promise<boolean> => {
+    if (!googleMapsScriptLoaded || !placesServiceRef.current) {
+      console.log('❌ Google Maps service not available for location validation');
+      return false;
+    }
+
+    // Si no hay ciudad restringida, no validar
+    if (!restrictedCityName) {
+      console.log('⚠️ No restricted city configured, skipping location validation');
+      return true;
+    }
+
+    try {
+      console.log(`🔍 Validating place card location: ${placeCard.name} for city: ${restrictedCityName}`);
+
+      // Si ya tenemos placeId, validar directamente
+      if (placeCard.placeId) {
+        const requestFields = ['geometry', 'formatted_address'];
+        
+        return new Promise((resolve) => {
+          placesServiceRef.current!.getDetails({ 
+            placeId: placeCard.placeId, 
+            fields: requestFields, 
+            language: currentLanguageCode || 'es' 
+          }, (place, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry?.location) {
+              const placeLat = place.geometry.location.lat();
+              const placeLng = place.geometry.location.lng();
+              
+              // Obtener coordenadas de la ciudad restringida
+              getCityCoordinates(restrictedCityName).then(cityCoords => {
+                if (cityCoords) {
+                  const distance = calculateDistance(
+                    cityCoords.lat, 
+                    cityCoords.lng, 
+                    placeLat, 
+                    placeLng
+                  );
+                  
+                  // Si está a más de 50km, NO es válido
+                  if (distance > 50) {
+                    console.log(`❌ Place ${placeCard.name} rejected: ${distance.toFixed(1)}km from ${restrictedCityName}`);
+                    resolve(false);
+                  } else {
+                    console.log(`✅ Place ${placeCard.name} validated: ${distance.toFixed(1)}km from ${restrictedCityName}`);
+                    resolve(true);
+                  }
+                } else {
+                  console.log('⚠️ Could not get city coordinates, rejecting place card for safety');
+                  resolve(false);
+                }
+              });
+            } else {
+              console.log(`❌ Could not get place details for validation: ${status}`);
+              resolve(false);
+            }
+          });
+        });
+      }
+      
+      // Si no hay placeId pero hay searchQuery, validar mediante búsqueda
+      if (placeCard.searchQuery) {
+        const searchQuery = `${placeCard.name}, ${restrictedCityName}`;
+        
+        return new Promise((resolve) => {
+          placesServiceRef.current!.textSearch({ 
+            query: searchQuery, 
+            fields: ['geometry', 'formatted_address'], 
+            language: currentLanguageCode || 'es' 
+          }, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+              const place = results[0];
+              if (place.geometry?.location) {
+                const placeLat = place.geometry.location.lat();
+                const placeLng = place.geometry.location.lng();
+                
+                // Obtener coordenadas de la ciudad restringida
+                getCityCoordinates(restrictedCityName).then(cityCoords => {
+                  if (cityCoords) {
+                    const distance = calculateDistance(
+                      cityCoords.lat, 
+                      cityCoords.lng, 
+                      placeLat, 
+                      placeLng
+                    );
+                    
+                    // Si está a más de 50km, NO es válido
+                    if (distance > 50) {
+                      console.log(`❌ Place ${placeCard.name} rejected: ${distance.toFixed(1)}km from ${restrictedCityName}`);
+                      resolve(false);
+                    } else {
+                      console.log(`✅ Place ${placeCard.name} validated: ${distance.toFixed(1)}km from ${restrictedCityName}`);
+                      resolve(true);
+                    }
+                  } else {
+                    console.log('⚠️ Could not get city coordinates, rejecting place card for safety');
+                    resolve(false);
+                  }
+                });
+              } else {
+                console.log('❌ Place has no geometry for validation');
+                resolve(false);
+              }
+            } else {
+              console.log(`❌ Could not find place for validation: ${status}`);
+              resolve(false);
+            }
+          });
+        });
+      }
+      
+      // Si no hay placeId ni searchQuery, rechazar por seguridad
+      console.log('❌ Place card has no placeId or searchQuery, rejecting for safety');
+      return false;
+      
+    } catch (error) {
+      console.error('❌ Error validating place card location:', error);
+      return false; // Por seguridad, rechazar si hay error
+    }
+  }, [googleMapsScriptLoaded, currentLanguageCode]);
+
+  // Función para obtener coordenadas de una ciudad
+  const getCityCoordinates = useCallback(async (cityName: string): Promise<{ lat: number; lng: number } | null> => {
+    if (!googleMapsScriptLoaded) return null;
+    
+    try {
+      // Usar Google Places Text Search API como alternativa al Geocoder
+      const searchQuery = `${cityName}, España`;
+      
+      return new Promise((resolve) => {
+        placesServiceRef.current!.textSearch({ 
+          query: searchQuery, 
+          fields: ['geometry'], 
+          language: currentLanguageCode || 'es' 
+        }, (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            const place = results[0];
+            if (place.geometry?.location) {
+              resolve({ 
+                lat: place.geometry.location.lat(), 
+                lng: place.geometry.location.lng() 
+              });
+            } else {
+              console.log(`❌ City ${cityName} has no geometry`);
+              resolve(null);
+            }
+          } else {
+            console.log(`❌ Could not find city: ${cityName} (Status: ${status})`);
+            resolve(null);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error getting city coordinates:', error);
+      return null;
+    }
+  }, [googleMapsScriptLoaded, currentLanguageCode]);
+
+  // Función para calcular distancia entre dos puntos (fórmula de Haversine)
+  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }, []);
+
   // Cleanup function for timeouts
   useEffect(() => {
     return () => {
@@ -288,6 +496,7 @@ export const useGoogleMaps = (
     loadGoogleMapsScript,
     fetchPlaceDetailsAndUpdateMessage,
     updatePlaceCardInMessage,
-    testGooglePlacesAPI
+    testGooglePlacesAPI,
+    validatePlaceCardLocation
   };
 };

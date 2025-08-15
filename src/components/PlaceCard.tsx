@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ExternalLink, Globe, Navigation, Star, Loader2 } from 'lucide-react';
+import { MapPin, ExternalLink, Globe, Navigation, Star, Loader2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -9,9 +9,10 @@ import { PlaceCardInfo } from '../types';
 
 interface PlaceCardProps {
   place: PlaceCardInfo;
+  onRetry?: (placeId: string) => void;
 }
 
-const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
+const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
   console.log('🔍 PlaceCard rendered with:', {
     name: place.name,
     placeId: place.placeId,
@@ -41,12 +42,32 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
   if (place.errorDetails) {
     console.log('🔍 Showing error state for place:', place.name, 'Error:', place.errorDetails);
     return (
-      <Alert variant="destructive" className="w-full max-w-sm">
-        <AlertDescription>
-          <div className="font-medium">{place.name}</div>
-          <div className="text-sm">Error: {place.errorDetails}</div>
-        </AlertDescription>
-      </Alert>
+      <Card className="w-full max-w-sm border-red-200">
+        <CardHeader className="pb-3">
+          <div className="space-y-2">
+            <h3 className="font-semibold text-base leading-tight line-clamp-2 text-red-800">
+              {place.name}
+            </h3>
+            <div className="text-sm text-red-600">
+              {place.errorDetails}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+              onClick={() => onRetry?.(place.id)}
+              disabled={!onRetry}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reintentar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 

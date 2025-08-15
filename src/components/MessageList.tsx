@@ -9,9 +9,17 @@ interface MessageListProps {
   onDownloadPdf: (pdfInfo: NonNullable<ChatMessageType['downloadablePdfInfo']>) => void;
   configuredSedeElectronicaUrl?: string;
   onSeeMoreEvents: (originalUserQuery: string) => void;
+  setMessages?: React.Dispatch<React.SetStateAction<ChatMessageType[]>>;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents }) => {
+const MessageList: React.FC<MessageListProps> = ({ 
+  messages, 
+  isLoading, 
+  onDownloadPdf, 
+  configuredSedeElectronicaUrl, 
+  onSeeMoreEvents,
+  setMessages 
+}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -45,6 +53,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, onDownlo
           onDownloadPdf={onDownloadPdf}
           configuredSedeElectronicaUrl={configuredSedeElectronicaUrl}
           onSeeMoreEvents={onSeeMoreEvents}
+          setMessages={setMessages}
         />
       ))}
       <div ref={messagesEndRef} />

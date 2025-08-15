@@ -67,6 +67,7 @@ interface AppLayoutProps {
   shouldShowChatContainer: boolean;
   isPublicChat?: boolean;
   handleToggleLocation: (enabled: boolean) => Promise<void>;
+  setMessages?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = (props) => {
@@ -105,7 +106,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
     deleteConversation,
     shouldShowChatContainer,
     isPublicChat = false,
-    handleToggleLocation
+    handleToggleLocation,
+    setMessages
   } = props;
 
   // Use conversation data from props instead of duplicating the hook
@@ -318,6 +320,7 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                       isInFinetuningMode={true}
                       shouldShowChatContainer={shouldShowChatContainer}
                       handleToggleLocation={handleToggleLocation}
+                      setMessages={setMessages}
                     />
                   </div>
                 </div>
