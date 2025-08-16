@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "http",
+      "args": ["http://localhost:3000"],
+      "env": {
+        "MCP_API_KEY": "city-chat-mcp-key-2024"
+      },
+      "description": "Supabase MCP server for City Chat database operations via HTTP",
+      "transport": "http"
+    }
+  },
+  "settings": {
+    "mcp.enable": true,
+    "mcp.servers.supabase.enabled": true,
+    "mcp.servers.supabase.transport": "http"
+  }
+}
+

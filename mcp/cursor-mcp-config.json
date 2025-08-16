@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "node",
+      "args": ["mcp/supabase-mcp-advanced.js"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "cwd": ".",
+      "description": "Supabase MCP server for City Chat database operations"
+    }
+  },
+  "settings": {
+    "mcp.enable": true,
+    "mcp.servers.supabase.enabled": true
+  }
+}
+
+
