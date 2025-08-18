@@ -373,6 +373,7 @@ REGLAS ESTRICTAS:
             if (webResponse.ok) {
               webContent = await webResponse.text()
               console.log(`✅ Web escraqueada exitosamente: ${webContent.length} caracteres`)
+              console.log(`🔍 CONTENIDO CRUDO (primeros 500 chars):`, webContent.substring(0, 500))
               
               // 🎯 LIMPIAR Y PROCESAR CONTENIDO
               webContent = webContent
@@ -385,8 +386,11 @@ REGLAS ESTRICTAS:
               // 🎯 LIMITAR A PRIMEROS 8000 CARACTERES (como antes)
               webContent = webContent.substring(0, 8000)
               console.log(`✅ Contenido procesado: ${webContent.length} caracteres`)
+              console.log(`🔍 CONTENIDO LIMPIO (primeros 500 chars):`, webContent.substring(0, 500))
             } else {
               console.log(`❌ Error escraqueando ${url}:`, webResponse.status)
+              const responseText = await webResponse.text()
+              console.log(`❌ Respuesta del servidor:`, responseText.substring(0, 500))
             }
           } catch (webError) {
             console.log(`❌ Error en fetch de ${url}:`, webError.message)
@@ -1451,8 +1455,12 @@ Deno.serve(async (req) => {
           
           placeCards = [] // No place cards para consultas de eventos
           
-          // 📝 GENERAR RESPUESTA
-          responseText = `He encontrado ${eventCards.length} eventos reales para ti en ${cityName}. Aquí tienes la información actualizada:`
+          // 📝 GENERAR RESPUESTA APROPIADA
+          if (eventCards.length > 0) {
+            responseText = `He encontrado ${eventCards.length} eventos reales para ti en ${cityName}. Aquí tienes la información actualizada:`
+          } else {
+            responseText = `No he encontrado eventos específicos para este mes en las fuentes oficiales de ${cityName}. Las fuentes oficiales no muestran eventos programados para estas fechas.`
+          }
           
           console.log(`✅ Eventos extraídos por Google Search Grounding: ${eventCards.length} event cards`)
           
