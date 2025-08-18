@@ -1418,22 +1418,27 @@ Deno.serve(async (req) => {
         
         let webResults: any[] = []
         
-        if (isEventQuery && resolvedCityId) {
-          console.log('🎉 CONSULTA DE EVENTOS DETECTADA - usando Google Search Grounding')
-          console.log('🚨 DEBUG CRÍTICO - Modelo configurado:', VERTEX_CONFIG.model)
-          console.log('🚨 DEBUG CRÍTICO - Base URL:', VERTEX_CONFIG.baseUrl)
-          console.log('🚨 DEBUG CRÍTICO - API Key length:', VERTEX_CONFIG.apiKey.length)
+        if (isEventQuery) {
+          console.log('🎉 BÚSQUEDA DE EVENTOS DETECTADA - usando agenda_eventos_urls')
+          console.log('🚨 DEBUG CRÍTICO - Query original:', userMessage)
+          console.log('🚨 DEBUG CRÍTICO - ¿Contiene "eventos"?', lowerMessage.includes('eventos'))
+          console.log('🚨 DEBUG CRÍTICO - ¿Contiene "este mes"?', lowerMessage.includes('este mes'))
+          console.log('🚨 DEBUG CRÍTICO - citySlug:', citySlug)
+          console.log('🚨 DEBUG CRÍTICO - cityId:', cityId)
           
-          // 📱 OBTENER DATOS DE LA CIUDAD PARA URLs
+          // 📱 OBTENER DATOS DE LA CIUDAD USANDO SLUG DIRECTAMENTE
           const { data: cityData, error: cityError } = await supabase
             .from('cities')
-            .select('agenda_eventos_urls, nombre, provincia')
-            .eq('id', resolvedCityId)
+            .select('agenda_eventos_urls, name, slug')
+            .eq('slug', citySlug || cityName)
             .single()
           
+          console.log('🚨 DEBUG CRÍTICO - Resultado query ciudad:', { cityData, cityError })
+          
           if (cityError || !cityData) {
-            console.log('⚠️ Error obteniendo datos de ciudad, usando eventos típicos')
-            eventCards = await generateTypicalEvents(cityName, userMessage)
+            console.log('⚠️ Error obteniendo datos de ciudad, NO SE PUEDEN BUSCAR EVENTOS')
+            console.log('🚨 CRÍTICO: Sin agenda_eventos_urls configurados, no se buscarán eventos')
+            eventCards = []
         } else {
             console.log('🚨 DEBUG CRÍTICO - URLs de agenda encontradas:', cityData.agenda_eventos_urls)
             console.log('🚨 DEBUG CRÍTICO - Tipo de URLs:', typeof cityData.agenda_eventos_urls)
