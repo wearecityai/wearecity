@@ -320,47 +320,43 @@ async function extractEventsFromConfiguredSources(cityName: string, agendaUrls: 
         if (!url || url.trim() === '') continue
         
         try {
-          console.log(`🔍 Accediendo a fuente oficial configurada: ${url}`)
+          console.log(`🔍 Extrayendo eventos de fuente oficial: ${url}`)
           
-          // 🎯 PROMPT ESPECÍFICO PARA EXTRAER EVENTOS DE FUENTES OFICIALES
-          const extractEventsPrompt = `Eres un asistente especializado en extraer eventos de páginas web oficiales municipales.
+          // 🎯 PROMPT ESPECÍFICO PARA EXTRAER EVENTOS REALES
+          const extractEventsPrompt = `Analiza el siguiente contenido de la página oficial de eventos de ${cityName} y extrae TODOS los eventos reales que encuentres.
 
-Tu tarea es ACCEDER y ANALIZAR esta página web oficial configurada para ${cityName}:
-${url}
+URL FUENTE: ${url}
 
-CONSULTA DEL USUARIO: "${query}"
+INSTRUCCIONES CRÍTICAS:
+1. Extrae SOLO eventos que aparezcan en el contenido proporcionado
+2. NO INVENTES ni GENERES eventos ficticios
+3. Genera Event Cards en formato JSON EXACTO para cada evento encontrado
+4. Incluye fechas, horarios, ubicaciones y descripciones REALES
+5. Si no hay eventos en el contenido, devuelve mensaje indicando que no hay eventos
 
-INSTRUCCIONES ESTRICTAS:
-1. ACCEDE DIRECTAMENTE a la página web: ${url}
-2. ANALIZA todo el contenido visible en la página
-3. BUSCA eventos, actividades, agenda cultural, ferias, conciertos, exposiciones, etc.
-4. EXTRAE ÚNICAMENTE eventos REALES que aparezcan en la página
-5. NO INVENTES ni GENERES eventos si no los encuentras
-6. Si la página no carga o no tiene eventos, responde que no hay eventos disponibles
-
-Para cada evento REAL encontrado, genera un Event Card en este formato EXACTO:
+Para cada evento REAL encontrado, genera un Event Card así:
 
 [EVENT_CARD_START]
 {
-  "title": "Título exacto del evento extraído de la web",
-  "date": "Fecha real del evento (formato YYYY-MM-DD si es posible)",
-  "time": "Horario real extraído",
-  "location": "Ubicación exacta extraída de la web",
-  "description": "Descripción completa extraída de la web",
-  "price": "Precio real o 'Gratuito' o 'Consultar'",
-  "category": "Categoría del evento",
+  "title": "Título exacto del evento",
+  "date": "2025-08-21",
+  "time": "21:30",
+  "location": "Ubicación exacta del evento",
+  "description": "Descripción completa del evento",
+  "price": "Precio o 'Consultar'",
+  "category": "Música/Cultura/Teatro/etc",
   "audience": "Público objetivo",
-  "contact": "Información de contacto extraída",
+  "contact": "Información de contacto si está disponible",
   "website": "${url}"
 }
 [/EVENT_CARD_END]
 
-REGLAS CRÍTICAS:
-- SOLO eventos de la fuente oficial: ${url}
-- MÁXIMO 8 eventos por fuente
-- Fechas y horarios REALES, no inventados
-- Si no encuentras eventos, NO generes ningún Event Card
-- Sé preciso con la información extraída`
+REGLAS ESTRICTAS:
+- SOLO usar información del contenido proporcionado
+- Fechas en formato YYYY-MM-DD
+- Horarios en formato HH:MM
+- NO generar eventos si no están en el contenido
+- Máximo 8 eventos por respuesta`
 
           // 🚀 ESCRAQUEO MANUAL DE LA WEB OFICIAL
           console.log(`🔍 Escraqueando manualmente: ${url}`)
@@ -459,20 +455,32 @@ IMPORTANTE:
 
           if (geminiResponse.ok) {
             const geminiData = await geminiResponse.json()
+            console.log(`✅ Respuesta de Gemini recibida para ${url}`)
+            
             const extractedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
             
             if (extractedText) {
-              // 📱 EXTRAER EVENT CARDS
-              const eventCards = extractEventCards(extractedText)
-              if (eventCards.length > 0) {
-                console.log(`✅ Gemini 1.5 Pro extrajo ${eventCards.length} eventos de ${url}`)
-                allEvents.push(...eventCards)
+              console.log(`🎯 Texto extraído de Gemini: ${extractedText.substring(0, 1000)}...`)
+              
+              // 📱 EXTRAER EVENT CARDS DEL TEXTO
+              const extractedEvents = extractEventCards(extractedText)
+              
+              if (extractedEvents.length > 0) {
+                console.log(`✅ ¡EVENTOS ENCONTRADOS! Gemini extrajo ${extractedEvents.length} eventos reales de ${url}`)
+                console.log(`🎉 Eventos extraídos:`, extractedEvents.map(e => ({ title: e.title, date: e.date, time: e.time })))
+                allEvents.push(...extractedEvents)
               } else {
-                console.log(`⚠️ Gemini 1.5 Pro no extrajo eventos de ${url}`)
+                console.log(`⚠️ Gemini no extrajo eventos de ${url} - revisando respuesta...`)
+                console.log(`📝 Respuesta completa de Gemini:`, extractedText)
               }
+            } else {
+              console.log(`⚠️ No se obtuvo texto de Gemini para ${url}`)
+              console.log(`📋 Estructura de respuesta:`, JSON.stringify(geminiData, null, 2))
             }
           } else {
-            console.log(`❌ Error en Gemini 1.5 Pro para ${url}:`, geminiResponse.status)
+            console.error(`❌ Error en llamada a Gemini para ${url}:`, geminiResponse.status)
+            const errorText = await geminiResponse.text()
+            console.error(`❌ Detalle del error:`, errorText)
           }
           
   } catch (error) {
@@ -481,19 +489,21 @@ IMPORTANTE:
         }
       }
       
-      // 🎯 SI NO SE EXTRAJERON EVENTOS, GENERAR TÍPICOS
+      // 🎯 RESULTADO FINAL 
       if (allEvents.length === 0) {
-        console.log('⚠️ Gemini 1.5 Pro no extrajo eventos de webs oficiales, generando eventos típicos')
-        return await generateTypicalEvents(cityName, query)
+        console.log('🚨 CRÍTICO: No se extrajeron eventos de las fuentes oficiales configuradas')
+        console.log('🚨 Esto cumple con la regla de NO buscar eventos fuera de las fuentes configuradas')
+        return [] // Devolver array vacío en lugar de eventos típicos
       }
       
-      console.log(`🎉 Total de eventos extraídos por Google Search Grounding: ${allEvents.length}`)
+      console.log(`🎉 Total de eventos extraídos de fuentes oficiales configuradas: ${allEvents.length}`)
       return allEvents.slice(0, 8) // Máximo 8 eventos totales
       
-  } catch (error) {
-      console.error('❌ Error en extracción con Google Search Grounding:', error)
-      return await generateTypicalEvents(cityName, query)
-    }
+   } catch (error) {
+       console.error('❌ Error en extracción de fuentes oficiales configuradas:', error)
+       console.log('🚨 CRÍTICO: Error en procesamiento - cumpliendo regla de NO buscar fuera de fuentes configuradas')
+       return [] // Devolver array vacío en lugar de eventos típicos
+     }
   }
 
 // 🎭 GENERACIÓN DE EVENTOS TÍPICOS COMO FALLBACK
