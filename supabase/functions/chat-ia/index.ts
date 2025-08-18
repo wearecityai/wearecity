@@ -67,26 +67,35 @@ async function searchWebForCityInfo(query: string, cityName: string, cityId: num
     // 🏛️ SI ES CONSULTA DE EVENTOS: BUSCAR SOLO EN WEBS OFICIALES
     if (isEventQuery) {
       console.log('🎉 BÚSQUEDA DE EVENTOS DETECTADA - usando Gemini 1.5 Pro')
-      console.log('🚨 DEBUG CRÍTICO - Llamando a extractEventsWithGemini15Pro...')
+      console.log('🚨 DEBUG CRÍTICO - Llamando a extractEventsFromConfiguredSources...')
       console.log('🚨 DEBUG CRÍTICO - Parámetros:', { cityName, cityId, query })
       
-      // 📱 OBTENER DATOS DE LA CIUDAD PARA URLs
+      // 📱 OBTENER DATOS DE LA CIUDAD PARA URLs ESPECÍFICOS
       const { data: cityData, error: cityError } = await supabase
         .from('cities')
-        .select('agenda_eventos_urls, nombre, provincia')
+        .select('agenda_eventos_urls, name, slug')
         .eq('id', cityId)
         .single()
       
       if (cityError || !cityData) {
-        console.log('⚠️ Error obteniendo datos de ciudad, usando eventos típicos')
-        return await generateTypicalEvents(cityName, query)
+        console.log('⚠️ Error obteniendo datos de ciudad, NO SE PUEDEN BUSCAR EVENTOS')
+        console.log('🚨 CRÍTICO: Sin agenda_eventos_urls configurados, no se buscarán eventos')
+        return [] // No buscar eventos si no hay URLs configurados
       }
       
-      // 🚀 GEMINI 1.5 PRO ESCRAQUEA WEBS OFICIALES DIRECTAMENTE
-      const result = await extractEventsWithGemini15Pro(cityName, cityData.agenda_eventos_urls, query)
-      console.log('🚨 DEBUG CRÍTICO - Resultado de extractEventsWithGemini15Pro:', result)
-      console.log('🚨 DEBUG CRÍTICO - Tipo de resultado:', typeof result)
-      console.log('🚨 DEBUG CRÍTICO - Longitud del resultado:', Array.isArray(result) ? result.length : 'No es array')
+      // 🚨 VALIDAR QUE EXISTAN URLs DE AGENDA CONFIGURADOS
+      if (!cityData.agenda_eventos_urls || cityData.agenda_eventos_urls.length === 0) {
+        console.log('🚨 CRÍTICO: No hay agenda_eventos_urls configurados para esta ciudad')
+        console.log('🚨 Los eventos SOLO se buscan en fuentes oficiales configuradas')
+        return [] // No buscar eventos si no hay URLs específicos
+      }
+      
+      console.log('✅ URLs de agenda configurados:', cityData.agenda_eventos_urls)
+      console.log('🔍 Buscando eventos EXCLUSIVAMENTE en fuentes oficiales configuradas')
+      
+      // 🚀 BUSCAR EVENTOS SOLO EN URLs OFICIALES CONFIGURADOS
+      const result = await extractEventsFromConfiguredSources(cityName, cityData.agenda_eventos_urls, query)
+      console.log('✅ Eventos extraídos de fuentes oficiales:', result.length)
       return result
     }
 
@@ -293,15 +302,15 @@ Genera un Event Card con esta información y datos adicionales típicos de la ci
   }
 }
 
-// 🚀 GEMINI 1.5 PRO ESCRAQUEA WEBS OFICIALES DIRECTAMENTE
-async function extractEventsWithGemini15Pro(cityName: string, agendaUrls: string[], query: string): Promise<any[]> {
+// 🚀 EXTRAER EVENTOS EXCLUSIVAMENTE DE FUENTES OFICIALES CONFIGURADAS
+async function extractEventsFromConfiguredSources(cityName: string, agendaUrls: string[], query: string): Promise<any[]> {
       try {
-      console.log('🚀 Gemini 1.5 Pro escraqueando webs oficiales para:', cityName)
-      console.log('🔗 URLs de agenda:', agendaUrls)
+      console.log('🚀 Extrayendo eventos de fuentes oficiales configuradas para:', cityName)
+      console.log('🔗 URLs configurados en agenda_eventos_urls:', agendaUrls)
       
       if (!agendaUrls || agendaUrls.length === 0) {
-        console.log('⚠️ No hay URLs de agenda configuradas')
-        return await generateTypicalEvents(cityName, query)
+        console.log('🚨 CRÍTICO: No hay URLs de agenda configurados - NO SE BUSCARÁN EVENTOS')
+        return [] // Estrictamente no buscar eventos si no hay URLs configurados
       }
       
       const allEvents: any[] = []
@@ -311,42 +320,47 @@ async function extractEventsWithGemini15Pro(cityName: string, agendaUrls: string
         if (!url || url.trim() === '') continue
         
         try {
-          console.log(`🔍 Gemini 1.5 Pro escraqueando: ${url}`)
+          console.log(`🔍 Accediendo a fuente oficial configurada: ${url}`)
           
-          // 🎯 PROMPT PARA QUE GEMINI 1.5 PRO ESCRAQUEE LA WEB DIRECTAMENTE
-          const webScrapingPrompt = `Eres un experto en extraer eventos de páginas web municipales.
+          // 🎯 PROMPT ESPECÍFICO PARA EXTRAER EVENTOS DE FUENTES OFICIALES
+          const extractEventsPrompt = `Eres un asistente especializado en extraer eventos de páginas web oficiales municipales.
 
-ACCEDE a esta web oficial de ${cityName}: ${url}
+Tu tarea es ACCEDER y ANALIZAR esta página web oficial configurada para ${cityName}:
+${url}
 
-INSTRUCCIONES:
-1. Navega a la web y analiza TODO el contenido
-2. Busca eventos, actividades, agenda, ferias, conciertos, exposiciones, etc.
-3. Extrae fechas, horarios, ubicaciones, precios y descripciones REALES
-4. Genera Event Cards en formato JSON EXACTO con información REAL de la web
-5. NO inventes eventos - solo extrae los que aparezcan en la web
+CONSULTA DEL USUARIO: "${query}"
 
-FORMATO OBLIGATORIO:
+INSTRUCCIONES ESTRICTAS:
+1. ACCEDE DIRECTAMENTE a la página web: ${url}
+2. ANALIZA todo el contenido visible en la página
+3. BUSCA eventos, actividades, agenda cultural, ferias, conciertos, exposiciones, etc.
+4. EXTRAE ÚNICAMENTE eventos REALES que aparezcan en la página
+5. NO INVENTES ni GENERES eventos si no los encuentras
+6. Si la página no carga o no tiene eventos, responde que no hay eventos disponibles
+
+Para cada evento REAL encontrado, genera un Event Card en este formato EXACTO:
+
 [EVENT_CARD_START]
 {
-  "title": "Título exacto del evento encontrado en la web",
-  "date": "Fecha real extraída de la web",
-  "time": "Horario real extraído de la web",
-  "location": "Ubicación real extraída de la web",
-  "description": "Descripción real extraída de la web",
-  "price": "Precio real o 'Consultar'",
+  "title": "Título exacto del evento extraído de la web",
+  "date": "Fecha real del evento (formato YYYY-MM-DD si es posible)",
+  "time": "Horario real extraído",
+  "location": "Ubicación exacta extraída de la web",
+  "description": "Descripción completa extraída de la web",
+  "price": "Precio real o 'Gratuito' o 'Consultar'",
   "category": "Categoría del evento",
   "audience": "Público objetivo",
-  "contact": "Contacto real extraído de la web",
+  "contact": "Información de contacto extraída",
   "website": "${url}"
 }
 [/EVENT_CARD_END]
 
-IMPORTANTE:
-- ACCEDE SOLO a la web: ${url}
-- Extrae SOLO eventos que aparezcan REALMENTE en la web
-- Si no hay eventos, di que no hay eventos disponibles
-- Máximo 5 eventos por web
-- Sé específico con fechas y horarios REALES`
+REGLAS CRÍTICAS:
+- SOLO eventos de la fuente oficial: ${url}
+- MÁXIMO 8 eventos por fuente
+- Fechas y horarios REALES, no inventados
+- Si no encuentras eventos, NO generes ningún Event Card
+- Sé preciso con la información extraída`
 
           // 🚀 ESCRAQUEO MANUAL DE LA WEB OFICIAL
           console.log(`🔍 Escraqueando manualmente: ${url}`)
@@ -1325,6 +1339,7 @@ Deno.serve(async (req) => {
     // Obtener nombre de la ciudad y datos
     let cityName = city || citySlug || 'TU CIUDAD'
     let cityData: any = null
+    let resolvedCityId = cityId
     
     // Si tenemos cityId, buscar datos completos en la base de datos
     if (cityId) {
@@ -1393,7 +1408,7 @@ Deno.serve(async (req) => {
         
         let webResults: any[] = []
         
-        if (isEventQuery && cityId) {
+        if (isEventQuery && resolvedCityId) {
           console.log('🎉 CONSULTA DE EVENTOS DETECTADA - usando Google Search Grounding')
           console.log('🚨 DEBUG CRÍTICO - Modelo configurado:', VERTEX_CONFIG.model)
           console.log('🚨 DEBUG CRÍTICO - Base URL:', VERTEX_CONFIG.baseUrl)
@@ -1403,7 +1418,7 @@ Deno.serve(async (req) => {
           const { data: cityData, error: cityError } = await supabase
             .from('cities')
             .select('agenda_eventos_urls, nombre, provincia')
-            .eq('id', cityId)
+            .eq('id', resolvedCityId)
             .single()
           
           if (cityError || !cityData) {
@@ -1414,9 +1429,9 @@ Deno.serve(async (req) => {
             console.log('🚨 DEBUG CRÍTICO - Tipo de URLs:', typeof cityData.agenda_eventos_urls)
             console.log('🚨 DEBUG CRÍTICO - Longitud de URLs:', cityData.agenda_eventos_urls?.length)
             // 🚀 GOOGLE SEARCH GROUNDING ESCRAQUEA WEBS OFICIALES
-            console.log('🚨 DEBUG CRÍTICO - Llamando a extractEventsWithGemini15Pro...')
-            eventCards = await extractEventsWithGemini15Pro(cityName, cityData.agenda_eventos_urls, userMessage)
-            console.log('🚨 DEBUG CRÍTICO - Resultado de extractEventsWithGemini15Pro:', eventCards)
+            console.log('🚨 DEBUG CRÍTICO - Llamando a extractEventsFromConfiguredSources...')
+            eventCards = await extractEventsFromConfiguredSources(cityName, cityData.agenda_eventos_urls, userMessage)
+            console.log('🚨 DEBUG CRÍTICO - Resultado de extractEventsFromConfiguredSources:', eventCards)
           }
           
           placeCards = [] // No place cards para consultas de eventos
@@ -1429,7 +1444,7 @@ Deno.serve(async (req) => {
         } else {
           console.log('🔍 Consulta general - usando searchWebForCityInfo')
           // 🔍 USAR FUNCIÓN GENERAL
-          webResults = await searchWebForCityInfo(userMessage, cityName, cityId)
+          webResults = await searchWebForCityInfo(userMessage, cityName, resolvedCityId || 0)
           console.log(`📊 Encontrados ${webResults.length} resultados web`)
           
           // 🚀 PARA CONSULTAS GENERALES: USAR VERTEX AI

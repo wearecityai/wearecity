@@ -100,7 +100,8 @@ const AdminPage = () => {
       setCurrentConversationId={setCurrentConversationId}
       deleteConversation={deleteConversation}
       shouldShowChatContainer={shouldShowChatContainer}
-      handleToggleLocation={handleToggleLocation}
+        handleToggleLocation={handleToggleLocation}
+        setMessages={() => {}}
     />
   );
 };

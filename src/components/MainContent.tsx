@@ -278,7 +278,7 @@ interface MainContentProps {
                   onSetLanguageCode={handleSetCurrentLanguageCode}
                   user={user}
                   onLogin={onLogin}
-                  setMessages={setMessages}
+                  setMessages={() => {}}
                 />
                 <div ref={messagesEndRef} />
               </div>

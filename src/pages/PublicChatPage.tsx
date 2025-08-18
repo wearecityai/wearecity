@@ -265,7 +265,8 @@ export const PublicChatPage: React.FC = () => {
       deleteConversation={deleteConversation}
       shouldShowChatContainer={shouldShowChatContainer}
       isPublicChat={true}
-      handleToggleLocation={handleToggleLocation}
+        handleToggleLocation={handleToggleLocation}
+        setMessages={() => {}}
     />
   );
 }; 

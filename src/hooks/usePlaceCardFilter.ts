@@ -3,7 +3,7 @@ import { PlaceCardInfo } from '../types';
 import { useGoogleMaps } from './useGoogleMaps';
 
 export const usePlaceCardFilter = () => {
-  const { validatePlaceCardLocation } = useGoogleMaps();
+  const { validatePlaceCardLocation } = useGoogleMaps(undefined, undefined, undefined);
   const [filteredPlaceCards, setFilteredPlaceCards] = useState<PlaceCardInfo[]>([]);
   const [isFiltering, setIsFiltering] = useState(false);
 

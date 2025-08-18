@@ -3,7 +3,7 @@ import { useGoogleMaps } from './useGoogleMaps';
 import { ChatMessage, PlaceCardInfo } from '../types';
 
 export const usePlaceCardRetry = () => {
-  const { fetchPlaceDetailsAndUpdateMessage } = useGoogleMaps();
+  const { fetchPlaceDetailsAndUpdateMessage } = useGoogleMaps(undefined, undefined, undefined);
 
   const retryPlaceCard = useCallback((
     messageId: string,

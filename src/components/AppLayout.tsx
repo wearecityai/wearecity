@@ -320,7 +320,6 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                       isInFinetuningMode={true}
                       shouldShowChatContainer={shouldShowChatContainer}
                       handleToggleLocation={handleToggleLocation}
-                      setMessages={setMessages}
                     />
                   </div>
                 </div>
