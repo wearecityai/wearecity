@@ -194,7 +194,7 @@ export const useMessageHandler = (
       // Elegir modo de respuesta: rápido para preguntas simples, calidad para búsquedas complejas
       const mode: 'fast' | 'quality' = loadingType === 'general' ? 'fast' : 'quality';
       const historyWindow = mode === 'fast' ? 4 : 10;
-      const responseText = await fetchChatIA(contextualizedMessage, { 
+      const response = await fetchChatIA(contextualizedMessage, { 
         allowMapDisplay: chatConfig.allowMapDisplay,
         userId: user?.id,
         userLocation: userLocationData,
@@ -204,21 +204,21 @@ export const useMessageHandler = (
         timeoutMs: mode === 'fast' ? 12000 : 45000
       });
       
-      console.log('🔍 DEBUG - Respuesta de fetchChatIA:', {
-        responseText: responseText,
-        responseTextType: typeof responseText,
-        responseTextLength: responseText?.length,
-        isEmpty: !responseText || responseText.trim() === '',
-        containsPlaceCardMarkers: responseText?.includes('[PLACE_CARD_START]') || false,
-        containsEventCardMarkers: responseText?.includes('[EVENT_CARD_START]') || false
-      });
+      console.log('🔍 DEBUG - Respuesta completa de fetchChatIA:', response);
       
-      // Log adicional para ver si hay marcadores de place cards
-      if (responseText && responseText.includes('[PLACE_CARD_START]')) {
-        console.log('🔍 DEBUG - Found PLACE_CARD_START markers in response');
-        const placeCardMatches = responseText.match(/\[PLACE_CARD_START\]([\s\S]*?)\[PLACE_CARD_END\]/g);
-        console.log('🔍 DEBUG - Place card matches found:', placeCardMatches);
-      }
+      // 🎯 USAR DIRECTAMENTE LA RESPUESTA DEL BACKEND SIN PARSING
+      const responseText = response.response || response;
+      const events = response.events || [];
+      const placeCards = response.placeCards || [];
+      
+      console.log('🔍 DEBUG - Datos extraídos:', {
+        responseText: typeof responseText === 'string' ? responseText?.substring(0, 200) : 'No es string',
+        responseTextType: typeof responseText,
+        eventsCount: events.length,
+        events: events,
+        placeCardsCount: placeCards.length,
+        placeCards: placeCards
+      });
       
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -227,29 +227,24 @@ export const useMessageHandler = (
         timestamp: new Date(),
         shouldAnimate: true
       };
-      // Parsea la respuesta como antes
-      const parsed = parseAIResponse(responseText, null, chatConfig, inputText);
-      
-      console.log('🔍 DEBUG - Parsed response:', {
-        processedContent: parsed.processedContent?.substring(0, 200),
-        eventsCount: parsed.eventsForThisMessage?.length || 0,
-        events: parsed.eventsForThisMessage,
-        placeCardsCount: parsed.placeCardsForMessage?.length || 0,
-        placeCards: parsed.placeCardsForMessage
-      });
       
       const parsedMessage: ChatMessage = {
           ...aiMessage,
-          content: parsed.processedContent,
-        events: parsed.eventsForThisMessage,
-        placeCards: parsed.placeCardsForMessage,
-        mapQuery: parsed.mapQueryFromAI,
-          downloadablePdfInfo: parsed.downloadablePdfInfoForMessage,
-        telematicProcedureLink: parsed.telematicLinkForMessage,
-        showSeeMoreButton: parsed.showSeeMoreButtonForThisMessage,
-        originalUserQueryForEvents: parsed.storedUserQueryForEvents,
-        groundingMetadata: parsed.finalGroundingMetadata,
+          content: responseText,
+        events: events,
+        placeCards: placeCards,
+        mapQuery: undefined,
+          downloadablePdfInfo: undefined,
+        telematicProcedureLink: undefined,
+        showSeeMoreButton: false,
+                  originalUserQueryForEvents: undefined,
+          groundingMetadata: undefined,
       };
+      
+      // 🚨 DEBUG ADICIONAL - Verificar estructura del mensaje (DESPUÉS de declarar)
+      console.log('🚨 DEBUG - parsedMessage completo:', parsedMessage);
+      console.log('🚨 DEBUG - parsedMessage.events:', parsedMessage.events);
+      console.log('🚨 DEBUG - parsedMessage.placeCards:', parsedMessage.placeCards);
       
       // 3. Reemplazar el spinner con la respuesta real
       setMessages((prev: ChatMessage[]) => {

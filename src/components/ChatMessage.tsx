@@ -104,6 +104,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
     messageContent: message.content?.substring(0, 100)
   });
   
+  // 🚨 DEBUG ADICIONAL - Verificar estructura completa del mensaje
+  console.log('🚨 DEBUG - ChatMessage message completo:', message);
+  console.log('🚨 DEBUG - ChatMessage message.events:', message.events);
+  console.log('🚨 DEBUG - ChatMessage message.placeCards:', message.placeCards);
+  
   const { shouldShowCard } = useStrictSequentialReveal({
     textContent: contentToDisplay, // Use the content that's actually being displayed
     totalCards,
@@ -261,29 +266,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                         {processTextForParagraphs(contentToDisplay)}
                       </div>
                     )}
-                     {message.events && message.events.length > 0 && (
+                                          {message.events && message.events.length > 0 && (
                        <div className="mt-3 space-y-2">
-                         {(() => {
-                           console.log('🔍 DEBUG - Rendering events:', message.events);
-                           return null;
-                         })()}
-                         {message.events.map((event, index) => {
-                           const shouldShow = shouldShowCard(index);
-                           console.log(`🔍 DEBUG - Event ${index}:`, { event, shouldShow });
-                           return (
-                             <div
-                               key={`${message.id}-event-${index}`}
-                               className={`transition-all duration-500 ${
-                                 shouldShow 
-                                   ? 'opacity-100 translate-y-0' 
-                                   : 'opacity-0 translate-y-4'
-                               }`}
-                               style={{ display: shouldShow ? 'block' : 'none' }}
-                             >
-                               <EventCard event={event} />
-                             </div>
-                           );
-                         })}
+                         {message.events.map((event, index) => (
+                           <div
+                             key={`${message.id}-event-${index}`}
+                             className="transition-all duration-500 opacity-100 translate-y-0"
+                           >
+                             <EventCard event={event} />
+                           </div>
+                         ))}
                        </div>
                      )}
                      {/* Place Cards - Solo mostrar las filtradas */}
@@ -295,33 +287,24 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                              Validando ubicaciones de lugares...
                            </div>
                          )}
-                         {filteredPlaceCards.map((place, index) => {
-                           const cardIndex = (message.events?.length || 0) + index;
-                           const shouldShow = shouldShowCard(cardIndex);
-                           return (
-                             <div
-                               key={`${message.id}-place-${place.id}`}
-                               className={`transition-all duration-500 ${
-                                 shouldShow 
-                                   ? 'opacity-100 translate-y-0' 
-                                   : 'opacity-0 translate-y-4'
-                               }`}
-                               style={{ display: shouldShow ? 'block' : 'none' }}
-                             >
-                               <PlaceCard 
-                                 place={place} 
-                                 onRetry={(placeId) => {
-                                   if (setMessages) {
-                                     const placeCard = message.placeCards?.find(card => card.id === placeId);
-                                     if (placeCard) {
-                                       retryPlaceCard(message.id, placeCard, setMessages);
-                                     }
+                         {filteredPlaceCards.map((place, index) => (
+                           <div
+                             key={`${message.id}-place-${place.id}`}
+                             className="transition-all duration-500 opacity-100 translate-y-0"
+                           >
+                             <PlaceCard 
+                               place={place} 
+                               onRetry={(placeId) => {
+                                 if (setMessages) {
+                                   const placeCard = message.placeCards?.find(card => card.id === placeId);
+                                   if (placeCard) {
+                                     retryPlaceCard(message.id, placeCard, setMessages);
                                    }
-                                 }}
-                               />
-                             </div>
-                           );
-                         })}
+                                 }
+                               }}
+                             />
+                           </div>
+                         ))}
                        </div>
                      )}
                      

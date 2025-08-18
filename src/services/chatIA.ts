@@ -78,6 +78,6 @@ export async function fetchChatIA(
     throw new Error(data.error);
   }
 
-  console.log('🔍 DEBUG - Returning response:', data.response);
-  return data.response;
+  console.log('🔍 DEBUG - Returning complete response with events and placeCards');
+  return data; // 🎯 DEVOLVER LA RESPUESTA COMPLETA, NO SOLO EL TEXTO
 }
