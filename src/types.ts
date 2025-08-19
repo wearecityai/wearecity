@@ -26,6 +26,7 @@ export interface EventInfo {
   location?: string; // Optional location of the event
   sourceUrl?: string; // Optional URL to the source of the event information
   sourceTitle?: string; // Optional title of the event source page
+  eventDetailUrl?: string; // Optional URL to the specific event detail page
 }
 
 export interface PlaceCardInfo {

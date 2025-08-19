@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { EventInfo } from '../../types';
 import {
   EVENT_CARD_START_MARKER,
@@ -9,6 +9,9 @@ import {
 export const useEventParser = () => {
   const displayedEventUniqueKeys = useRef(new Set<string>());
   const lastUserQueryThatLedToEvents = useRef<string | null>(null);
+
+  // Agregar opción de ordenamiento configurable
+  const [sortPreference, setSortPreference] = useState<'chronological' | 'alphabetical'>('chronological');
 
   const parseDate = (dateStr: string): Date | null => {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -23,8 +26,8 @@ export const useEventParser = () => {
 
   const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
-  const parseEvents = (content: string, inputText: string) => {
-    console.log("🔍 PARSEEVENTS CALLED WITH:", { content: JSON.stringify(content), inputText });
+  const parseEvents = (content: string, inputText: string, sortBy: 'chronological' | 'alphabetical' = 'chronological') => {
+    console.log("🔍 PARSEEVENTS CALLED WITH:", { content: JSON.stringify(content), inputText, sortBy });
     
     const rawParsedEventsFromAI: EventInfo[] = [];
     let storedUserQueryForEvents: string | undefined = undefined;
@@ -39,7 +42,7 @@ export const useEventParser = () => {
     console.log("🔍 INTRO TEXT:", JSON.stringify(introText));
     console.log("🔍 FIRST EVENT INDEX:", firstEventIndex);
 
-    // Parse events
+    // Parse events - Mejorar el regex para ser más robusto
     const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
     let match;
     let tempContentForProcessing = content;
@@ -63,9 +66,17 @@ export const useEventParser = () => {
       try {
         const parsedEvent = JSON.parse(jsonStrToParse);
         console.log("✅ PARSED EVENT:", parsedEvent);
+        
+        // Validar que el evento tenga los campos mínimos requeridos
         if (parsedEvent.title && parsedEvent.date) {
-          rawParsedEventsFromAI.push(parsedEvent);
-          console.log("✅ SUCCESS - Added event:", parsedEvent);
+          // Normalizar y validar el evento
+          const normalizedEvent = normalizeEvent(parsedEvent);
+          if (normalizedEvent) {
+            rawParsedEventsFromAI.push(normalizedEvent);
+            console.log("✅ SUCCESS - Added normalized event:", normalizedEvent);
+          } else {
+            console.log("❌ EVENT NORMALIZATION FAILED - Event:", parsedEvent);
+          }
         } else {
           console.log("❌ MISSING FIELDS - Event:", parsedEvent);
         }
@@ -73,6 +84,20 @@ export const useEventParser = () => {
         console.error("❌ JSON PARSE ERROR:", e.message);
         console.error("❌ FAILED JSON STRING:", JSON.stringify(jsonStrToParse));
         console.error("❌ ORIGINAL MATCH:", JSON.stringify(match[0]));
+        
+        // Intentar reparar JSON malformado
+        try {
+          const repairedEvent = attemptJsonRepair(jsonStrToParse);
+          if (repairedEvent && repairedEvent.title && repairedEvent.date) {
+            const normalizedEvent = normalizeEvent(repairedEvent);
+            if (normalizedEvent) {
+              rawParsedEventsFromAI.push(normalizedEvent);
+              console.log("🔧 REPAIRED EVENT ADDED:", normalizedEvent);
+            }
+          }
+        } catch (repairError) {
+          console.error("❌ JSON REPAIR FAILED:", repairError.message);
+        }
       }
     }
 
@@ -93,10 +118,43 @@ export const useEventParser = () => {
     
     console.log("🔍 CURRENT YEAR EVENTS:", currentYearRawEvents);
 
-    const sortedEventsFromAI = currentYearRawEvents.sort((a, b) => 
-      a.title.toLowerCase().localeCompare(b.title.toLowerCase()) || 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+    // ORDENAMIENTO INTELIGENTE: Cronológico por defecto, alfabético como opción
+    let sortedEventsFromAI: EventInfo[];
+    
+    if (sortBy === 'chronological') {
+      // Ordenar eventos cronológicamente por fecha
+      sortedEventsFromAI = currentYearRawEvents.sort((a, b) => {
+        // Primero ordenar por fecha (cronológicamente)
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        
+        if (dateA !== dateB) {
+          return dateA - dateB; // Orden cronológico ascendente (más antiguo primero)
+        }
+        
+        // Si las fechas son iguales, ordenar alfabéticamente por título
+        return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+      });
+      
+      console.log("🕐 EVENTS SORTED CHRONOLOGICALLY:", sortedEventsFromAI.map(e => ({ title: e.title, date: e.date })));
+    } else {
+      // Ordenar eventos alfabéticamente por título
+      sortedEventsFromAI = currentYearRawEvents.sort((a, b) => {
+        // Primero ordenar alfabéticamente por título
+        const titleComparison = a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+        
+        if (titleComparison !== 0) {
+          return titleComparison;
+        }
+        
+        // Si los títulos son iguales, ordenar por fecha
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateA - dateB;
+      });
+      
+      console.log("🔤 EVENTS SORTED ALPHABETICALLY:", sortedEventsFromAI.map(e => ({ title: e.title, date: e.date })));
+    }
 
     // Group consecutive events
     const tempGroupedEvents: EventInfo[] = [];
@@ -214,6 +272,105 @@ export const useEventParser = () => {
       storedUserQueryForEvents,
       introText
     };
+  };
+
+  // Función para normalizar eventos y asegurar que tengan el formato correcto
+  const normalizeEvent = (event: any): EventInfo | null => {
+    try {
+      // Validar campos obligatorios
+      if (!event.title || !event.date) {
+        return null;
+      }
+
+      // Normalizar título
+      const title = String(event.title).trim();
+      if (title.length === 0) {
+        return null;
+      }
+
+      // Normalizar fecha
+      const date = String(event.date).trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return null;
+      }
+
+      // Crear evento normalizado
+      const normalizedEvent: EventInfo = {
+        title,
+        date,
+        sourceUrl: event.sourceUrl || '',
+        sourceTitle: event.sourceTitle || 'Fuente oficial'
+      };
+
+      // Campos opcionales
+      if (event.endDate && /^\d{4}-\d{2}-\d{2}$/.test(event.endDate)) {
+        normalizedEvent.endDate = event.endDate;
+      }
+
+      if (event.time && typeof event.time === 'string') {
+        normalizedEvent.time = event.time.trim();
+      }
+
+      if (event.location && typeof event.location === 'string') {
+        normalizedEvent.location = event.location.trim();
+      }
+
+      // Nota: description no está en el tipo EventInfo, se omite
+      // if (event.description && typeof event.description === 'string') {
+      //   normalizedEvent.description = event.description.trim();
+      // }
+
+      return normalizedEvent;
+    } catch (error) {
+      console.error('Error normalizando evento:', error);
+      return null;
+    }
+  };
+
+  // Función para intentar reparar JSON malformado
+  const attemptJsonRepair = (jsonStr: string): any | null => {
+    try {
+      // Intentar limpiar caracteres problemáticos
+      let cleaned = jsonStr
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Caracteres de control
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Intentar parsear
+      return JSON.parse(cleaned);
+    } catch (error) {
+      try {
+        // Intentar extraer campos individuales usando regex
+        const titleMatch = cleaned.match(/"title"\s*:\s*"([^"]+)"/);
+        const dateMatch = cleaned.match(/"date"\s*:\s*"([^"]+)"/);
+        
+        if (titleMatch && dateMatch) {
+          const event: any = {
+            title: titleMatch[1],
+            date: dateMatch[1]
+          };
+
+          // Extraer otros campos si están disponibles
+          const timeMatch = cleaned.match(/"time"\s*:\s*"([^"]+)"/);
+          if (timeMatch) event.time = timeMatch[1];
+
+          const locationMatch = cleaned.match(/"location"\s*:\s*"([^"]+)"/);
+          if (locationMatch) event.location = locationMatch[1];
+
+          const endDateMatch = cleaned.match(/"endDate"\s*:\s*"([^"]+)"/);
+          if (endDateMatch) event.endDate = endDateMatch[1];
+
+          return event;
+        }
+      } catch (repairError) {
+        console.error('JSON repair failed:', repairError);
+      }
+      
+      return null;
+    }
   };
 
   const handleSeeMoreEvents = (originalUserQuery?: string, onSendMessage?: (message: string) => void) => {

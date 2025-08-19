@@ -6,8 +6,8 @@ import { useAuth } from '../useAuth';
 import { useGeolocation } from '../useGeolocation';
 import { shouldSwitchLanguage } from '../../utils/languageDetection';
 import { useTranslation } from 'react-i18next';
-
-// Utility function to generate city slug from assistant name
+import { supabase } from '../../integrations/supabase/client';
+// Función simple para generar city slug
 const generateCitySlug = (assistantName: string): string => {
   return assistantName
     .toLowerCase()
@@ -18,6 +18,8 @@ const generateCitySlug = (assistantName: string): string => {
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/-+/g, '-'); // Replace multiple hyphens with single
 };
+
+
 
 const detectLoadingType = (userMessage: string): ChatMessage['loadingType'] => {
   const msg = userMessage.toLowerCase();
@@ -54,6 +56,7 @@ export const useMessageHandler = (
   const { i18n } = useTranslation();
   const lastProcessedMessageRef = useRef<string | null>(null);
   const firstMessageProcessed = useRef<boolean>(false);
+
 
   const processMessage = useCallback(async (
     _unusedChatSession: null, // ya no se usa
@@ -135,8 +138,32 @@ export const useMessageHandler = (
       // Usar city slug pasado como parámetro o generar desde assistant name como fallback
       const finalCitySlug = citySlug || generateCitySlug(chatConfig.assistantName);
       
-      console.log('🔍 DEBUG - Enviando city slug a chat-ia:', {
+      // 🎯 OBTENER CITYID A PARTIR DEL CITYSLUG PARA LA EDGE FUNCTION
+      let finalCityId: string | undefined;
+      if (finalCitySlug) {
+        try {
+          // Obtener el cityId de la base de datos usando el citySlug
+          const { data: cityData, error: cityError } = await supabase
+            .from('cities')
+            .select('id')
+            .eq('slug', finalCitySlug)
+            .eq('is_active', true)
+            .single();
+          
+          if (cityError) {
+            console.warn('⚠️ No se pudo obtener cityId para:', finalCitySlug, cityError.message);
+          } else if (cityData) {
+            finalCityId = cityData.id;
+            console.log('✅ CityId obtenido:', finalCityId, 'para slug:', finalCitySlug);
+          }
+        } catch (error) {
+          console.warn('⚠️ Error obteniendo cityId:', error);
+        }
+      }
+      
+      console.log('🔍 DEBUG - Enviando city slug y cityId a chat-ia:', {
         citySlug: finalCitySlug,
+        cityId: finalCityId,
         citySlugFromParam: citySlug,
         assistantName: chatConfig.assistantName,
         restrictedCity: chatConfig.restrictedCity,
@@ -199,25 +226,27 @@ export const useMessageHandler = (
         userId: user?.id,
         userLocation: userLocationData,
         citySlug: finalCitySlug, // Enviar solo el slug en lugar de la configuración completa
+        cityId: finalCityId, // 🎯 AÑADIR CITYID PARA LA EDGE FUNCTION
         conversationHistory: conversationHistory.slice(-historyWindow),
         mode,
-        timeoutMs: mode === 'fast' ? 12000 : 45000
+        timeoutMs: mode === 'fast' ? 60000 : 120000
       });
       
       console.log('🔍 DEBUG - Respuesta completa de fetchChatIA:', response);
       
-      // 🎯 USAR DIRECTAMENTE LA RESPUESTA DEL BACKEND SIN PARSING
+      // 🎯 USAR parseAIResponse PARA EXTRAER EVENT CARDS Y PLACE CARDS DEL TEXTO
       const responseText = response.response || response;
-      const events = response.events || [];
-      const placeCards = response.placeCards || [];
+      
+      // Parsear la respuesta usando el parser existente
+      const parsedResponse = parseAIResponse(responseText, response, chatConfig, inputText);
       
       console.log('🔍 DEBUG - Datos extraídos:', {
         responseText: typeof responseText === 'string' ? responseText?.substring(0, 200) : 'No es string',
         responseTextType: typeof responseText,
-        eventsCount: events.length,
-        events: events,
-        placeCardsCount: placeCards.length,
-        placeCards: placeCards
+        eventsCount: parsedResponse.eventsForThisMessage?.length || 0,
+        events: parsedResponse.eventsForThisMessage,
+        placeCardsCount: parsedResponse.placeCardsForMessage?.length || 0,
+        placeCards: parsedResponse.placeCardsForMessage
       });
       
       const aiMessage: ChatMessage = {
@@ -230,15 +259,15 @@ export const useMessageHandler = (
       
       const parsedMessage: ChatMessage = {
           ...aiMessage,
-          content: responseText,
-        events: events,
-        placeCards: placeCards,
-        mapQuery: undefined,
-          downloadablePdfInfo: undefined,
-        telematicProcedureLink: undefined,
-        showSeeMoreButton: false,
-                  originalUserQueryForEvents: undefined,
-          groundingMetadata: undefined,
+          content: parsedResponse.processedContent || responseText,
+        events: parsedResponse.eventsForThisMessage || [],
+        placeCards: parsedResponse.placeCardsForMessage || [],
+        mapQuery: parsedResponse.mapQueryFromAI,
+          downloadablePdfInfo: parsedResponse.downloadablePdfInfoForMessage,
+        telematicProcedureLink: parsedResponse.telematicLinkForMessage,
+        showSeeMoreButton: parsedResponse.showSeeMoreButtonForThisMessage || false,
+                  originalUserQueryForEvents: parsedResponse.storedUserQueryForEvents,
+          groundingMetadata: parsedResponse.finalGroundingMetadata,
       };
       
       // 🚨 DEBUG ADICIONAL - Verificar estructura del mensaje (DESPUÉS de declarar)

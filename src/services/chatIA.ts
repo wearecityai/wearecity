@@ -6,6 +6,7 @@ export async function fetchChatIA(
     userId?: string,
     userLocation?: { lat: number; lng: number };
     citySlug?: string; // Cambiar chatConfig por citySlug
+    cityId?: string; // Añadir cityId para la Edge Function
     conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>; // Historial de la conversación
     mode?: 'fast' | 'quality';
     historyWindow?: number;
@@ -16,6 +17,7 @@ export async function fetchChatIA(
     userMessage,
     options,
     citySlug: options?.citySlug,
+    cityId: options?.cityId,
     conversationHistoryLength: options?.conversationHistory?.length || 0
   });
 
@@ -26,6 +28,7 @@ export async function fetchChatIA(
     allowMapDisplay: options?.allowMapDisplay ?? false,
     customSystemInstruction: options?.customSystemInstruction ?? "",
     citySlug: options?.citySlug, // Enviar el slug en lugar de la configuración completa
+    cityId: options?.cityId, // Añadir cityId para la Edge Function
     conversationHistory: options?.conversationHistory || [], // Incluir el historial de la conversación
     mode: options?.mode || 'quality',
     historyWindow: options?.historyWindow
@@ -40,8 +43,15 @@ export async function fetchChatIA(
 
   let res;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(1000, options?.timeoutMs ?? (options?.mode === 'fast' ? 12000 : 45000)));
+  
+  // 🎯 TIMEOUT MÁS RAZONABLE: mínimo 30 segundos para evitar cancelaciones prematuras
+  const timeout = setTimeout(() => {
+    console.log('🔍 DEBUG - Request timeout reached, aborting...');
+    controller.abort();
+  }, Math.max(30000, options?.timeoutMs ?? (options?.mode === 'fast' ? 60000 : 120000)));
+  
   try {
+    console.log('🔍 DEBUG - Sending request to Edge Function...');
     res = await fetch("https://irghpvvoparqettcnpnh.supabase.co/functions/v1/chat-ia", {
       method: "POST",
       headers: { 
@@ -52,12 +62,20 @@ export async function fetchChatIA(
       body: JSON.stringify(requestBody),
       signal: controller.signal
     });
+    console.log('🔍 DEBUG - Request completed successfully');
   } catch (fetchError) {
     console.error('🔍 DEBUG - Fetch error details:', {
       name: fetchError.name,
       message: fetchError.message,
-      stack: fetchError.stack
+      stack: fetchError.stack,
+      isAbortError: fetchError.name === 'AbortError'
     });
+    
+    // 🎯 MANEJO ESPECÍFICO PARA ERRORES DE ABORT
+    if (fetchError.name === 'AbortError') {
+      throw new Error('La petición tardó demasiado tiempo. Por favor, intenta de nuevo.');
+    }
+    
     throw fetchError;
   }
 

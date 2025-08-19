@@ -21,6 +21,18 @@ const MONTH_ABBRS: Record<string, string[]> = {
   de: ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"]
 };
 
+// Función auxiliar para convertir nombres de meses en español a índices
+const getMonthIndexFromSpanishName = (monthName: string): number => {
+  const monthMap: Record<string, number> = {
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+    'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+    'gen': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+    'jul': 6, 'ago': 7, 'set': 8, 'oct': 9, 'nov': 10, 'dic': 11
+  };
+  
+  return monthMap[monthName.toLowerCase()] ?? -1;
+};
+
 interface EventDateDisplayParts {
   day: string;
   monthAbbr: string;
@@ -89,6 +101,64 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         }
       }
       
+      // Parse Spanish date format: "21 de agosto de 2025" or "25 de agosto - 18 de septiembre de 2025"
+      const spanishDateRegex = /^(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})$/i;
+      const spanishMatch = cleanDateStr.match(spanishDateRegex);
+      
+      if (spanishMatch) {
+        const [, day, monthName, year] = spanishMatch;
+        const monthIndex = getMonthIndexFromSpanishName(monthName);
+        
+        if (monthIndex >= 0 && monthIndex < 12) {
+          return {
+            day: day.padStart(2, '0'),
+            monthAbbr: abbrs[monthIndex],
+            year
+          };
+        }
+      }
+      
+      // Parse Spanish date range: "25 de agosto - 18 de septiembre de 2025"
+      const spanishRangeRegex = /^(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s*-\s*(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})$/i;
+      const spanishRangeMatch = cleanDateStr.match(spanishRangeRegex);
+      
+      if (spanishRangeMatch) {
+        const [, startDay, startMonthName, endDay, endMonthName, year] = spanishRangeMatch;
+        const startMonthIndex = getMonthIndexFromSpanishName(startMonthName);
+        const endMonthIndex = getMonthIndexFromSpanishName(endMonthName);
+        
+        if (startMonthIndex >= 0 && startMonthIndex < 12 && endMonthIndex >= 0 && endMonthIndex < 12) {
+          return {
+            day: startDay.padStart(2, '0'),
+            monthAbbr: abbrs[startMonthIndex],
+            year,
+            endDay: endDay.padStart(2, '0'),
+            endMonthAbbr: abbrs[endMonthIndex],
+            endYear: year
+          };
+        }
+      }
+      
+      // Parse simple Spanish range: "2 - 30 de septiembre de 2025"
+      const simpleSpanishRangeRegex = /^(\d{1,2})\s*-\s*(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})$/i;
+      const simpleSpanishRangeMatch = cleanDateStr.match(simpleSpanishRangeRegex);
+      
+      if (simpleSpanishRangeMatch) {
+        const [, startDay, endDay, monthName, year] = simpleSpanishRangeMatch;
+        const monthIndex = getMonthIndexFromSpanishName(monthName);
+        
+        if (monthIndex >= 0 && monthIndex < 12) {
+          return {
+            day: startDay.padStart(2, '0'),
+            monthAbbr: abbrs[monthIndex],
+            year,
+            endDay: endDay.padStart(2, '0'),
+            endMonthAbbr: abbrs[monthIndex],
+            endYear: year
+          };
+        }
+      }
+      
       // Fallback: Parse DD/MM/YYYY format for compatibility
       const dateRangeRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*-\s*(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
       const rangeMatch = cleanDateStr.match(dateRangeRegex);
@@ -125,6 +195,24 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           }
         }
       }
+      
+      // Nuevo fallback: intentar parsear fechas en formato más flexible
+      const flexibleDateRegex = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/;
+      const flexibleMatch = cleanDateStr.match(flexibleDateRegex);
+      
+      if (flexibleMatch) {
+        const [, day, month, year] = flexibleMatch;
+        const monthIndex = parseInt(month, 10) - 1;
+        
+        if (monthIndex >= 0 && monthIndex < 12) {
+          return {
+            day: day.padStart(2, '0'),
+            monthAbbr: abbrs[monthIndex],
+            year
+          };
+        }
+      }
+      
       return null;
     } catch (error) {
       console.warn('Error parsing event date:', dateStr, error);
@@ -138,14 +226,35 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     if (!timeStr || timeStr.trim() === '') return '';
     
     const cleanTime = timeStr.trim();
-    const timeRangeRegex = /^(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})$/;
-    const match = cleanTime.match(timeRangeRegex);
     
-    if (match) {
-      const [, startHour, startMin, endHour, endMin] = match;
-      return `${startHour.padStart(2, '0')}:${startMin} - ${endHour.padStart(2, '0')}:${endMin}`;
+    // Patrones de tiempo más flexibles
+    const timePatterns = [
+      // HH:MM - HH:MM
+      /^(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})$/,
+      // HH:MM a HH:MM
+      /^(\d{1,2}):(\d{2})\s+a\s+(\d{1,2}):(\d{2})$/,
+      // HH:MM hasta HH:MM
+      /^(\d{1,2}):(\d{2})\s+hasta\s+(\d{1,2}):(\d{2})$/,
+      // Solo HH:MM
+      /^(\d{1,2}):(\d{2})$/
+    ];
+    
+    for (const pattern of timePatterns) {
+      const match = cleanTime.match(pattern);
+      if (match) {
+        if (match.length === 3) {
+          // Solo hora
+          const [, hour, min] = match;
+          return `${hour.padStart(2, '0')}:${min}`;
+        } else if (match.length === 5) {
+          // Rango de horas
+          const [, startHour, startMin, endHour, endMin] = match;
+          return `${startHour.padStart(2, '0')}:${startMin} - ${endHour.padStart(2, '0')}:${endMin}`;
+        }
+      }
     }
     
+    // Si no coincide con ningún patrón, devolver el tiempo tal como está
     return cleanTime;
   };
 
@@ -171,7 +280,20 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   const renderCalendarDate = () => {
-    if (!dateParts) return null;
+    if (!dateParts) {
+      // Fallback: mostrar fecha en formato simple si no se puede parsear
+      return (
+        <div className="flex-shrink-0 flex flex-col justify-center items-center min-w-[70px] relative">
+          <div className="text-xs font-medium text-primary/70 uppercase tracking-wide">
+            FECHA
+          </div>
+          <div className="text-lg font-bold text-primary leading-none mt-1 text-center">
+            {event.date || 'N/A'}
+          </div>
+          <div className="absolute -right-2 top-0 bottom-0 w-px bg-border"></div>
+        </div>
+      );
+    }
 
     return (
       <div className="flex-shrink-0 flex flex-col justify-center items-center min-w-[70px] relative">
@@ -303,24 +425,25 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
             {/* Botones de acción */}
             <div className="flex gap-2 pt-2">
-              {/* Botón Ver detalles - con estilo similar a PlaceCard */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                asChild
-                disabled={!event.sourceUrl}
-              >
-                <a
-                  href={event.sourceUrl || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2"
+              {/* Botón Ver detalles - solo mostrar si hay link de detalle */}
+              {(event.eventDetailUrl && event.eventDetailUrl !== 'No disponible') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                  asChild
                 >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Ver detalles</span>
-                </a>
-              </Button>
+                  <a
+                    href={event.eventDetailUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center space-x-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Ver detalles</span>
+                  </a>
+                </Button>
+              )}
 
               {/* Botón Añadir al calendario */}
               <Button
