@@ -1,22 +1,17 @@
-
-// Import Firebase version during migration
-export { useAuth, AuthProvider } from './useAuthFirebase';
-
-// Legacy Supabase version (commented out during migration)
-/*
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { firebase, User, Session } from '@/integrations/firebase/client';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/integrations/firebase/config';
 import { useCityNavigation } from './useCityNavigation';
 
 interface Profile {
   id: string;
   email: string;
-  first_name: string | null;
-  last_name: string | null;
+  firstName: string | null;
+  lastName: string | null;
   role: 'ciudadano' | 'administrativo';
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthContextType {
@@ -37,7 +32,8 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {}
 });
 
-export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('🔐 AuthProvider rendering...');
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -57,25 +53,24 @@ export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ 
 
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      const docRef = doc(db, 'profiles', userId);
+      const docSnap = await getDoc(docRef);
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (!docSnap.exists()) {
         return null;
       }
 
-      if (!data) {
-        return null;
-      }
+      const data = docSnap.data();
 
       // Map the role to ensure type compatibility
       const mappedProfile: Profile = {
-        ...data,
-        role: mapRole(data.role)
+        id: docSnap.id,
+        email: data.email,
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        role: mapRole(data.role),
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
       };
 
       console.log('Profile fetched:', mappedProfile);
@@ -94,13 +89,13 @@ export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await firebase.auth.signOut();
   };
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    const unsubscribe = firebase.auth.onAuthStateChange(
+      async (event: string, session: Session | null) => {
         console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
@@ -109,11 +104,14 @@ export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ 
           // Fetch user profile when authenticated
           setTimeout(async () => {
             const profileData = await fetchProfile(session.user.id);
+            console.log('🔍 Profile data after fetch:', profileData);
             setProfile(profileData);
             if (!profileData) {
-              await supabase.auth.signOut();
+              console.log('❌ No profile data found, redirecting to auth');
+              await firebase.auth.signOut();
               window.location.href = '/auth';
             } else {
+              console.log('✅ Profile data found, proceeding with auth');
               // Check for default chat and redirect if user just signed in
               if (event === 'SIGNED_IN') {
                 // La redirección ahora se maneja en PersistentLayout usando useCityNavigation
@@ -122,8 +120,9 @@ export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ 
             }
             // Delay más agresivo para asegurar que NO se muestre el sidebar prematuramente
             setTimeout(() => {
+              console.log('🔄 Setting authLoading to false after profile fetch');
               setIsLoading(false);
-            }, 1500);
+            }, 100); // Reduced delay for testing
           }, 500);
         } else {
           setProfile(null);
@@ -136,18 +135,22 @@ export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ 
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    firebase.auth.getSession().then(({ data: { session } }) => {
       console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         fetchProfile(session.user.id).then(async (profileData) => {
+          console.log('🔍 Initial profile data after fetch:', profileData);
           setProfile(profileData);
           setIsLoading(false);
           if (!profileData) {
-            await supabase.auth.signOut();
+            console.log('❌ No initial profile data found, redirecting to auth');
+            await firebase.auth.signOut();
             window.location.href = '/auth';
+          } else {
+            console.log('✅ Initial profile data found');
           }
         });
       } else {
@@ -156,7 +159,9 @@ export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ 
     });
 
     return () => {
-      subscription.unsubscribe();
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, []);
 
@@ -174,8 +179,7 @@ export const AuthProviderOriginal: React.FC<{ children: React.ReactNode }> = ({ 
   );
 };
 
-export const useAuthOriginal = () => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   return context;
 };
-*/

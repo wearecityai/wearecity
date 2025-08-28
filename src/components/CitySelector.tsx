@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { useCities } from '@/hooks/useCities';
+import { useCitiesFirebase as useCities } from '@/hooks/useCitiesFirebase';
 import { City } from '@/types';
 
 interface CitySelectorProps {
@@ -19,9 +19,11 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredCities, setFilteredCities] = useState<City[]>([]);
 
+  // Recargar ciudades cada vez que el componente se monta
   useEffect(() => {
     loadCities();
-  }, []);
+  }, [loadCities]);
+
 
   useEffect(() => {
     if (cities.length > 0) {
@@ -104,7 +106,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
       </div>
 
       {/* Search */}
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -113,6 +115,16 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
+        </div>
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadCities}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Cargando...' : 'Recargar ciudades'}
+          </Button>
         </div>
       </div>
 

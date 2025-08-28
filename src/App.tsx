@@ -6,19 +6,19 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAutoLanguage } from '@/hooks/useAutoLanguage';
 
 import PersistentLayout from '@/components/PersistentLayout';
-import AdminMetrics from '@/pages/AdminMetrics';
 import AuthPage from '@/components/auth/AuthPage';
 import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
 
 const App = () => {
   useAutoLanguage();
+  console.log('🗺️ FULL APP: App component rendering with all components');
+  
   return (
     <AppErrorBoundary 
       onError={(error, errorInfo) => {
         console.error('App Error Boundary caught an error:', error, errorInfo);
         
-        // Log production errors with context
         if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
           console.log('[PROD ERROR BOUNDARY]', {
             error: error.message,

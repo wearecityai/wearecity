@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, query, where, orderBy, addDoc, updateDoc, doc, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/integrations/firebase/config';
 import { useAuth } from './useAuth';
 import { ChatMessage, MessageRole } from '../types';
 
@@ -64,29 +65,28 @@ export const useMessages = (conversationId: string | null) => {
     console.log('Loading messages for conversation:', conversationId);
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+      const messagesRef = collection(db, 'messages');
+      const q = query(
+        messagesRef, 
+        where('conversation_id', '==', conversationId),
+        orderBy('created_at', 'asc')
+      );
 
-      if (error) {
-        console.error('Error loading messages:', error);
-        // Do not clear local messages on error
-        return;
-      }
+      const querySnapshot = await getDocs(q);
       
       // Convert database messages to ChatMessage format
-      const chatMessages: ChatMessage[] = (data || []).map(msg => {
-        const deserializedMetadata = deserializeMetadata(msg.metadata);
+      const chatMessages: ChatMessage[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const deserializedMetadata = deserializeMetadata(data.metadata);
         
-        return {
-          id: msg.id,
-          role: convertToMessageRole(msg.role),
-          content: msg.content,
-          timestamp: new Date(msg.created_at || ''),
+        chatMessages.push({
+          id: doc.id,
+          role: convertToMessageRole(data.role),
+          content: data.content,
+          timestamp: data.created_at?.toDate?.() || new Date(),
           ...deserializedMetadata
-        };
+        });
       });
       
       // Merge with existing local messages to avoid dropping optimistic typing/unsaved
@@ -131,23 +131,15 @@ export const useMessages = (conversationId: string | null) => {
       const serializedMetadata = serializeMetadata(message);
       const databaseRole = convertToDatabaseRole(message.role);
       
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          id: message.id,
-          conversation_id: conversationIdToUse,
-          role: databaseRole,
-          content: message.content,
-          metadata: serializedMetadata,
-          created_at: message.timestamp.toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error saving message:', error);
-        throw error;
-      }
+      const messagesRef = collection(db, 'messages');
+      await addDoc(messagesRef, {
+        conversation_id: conversationIdToUse,
+        role: databaseRole,
+        content: message.content,
+        metadata: serializedMetadata,
+        created_at: Timestamp.fromDate(message.timestamp)
+      });
+      
     } catch (error) {
       console.error('Error saving message:', error);
       throw error;
@@ -204,17 +196,11 @@ export const useMessages = (conversationId: string | null) => {
           const updatedMessage = { ...message, ...updates };
           const serializedMetadata = serializeMetadata(updatedMessage);
           
-          const { error } = await supabase
-            .from('messages')
-            .update({
-              content: updatedMessage.content,
-              metadata: serializedMetadata
-            })
-            .eq('id', messageId);
-            
-          if (error) {
-            console.error('Error updating message in database:', error);
-          }
+          const messageRef = doc(db, 'messages', messageId);
+          await updateDoc(messageRef, {
+            content: updatedMessage.content,
+            metadata: serializedMetadata
+          });
         }
       } catch (error) {
         console.error('Error updating message:', error);

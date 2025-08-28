@@ -165,7 +165,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
       'place': MapPin, 'local_gas_station': Car,
     };
     
-    return iconMap[iconName.toLowerCase()] || HelpCircle;
+    return iconMap[iconName?.toLowerCase() || ''] || HelpCircle;
   };
 
   // Auto-assign icon based on prompt text

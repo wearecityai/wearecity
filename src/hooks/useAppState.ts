@@ -7,6 +7,7 @@ import { useGoogleMaps } from './useGoogleMaps';
 import { useChatManager } from './useChatManager';
 import { useAssistantConfig } from './useAssistantConfig';
 import { useConversations } from './useConversations';
+import { useAuth } from './useAuth';
 import { MessageRole, CustomChatConfig } from '../types';
 import { supabase } from '../integrations/supabase/client';
 import { DEFAULT_CHAT_CONFIG } from '../constants';
@@ -30,6 +31,7 @@ const useIsMobile = () => {
 
 export const useAppState = (citySlug?: string) => {
   const isMobile = useIsMobile();
+  const { profile } = useAuth();
   
   // Use theme context instead of local state
   const { currentThemeMode, toggleTheme } = useThemeContext();
@@ -51,11 +53,16 @@ export const useAppState = (citySlug?: string) => {
   // Mantener la última ciudad configurada para cuando estemos en la página de descubrir
   const [lastCityConfig, setLastCityConfig] = useState<CustomChatConfig | null>(null);
   
-  // Decidir qué configuración usar según si es chat público o no
-  // Si no hay citySlug (página de descubrir), usar la última ciudad configurada
-  const effectiveCitySlug = citySlug;
-  const chatConfig = effectiveCitySlug ? publicChatConfig : assistantConfigHook.config;
-  const setChatConfig = effectiveCitySlug ? setPublicChatConfig : assistantConfigHook.setConfig;
+  // Decidir qué configuración usar según el rol del usuario
+  // Los administradores siempre usan su configuración personal, ciudadanos usan configuración pública
+  const isAdmin = profile?.role === 'administrativo';
+  console.log('🔍 useAppState config decision:', { citySlug, isAdmin, profileRole: profile?.role });
+  
+  const chatConfig = isAdmin ? assistantConfigHook.config : publicChatConfig;
+  const setChatConfig = isAdmin ? assistantConfigHook.setConfig : setPublicChatConfig;
+  
+  // Agregar estado de carga inicial para administradores
+  const configHasLoadedInitially = isAdmin ? assistantConfigHook.hasLoadedInitially : true;
   
   // Guardar la configuración actual como última ciudad cuando cambie
   useEffect(() => {
@@ -64,15 +71,15 @@ export const useAppState = (citySlug?: string) => {
     }
   }, [citySlug, chatConfig?.restrictedCity]);
   
-  const saveConfig = (effectiveCitySlug && !assistantConfigHook.config) ? 
-    // Para chats públicos sin configuración de admin, solo guardar en localStorage
+  const saveConfig = isAdmin ? 
+    // Para administradores, usar la función de guardado de Firebase
+    assistantConfigHook.saveConfig :
+    // Para ciudadanos, solo guardar en localStorage
     async (config: CustomChatConfig) => {
       localStorage.setItem('chatConfig', JSON.stringify(config));
       setPublicChatConfig(config);
       return true;
-    } : 
-    // Para admins o cuando hay configuración de admin, usar assistantConfigHook.saveConfig
-    assistantConfigHook.saveConfig;
+    };
 
   // Usar geolocalización persistente en lugar de auto-geolocalización
   const { userLocation, geolocationStatus, isHealthy: geolocationHealthy } = usePersistentGeolocation();
@@ -85,41 +92,13 @@ export const useAppState = (citySlug?: string) => {
 
   // Geolocalización ya se inicia automáticamente con useAutoGeolocation
 
-  // Fetch Google Maps API key from backend
+  // Use fallback Google Maps API key (Supabase backend no longer available)
   useEffect(() => {
-    const fetchApiKey = async () => {
-      try {
-        // Get the API key from the backend edge function
-        const response = await fetch('https://irghpvvoparqettcnpnh.functions.supabase.co/chat-ia', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userMessage: 'test',
-            requestType: 'get_api_key'
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.apiKey) {
-            console.log('✅ Retrieved Google Maps API key from backend');
-            setGoogleMapsApiKey(data.apiKey);
-            return;
-          }
-        }
-        
-        console.warn('⚠️ Could not retrieve API key from backend, using fallback');
-        setGoogleMapsApiKey('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g');
-      } catch (error) {
-        console.error('❌ Error fetching API key:', error);
-        setGoogleMapsApiKey('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g');
-      }
-    };
-
     if (!googleMapsApiKey) {
-      fetchApiKey();
+      console.log('🗝️ Using fallback Google Maps API key');
+      setGoogleMapsApiKey('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g');
     }
-  }, []); // Remove googleMapsApiKey dependency to prevent infinite loops
+  }, [googleMapsApiKey]);
 
   // Load Google Maps script on app initialization
   useEffect(() => {

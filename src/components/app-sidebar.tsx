@@ -98,7 +98,8 @@ export function AppSidebar({
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
-  const isAdminContext = isAdmin && location.pathname.startsWith('/admin/');
+  // Admin users should see admin features on both /admin/ routes and regular chat routes
+  const isAdminContext = isAdmin;
   const { 
     defaultChat, 
     setDefaultCity, 

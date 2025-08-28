@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, query, where, orderBy, addDoc, updateDoc, deleteDoc, doc, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/integrations/firebase/config';
 import { useAuth } from './useAuth';
 
 interface Conversation {
@@ -37,24 +38,33 @@ export const useConversations = (citySlug?: string) => {
     console.log('Loading conversations for user:', user.id, 'in city:', citySlug);
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading conversations:', error);
-        return;
-      }
+      const conversationsRef = collection(db, 'conversations');
+      let q = query(conversationsRef, where('user_id', '==', user.id));
+      
+      const querySnapshot = await getDocs(q);
+      const allConversations: Conversation[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        allConversations.push({
+          id: doc.id,
+          title: data.title,
+          created_at: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+          updated_at: data.updated_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+          city_slug: data.city_slug
+        });
+      });
 
       // Filtrar por ciudad después de obtener los datos
-      let filteredData = (data || []) as Conversation[];
+      let filteredData = allConversations;
       if (citySlug) {
         filteredData = filteredData.filter(conv => conv.city_slug === citySlug);
       } else {
         filteredData = filteredData.filter(conv => !conv.city_slug);
       }
+      
+      // Ordenar por fecha de creación descendente
+      filteredData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       setConversations(filteredData);
     } catch (error) {
@@ -93,6 +103,8 @@ export const useConversations = (citySlug?: string) => {
       const conversationData: any = {
         user_id: user.id,
         title,
+        created_at: Timestamp.now(),
+        updated_at: Timestamp.now()
       };
       
       // Añadir city_slug si se especifica
@@ -100,22 +112,22 @@ export const useConversations = (citySlug?: string) => {
         conversationData.city_slug = citySlug;
       }
       
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert([conversationData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating conversation:', error);
-        return null;
-      }
+      const conversationsRef = collection(db, 'conversations');
+      const docRef = await addDoc(conversationsRef, conversationData);
+      
+      const newConversation: Conversation = {
+        id: docRef.id,
+        title,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        city_slug: citySlug
+      };
       
       // Update local state immediately
-      setConversations(prev => [data, ...prev]);
+      setConversations(prev => [newConversation, ...prev]);
       // Set as current conversation immediately
-      setCurrentConversationId(data.id);
-      return data;
+      setCurrentConversationId(docRef.id);
+      return newConversation;
     } catch (error) {
       console.error('Error creating conversation:', error);
       return null;
@@ -135,16 +147,11 @@ export const useConversations = (citySlug?: string) => {
 
     console.log('Updating conversation title:', conversationId, title);
     try {
-      const { error } = await supabase
-        .from('conversations')
-        .update({ title, updated_at: new Date().toISOString() })
-        .eq('id', conversationId)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error updating conversation title:', error);
-        return;
-      }
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await updateDoc(conversationRef, {
+        title,
+        updated_at: Timestamp.now()
+      });
 
       // Update local state immediately
       setConversations(prev => 
@@ -176,16 +183,8 @@ export const useConversations = (citySlug?: string) => {
 
     console.log('Deleting conversation:', conversationId);
     try {
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting conversation:', error);
-        return;
-      }
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await deleteDoc(conversationRef);
 
       setConversations(prev => prev.filter(conv => conv.id !== conversationId));
       if (currentConversationId === conversationId) {

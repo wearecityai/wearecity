@@ -26,7 +26,8 @@ import AdminMetrics from '@/pages/AdminMetrics';
 import { City } from '@/types';
 import { Sparkles, Building2 } from 'lucide-react';
 import { Badge } from './ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/config';
+import { doc, getDoc, setDoc, query, where, collection, getDocs, limit } from 'firebase/firestore';
 import { Button } from './ui/button';
 import { useSimpleViewport } from '@/hooks/useSimpleViewport';
 
@@ -46,11 +47,19 @@ interface Profile {
 }
 
 const PersistentLayout: React.FC = () => {
+  console.log('🚀 PersistentLayout component rendering...');
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
   const { user, profile, isLoading: authLoading } = useAuth();
+  
+  console.log('🔐 PersistentLayout auth state:', { 
+    hasUser: !!user, 
+    hasProfile: !!profile, 
+    authLoading, 
+    profileRole: profile?.role 
+  });
   const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
   const { viewportHeight, isSafari, isKeyboardOpen } = useSimpleViewport();
   // Evitar flashes de loaders al volver de background
@@ -269,18 +278,20 @@ const PersistentLayout: React.FC = () => {
       if (!user || profile?.role !== 'administrativo') return;
       setAdminCityLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('cities')
-          .select('slug, admin_user_id, id')
-          .eq('admin_user_id', user.id)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (!error && data) {
-          setAdminCitySlug(data.slug);
-          // En cualquier ruta admin distinta, navegar a su slug
-          if (location.pathname.startsWith('/admin') && location.pathname !== `/admin/${data.slug}`) {
-            navigate(`/admin/${data.slug}`, { replace: true });
+        // Buscar ciudad del admin en Firebase
+        const cityId = `city_${user.id}`;
+        const cityDoc = await getDoc(doc(db, 'cities', cityId));
+        
+        if (cityDoc.exists()) {
+          const cityData = cityDoc.data();
+          if (cityData.isActive) {
+            setAdminCitySlug(cityData.slug);
+            // En cualquier ruta admin distinta, navegar a su slug
+            if (location.pathname.startsWith('/admin') && location.pathname !== `/admin/${cityData.slug}`) {
+              navigate(`/admin/${cityData.slug}`, { replace: true });
+            }
+          } else {
+            setAdminCitySlug(null);
           }
         } else {
           setAdminCitySlug(null);
@@ -316,45 +327,50 @@ const PersistentLayout: React.FC = () => {
     setAdminCityLoading(true);
     try {
       const defaultName = 'Mi Ciudad';
-      // Intentar generar slug único desde el backend si existe la función; si falla, fallback local
-      let newSlug = '';
-      try {
-        const { data: rpcData, error: rpcError } = await supabase.rpc('generate_unique_slug', { base_name: defaultName });
-        if (!rpcError && rpcData) newSlug = rpcData as unknown as string;
-      } catch {}
-      if (!newSlug) {
-        newSlug = defaultName
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9\s-]/g, '')
-          .trim()
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-');
-      }
+      // Generar slug local
+      const newSlug = defaultName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
 
-      const { data: insertData, error: insertError } = await supabase
-        .from('cities')
-        .insert({
-          name: defaultName,
-          slug: newSlug,
-          admin_user_id: user.id,
-          is_active: true,
-          is_public: true,
-          created_at: new Date().toISOString()
-        })
-        .select('slug')
-        .single();
-
-      if (insertError) {
-        console.error('Error creating admin city:', insertError);
-        return;
-      }
-
-      setAdminCitySlug(insertData.slug);
-      navigate(`/admin/${insertData.slug}`, { replace: true });
+      // Crear ciudad en Firebase con ID predictible
+      const cityId = `city_${user.id}`;
+      const cityData = {
+        name: defaultName,
+        slug: newSlug,
+        adminUserId: user.id,
+        isActive: true,
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        assistantName: defaultName,
+        systemInstruction: '',
+        recommendedPrompts: [],
+        serviceTags: [],
+        enableGoogleSearch: true,
+        allowMapDisplay: true,
+        allowGeolocation: true,
+        currentLanguageCode: 'es',
+        procedureSourceUrls: [],
+        uploadedProcedureDocuments: [],
+        restrictedCity: null,
+        sedeElectronicaUrl: null,
+        agendaEventosUrls: null,
+        profileImageUrl: null
+      };
+      
+      await setDoc(doc(db, 'cities', cityId), cityData);
+      
+      setAdminCitySlug(newSlug);
+      navigate(`/admin/${newSlug}`, { replace: true });
       // Opcional: abrir configuración justo después de crear
       setCurrentView('finetuning');
+    } catch (error) {
+      console.error('Error creating admin city:', error);
     } finally {
       setAdminCityLoading(false);
     }
@@ -392,15 +408,17 @@ const PersistentLayout: React.FC = () => {
     handleOpenFinetuning
   });
 
-  // Wrapper to ensure finetuning view opens over any search overlays
+  // Wrapper to ensure views open over any search overlays
   const openFinetuningFromSidebar = () => {
+    console.log('🎯 Opening finetuning view via auth wrapper');
     setShowCitySearch(false);
     handleOpenFinetuningWithAuth();
   };
 
   const openMetricsFromSidebar = () => {
+    console.log('🎯 Opening metrics view');
     setShowCitySearch(false);
-    setCurrentView('metrics');
+    handleOpenMetrics();
   };
 
   const handleCitySelect = async (city: City) => {
@@ -445,38 +463,15 @@ const PersistentLayout: React.FC = () => {
     handleSelectChat(index);
   };
 
-  // Detectar si el usuario es nuevo (no tiene conversaciones)
+  // Detectar si el usuario es nuevo (no tiene conversaciones) - TEMPORAL DISABLED
   useEffect(() => {
-    const checkIfNewUser = async () => {
-      // Solo verificar si el usuario está autenticado y no hemos verificado aún
-      if (user && !hasCheckedOnboarding && !authLoading) {
-        try {
-          // Verificar si el usuario tiene conversaciones
-          const { data: conversations, error } = await supabase
-            .from('conversations')
-            .select('id')
-            .eq('user_id', user.id)
-            .limit(1);
-
-          if (error) {
-            console.error('Error checking user conversations:', error);
-            return;
-          }
-
-          // Si no tiene conversaciones, mostrar onboarding
-          if (!conversations || conversations.length === 0) {
-            console.log('👋 Usuario nuevo detectado, mostrando onboarding');
-            setShowOnboarding(true);
-          }
-        } catch (error) {
-          console.error('Error checking if user is new:', error);
-        } finally {
-          setHasCheckedOnboarding(true);
-        }
-      }
-    };
-
-    checkIfNewUser();
+    // Temporalmente deshabilitado durante la migración Firebase
+    // TODO: Reimplementar con Firebase cuando sea necesario
+    if (user && !hasCheckedOnboarding && !authLoading) {
+      setHasCheckedOnboarding(true);
+      console.log('🔧 Onboarding check disabled during Firebase migration');
+      // No mostrar onboarding por ahora para facilitar pruebas
+    }
   }, [user, authLoading, hasCheckedOnboarding]);
 
   // Manejar la selección de ciudad en el onboarding
@@ -502,18 +497,25 @@ const PersistentLayout: React.FC = () => {
         try {
           console.log('🔍 Cargando configuración para ciudad:', citySlug);
           
-          // Cargar datos de la ciudad desde Supabase
-          const { data: cityData, error } = await supabase
-            .from('cities')
-            .select('*')
-            .eq('slug', citySlug)
-            .eq('is_public', true)
-            .single();
-
-          if (error) {
-            console.error('Error cargando ciudad:', error);
+          // Cargar datos de la ciudad desde Firebase
+          const citiesQuery = query(
+            collection(db, 'cities'),
+            where('slug', '==', citySlug),
+            where('isPublic', '==', true),
+            limit(1)
+          );
+          const citySnapshot = await getDocs(citiesQuery);
+          
+          if (citySnapshot.empty) {
+            console.warn('Ciudad pública no encontrada:', citySlug, '- usando configuración admin');
+            // Para admins, si no hay ciudad pública, usar la configuración que ya se cargó
+            if (profile?.role === 'administrativo') {
+              return; // La configuración admin ya se cargó desde useAssistantConfig
+            }
             return;
           }
+          
+          const cityData = citySnapshot.docs[0].data();
 
           if (cityData) {
             // Función helper para parsear JSON de forma segura
@@ -535,22 +537,22 @@ const PersistentLayout: React.FC = () => {
               }
             };
 
-            // Aplicar configuración de la ciudad al chat
+            // Aplicar configuración de la ciudad al chat (Firebase usa camelCase)
             const newChatConfig = {
-              assistantName: cityData.assistant_name || 'Asistente de Ciudad',
-              systemInstruction: cityData.system_instruction || 'Soy un asistente inteligente que ayuda a los ciudadanos.',
-              recommendedPrompts: safeParseJsonArray(cityData.recommended_prompts, []),
-              serviceTags: safeParseJsonArray(cityData.service_tags, []),
-              enableGoogleSearch: cityData.enable_google_search ?? true,
-              allowMapDisplay: cityData.allow_map_display ?? true,
-              allowGeolocation: cityData.allow_geolocation ?? true,
-              currentLanguageCode: cityData.current_language_code || 'es',
-              procedureSourceUrls: safeParseJsonArray(cityData.procedure_source_urls, []),
-              uploadedProcedureDocuments: safeParseJsonObject(cityData.uploaded_procedure_documents, {}),
-              sedeElectronicaUrl: cityData.sede_electronica_url || '',
-              agendaEventosUrls: safeParseJsonArray(cityData.agenda_eventos_urls, []),
-              restrictedCity: safeParseJsonObject(cityData.restricted_city, null),
-              profileImageUrl: cityData.profile_image_url || undefined
+              assistantName: cityData.assistantName || 'Asistente de Ciudad',
+              systemInstruction: cityData.systemInstruction || 'Soy un asistente inteligente que ayuda a los ciudadanos.',
+              recommendedPrompts: cityData.recommendedPrompts || [],
+              serviceTags: cityData.serviceTags || [],
+              enableGoogleSearch: cityData.enableGoogleSearch ?? true,
+              allowMapDisplay: cityData.allowMapDisplay ?? true,
+              allowGeolocation: cityData.allowGeolocation ?? true,
+              currentLanguageCode: cityData.currentLanguageCode || 'es',
+              procedureSourceUrls: cityData.procedureSourceUrls || [],
+              uploadedProcedureDocuments: cityData.uploadedProcedureDocuments || {},
+              sedeElectronicaUrl: cityData.sedeElectronicaUrl || '',
+              agendaEventosUrls: cityData.agendaEventosUrls || [],
+              restrictedCity: cityData.restrictedCity || null,
+              profileImageUrl: cityData.profileImageUrl || undefined
             };
 
             console.log('🔧 Configuración de ciudad cargada:', {
@@ -592,10 +594,55 @@ const PersistentLayout: React.FC = () => {
     const path = location.pathname;
     const searchParams = new URLSearchParams(location.search);
     const isDiscoverPage = searchParams.get('focus') === 'search';
+    
+    console.log('🔍 getCurrentContent called:', { 
+      currentView, 
+      path, 
+      isAppInitialized, 
+      isResuming,
+      safetyTimeout,
+      chatConfigExists: !!chatConfig,
+      isNavigating,
+      isFullyLoaded,
+      restrictedCity: chatConfig?.restrictedCity,
+      profileRole: profile?.role,
+      showOnboarding,
+      showCitySearch,
+      isAppFullyInitialized
+    });
+
+    // ABSOLUTE PRIORITY: Vista controls override ALL other conditions
+    // These must be checked first before any loading or config conditions
+    console.log('🎯 HIGHEST PRIORITY: Checking currentView first');
+    
+    // Página de finetuning (configuración) tiene prioridad ABSOLUTA
+    if (currentView === 'finetuning') {
+      console.log('🎯 Rendering FinetuningPage view - ABSOLUTE PRIORITY');
+      return (
+        <FinetuningPage
+          currentConfig={chatConfig}
+          onSave={handleSaveCustomization}
+          onCancel={() => setCurrentView('chat')}
+          googleMapsScriptLoaded={googleMapsScriptLoaded}
+          apiKeyForMaps=""
+          profileImagePreview={undefined}
+          setProfileImagePreview={() => {}}
+          activeTab={finetuningActiveTab}
+          onTabChange={setFinetuningActiveTab}
+        />
+      );
+    }
+
+    // Página de métricas (solo admins) tiene prioridad ABSOLUTA
+    if (currentView === 'metrics') {
+      console.log('🎯 Rendering AdminMetrics view - ABSOLUTE PRIORITY');
+      return <AdminMetrics />;
+    }
 
     // Verificación adicional: solo mostrar loading inicial si no estamos reanudando
     // O si se activó el safety timeout
     if ((!isAppInitialized && !isResuming) || safetyTimeout) {
+      console.log('🔄 EARLY RETURN: App initialization or safety timeout condition met');
       if (safetyTimeout && !isAppInitialized) {
         console.log('🚨 Safety timeout active - showing fallback content');
         return (
@@ -615,6 +662,7 @@ const PersistentLayout: React.FC = () => {
           </div>
         );
       }
+      console.log('🔄 EARLY RETURN: Full screen loader');
       return (
         <FullScreenLoader size="md" />
       );
@@ -622,6 +670,7 @@ const PersistentLayout: React.FC = () => {
 
     // Si estamos navegando inicialmente, mostrar skeleton del chat para mantener layout
     if (isNavigating) {
+      console.log('🔄 EARLY RETURN: Navigation in progress');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <ChatSkeleton />
@@ -631,6 +680,7 @@ const PersistentLayout: React.FC = () => {
     
     // Solo mostrar ChatPreloader durante la carga inicial de la app, no durante el chat
     if (!isFullyLoaded && !isResuming && !isAppInitialized) {
+      console.log('🔄 EARLY RETURN: ChatPreloader');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <ChatPreloader 
@@ -640,8 +690,9 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Si no hay configuración de ciudad y el usuario es administrativo, mostrar selector
-    if (!chatConfig?.restrictedCity && profile?.role === 'administrativo') {
+    // Para administradores: verificar si tienen configuración básica, no restrictedCity
+    if (profile?.role === 'administrativo' && (!chatConfig || !chatConfig.assistantName)) {
+      console.log('🔄 EARLY RETURN: Admin without basic config');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -659,8 +710,15 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
+    // Para administradores con configuración válida: ir directamente al chat
+    if (profile?.role === 'administrativo' && chatConfig && chatConfig.assistantName) {
+      console.log('✅ Admin with valid config - proceeding to chat view');
+      // Los administradores van directamente al chat, continúa con el flujo normal
+    }
+
     // Si no hay configuración de ciudad y el usuario es ciudadano, mostrar selector
     if (!chatConfig?.restrictedCity && profile?.role === 'ciudadano') {
+      console.log('🔄 EARLY RETURN: Citizen without city config');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -670,8 +728,9 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Si no hay configuración de ciudad pero la app está inicializada, mostrar chat básico
-    if (!chatConfig?.restrictedCity && isAppFullyInitialized) {
+    // Si no hay configuración de ciudad pero la app está inicializada, mostrar chat básico (solo para ciudadanos)
+    if (!chatConfig?.restrictedCity && isAppFullyInitialized && profile?.role !== 'administrativo') {
+      console.log('🔄 EARLY RETURN: No city config but app initialized (citizen)');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -691,6 +750,7 @@ const PersistentLayout: React.FC = () => {
 
     // Mostrar onboarding si está activo
     if (showOnboarding) {
+      console.log('🔄 EARLY RETURN: Onboarding active');
       return (
         <OnboardingFlow 
           onComplete={handleOnboardingComplete}
@@ -699,30 +759,9 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Página de finetuning (configuración) tiene prioridad
-    if (currentView === 'finetuning') {
-      return (
-        <FinetuningPage
-          currentConfig={chatConfig}
-          onSave={handleSaveCustomization}
-          onCancel={() => setCurrentView('chat')}
-          googleMapsScriptLoaded={googleMapsScriptLoaded}
-          apiKeyForMaps=""
-          profileImagePreview={undefined}
-          setProfileImagePreview={() => {}}
-          activeTab={finetuningActiveTab}
-          onTabChange={setFinetuningActiveTab}
-        />
-      );
-    }
-
-    // Página de métricas (solo admins)
-    if (currentView === 'metrics') {
-      return <AdminMetrics />;
-    }
-
     // Vista de búsqueda de ciudades (estado local)
     if (showCitySearch) {
+      console.log('🔄 EARLY RETURN: City search active');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -873,11 +912,13 @@ const PersistentLayout: React.FC = () => {
     }
     
     // Si no hay usuario y no está cargando, redirigir a autenticación
-    if (!user && !authLoading) {
-      console.log('🔍 No user found, redirecting to auth');
-      window.location.href = '/auth';
-      return null;
-    }
+    console.log('🔍 Checking auth redirect condition:', { user: !!user, authLoading });
+    // DISABLED: This was causing incorrect redirects for authenticated users
+    // if (!user && !authLoading) {
+    //   console.log('🔍 No user found, redirecting to auth');
+    //   window.location.href = '/auth';
+    //   return null;
+    // }
     
     // Si la autenticación está en progreso, mostrar loader
     if (isAuthInProgress) {

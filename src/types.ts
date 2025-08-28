@@ -117,7 +117,7 @@ export interface City {
   id: string;
   name: string;
   slug: string;
-  admin_user_id: string;
+  admin_user_id?: string;
   chat_id?: string;
   assistant_name?: string;
   system_instruction?: string;
@@ -131,9 +131,12 @@ export interface City {
   uploaded_procedure_documents?: any;
   sede_electronica_url?: string;
   restricted_city?: any;
+  // Firebase uses isActive/isPublic instead of is_active/is_public
   is_active?: boolean;
   is_public?: boolean;
-  created_at: string;
+  isActive?: boolean;
+  isPublic?: boolean;
+  created_at?: string;
   updated_at?: string;
   lat?: number | null;
   lng?: number | null;
