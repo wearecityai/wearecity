@@ -9,6 +9,7 @@ import { Skeleton } from './ui/skeleton';
 import { ChatMessage as ChatMessageType, MessageRole, PlaceCardInfo } from '../types';
 import EventCard from './EventCard';
 import PlaceCard from './PlaceCard';
+import { EnhancedAIResponseRenderer } from './EnhancedAIResponseRenderer';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { useStrictSequentialReveal } from '../hooks/useStrictSequentialReveal';
 import { usePlaceCardRetry } from '../hooks/usePlaceCardRetry';
@@ -260,10 +261,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   <>
                     {(contentToDisplay && contentToDisplay.trim() !== "") && (
                       <div 
-                        className="text-base sm:text-lg leading-normal break-words cursor-pointer"
+                        className="cursor-pointer"
                         onClick={typewriterIsTyping ? skipToEnd : undefined}
                       >
-                        {processTextForParagraphs(contentToDisplay)}
+                        <EnhancedAIResponseRenderer 
+                          content={contentToDisplay} 
+                          className="text-base sm:text-lg leading-normal break-words"
+                        />
                       </div>
                     )}
                                           {message.events && message.events.length > 0 && (

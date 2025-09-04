@@ -8,7 +8,7 @@ import {
   User, 
   MessageCircle
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthFirebase';
 import { useAssistantConfig } from '@/hooks/useAssistantConfig';
 import { CityLinkManager } from './CityLinkManager';
 

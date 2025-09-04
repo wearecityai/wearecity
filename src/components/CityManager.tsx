@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Plus, Edit2, ExternalLink } from 'lucide-react';
 import { useCities } from '@/hooks/useCities';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthFirebase';
 
 interface CityManagerProps {
   onCityCreated?: (city: any) => void;
@@ -14,7 +14,7 @@ interface CityManagerProps {
 
 export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
   const { user } = useAuth();
-  const { currentCity, isLoading, error, createAdminChat, setError } = useCities();
+  const { currentCity, isLoading, error, createAdminChat, setError } = useCitiesFirebase();
   
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [cityName, setCityName] = useState('');

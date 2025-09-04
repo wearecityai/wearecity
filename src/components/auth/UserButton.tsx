@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthFirebase';
 import { User, Settings, LogOut, Shield, LogIn } from 'lucide-react';
 
 const UserButton = () => {

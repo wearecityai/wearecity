@@ -26,7 +26,7 @@ interface OnboardingFlowProps {
 export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSkip }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { cities, isLoading, error, loadCities } = useCities();
+  const { cities, isLoading, error, loadCities } = useCitiesFirebase();
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredCities, setFilteredCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);

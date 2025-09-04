@@ -6,6 +6,7 @@ import { ChatMain, ChatMessages } from './ui/chat-layout';
 import { EmptyState } from './ui/empty-state';
 import { DEFAULT_LANGUAGE_CODE } from '../constants';
 import { MessageCircle } from 'lucide-react';
+import { WeatherWidget } from './WeatherWidget';
 
 interface User {
   id: string;
@@ -106,7 +107,7 @@ interface MainContentProps {
 
       if (cityImage) {
         return (
-          <div className="flex aspect-square size-20 items-center justify-center rounded-full overflow-hidden mb-4 border border-border">
+          <div className="flex aspect-square size-20 items-center justify-center rounded-full overflow-hidden mb-4 border-2 border-gray-400 dark:border-gray-500">
             <img 
               src={cityImage} 
               alt={cityName}
@@ -116,7 +117,7 @@ interface MainContentProps {
         );
       } else {
         return (
-          <div className="flex aspect-square size-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-semibold mb-4 border border-border">
+          <div className="flex aspect-square size-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-semibold mb-4 border-2 border-gray-400 dark:border-gray-500">
             {cityInitials}
           </div>
         );
@@ -125,7 +126,7 @@ interface MainContentProps {
     
     // Fallback si no hay ciudad configurada
     return (
-      <div className="flex aspect-square size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <div className="flex aspect-square size-12 items-center justify-center rounded-full bg-muted text-muted-foreground border-2 border-gray-400 dark:border-gray-500">
         <MessageCircle className="h-6 w-6" />
       </div>
     );
@@ -310,19 +311,96 @@ interface MainContentProps {
         {messages.length === 0 && !shouldShowChatContainer ? (
           <div className={`flex flex-col items-center ${isMobile ? 'justify-start pt-20' : 'justify-center'} h-full px-4 pb-0`}>
             <div className={`${isMobile ? 'max-w-sm' : 'max-w-md'}`}>
-              <EmptyState
-                icon={getCityAvatar()}
-                title={t('chat.greeting', {
-                  name: chatConfig?.restrictedCity?.name
-                    ? t('chat.assistantOf', { 
-                        city: chatConfig.restrictedCity.name.split(',')[0].trim(), 
-                        defaultValue: 'the assistant of {{city}}' 
-                      })
-                    : t('chat.defaultAssistant')
-                })}
-                description={`${t('chat.howCanIHelp')} ${t('chat.helpExamples', { defaultValue: 'You can ask me about services, events, procedures, and much more.' })}`}
-                className={`${isMobile ? 'p-4 space-y-3' : 'p-8 space-y-4'}`}
-              />
+              <div className="flex flex-col items-center space-y-2">
+                {/* Avatar de la ciudad */}
+                <div className="text-muted-foreground">
+                  {getCityAvatar()}
+                </div>
+                
+                {/* Título del saludo */}
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold mb-1">
+                    {chatConfig?.restrictedCity?.name?.split(',')[0] || t('chat.defaultAssistant')}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {(() => {
+                      const cityParts = chatConfig?.restrictedCity?.name?.split(',') || [];
+                      console.log('🔍 [MainContent] Datos de ciudad:', chatConfig?.restrictedCity?.name);
+                      console.log('🔍 [MainContent] Partes de ciudad:', cityParts);
+                      
+                      if (cityParts.length >= 3) {
+                        // Formato: Ciudad, Provincia, País
+                        return `${cityParts[1].trim()}, ${cityParts[2].trim()}`;
+                      } else if (cityParts.length === 2) {
+                        // Formato: Ciudad, País
+                        const cityName = cityParts[0].trim();
+                        const country = cityParts[1].trim();
+                        
+                        // Mapeo especial para ciudades que sabemos su provincia
+                        const cityProvinceMap: { [key: string]: string } = {
+                          'La Vila Joiosa': 'Alicante',
+                          'Benidorm': 'Alicante',
+                          'Alicante': 'Alicante',
+                          'Elche': 'Alicante',
+                          'Torrevieja': 'Alicante',
+                          'Orihuela': 'Alicante',
+                          'Elda': 'Alicante',
+                          'Alcoy': 'Alicante',
+                          'San Vicente del Raspeig': 'Alicante',
+                          'Petrel': 'Alicante',
+                          'Villena': 'Alicante',
+                          'Denia': 'Alicante',
+                          'Calpe': 'Alicante',
+                          'Xàbia': 'Alicante',
+                          'Pilar de la Horadada': 'Alicante',
+                          'Santa Pola': 'Alicante',
+                          'Crevillente': 'Alicante',
+                          'Ibi': 'Alicante',
+                          'Altea': 'Alicante',
+                          'Finestrat': 'Alicante',
+                          'Callosa de Segura': 'Alicante',
+                          'Rojales': 'Alicante',
+                          'Guardamar del Segura': 'Alicante',
+                          'Pego': 'Alicante',
+                          'Teulada': 'Alicante',
+                          'Benissa': 'Alicante',
+                          'L\'Alfàs del Pi': 'Alicante',
+                          'Polop': 'Alicante',
+                          'La Nucía': 'Alicante',
+                          'Orba': 'Alicante',
+                          'Tàrbena': 'Alicante',
+                          'Bolulla': 'Alicante',
+                          'Callosa d\'En Sarrià': 'Alicante',
+                          'Tormos': 'Alicante',
+                          'Famorca': 'Alicante',
+                          'Castell de Castells': 'Alicante',
+                          'Benigembla': 'Alicante',
+                          'Murla': 'Alicante',
+                          'Parcent': 'Alicante',
+                          'Alcalalí': 'Alicante',
+                          'Xaló': 'Alicante',
+                          'Lliber': 'Alicante',
+                          'Senija': 'Alicante',
+                          'Calp': 'Alicante'
+                        };
+                        
+                        const province = cityProvinceMap[cityName] || 'Alicante';
+                        return `${province}, ${country}`;
+                      } else {
+                        return 'Alicante, España';
+                      }
+                    })()}
+                  </p>
+                  
+                  {/* Widget del tiempo */}
+                  <WeatherWidget 
+                    key={`weather-${chatConfig?.restrictedCity?.name?.split(',')[0] || 'Benidorm'}`}
+                    city={chatConfig?.restrictedCity?.name?.split(',')[0] || 'Benidorm'} 
+                    className="mb-4"
+                    compact={true}
+                  />
+                </div>
+              </div>
             </div>
             {!isMobile && !hasUserSentFirstMessage && (
               <div className="mt-8 mb-0">

@@ -30,7 +30,8 @@ export const useCitiesFirebase = () => {
       
       // Filtrar ciudades públicas y activas (Firebase usa isPublic/isActive)
       const publicActiveCities = allCities
-        .filter(city => city.isPublic === true && city.isActive !== false)
+        .filter(city => (city.isPublic === true || city.is_public === true) && 
+                       (city.isActive !== false && city.is_active !== false))
         .sort((a, b) => a.name.localeCompare(b.name));
       
       console.log(`🏙️ Loaded ${allCities.length} total cities, ${publicActiveCities.length} public:`, publicActiveCities.map(c => c.name));
@@ -63,7 +64,7 @@ export const useCitiesFirebase = () => {
       const city = result.data as City;
       
       // Verificar manualmente que la ciudad esté activa
-      if (city && city.isActive === false) {
+      if (city && (city.isActive === false || city.is_active === false)) {
         console.log('🏙️ City found but not active:', city.name);
         return null;
       }
@@ -88,7 +89,7 @@ export const useCitiesFirebase = () => {
       const result = await firestoreClient
         .from('cities')
         .select('*')
-        .eq('admin_user_id', user.id)
+        .eq('adminUserId', user.id)
         .single();
 
       if (result.error) {
@@ -100,7 +101,7 @@ export const useCitiesFirebase = () => {
       const city = result.data as City;
       
       // Verificar manualmente que la ciudad esté activa
-      if (city && city.isActive === false) {
+      if (city && (city.isActive === false || city.is_active === false)) {
         console.log('🏙️ Admin city found but not active:', city.name);
         setCurrentCity(null);
         return;
@@ -143,7 +144,7 @@ export const useCitiesFirebase = () => {
 
   // Verificar si el usuario es admin de una ciudad específica
   const isAdminOfCity = (cityId: string): boolean => {
-    return currentCity?.id === cityId && user?.id === currentCity?.admin_user_id;
+    return currentCity?.id === cityId && user?.id === (currentCity?.adminUserId || currentCity?.admin_user_id);
   };
 
   // Actualizar configuración completa de la ciudad

@@ -8,6 +8,7 @@ import { Sparkles, AlertTriangle, Wifi, HelpCircle } from 'lucide-react';
 import MessageList from './MessageList';
 import { ChatMessage, CustomChatConfig, RecommendedPrompt } from '../types';
 import { API_KEY_ERROR_MESSAGE, MAPS_API_KEY_INVALID_ERROR_MESSAGE, DEFAULT_LANGUAGE_CODE } from '../constants';
+import { WeatherWidget } from './WeatherWidget';
 
 interface ChatContainerProps {
   messages: ChatMessage[];
@@ -80,16 +81,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           </Avatar>
 
           <div className="space-y-4 max-w-md">
-            <h2 className="text-2xl font-bold text-gradient">
-              {t('chat.greeting', { 
-                name: chatConfig.assistantName || t('chat.defaultAssistant'),
-                defaultValue: `Hello! I'm ${chatConfig.assistantName || 'your assistant'}`
-              })}
+            <h2 className="text-3xl font-bold text-gradient">
+              {chatConfig.assistantName || t('chat.defaultAssistant')}
             </h2>
 
-            <p className="text-lg text-muted-foreground">
-              {t('chat.howCanIHelp', { defaultValue: 'How can I help you today?' })}
-            </p>
+            <WeatherWidget 
+              city={chatConfig.restrictedCity?.name || 'Benidorm'} 
+              className="max-w-md mx-auto"
+            />
 
             {chatConfig.systemInstruction && (
               <Card className="bg-muted/50">

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Users, MessageCircle, Lock } from 'lucide-react';
 import { useCities } from '@/hooks/useCities';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthFirebase';
 import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 import { City } from '@/types';
 import { supabase } from '@/integrations/supabase/client';

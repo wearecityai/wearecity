@@ -153,7 +153,7 @@ export function AppSidebar({
 
       if (cityImage) {
         return (
-          <div className="flex aspect-square size-16 items-center justify-center rounded-full overflow-hidden border border-border/40 mb-3">
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full overflow-hidden border-2 border-gray-400 dark:border-gray-500 mb-3">
             <img 
               src={cityImage} 
               alt={cityName}
@@ -163,7 +163,7 @@ export function AppSidebar({
         );
       } else {
         return (
-          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-lg font-semibold border border-border/40 mb-3">
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-lg font-semibold border-2 border-gray-400 dark:border-gray-500 mb-3">
             {cityInitials}
           </div>
         );
@@ -172,7 +172,7 @@ export function AppSidebar({
     
     // Fallback si no hay ciudad configurada
     return (
-      <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-muted text-sidebar-muted-foreground border border-border/40">
+      <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-muted text-sidebar-muted-foreground border-2 border-gray-400 dark:border-gray-500">
         <MessageCircle className="h-4 w-4" />
       </div>
     );

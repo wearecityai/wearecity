@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthFirebase';
 import { useApiInitialization } from '@/hooks/useApiInitialization';
 import { useAppState } from '@/hooks/useAppState';
 import AppContainer from '@/components/AppContainer';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthFirebase';
 import { useApiInitialization } from '@/hooks/useApiInitialization';
 import { useAppState } from '@/hooks/useAppState';
 import AppContainer from '@/components/AppContainer';

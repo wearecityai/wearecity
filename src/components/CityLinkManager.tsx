@@ -21,7 +21,7 @@ import {
 import QRCode from 'qrcode';
 import { useAssistantConfig } from '@/hooks/useAssistantConfig';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthFirebase';
 
 export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ assistantNameOverride }) => {
   const { user } = useAuth();

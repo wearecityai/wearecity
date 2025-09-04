@@ -10,7 +10,14 @@
         "firebase-debug.*.log"
       ],
       "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run lint", "npm --prefix \"$RESOURCE_DIR\" run build"],
-      "runtime": "nodejs20"
+      "runtime": "nodejs20",
+      "memory": "512MiB",
+      "timeoutSeconds": 60,
+      "environmentVariables": {
+        "GOOGLE_PLACES_API_KEY": "AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0",
+        "GOOGLE_SEARCH_API_KEY": "AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0",
+        "GOOGLE_SEARCH_ENGINE_ID": "017576662512468239146:omuauf_lfve"
+      }
     }
   ],
   "firestore": {
