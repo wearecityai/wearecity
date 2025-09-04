@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mcpManager, MCPConnection, FirebaseMCPData, BrowserMCPData } from '../services/mcpManager';
+import { mcpManager, MCPConnection, FirebaseMCPData, BrowserMCPData, GoogleCloudMCPData } from '../services/mcpManager';
 
 interface UseMCPsState {
   connections: MCPConnection[];
@@ -11,9 +11,11 @@ interface UseMCPs {
   state: UseMCPsState;
   connectFirebase: () => Promise<boolean>;
   connectBrowser: () => Promise<boolean>;
+  connectGoogleCloud: () => Promise<boolean>;
   disconnectMCP: (mcpId: string) => Promise<boolean>;
   getFirebaseData: () => Promise<FirebaseMCPData | null>;
   navigateToURL: (url: string) => Promise<BrowserMCPData | null>;
+  getGoogleCloudData: () => Promise<GoogleCloudMCPData | null>;
   refreshConnections: () => void;
 }
 
@@ -61,6 +63,22 @@ export const useMCPs = (): UseMCPs => {
     }
   }, [refreshConnections]);
 
+  const connectGoogleCloud = useCallback(async (): Promise<boolean> => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    try {
+      const success = await mcpManager.connectGoogleCloudMCP();
+      refreshConnections();
+      return success;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setState(prev => ({ ...prev, error: errorMessage }));
+      return false;
+    } finally {
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, [refreshConnections]);
+
   const disconnectMCP = useCallback(async (mcpId: string): Promise<boolean> => {
     try {
       const success = await mcpManager.disconnectMCP(mcpId);
@@ -90,6 +108,15 @@ export const useMCPs = (): UseMCPs => {
     }
   }, []);
 
+  const getGoogleCloudData = useCallback(async (): Promise<GoogleCloudMCPData | null> => {
+    try {
+      return await mcpManager.getGoogleCloudData();
+    } catch (error) {
+      console.error('Error obteniendo datos de Google Cloud:', error);
+      return null;
+    }
+  }, []);
+
   // Actualizar conexiones al montar el hook
   useEffect(() => {
     refreshConnections();
@@ -108,9 +135,11 @@ export const useMCPs = (): UseMCPs => {
     state,
     connectFirebase,
     connectBrowser,
+    connectGoogleCloud,
     disconnectMCP,
     getFirebaseData,
     navigateToURL,
+    getGoogleCloudData,
     refreshConnections
   };
 };

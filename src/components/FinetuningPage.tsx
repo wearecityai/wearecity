@@ -31,6 +31,7 @@ import {
   DEFAULT_LANGUAGE_CODE,
 } from '../constants';
 import { CityLinkManager } from './CityLinkManager';
+import { LibraryPage } from './LibraryPage';
 import CityGoogleAutocomplete from './CityGoogleAutocomplete';
 import CityCombobox from './CityCombobox';
 import CountryCombobox from './CountryCombobox';
@@ -65,6 +66,8 @@ interface FinetuningPageProps {
   setProfileImagePreview?: React.Dispatch<React.SetStateAction<string | undefined>>;
   activeTab?: number;
   onTabChange?: (tab: number) => void;
+  user?: any;
+  citySlug?: string;
 }
 
 const FinetuningPage: React.FC<FinetuningPageProps> = ({ 
@@ -76,7 +79,9 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
   profileImagePreview, 
   setProfileImagePreview, 
   activeTab: externalActiveTab, 
-  onTabChange 
+  onTabChange,
+  user,
+  citySlug
 }) => {
   const [assistantName, setAssistantName] = useState(currentConfig.assistantName);
   const [systemInstruction, setSystemInstruction] = useState(currentConfig.systemInstruction);
@@ -110,8 +115,25 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState('customize');
-  const activeTab = externalActiveTab !== undefined ? (externalActiveTab === 0 ? 'customize' : 'share') : internalActiveTab;
-  const setActiveTab = onTabChange ? (tab: string) => onTabChange(tab === 'customize' ? 0 : 1) : setInternalActiveTab;
+  const activeTab = externalActiveTab !== undefined ? 
+    (externalActiveTab === 0 ? 'customize' : externalActiveTab === 1 ? 'library' : 'share') : 
+    internalActiveTab;
+  
+  console.log('🔍 FinetuningPage - Tab state:', { 
+    externalActiveTab, 
+    internalActiveTab, 
+    activeTab, 
+    hasOnTabChange: !!onTabChange 
+  });
+  const setActiveTab = onTabChange ? 
+    (tab: string) => {
+      console.log('🔄 FinetuningPage - Tab change:', { tab, externalActiveTab });
+      onTabChange(tab === 'customize' ? 0 : tab === 'library' ? 1 : 2);
+    } : 
+    (tab: string) => {
+      console.log('🔄 FinetuningPage - Internal tab change:', { tab, internalActiveTab });
+      setInternalActiveTab(tab);
+    };
 
   // Sync local state when config changes
   const lastCityRef = useRef<string | undefined>(currentConfig.restrictedCity?.name);
@@ -492,6 +514,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full mb-6">
                 <TabsTrigger value="customize" className="flex-1">Personalizar</TabsTrigger>
+                <TabsTrigger value="library" className="flex-1">Biblioteca</TabsTrigger>
                 <TabsTrigger value="share" className="flex-1">Compartir</TabsTrigger>
               </TabsList>
               
@@ -942,6 +965,10 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                   </CardContent>
                 </Card>
 
+              </TabsContent>
+
+              <TabsContent value="library" className="space-y-6">
+                <LibraryPage user={user} citySlug={citySlug} />
               </TabsContent>
 
               <TabsContent value="share" className="space-y-6">

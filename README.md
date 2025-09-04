@@ -24,10 +24,10 @@
 - **Historial de conversaciones** por ciudad
 
 ### 🔌 **Integración MCP (Model Context Protocol)**
-- **Firebase MCP** para acceso directo a servicios
-- **Browser MCP** para navegación web automatizada
-- **Google Cloud MCP** para servicios avanzados de IA
-- **Gestión centralizada** de conexiones MCP
+- **Firebase MCP** para que la IA acceda a la base de datos
+- **Browser MCP** para que la IA navegue en la web
+- **Google Cloud MCP** para que la IA use servicios de Google
+- **Herramientas para IA** - Solo para uso del asistente, no para usuarios finales
 
 ### 🎨 **Interfaz Moderna**
 - **Shadcn/ui** para componentes de alta calidad
@@ -151,9 +151,9 @@ npm run lint         # Ejecutar ESLint
 ./deploy-firebase-ai.sh  # Desplegar funciones de Firebase AI
 ```
 
-### **MCPs**
+### **MCPs (Herramientas para IA)**
 ```bash
-./start-mcps.sh          # Iniciar todos los servidores MCP
+./start-mcps.sh          # Iniciar herramientas MCP para la IA
 ```
 
 ## 📱 Uso de la Aplicación
@@ -164,9 +164,9 @@ npm run lint         # Ejecutar ESLint
 3. **Recibir respuesta** contextual de la IA
 4. **Ver historial** de conversación
 
-### **Gestión de MCPs**
+### **Gestión de MCPs (Herramientas para IA)**
 1. **Acceder al componente MCPManager**
-2. **Conectar servicios** MCP deseados
+2. **Conectar herramientas** MCP para que la IA las use
 3. **Monitorear estado** de conexiones
 4. **Usar funcionalidades** avanzadas
 

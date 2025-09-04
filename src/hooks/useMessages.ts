@@ -26,11 +26,40 @@ export const useMessages = (conversationId: string | null) => {
     // Convert complex types to simple objects for JSON storage
     const serializedMetadata: any = {};
     
+    const cleanMetadata = (obj: any, path: string = ''): any => {
+      if (obj === null || obj === undefined) {
+        return null;
+      }
+      
+      if (typeof obj === 'object' && !Array.isArray(obj)) {
+        const cleaned: any = {};
+        Object.keys(obj).forEach(key => {
+          const value = obj[key];
+          if (value !== undefined) {
+            const cleanedValue = cleanMetadata(value, `${path}.${key}`);
+            if (cleanedValue !== null) {
+              cleaned[key] = cleanedValue;
+            }
+          }
+        });
+        return Object.keys(cleaned).length > 0 ? cleaned : null;
+      }
+      
+      if (Array.isArray(obj)) {
+        const cleanedArray = obj.map(item => cleanMetadata(item, path)).filter(item => item !== null);
+        return cleanedArray.length > 0 ? cleanedArray : null;
+      }
+      
+      return obj;
+    };
+    
     Object.keys(metadata).forEach(key => {
       const value = (metadata as any)[key];
       if (value !== undefined) {
-        // Convert complex objects to JSON-serializable format
-        serializedMetadata[key] = value;
+        const cleanedValue = cleanMetadata(value, key);
+        if (cleanedValue !== null) {
+          serializedMetadata[key] = cleanedValue;
+        }
       }
     });
     
@@ -98,6 +127,21 @@ export const useMessages = (conversationId: string | null) => {
         for (const m of chatMessages) byId.set(m.id, { ...m, shouldAnimate: false });
         // Sort by timestamp asc if available, else keep insertion order
         const merged = Array.from(byId.values()).sort((a, b) => (a.timestamp?.getTime?.() || 0) - (b.timestamp?.getTime?.() || 0));
+        
+        // Debug: Log if we detect potential duplicates
+        const duplicateIds = new Set<string>();
+        const seenIds = new Set<string>();
+        for (const msg of merged) {
+          if (seenIds.has(msg.id)) {
+            duplicateIds.add(msg.id);
+          }
+          seenIds.add(msg.id);
+        }
+        
+        if (duplicateIds.size > 0) {
+          console.warn('🚨 Duplicate message IDs detected:', Array.from(duplicateIds));
+        }
+        
         return merged;
       });
     } catch (error) {
@@ -157,7 +201,15 @@ export const useMessages = (conversationId: string | null) => {
     if (!conversationIdToUse) return;
 
     // 1) Always add to local state immediately (optimistic update)
-    setMessages(prev => [...prev, message]);
+    setMessages(prev => {
+      // Check if message already exists to prevent duplicates
+      const exists = prev.some(m => m.id === message.id);
+      if (exists) {
+        console.warn('🚨 Attempted to add duplicate message:', message.id);
+        return prev;
+      }
+      return [...prev, message];
+    });
 
     // 2) Persist depending on auth state (in background for speed)
     if (!user) {

@@ -16,7 +16,7 @@ import {
   RefreshCw, 
   ExternalLink,
   Database,
-  Function,
+  Code,
   Users,
   MapPin
 } from 'lucide-react';
@@ -26,15 +26,18 @@ export const MCPManager: React.FC = () => {
     state, 
     connectFirebase, 
     connectBrowser, 
+    connectGoogleCloud,
     disconnectMCP, 
     getFirebaseData, 
     navigateToURL,
+    getGoogleCloudData,
     refreshConnections 
   } = useMCPs();
 
   const [url, setUrl] = useState('https://firebase.google.com');
   const [firebaseData, setFirebaseData] = useState<any>(null);
   const [browserData, setBrowserData] = useState<any>(null);
+  const [googleCloudData, setGoogleCloudData] = useState<any>(null);
 
   const handleConnectFirebase = async () => {
     const success = await connectFirebase();
@@ -49,6 +52,14 @@ export const MCPManager: React.FC = () => {
     if (success) {
       const data = await navigateToURL(url);
       setBrowserData(data);
+    }
+  };
+
+  const handleConnectGoogleCloud = async () => {
+    const success = await connectGoogleCloud();
+    if (success) {
+      const data = await getGoogleCloudData();
+      setGoogleCloudData(data);
     }
   };
 
@@ -93,6 +104,9 @@ export const MCPManager: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Zap className="h-6 w-6 text-blue-500" />
               <CardTitle>Gestor de MCPs</CardTitle>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                Herramientas IA
+              </Badge>
             </div>
             <Button onClick={refreshConnections} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -100,8 +114,14 @@ export const MCPManager: React.FC = () => {
             </Button>
           </div>
           <CardDescription>
-            Gestiona las conexiones MCP para Firebase y Browser View
+            Herramientas MCP para que la IA acceda a servicios de terceros (Google Cloud, Firebase, etc.)
           </CardDescription>
+          <Alert className="mt-4">
+            <AlertDescription className="text-sm">
+              🤖 <strong>Herramientas para IA:</strong> Los MCPs permiten que el asistente de IA acceda y modifique 
+              servicios de terceros como Google Cloud, Firebase, etc. Solo para uso del asistente, no para usuarios finales.
+            </AlertDescription>
+          </Alert>
         </CardHeader>
         
         <CardContent className="space-y-6">
@@ -142,6 +162,7 @@ export const MCPManager: React.FC = () => {
                         onClick={() => {
                           if (connection.id === 'firebase') handleConnectFirebase();
                           else if (connection.id === 'browser') handleConnectBrowser();
+                          else if (connection.id === 'google-cloud') handleConnectGoogleCloud();
                         }}
                         size="sm"
                         className="flex-1"
@@ -197,7 +218,7 @@ export const MCPManager: React.FC = () => {
                     <div className="flex flex-wrap gap-1 mt-1">
                       {firebaseData.functions.map((func: string) => (
                         <Badge key={func} variant="outline" className="text-xs">
-                          <Function className="h-3 w-3 mr-1" />
+                          <Code className="h-3 w-3 mr-1" />
                           {func}
                         </Badge>
                       ))}
@@ -244,6 +265,49 @@ export const MCPManager: React.FC = () => {
                     <p className="text-sm text-muted-foreground line-clamp-3">
                       {browserData.content}
                     </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Google Cloud MCP */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center space-x-2">
+              <Cloud className="h-5 w-5 text-purple-500" />
+              <span>Google Cloud MCP</span>
+            </h3>
+            
+            {googleCloudData && (
+              <Card className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Project ID</Label>
+                    <p className="text-sm text-muted-foreground">{googleCloudData.projectId}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Services</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {googleCloudData.services.map((service: string) => (
+                        <Badge key={service} variant="outline" className="text-xs">
+                          {service}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-sm font-medium">Resources</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-1">
+                      {googleCloudData.resources.map((resource: any, index: number) => (
+                        <div key={index} className="p-2 border rounded text-xs">
+                          <div className="font-medium">{resource.name}</div>
+                          <div className="text-muted-foreground">{resource.type}</div>
+                          <Badge variant={resource.status === 'active' ? 'default' : 'secondary'} className="text-xs mt-1">
+                            {resource.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </Card>

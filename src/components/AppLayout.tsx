@@ -232,6 +232,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
             setProfileImagePreview={setProfileImagePreview}
             activeTab={finetuningActiveTab}
             onTabChange={setFinetuningActiveTab}
+            user={user}
+            citySlug={citySlug}
           />
         </div>
       </SidebarProvider>
@@ -289,6 +291,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                       setProfileImagePreview={setProfileImagePreview}
                       activeTab={finetuningActiveTab}
                       onTabChange={setFinetuningActiveTab}
+                      user={user}
+                      citySlug={citySlug}
                     />
                   </div>
                 </div>
@@ -403,6 +407,8 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
                 setProfileImagePreview={setProfileImagePreview}
                 activeTab={finetuningActiveTab}
                 onTabChange={setFinetuningActiveTab}
+                user={user}
+                citySlug={citySlug}
               />
             )}
           </div>

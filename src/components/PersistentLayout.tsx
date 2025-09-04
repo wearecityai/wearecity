@@ -629,6 +629,8 @@ const PersistentLayout: React.FC = () => {
           setProfileImagePreview={() => {}}
           activeTab={finetuningActiveTab}
           onTabChange={setFinetuningActiveTab}
+          user={user}
+          citySlug={citySlug}
         />
       );
     }

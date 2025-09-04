@@ -68,11 +68,12 @@ export const useGoogleMaps = (
         console.log('✅ Google Places service initialized with real DOM element');
       } else {
         console.error('❌ Google Maps API not available after script load');
+        setAppError('Google Maps API no disponible después de cargar el script. Verifica la configuración.');
       }
     };
-    script.onerror = () => {
-      console.error("Failed to load Google Maps API script.");
-      setAppError("Error al cargar Google Maps API. Funciones de mapa desactivadas.");
+    script.onerror = (error) => {
+      console.error("Failed to load Google Maps API script:", error);
+      setAppError("Error al cargar Google Maps API. Verifica la API key y el facturación del proyecto Google Cloud.");
       setGoogleMapsScriptLoaded(false);
     };
     document.head.appendChild(script);
@@ -487,8 +488,26 @@ export const useGoogleMaps = (
       language: currentLanguageCode || 'es' 
     }, (results, status) => {
       console.log('🧪 Test search result:', { status, resultsCount: results?.length, firstResult: results?.[0] });
+      
+      // Handle specific error cases
+      if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+        console.error('❌ Google Places API: Quota exceeded');
+        setAppError('Límite de consultas de Google Places API excedido. Funciones de mapa desactivadas.');
+      } else if (status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+        console.error('❌ Google Places API: Request denied - Check API key and billing');
+        setAppError('Acceso denegado a Google Places API. Verifica la configuración de la API key y el facturación del proyecto.');
+      } else if (status === google.maps.places.PlacesServiceStatus.INVALID_REQUEST) {
+        console.error('❌ Google Places API: Invalid request');
+        setAppError('Solicitud inválida a Google Places API. Verifica la configuración.');
+      } else if (status === google.maps.places.PlacesServiceStatus.UNKNOWN_ERROR) {
+        console.error('❌ Google Places API: Unknown error');
+        setAppError('Error desconocido en Google Places API. Inténtalo de nuevo más tarde.');
+      } else if (status === google.maps.places.PlacesServiceStatus.OK) {
+        console.log('✅ Google Places API working correctly');
+        setAppError(null); // Clear any previous errors
+      }
     });
-  }, [googleMapsScriptLoaded, currentLanguageCode]);
+  }, [googleMapsScriptLoaded, currentLanguageCode, setAppError]);
 
   return {
     googleMapsScriptLoaded,

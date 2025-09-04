@@ -139,6 +139,8 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
             onCancel={() => setCurrentView('chat')}
             googleMapsScriptLoaded={googleMapsScriptLoaded}
             apiKeyForMaps=""
+            user={user}
+            citySlug={citySlug}
           />
         </DashboardContent>
       </DashboardLayout>

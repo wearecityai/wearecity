@@ -61,16 +61,23 @@ export const useGeolocation = (): UseGeolocationReturn => {
         message = "Permiso de ubicación denegado. Por favor, habilita la geolocalización en tu navegador.";
         break;
       case error.POSITION_UNAVAILABLE:
-        message = "Información de ubicación no disponible. Verifica tu conexión GPS.";
+        message = "Información de ubicación no disponible. Verifica tu conexión GPS o ubicación.";
         break;
       case error.TIMEOUT:
-        message = "Solicitud de ubicación agotada. Intentando de nuevo...";
+        message = "Solicitud de ubicación agotada. Se reintentará automáticamente.";
         break;
     }
     
     setGeolocationError(message);
     setUserLocation(null);
     setGeolocationStatus('error');
+    
+    // Log específico para diferentes tipos de errores
+    if (error.code === error.POSITION_UNAVAILABLE) {
+      console.warn("⚠️ GPS no disponible o ubicación no encontrada. Esto puede ser normal en interiores.");
+    } else if (error.code === error.TIMEOUT) {
+      console.warn("⚠️ Timeout de geolocalización. Verificando configuración...");
+    }
   }, []);
 
   const startLocationTracking = useCallback(() => {

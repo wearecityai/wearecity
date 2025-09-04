@@ -349,7 +349,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         ? 'p-2 sm:p-4' 
         : 'pb-4 sm:pb-8 md:pb-12'
       }`}>
-        <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-[2rem] border-[0.5px] border-muted-foreground/30 ${isRecording ? 'border-red-500' : ''} bg-sidebar`}>
+        <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-[2rem] border-0 ${isRecording ? 'border-red-500' : ''} bg-sidebar shadow-md`}>
           <CardContent className="p-0">
             <div className="flex items-center min-h-24 sm:min-h-20 px-2 sm:px-3 md:px-6 pt-3 pb-2 sm:pt-2 sm:pb-4">
               <div className="flex-1 space-y-2 sm:space-y-3">

@@ -50,19 +50,19 @@ export const usePersistentGeolocation = () => {
     };
   }, [checkGeolocationHealth]);
 
-  // Manejar reintentos automáticos en caso de error
+  // Manejar reintentos automáticos en caso de error (menos agresivos)
   useEffect(() => {
     if (geolocationStatus === 'error') {
-      console.log('🔄 Error de geolocalización detectado, reintentando en 10 segundos...');
-      
-      if (retryIntervalRef.current) {
-        clearTimeout(retryIntervalRef.current);
+      // Solo reintentar si no hay un timeout ya programado
+      if (!retryIntervalRef.current) {
+        console.log('🔄 Error de geolocalización detectado, reintentando en 30 segundos...');
+        
+        retryIntervalRef.current = setTimeout(() => {
+          console.log('🔄 Reintentando geolocalización...');
+          startLocationTracking();
+          retryIntervalRef.current = null; // Limpiar referencia
+        }, 30000); // Aumentar delay a 30 segundos
       }
-
-      retryIntervalRef.current = setTimeout(() => {
-        console.log('🔄 Reintentando geolocalización...');
-        startLocationTracking();
-      }, 10000);
     }
   }, [geolocationStatus, startLocationTracking]);
 
