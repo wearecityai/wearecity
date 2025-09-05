@@ -30,25 +30,25 @@ const getLanguageNativeName = (languageCode: string): string => {
   return languageMap[code] || languageCode?.toUpperCase() || 'EN';
 };
 
-// Estilos CSS personalizados para el textarea sin border
+// Estilos CSS personalizados para el textarea
 const textareaStyles = `
   .chat-textarea {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    background: hsl(var(--sidebar-background)) !important;
+    background: transparent !important;
   }
   .chat-textarea:focus {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    background: hsl(var(--sidebar-background)) !important;
+    background: transparent !important;
   }
   .chat-textarea:focus-visible {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    background: hsl(var(--sidebar-background)) !important;
+    background: transparent !important;
   }
 `;
 
@@ -345,11 +345,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <>
       <style>{textareaStyles}</style>
-      <div className={`w-full flex flex-col items-center chat-input-container ${isInFinetuningMode 
-        ? 'p-2 sm:p-4' 
-        : 'pb-4 sm:pb-8 md:pb-12'
-      }`}>
-        <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-[2rem] border-0 ${isRecording ? 'border-red-500' : ''} bg-sidebar shadow-md`}>
+              <div className={`w-full flex flex-col items-center chat-input-container ${isInFinetuningMode
+          ? 'p-2 sm:p-4'
+          : 'pb-1 sm:pb-2 md:pb-3'
+          }`}>
+        <Card className={`w-full ${isInFinetuningMode ? 'max-w-full' : 'max-w-4xl'} rounded-[2rem] border-[0.75px] border-border ${isRecording ? 'border-red-500' : ''} bg-input`} style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
           <CardContent className="p-0">
             <div className="flex items-center min-h-24 sm:min-h-20 px-2 sm:px-3 md:px-6 pt-3 pb-2 sm:pt-2 sm:pb-4">
               <div className="flex-1 space-y-2 sm:space-y-3">
@@ -458,11 +458,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button 
-                                  variant="ghost"
                                   size="icon"
                                   onClick={toggleRecording} 
                                   disabled={isLoading || !isSpeechApiSupported}
-                                  className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary md:hover:text-primary" : "text-muted-foreground"}`}
+                                  className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 text-foreground hover:text-foreground disabled:bg-muted disabled:text-foreground disabled:opacity-100`}
                                 >
                                   {isSpeechApiSupported ? (
                                     <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -510,8 +509,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         
                         {/* Location info */}
                         <div className="flex items-center gap-1">
-                          <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-location" />
-                           <span className="text-sm sm:text-sm font-medium text-location">
+                          <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                           <span className="text-sm sm:text-sm font-medium text-muted-foreground">
                              {chatConfig?.restrictedCity?.name 
                                ? chatConfig.restrictedCity.name.split(',')[0].trim()
                                : t('chatInput.unknownCity', { defaultValue: 'Unknown city' })
@@ -547,11 +546,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button 
-                                  variant="ghost"
                                   size="icon"
                                   onClick={toggleRecording} 
                                   disabled={isLoading || !isSpeechApiSupported}
-                                  className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 ${isSpeechApiSupported ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                                  className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted hover:bg-muted/80 text-foreground hover:text-foreground disabled:bg-muted disabled:text-foreground disabled:opacity-100`}
                                 >
                                   {isSpeechApiSupported ? (
                                     <Mic className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -576,6 +574,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
           </CardContent>
         </Card>
+        
+        {/* Disclaimer text */}
+        <div className="text-center mt-2">
+          <p className="text-xs text-muted-foreground">
+            WeAreCity can make mistakes. Check important info. See Cookie Preferences.
+          </p>
+        </div>
       </div>
       </>
     );

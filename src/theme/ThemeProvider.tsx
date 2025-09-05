@@ -37,7 +37,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Update document class and meta theme-color based on mode
   useEffect(() => {
-    const color = currentThemeMode === 'dark' ? '#0f0f0f' : '#f2f2f2';
+    const color = currentThemeMode === 'dark' ? '#212121' : '#FFFFFF';
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement('meta');
