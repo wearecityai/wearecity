@@ -179,14 +179,14 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+    <Sidebar collapsible="icon" className="sidebar-transition">
+      <SidebarHeader className="border-b border-sidebar-border p-4 sidebar-content-transition">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <MessageCircle className="h-4 w-4" />
           </div>
           {!collapsed && (
-            <div>
+            <div className="sidebar-content-transition">
               <h2 className="text-lg font-semibold text-sidebar-foreground">WeAreCity</h2>
               <p className="text-xs text-sidebar-foreground/60">Chat inteligente</p>
             </div>
@@ -194,44 +194,46 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="sidebar-content-transition">
         {/* New Chat */}
-        <SidebarGroup>
+        <SidebarGroup className="sidebar-content-transition">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => onNewChat("Nuevo chat")}
-                className="w-full"
+                className="w-full sidebar-button-transition"
                 size="lg"
               >
                 <Plus className="h-4 w-4" />
-                {!collapsed && <span>Nuevo chat</span>}
+                {!collapsed && <span className="sidebar-content-transition">Nuevo chat</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
         {/* Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Navegación</SidebarGroupLabel>
-          <SidebarGroupContent>
+        <SidebarGroup className="sidebar-content-transition">
+          <SidebarGroupLabel className="sidebar-content-transition">Navegación</SidebarGroupLabel>
+          <SidebarGroupContent className="sidebar-content-transition">
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate('/')}
                   tooltip="Inicio"
+                  className="sidebar-button-transition"
                 >
                   <Home className="h-4 w-4" />
-                  <span>Inicio</span>
+                  <span className="sidebar-content-transition">Inicio</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate('/?focus=search')}
                   tooltip="Descubrir ciudades"
+                  className="sidebar-button-transition"
                 >
                   <MapPin className="h-4 w-4" />
-                  <span>Descubrir ciudades</span>
+                  <span className="sidebar-content-transition">Descubrir ciudades</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -240,25 +242,25 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
 
         {/* Recent Chats */}
         {chatTitles.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Conversaciones recientes</SidebarGroupLabel>
-            <SidebarGroupContent>
+          <SidebarGroup className="sidebar-content-transition">
+            <SidebarGroupLabel className="sidebar-content-transition">Conversaciones recientes</SidebarGroupLabel>
+            <SidebarGroupContent className="sidebar-content-transition">
               <SidebarMenu>
                 {chatTitles.slice(0, 5).map((title, index) => (
                   <SidebarMenuItem key={index}>
                     <SidebarMenuButton
                       onClick={() => onSelectChat(index)}
                       isActive={index === selectedChatIndex}
-                      className="group w-full justify-between"
+                      className="group w-full justify-between sidebar-button-transition"
                       tooltip={title}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <MessageCircle className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{title}</span>
+                        <span className="truncate sidebar-content-transition">{title}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         {isDefaultChat(chatIds[index]) && (
-                          <Star className="h-3 w-3 text-primary" />
+                          <Star className="h-3 w-3 text-primary sidebar-content-transition" />
                         )}
                         <Button
                           variant="ghost"
@@ -267,7 +269,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                             e.stopPropagation();
                             onDeleteChat(chatIds[index]);
                           }}
-                          className="h-6 w-6 p-0 opacity-0 md:group-hover:opacity-100 transition-opacity"
+                          className="h-6 w-6 p-0 opacity-0 md:group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -277,9 +279,9 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                 ))}
                 {chatTitles.length > 5 && (
                   <SidebarMenuItem>
-                    <SidebarMenuButton>
+                    <SidebarMenuButton className="sidebar-button-transition">
                       <MoreHorizontal className="h-4 w-4" />
-                      <span>Ver más ({chatTitles.length - 5})</span>
+                      <span className="sidebar-content-transition">Ver más ({chatTitles.length - 5})</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
@@ -289,7 +291,7 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
+      <SidebarFooter className="border-t border-sidebar-border p-4 sidebar-content-transition">
         <SidebarMenu>
           {/* Default chat toggle */}
           {chatIds.length > 0 && selectedChatIndex >= 0 && chatIds[selectedChatIndex] && (
@@ -307,18 +309,19 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
                   }
                 }}
                 tooltip={isDefaultChat(chatIds[selectedChatIndex]) ? "Quitar chat predeterminado" : "Marcar como predeterminado"}
+                className="sidebar-button-transition"
               >
                 <Star className={cn("h-4 w-4", isDefaultChat(chatIds[selectedChatIndex]) && "text-primary")} />
-                <span>{isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado"}</span>
+                <span className="sidebar-content-transition">{isDefaultChat(chatIds[selectedChatIndex]) ? "Chat predeterminado" : "Marcar predeterminado"}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
 
           {/* Settings */}
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Ajustes">
+            <SidebarMenuButton tooltip="Ajustes" className="sidebar-button-transition">
               <Settings className="h-4 w-4" />
-              <span>Ajustes</span>
+              <span className="sidebar-content-transition">Ajustes</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
 
@@ -328,9 +331,10 @@ const AppDrawer: React.FC<AppDrawerProps> = ({
               <SidebarMenuButton
                 onClick={onOpenFinetuning}
                 tooltip="Configurar chat"
+                className="sidebar-button-transition"
               >
                 <Sliders className="h-4 w-4" />
-                <span>Configurar chat</span>
+                <span className="sidebar-content-transition">Configurar chat</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}

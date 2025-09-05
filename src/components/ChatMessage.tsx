@@ -14,6 +14,7 @@ import { useTypewriter } from '../hooks/useTypewriter';
 import { useStrictSequentialReveal } from '../hooks/useStrictSequentialReveal';
 import { usePlaceCardRetry } from '../hooks/usePlaceCardRetry';
 import { usePlaceCardFilter } from '../hooks/usePlaceCardFilter';
+import { toast } from '@/components/ui/sonner';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -29,6 +30,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const { filterPlaceCards, isFiltering } = usePlaceCardFilter();
   const isUser = message.role === MessageRole.User;
   const timestamp = new Date(message.timestamp);
+  
+  // Función para copiar el contenido del mensaje
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content || '');
+      toast.success("Mensaje copiado al portapapeles");
+    } catch (err) {
+      console.error('Error al copiar el mensaje:', err);
+      toast.error("No se pudo copiar el mensaje");
+    }
+  };
   
   // Estado para PlaceCard filtradas
   const [filteredPlaceCards, setFilteredPlaceCards] = useState<PlaceCardInfo[]>([]);
@@ -56,9 +68,27 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
 
   // Use typewriter effect only when explicitly requested (e.g., first-time generation)
   const shouldUseTypewriter = !!(message.shouldAnimate && !isUser && !message.isTyping && !message.error && message.content);
+  
+  // Debug: Log typewriter decision
+  console.log('🔍 Typewriter debug:', {
+    messageId: message.id,
+    shouldAnimate: message.shouldAnimate,
+    isUser,
+    isTyping: message.isTyping,
+    error: message.error,
+    hasContent: !!message.content,
+    shouldUseTypewriter
+  });
+  
+  // Only call useTypewriter if we should animate, otherwise use empty string to avoid any side effects
   const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
-    shouldUseTypewriter ? message.content || '' : '',
-    { speed: 8, startDelay: 0, messageId: message.id, replayOnMount: false }
+    shouldUseTypewriter ? (message.content || '') : '',
+    { 
+      speed: 8, 
+      startDelay: 0, 
+      messageId: message.id, 
+      replayOnMount: false 
+    }
   );
 
   // Use typewriter text if active, otherwise use original content
@@ -219,7 +249,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
           <Card className="bg-muted border-0">
             <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
               {(message.content && message.content.trim() !== "") && (
-                <div className="text-base sm:text-lg leading-normal break-words">
+                <div className="text-base sm:text-base leading-normal break-words select-text">
                   {processTextForParagraphs(message.content)}
                 </div>
               )}
@@ -266,7 +296,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       >
                         <EnhancedAIResponseRenderer 
                           content={contentToDisplay} 
-                          className="text-base sm:text-lg leading-normal break-words"
+                          className="text-base sm:text-base leading-normal break-words select-text"
                         />
                       </div>
                     )}
@@ -329,14 +359,20 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             </Card>
             
             {!message.isTyping && !message.error && (
-              <div className="flex items-center space-x-1 mt-1 pl-1">
+              <div className="flex items-center -space-x-2 sm:space-x-1 mt-1 pl-0 sm:pl-1">
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                   <ThumbsUp className="h-3 w-3" />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                   <ThumbsDown className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={handleCopyMessage}
+                  title="Copiar mensaje"
+                >
                   <Copy className="h-3 w-3" />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0">

@@ -77,13 +77,21 @@ export const useMessages = (conversationId: string | null) => {
       setMessages([]);
       return;
     }
+    
+    // Clear any typing messages when switching conversations
+    setMessages(prev => prev.filter(msg => !msg.isTyping));
+    
     if (!user) {
       // Cargar mensajes de localStorage
       const local = localStorage.getItem(`chat_messages_${conversationId}`);
       if (local) {
         try {
           const parsed = JSON.parse(local);
-          setMessages(parsed.map((msg: any) => ({ ...msg, timestamp: new Date(msg.timestamp) })));
+          // Filter out any typing messages from localStorage
+          const cleanMessages = parsed
+            .filter((msg: any) => !msg.isTyping)
+            .map((msg: any) => ({ ...msg, timestamp: new Date(msg.timestamp) }));
+          setMessages(cleanMessages);
         } catch {
           // Keep existing messages instead of clearing to avoid flicker
         }
@@ -121,10 +129,19 @@ export const useMessages = (conversationId: string | null) => {
       // Merge with existing local messages to avoid dropping optimistic typing/unsaved
       setMessages(prev => {
         const byId = new Map<string, ChatMessage>();
-        // Start with previous (preserve any typing/optimistic entries)
-        for (const m of prev) byId.set(m.id, m);
-        // Overlay server messages
-        for (const m of chatMessages) byId.set(m.id, { ...m, shouldAnimate: false });
+        
+        // Start with server messages (authoritative)
+        for (const m of chatMessages) {
+          byId.set(m.id, { ...m, shouldAnimate: false });
+        }
+        
+        // Only add local messages that don't exist on server and aren't typing
+        for (const m of prev) {
+          if (!byId.has(m.id) && !m.isTyping) {
+            byId.set(m.id, m);
+          }
+        }
+        
         // Sort by timestamp asc if available, else keep insertion order
         const merged = Array.from(byId.values()).sort((a, b) => (a.timestamp?.getTime?.() || 0) - (b.timestamp?.getTime?.() || 0));
         
@@ -208,6 +225,13 @@ export const useMessages = (conversationId: string | null) => {
         console.warn('🚨 Attempted to add duplicate message:', message.id);
         return prev;
       }
+      
+      // If adding a typing message, remove any existing typing messages first
+      if (message.isTyping) {
+        const filteredPrev = prev.filter(m => !m.isTyping);
+        return [...filteredPrev, message];
+      }
+      
       return [...prev, message];
     });
 

@@ -66,34 +66,8 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   // Función para obtener el color del background según el tiempo (colores del sistema)
   const getBackgroundClass = (iconCode: string) => {
-    switch (iconCode) {
-      case '01d':
-      case '01n':
-        return 'bg-background/80 dark:bg-background/80';
-      case '02d':
-      case '02n':
-      case '03d':
-      case '03n':
-      case '04d':
-      case '04n':
-        return 'bg-muted/60 dark:bg-muted/60';
-      case '09d':
-      case '09n':
-      case '10d':
-      case '10n':
-        return 'bg-muted/80 dark:bg-muted/80';
-      case '11d':
-      case '11n':
-        return 'bg-muted dark:bg-muted';
-      case '13d':
-      case '13n':
-        return 'bg-muted/60 dark:bg-muted/60';
-      case '50d':
-      case '50n':
-        return 'bg-background/80 dark:bg-background/80';
-      default:
-        return 'bg-background/80 dark:bg-background/80';
-    }
+    // Usar el color del input en modo oscuro
+    return 'bg-sidebar dark:bg-input';
   };
 
   useEffect(() => {
@@ -168,7 +142,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   if (loading) {
     return (
-      <div className={`bg-muted/60 dark:bg-muted/60 rounded-lg ${compact ? 'p-3' : 'p-4'} border border-border shadow-sm backdrop-blur-sm ${className}`}>
+      <div className={`bg-sidebar/60 dark:bg-input/60 rounded-lg ${compact ? 'p-3' : 'p-4'} shadow-sm backdrop-blur-sm ${className}`}>
         <div className="flex items-center space-x-3">
           <div className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} bg-gray-300 dark:bg-gray-600 rounded animate-pulse`}></div>
           <div className="flex-1 space-y-2">
@@ -182,7 +156,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   if (error || !weather) {
     return (
-      <div className={`bg-muted/60 dark:bg-muted/60 rounded-lg ${compact ? 'p-3' : 'p-4'} border border-border shadow-sm backdrop-blur-sm ${className}`}>
+      <div className={`bg-sidebar/60 dark:bg-input/60 rounded-lg ${compact ? 'p-3' : 'p-4'} shadow-sm backdrop-blur-sm ${className}`}>
         <div className="flex items-center space-x-3">
           <Cloud className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500 dark:text-gray-400`} />
           <div className="space-y-1">
@@ -199,7 +173,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   }
 
   return (
-    <div className={`${getBackgroundClass(weather.icon)} rounded-lg ${compact ? 'p-3' : 'p-4'} border border-border shadow-sm backdrop-blur-sm ${className}`}>
+    <div className={`${getBackgroundClass(weather.icon)} rounded-lg ${compact ? 'p-3' : 'p-4'} shadow-sm backdrop-blur-sm ${className}`}>
       {compact ? (
         // Versión compacta
         <div className="flex items-center justify-between space-x-4">

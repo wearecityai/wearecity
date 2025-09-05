@@ -363,72 +363,45 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                             <span className="text-sm sm:text-base md:text-lg text-muted-foreground">{t('chatInput.listening', { defaultValue: 'Listening...' })}</span>
                           </div>
-                          <div className="flex-1 flex items-center gap-0.5 min-w-0">
-                            {[...Array(170)].map((_, i) => {
-                              // Improved realistic frequency response simulation
-                              const frequency = i * 0.03;
-                              const time = Date.now() * 0.001; // For dynamic movement
+                          <div className="flex-1 flex items-center justify-center gap-1 min-w-0">
+                            {/* Minimal and creative listening animation */}
+                            <div className="relative flex items-center justify-center">
+                              {/* Central pulsing dot */}
+                              <div className="relative w-3 h-3 bg-primary rounded-full listening-dot"></div>
                               
-                              // Bass frequencies (low end)
-                              const bass = Math.sin(frequency * 0.5 + time * 0.5) * 0.6 + 0.4;
-                              
-                              // Mid frequencies (vocals, instruments)
-                              const mid = Math.sin(frequency * 1.5 + time * 0.8) * 0.4 + 0.6;
-                              
-                              // Treble frequencies (high end)
-                              const treble = Math.sin(frequency * 3 + time * 1.2) * 0.3 + 0.7;
-                              
-                              // Combine frequencies with realistic weighting
-                              const intensity = (bass * 0.4 + mid * 0.4 + treble * 0.2);
-                              
-                              // Add some randomness for more natural look
-                              const randomFactor = Math.sin(i * 0.7 + time * 0.3) * 0.1 + 0.9;
-                              const finalIntensity = intensity * randomFactor;
-                              
-                              // Map to height with more variation
-                              const height = Math.max(2, Math.floor(finalIntensity * 12));
-                              
-                              const heightClass = height <= 3 ? 'h-1' : 
-                                                height <= 5 ? 'h-2' : 
-                                                height <= 7 ? 'h-3' : 
-                                                height <= 9 ? 'h-4' : 
-                                                height <= 11 ? 'h-5' : 'h-6';
-                              
-                              // More varied animation delays
-                              const delayClass = i % 8 === 0 ? 'animate-pulse' : 
-                                               i % 8 === 1 ? 'animate-pulse delay-75' : 
-                                               i % 8 === 2 ? 'animate-pulse delay-150' : 
-                                               i % 8 === 3 ? 'animate-pulse delay-300' :
-                                               i % 8 === 4 ? 'animate-pulse delay-500' : 
-                                               i % 8 === 5 ? 'animate-pulse delay-700' :
-                                               i % 8 === 6 ? 'animate-pulse delay-1000' : 'animate-pulse delay-1500';
-                              
-                              return (
-                                <div
-                                  key={i}
-                                  className={`bg-primary rounded-full w-0.5 ${heightClass} ${delayClass}`}
-                                />
-                              );
-                            })}
+                              {/* Expanding wave rings */}
+                              <div className="absolute w-3 h-3 listening-wave"></div>
+                              <div className="absolute w-3 h-3 listening-wave" style={{ animationDelay: '0.5s' }}></div>
+                              <div className="absolute w-3 h-3 listening-wave" style={{ animationDelay: '1s' }}></div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                     {/* Action buttons row - same structure as normal mode */}
-                    <div className="flex items-center justify-between mt-3 sm:mt-2">
+                    <div className="flex items-center justify-between mt-3 sm:mt-2 px-3 sm:px-0">
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <Toggle
-                          pressed={isLocationEnabled}
-                          onPressedChange={(pressed) => {
-                            setIsLocationEnabled(pressed);
-                            if (typeof onToggleLocation === 'function') onToggleLocation(pressed);
-                          }}
-                          aria-label="Activar ubicación"
-                          className="h-8 sm:h-7 px-3 sm:px-3 rounded-full border border-border/50 bg-background hover:bg-muted/50"
-                        >
-                          <Navigation className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                           <span className="text-sm sm:text-sm font-medium">{t('chatInput.location', { defaultValue: 'Location' })}</span>
-                        </Toggle>
+                        {/* Language info first */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                            <span className="text-sm sm:text-sm font-medium text-muted-foreground">{getLanguageNativeName(i18n.language)}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Separator */}
+                        <div className="w-px h-4 sm:h-5 bg-sidebar-border"></div>
+                        
+                        {/* Location info */}
+                        <div className="flex items-center gap-1">
+                          <Navigation className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                           <span className="text-sm sm:text-sm font-medium text-muted-foreground">
+                             {chatConfig?.restrictedCity?.name 
+                               ? chatConfig.restrictedCity.name.split(',')[0].trim()
+                               : t('chatInput.unknownCity', { defaultValue: 'Unknown city' })
+                             }
+                           </span>
+                        </div>
                       </div>
                       
                       {/* Microphone/Send button - now aligned with bottom buttons */}
@@ -489,7 +462,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
                       onKeyDown={handleKeyDown}
                       disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
-                      className="chat-textarea min-h-[64px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-0 -ml-1 sm:ml-0 text-sm sm:text-base md:text-lg overflow-hidden"
+                      className="chat-textarea min-h-[64px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-0 -ml-1 sm:ml-0 text-base sm:text-base overflow-hidden"
                       rows={1}
                     />
                     
@@ -577,8 +550,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
         
         {/* Disclaimer text */}
         <div className="text-center mt-2">
-          <p className="text-xs text-muted-foreground">
-            WeAreCity can make mistakes. Check important info. See Cookie Preferences.
+          <p className="text-xs sm:text-xs text-muted-foreground leading-tight">
+            <span className="block sm:inline">WeAreCity can make mistakes.</span>
+            <span className="block sm:inline sm:ml-1">Check important info. See Cookie Preferences.</span>
           </p>
         </div>
       </div>

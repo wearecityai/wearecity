@@ -147,11 +147,11 @@ export const useMessageHandler = (
       }
       
       setIsLoading(false);
-    }
-    
-    setTimeout(() => {
+    } finally {
+      // Always clear the typing indicator and reset the processed message ref
+      setMessages((prev: ChatMessage[]) => prev.filter(msg => msg.id !== typingMessage.id));
       lastProcessedMessageRef.current = null;
-    }, 1000);
+    }
   }, [onError, chatConfig, user?.id, i18n]);
 
   return {

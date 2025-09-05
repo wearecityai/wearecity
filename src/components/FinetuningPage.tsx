@@ -536,7 +536,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                       <div className="flex items-center gap-4">
                         {profileImageUrl && (
                           <div className="relative">
-                            <Avatar className="h-16 w-16 border-2 border-border">
+                            <Avatar className="h-16 w-16 border-2 border-border dark:border-input">
                               <AvatarImage src={profileImageUrl} alt="Profile preview" />
                               <AvatarFallback>IMG</AvatarFallback>
                             </Avatar>

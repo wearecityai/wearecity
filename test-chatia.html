@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ChatIA - Gemini 1.5 Pro + Grounding</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section.realtime {
+            border-color: #4CAF50;
+            background: #f8fff8;
+        }
+        .test-section.general {
+            border-color: #2196F3;
+            background: #f8f9ff;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.general {
+            background: #2196F3;
+        }
+        button.general:hover {
+            background: #1976D2;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .model-info {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test ChatIA - Arquitectura Híbrida RAG</h1>
+        <p>Prueba la nueva lógica de routing entre Gemini 1.5 Pro (tiempo real) y 2.5 Flash-Lite (general)</p>
+        
+        <div class="test-section realtime">
+            <h3>🌐 Gemini 1.5 Pro + Google Search Grounding</h3>
+            <p><strong>Estas consultas SIEMPRE deben usar tiempo real:</strong></p>
+            <button onclick="testQuery('eventos teatro hoy en La Vila Joiosa', 'realtime1')">Eventos Teatro Hoy</button>
+            <button onclick="testQuery('restaurantes abiertos ahora La Vila Joiosa', 'realtime2')">Restaurantes Abiertos</button>
+            <button onclick="testQuery('horarios autobús línea 3 La Vila Joiosa', 'realtime3')">Horarios Autobús</button>
+            <button onclick="testQuery('museos abiertos este fin de semana', 'realtime4')">Museos Fin de Semana</button>
+            
+            <div id="realtime1" class="result" style="display: none;"></div>
+            <div id="realtime2" class="result" style="display: none;"></div>
+            <div id="realtime3" class="result" style="display: none;"></div>
+            <div id="realtime4" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section general">
+            <h3>⚡ Gemini 2.5 Flash-Lite (+ RAG si disponible)</h3>
+            <p><strong>Estas consultas deben usar el modelo rápido:</strong></p>
+            <button class="general" onclick="testQuery('historia de La Vila Joiosa', 'general1')">Historia Ciudad</button>
+            <button class="general" onclick="testQuery('qué es el ayuntamiento', 'general2')">Qué es Ayuntamiento</button>
+            <button class="general" onclick="testQuery('explica cómo funciona el sistema', 'general3')">Explicación Sistema</button>
+            
+            <div id="general1" class="result" style="display: none;"></div>
+            <div id="general2" class="result" style="display: none;"></div>
+            <div id="general3" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Test Personalizado</h3>
+            <input type="text" id="customQuery" placeholder="Escribe tu consulta..." style="width: 70%; padding: 8px;">
+            <button onclick="testCustomQuery()">Probar</button>
+            <div id="custom" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0",
+            authDomain: "wearecity-2ab89.firebaseapp.com",
+            projectId: "wearecity-2ab89",
+            storageBucket: "wearecity-2ab89.appspot.com",
+            messagingSenderId: "294062779330",
+            appId: "1:294062779330:web:7c1234567890abcd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const functions = getFunctions(app);
+
+        window.testQuery = async function(query, resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading">🔄 Procesando consulta...</div>';
+
+            try {
+                const chatIA = httpsCallable(functions, 'chatIA');
+                const startTime = Date.now();
+                
+                const result = await chatIA({
+                    message: query,
+                    citySlug: 'la-vila-joiosa'
+                });
+
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                const classification = result.data.metadata?.classification;
+                const usedCache = result.data.metadata?.usedCache;
+                const sources = result.data.metadata?.sources || [];
+                
+                let modelInfo = '';
+                if (classification?.needsRealTime || ['events', 'places', 'services'].includes(classification?.category)) {
+                    modelInfo = '🌐 Gemini 1.5 Pro + Google Search Grounding';
+                } else if (usedCache) {
+                    modelInfo = '⚡ Gemini 2.5 Flash-Lite + Vertex AI RAG';
+                } else {
+                    modelInfo = '💬 Gemini 2.5 Flash-Lite (General)';
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="model-info">${modelInfo}</div>
+                    <div><strong>⏱️ Tiempo:</strong> ${duration}ms</div>
+                    <div><strong>🎯 Clasificación:</strong> ${classification?.category} (${classification?.volatility} volatility, realTime: ${classification?.needsRealTime})</div>
+                    <div><strong>💾 Usó Cache:</strong> ${usedCache ? 'Sí' : 'No'}</div>
+                    <div><strong>🔗 Fuentes:</strong> ${sources.length}</div>
+                    <hr>
+                    <div><strong>📝 Respuesta:</strong></div>
+                    <div>${result.data.response}</div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: red;">❌ Error: ${error.message}</div>`;
+                console.error('Error:', error);
+            }
+        };
+
+        window.testCustomQuery = function() {
+            const query = document.getElementById('customQuery').value;
+            if (query.trim()) {
+                testQuery(query, 'custom');
+            }
+        };
+
+        document.getElementById('customQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testCustomQuery();
+            }
+        });
+    </script>
+</body>
+</html>

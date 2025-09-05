@@ -70,26 +70,120 @@
   overflow: hidden;
 }
 
-/* Transiciones para el sidebar */
+/* Transiciones mejoradas para el sidebar */
 .sidebar-transition {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Evitar parpadeos del sidebar */
+/* Evitar parpadeos del sidebar con animación más suave */
 .sidebar-stable {
   opacity: 0;
-  animation: fadeInSidebar 0.6s ease-out forwards;
+  animation: fadeInSidebar 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes fadeInSidebar {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-10px);
   }
   to {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* Animaciones específicas para el colapso del sidebar */
+.sidebar-collapse {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-out;
+}
+
+.sidebar-expand {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in;
+}
+
+/* Transiciones suaves para elementos del sidebar */
+.sidebar-content-transition {
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.sidebar-content-hidden {
+  opacity: 0;
+  transform: translateX(-5px);
+}
+
+.sidebar-content-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Mejorar las transiciones de los botones del sidebar */
+.sidebar-button-transition {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-button-transition:hover {
+  transform: translateY(-1px);
+}
+
+/* Animación suave para el rail del sidebar */
+.sidebar-rail-transition {
+  transition: all 0.2s ease-out;
+}
+
+/* Animación minimal para indicador de escucha */
+@keyframes listeningPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes listeningWave {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.listening-dot {
+  animation: listeningPulse 1.5s ease-in-out infinite;
+}
+
+.listening-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.listening-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.listening-wave {
+  position: absolute;
+  border: 2px solid hsl(var(--primary));
+  border-radius: 50%;
+  animation: listeningWave 2s ease-out infinite;
+}
+
+/* Asegurar que la sidebar esté por encima de todos los elementos */
+[data-sidebar="sidebar"] {
+  z-index: 9999 !important;
+}
+
+/* Asegurar que el rail del sidebar esté por encima de la sidebar */
+[data-sidebar="rail"] {
+  z-index: 10000 !important;
 }
 
 /* Shadcn/ui Design System - Enhanced Default Theme with Modern Components */
@@ -223,7 +317,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    /* @apply border-border; */
   }
   
   body {

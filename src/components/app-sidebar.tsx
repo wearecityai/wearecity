@@ -153,7 +153,7 @@ export function AppSidebar({
 
       if (cityImage) {
         return (
-          <div className="flex aspect-square size-16 items-center justify-center rounded-full overflow-hidden border-2 border-gray-400 dark:border-gray-500 mb-3">
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full overflow-hidden border-2 border-sidebar mb-3">
             <img 
               src={cityImage} 
               alt={cityName}
@@ -163,7 +163,7 @@ export function AppSidebar({
         );
       } else {
         return (
-          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-lg font-semibold border-2 border-gray-400 dark:border-gray-500 mb-3">
+          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-lg font-semibold border-2 border-sidebar mb-3">
             {cityInitials}
           </div>
         );
@@ -172,7 +172,7 @@ export function AppSidebar({
     
     // Fallback si no hay ciudad configurada
     return (
-      <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-muted text-sidebar-muted-foreground border-2 border-gray-400 dark:border-gray-500">
+      <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-muted text-sidebar-muted-foreground border-2 border-sidebar">
         <MessageCircle className="h-4 w-4" />
       </div>
     );
@@ -299,21 +299,21 @@ export function AppSidebar({
 
   return (
     <>
-      <Sidebar variant="inset" collapsible="icon" {...props}>
-        <SidebarHeader>
+      <Sidebar variant="inset" collapsible="icon" className="sidebar-transition" {...props}>
+        <SidebarHeader className="sidebar-content-transition">
           <TeamSwitcher chatConfig={chatConfig} onCitySelect={onCitySelect} onShowCitySearch={onShowCitySearch} />
         </SidebarHeader>
         
-        <SidebarContent className="flex flex-col gap-0 h-full">
+        <SidebarContent className="flex flex-col gap-0 h-full sidebar-content-transition">
           {/* Admin vs Citizen primary actions */}
-          <SidebarGroup className="p-1 flex-shrink-0 pl-2">
+          <SidebarGroup className="p-1 flex-shrink-0 pl-2 sidebar-content-transition">
             <SidebarMenu className="gap-0.5">
               {isAdminContext ? (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={onOpenMetrics}
-                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
                       size="sm"
                       tooltip={t('navigation.metrics', { defaultValue: 'Metrics' })}
                     >
@@ -326,7 +326,7 @@ export function AppSidebar({
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={onOpenFinetuning}
-                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
                       size="sm"
                       tooltip={t('navigation.configureChat', { defaultValue: 'Configure Chat' })}
                     >
@@ -344,7 +344,7 @@ export function AppSidebar({
                       onClick={isInSearchMode ? () => {} : onShowCitySearch}
                       isActive={isInSearchMode}
                       disabled={isInSearchMode}
-                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
                       size="sm"
                       tooltip={isInSearchMode ? t('sidebar.alreadyInSearchMode', { defaultValue: 'You are already in search mode' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
                     >
@@ -374,7 +374,7 @@ export function AppSidebar({
                         }
                       }}
                       disabled={loading}
-                      className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+                      className="w-full group-data-[collapsible=icon]:justify-center h-10 touch-manipulation md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
                       size="sm"
                     >
                       <Star className={cn(
@@ -405,7 +405,7 @@ export function AppSidebar({
                     if (slug) navigate(`/admin/${slug}`);
                   }
                 }}
-              className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground"
+              className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
               size="sm"
               tooltip={t('chat.newChat', { defaultValue: 'New Chat' })}
             >
@@ -413,11 +413,11 @@ export function AppSidebar({
               <span className="group-data-[collapsible=icon]:hidden">{t('chat.newChat', { defaultValue: 'New Chat' })}</span>
             </SidebarMenuButton>
             </SidebarMenuItem>
-            <div className="group-data-[collapsible=icon]:hidden flex-1 flex flex-col min-h-0">
+            <div className="group-data-[collapsible=icon]:hidden flex-1 flex flex-col min-h-0 sidebar-content-transition">
               {chatTitles.length > 0 && (
-                <SidebarGroupLabel className="flex-shrink-0">{t('sidebar.conversations', { defaultValue: 'Conversations' })}</SidebarGroupLabel>
+                <SidebarGroupLabel className="flex-shrink-0 sidebar-content-transition">{t('sidebar.conversations', { defaultValue: 'Conversations' })}</SidebarGroupLabel>
               )}
-              <SidebarGroupContent className="flex-1 overflow-y-auto min-h-0 scrollbar-hide hover:scrollbar-default">
+              <SidebarGroupContent className="flex-1 overflow-y-auto min-h-0 scrollbar-hide hover:scrollbar-default sidebar-content-transition">
                 {chatTitles.length > 0 ? (
                   <SidebarMenu>
                     {chatTitles.map((title, index) => (
@@ -431,7 +431,7 @@ export function AppSidebar({
                             }
                           }}
                           isActive={index === selectedChatIndex}
-                          className="group/menu-item w-full justify-between group-data-[collapsible=icon]:justify-center min-h-[2rem] py-1"
+                          className="group/menu-item w-full justify-between group-data-[collapsible=icon]:justify-center min-h-[2rem] py-1 sidebar-button-transition"
                           tooltip={title}
                         >
                           <div className="flex items-center gap-2 min-w-0">
@@ -446,7 +446,7 @@ export function AppSidebar({
                                 e.stopPropagation()
                                 onDeleteChat(chatIds[index])
                               }}
-                              className="h-6 w-6 p-0 opacity-0 group-hover/menu-item:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              className="h-6 w-6 p-0 opacity-0 group-hover/menu-item:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] inline-flex items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                             >
                               <Trash2 className="h-3 w-3" />
                             </div>

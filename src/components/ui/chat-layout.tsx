@@ -24,7 +24,7 @@ const ChatSidebar = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "border-r bg-muted/50 transition-all duration-300 ease-in-out",
+      "bg-muted/50 transition-all duration-300 ease-in-out",
       collapsed ? "w-16" : "w-80",
       className
     )}

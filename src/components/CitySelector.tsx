@@ -336,13 +336,13 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
             >
               <CardHeader className="pb-4">
                 <div className="flex items-start gap-4">
-                  <Avatar className="h-16 w-16 border-2 border-gray-400 dark:border-gray-500">
+                  <Avatar className="h-16 w-16 border-2 border-gray-400 dark:border-input">
                     <AvatarImage 
                       src={city.profileImageUrl || city.profile_image_url} 
                       alt={city.name}
                       className="object-cover"
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-lg font-bold border-2 border-gray-400 dark:border-gray-500">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-lg font-bold border-2 border-gray-400 dark:border-input">
                       {getCityInitials(city.name)}
                     </AvatarFallback>
                   </Avatar>
