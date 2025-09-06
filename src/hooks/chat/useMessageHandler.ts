@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useAuth } from '../useAuth';
 import { useTranslation } from 'react-i18next';
 import { processWithVertexAI } from '../../services/vertexAIService';
+import { useMetrics } from '../../services/metricsService';
 
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
@@ -14,12 +15,13 @@ export const useMessageHandler = (
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const lastProcessedMessageRef = useRef<string | null>(null);
+  const { recordUserMessage, recordAssistantResponse } = useMetrics();
 
   const processMessage = useCallback(async (
     geminiChatSession: any,
     inputText: string,
     userMessage: ChatMessage,
-    addMessage: (message: ChatMessage) => void,
+    addMessage: (message: ChatMessage, targetConversationId?: string) => void,
     saveMessageOnly: (message: ChatMessage, conversationId: string) => Promise<void>,
     setMessages: (updater: any) => void,
     isReady: boolean,
@@ -49,13 +51,15 @@ export const useMessageHandler = (
     };
 
     try {
-      // First, add the user message to the UI
+      // First, add the user message to the UI and save it
       console.log('📝 Adding user message to UI:', userMessage.id);
-      addMessage(userMessage);
+      addMessage(userMessage, conversationId);
       
-      // Save user message to database
-      await saveMessageOnly(userMessage, conversationId);
-
+      // Record user message metrics
+      if (citySlug) {
+        recordUserMessage(citySlug, user?.id, inputText);
+      }
+      
       // Add typing indicator
       addMessage(typingMessage);
 
@@ -118,6 +122,17 @@ export const useMessageHandler = (
       
       // Save AI response
       await saveMessageOnly(aiMessage, conversationId);
+      
+      // Record assistant response metrics
+      if (citySlug) {
+        recordAssistantResponse(
+          citySlug, 
+          user?.id, 
+          vertexResponse.response
+          // tokensUsed will be calculated by the metrics service if available
+        );
+      }
+      
       setIsLoading(false);
       
     } catch (error) {

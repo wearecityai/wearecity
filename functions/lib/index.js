@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.classifyQuery = exports.processAIChat = exports.healthCheck = void 0;
+exports.setupAndFixMetrics = exports.migrateMetricsData = exports.debugMetrics = exports.cleanupOldMetrics = exports.getCityMetrics = exports.recordChatMetric = exports.initializeCategories = exports.classifyQuery = exports.processAIChat = exports.healthCheck = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const cors_1 = __importDefault(require("cors"));
@@ -155,7 +155,7 @@ const logAIUsage = async (userId, modelUsed, complexity, citySlug) => {
             complexity,
             citySlug: citySlug || null,
             timestamp: new Date(),
-            region: 'europe-west1'
+            region: 'us-central1'
         };
         await admin.firestore()
             .collection('ai_usage_logs')
@@ -166,4 +166,13 @@ const logAIUsage = async (userId, modelUsed, complexity, citySlug) => {
         // Don't fail the main request if logging fails
     }
 };
+// Export metrics functions
+var metricsService_1 = require("./metricsService");
+Object.defineProperty(exports, "initializeCategories", { enumerable: true, get: function () { return metricsService_1.initializeCategories; } });
+Object.defineProperty(exports, "recordChatMetric", { enumerable: true, get: function () { return metricsService_1.recordChatMetric; } });
+Object.defineProperty(exports, "getCityMetrics", { enumerable: true, get: function () { return metricsService_1.getCityMetrics; } });
+Object.defineProperty(exports, "cleanupOldMetrics", { enumerable: true, get: function () { return metricsService_1.cleanupOldMetrics; } });
+Object.defineProperty(exports, "debugMetrics", { enumerable: true, get: function () { return metricsService_1.debugMetrics; } });
+Object.defineProperty(exports, "migrateMetricsData", { enumerable: true, get: function () { return metricsService_1.migrateMetricsData; } });
+Object.defineProperty(exports, "setupAndFixMetrics", { enumerable: true, get: function () { return metricsService_1.setupAndFixMetrics; } });
 //# sourceMappingURL=index.js.map

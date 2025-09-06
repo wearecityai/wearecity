@@ -60,12 +60,25 @@ export const usePlaceCardParser = () => {
             console.log('✅ Place card city validation passed:', placeData.searchQuery);
           }
           
-          const placeCard = { 
+          const placeCard: PlaceCardInfo = { 
             id: crypto.randomUUID(), 
             name: placeData.name, 
             placeId: placeData.placeId, 
             searchQuery: placeData.searchQuery, 
-            isLoadingDetails: true 
+            photoUrl: placeData.photoUrl,
+            photoAttributions: placeData.photoAttributions,
+            rating: placeData.rating,
+            userRatingsTotal: placeData.userRatingsTotal,
+            address: placeData.address,
+            distance: placeData.distance,
+            mapsUrl: placeData.mapsUrl,
+            website: placeData.website,
+            description: placeData.description,
+            priceLevel: placeData.priceLevel,
+            types: placeData.types,
+            openingHours: placeData.openingHours,
+            phoneNumber: placeData.phoneNumber,
+            isLoadingDetails: !placeData.photoUrl && !placeData.rating && !placeData.address // Solo cargar si no hay datos básicos
           };
           placeCardsForMessage.push(placeCard);
           console.log('✅ Found complete place card:', placeCard);

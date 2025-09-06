@@ -13,7 +13,7 @@ interface UseAppHandlersProps {
   chatConfig: CustomChatConfig;
   setChatConfig: React.Dispatch<React.SetStateAction<CustomChatConfig>>;
   saveConfig: (config: CustomChatConfig) => Promise<boolean>;
-  setCurrentView: React.Dispatch<React.SetStateAction<'chat' | 'finetuning' | 'metrics'>>;
+  setCurrentView: React.Dispatch<React.SetStateAction<'chat' | 'finetuning' | 'metrics' | 'initialize-metrics'>>;
   setIsMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedChatIndex: React.Dispatch<React.SetStateAction<number>>;
   selectedChatIndex: number;

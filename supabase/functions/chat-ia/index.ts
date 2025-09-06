@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { RealTimeSearchService } from '../lib/realTimeSearchService.js';
 
 /**
  * Edge Function para Chat IA con Gemini 1.5 Pro
@@ -51,14 +52,16 @@ const EVENT_CARD_START_MARKER = "[EVENT_CARD_START]";
 const EVENT_CARD_END_MARKER = "[EVENT_CARD_END]";
 const EVENT_CARD_SYSTEM_INSTRUCTION = `Cuando informes sobre eventos, sigue ESTRICTAMENTE este formato:
 1. OPCIONAL Y MUY IMPORTANTE: Comienza con UNA SOLA frase introductoria MUY CORTA Y GENÉRICA si es absolutamente necesario (ej: "Aquí tienes los eventos para esas fechas:"). NO menciones NINGÚN detalle de eventos específicos, fechas, lugares, ni otras recomendaciones (como exposiciones, enlaces al ayuntamiento, etc.) en este texto introductorio. TODO debe estar en las tarjetas. **EVITA LÍNEAS EN BLANCO** antes de la primera tarjeta.
-2. INMEDIATAMENTE DESPUÉS de la introducción (si la hay, sino directamente), para CADA evento que menciones, DEBES usar el formato: ${EVENT_CARD_START_MARKER}{"title": "Nombre del Evento", "date": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" (opcional), "time": "HH:mm" (opcional), "location": "Lugar del Evento" (opcional), "sourceUrl": "https://ejemplo.com/evento" (opcional), "sourceTitle": "Nombre de la Fuente del Evento" (opcional)}${EVENT_CARD_END_MARKER}. No debe haber texto **NI LÍNEAS EN BLANCO** entre tarjetas, solo tarjetas consecutivas.
+2. INMEDIATAMENTE DESPUÉS de la introducción (si la hay, sino directamente), para CADA evento que menciones, DEBES usar el formato: ${EVENT_CARD_START_MARKER}{"title": "Nombre del Evento", "date": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" (opcional), "time": "HH:mm" (opcional), "location": "Lugar del Evento" (opcional), "description": "Descripción breve del evento" (opcional), "sourceUrl": "https://ejemplo.com/evento" (opcional), "sourceTitle": "Nombre de la Fuente del Evento" (opcional)}${EVENT_CARD_END_MARKER}. No debe haber texto **NI LÍNEAS EN BLANCO** entre tarjetas, solo tarjetas consecutivas.
    * "date": Fecha de inicio (YYYY-MM-DD).
    * "endDate": (opcional) Solo si el MISMO título se extiende en días CONSECUTIVOS.
-3. REGLA CRÍTICA: TODO el detalle de cada evento (nombre, fecha/s, hora, lugar, fuente si aplica) debe ir EXCLUSIVAMENTE en su JSON. Fuera de los marcadores, únicamente la breve introducción opcional.
-4. El JSON debe ser válido. 'time' solo si es relevante. 'location' es el lugar o dirección. 'sourceUrl' y 'sourceTitle' son opcionales; inclúyelos si provienes de búsqueda web con URL fiable.
+   * "description": (opcional) Descripción breve del evento (máximo 2-3 líneas, 150 caracteres aprox). SIEMPRE intenta extraer una descripción del contenido web si está disponible.
+3. REGLA CRÍTICA: TODO el detalle de cada evento (nombre, fecha/s, hora, lugar, descripción, fuente si aplica) debe ir EXCLUSIVAMENTE en su JSON. Fuera de los marcadores, únicamente la breve introducción opcional.
+4. El JSON debe ser válido. 'time' solo si es relevante. 'location' es el lugar o dirección. 'description' debe ser una descripción breve y atractiva del evento. 'sourceUrl' y 'sourceTitle' son opcionales; inclúyelos si provienes de búsqueda web con URL fiable.
 5. No inventes URLs. Si no hay URL, omítelas.
 6. A menos que el usuario pida otro año, devuelve eventos del AÑO ACTUAL.
-7. "Ver más": si el usuario lista eventos ya vistos, devuelve eventos distintos (evita repetir títulos/fechas ya mostrados).`;
+7. "Ver más": si el usuario lista eventos ya vistos, devuelve eventos distintos (evita repetir títulos/fechas ya mostrados).
+8. EXTRACCIÓN DE DESCRIPCIONES: SIEMPRE intenta extraer una descripción breve del evento del contenido web. Busca párrafos descriptivos, resúmenes, o información adicional sobre el evento que no sea solo el título.`;
 
 const PLACE_CARD_START_MARKER = "[PLACE_CARD_START]";
 const PLACE_CARD_END_MARKER = "[PLACE_CARD_END]";
@@ -573,8 +576,10 @@ INSTRUCCIONES OBLIGATORIAS:
 
 FORMATO OBLIGATORIO PARA EVENTOS:
 ${EVENT_CARD_START_MARKER}
-{"title": "Nombre exacto del evento encontrado", "date": "YYYY-MM-DD", "time": "HH:mm", "location": "Ubicación encontrada", "sourceUrl": "URL de la fuente", "sourceTitle": "Título de la fuente"}
+{"title": "Nombre exacto del evento encontrado", "date": "YYYY-MM-DD", "time": "HH:mm", "location": "Ubicación encontrada", "description": "Descripción breve del evento extraída del contenido", "sourceUrl": "URL de la fuente", "sourceTitle": "Título de la fuente"}
 ${EVENT_CARD_END_MARKER}
+
+IMPORTANTE: SIEMPRE incluye "description" en cada evento. Busca párrafos descriptivos, resúmenes, o información adicional sobre el evento en el contenido web.
 `);
     } else if (agendaUrls.length > 0) {
       // Extraer dominios únicos para mostrar en las instrucciones
@@ -1315,6 +1320,21 @@ async function buildEventCardsFromPages(
             const description = node.description;
             const location = node.location?.name || node.location;
             
+            // Extraer imagen del evento
+            let imageUrl = null;
+            if (node.image) {
+              if (typeof node.image === 'string') {
+                imageUrl = node.image;
+              } else if (Array.isArray(node.image) && node.image.length > 0) {
+                // Si es un array, tomar la primera imagen
+                imageUrl = typeof node.image[0] === 'string' ? node.image[0] : node.image[0].url || node.image[0]['@id'];
+              } else if (node.image.url) {
+                imageUrl = node.image.url;
+              } else if (node.image['@id']) {
+                imageUrl = node.image['@id'];
+              }
+            }
+            
             // Extraer enlace del evento
             let eventUrl = null;
             if (node.url) {
@@ -1384,6 +1404,7 @@ async function buildEventCardsFromPages(
                 if (location) obj.location = location;
                 if (formattedTime) obj.time = formattedTime;
                 if (eventUrl) obj.eventDetailUrl = eventUrl;
+                if (imageUrl) obj.imageUrl = imageUrl;
                 
                 const eventCard = `${EVENT_CARD_START_MARKER}${JSON.stringify(obj)}${EVENT_CARD_END_MARKER}`;
                 cards.push(eventCard);
@@ -1553,13 +1574,45 @@ async function buildEventCardsFromPages(
             location = title;
           }
           
+          // Extraer imagen del evento del HTML
+          let imageUrl = null;
+          if (match && match.index !== undefined) {
+            const eventSection = html.substring(match.index, match.index + 1000);
+            
+            // Patrones para extraer imágenes
+            const imagePatterns = [
+              /<img[^>]+src=["']([^"']+)["'][^>]*>/gi,
+              /<img[^>]+src=([^"'\s>]+)[^>]*>/gi,
+              /background-image:\s*url\(["']?([^"')]+)["']?\)/gi,
+              /data-src=["']([^"']+)["']/gi,
+              /data-lazy-src=["']([^"']+)["']/gi
+            ];
+            
+            for (const imgPattern of imagePatterns) {
+              const imgMatch = eventSection.match(imgPattern);
+              if (imgMatch && imgMatch[1]) {
+                imageUrl = imgMatch[1];
+                // Convertir URL relativa a absoluta si es necesario
+                if (imageUrl.startsWith('/')) {
+                  const baseUrl = new URL(sourceUrlParam || '');
+                  imageUrl = `${baseUrl.protocol}//${baseUrl.host}${imageUrl}`;
+                } else if (imageUrl.startsWith('./') || !imageUrl.startsWith('http')) {
+                  const baseUrl = new URL(sourceUrlParam || '');
+                  imageUrl = `${baseUrl.protocol}//${baseUrl.host}/${imageUrl.replace('./', '')}`;
+                }
+                break;
+              }
+            }
+          }
+          
           const event = {
             title: title || 'Sin título',
             date: dateStr,
             time: time || 'No especificada',
             location: location || 'No especificada',
             eventDetailUrl: eventUrl,
-            sourceUrl: sourceUrlParam
+            sourceUrl: sourceUrlParam,
+            imageUrl: imageUrl
           };
           
           events.push(event);
@@ -1756,6 +1809,7 @@ async function buildEventCardsFromPages(
                 if (event.time) obj.time = event.time;
                 if (event.location) obj.location = event.location;
                 if (event.eventDetailUrl) obj.eventDetailUrl = event.eventDetailUrl;
+                if (event.imageUrl) obj.imageUrl = event.imageUrl;
                 
                 const eventCard = `${EVENT_CARD_START_MARKER}${JSON.stringify(obj)}${EVENT_CARD_END_MARKER}`;
                 built.push(eventCard);
@@ -3258,31 +3312,82 @@ Puedo proporcionarte información completa sobre cualquier trámite municipal.`;
           responseText += `¿Te gustaría que revise otras fuentes o necesitas información sobre algún tipo de evento específico?`;
         }
       } else if (intentsForProactiveSearch.has('places')) {
-        // Respuesta específica para lugares
-        responseText = `🏪 **LUGARES Y RECOMENDACIONES - ${cityName || 'TU CIUDAD'}**
+        // Usar RealTimeSearchService para búsqueda inteligente de lugares
+        console.log('🔍 DEBUG - 🏪 DETECTADO INTENTO DE LUGARES - USANDO REAL TIME SEARCH');
+        
+        try {
+          const realTimeSearch = RealTimeSearchService.getInstance();
+          const searchContext = {
+            city: cityName,
+            location: userLocation,
+            userType: 'resident' as const
+          };
+          
+          const searchResponse = await realTimeSearch.intelligentSearch(userMessage, searchContext);
+          
+          if (searchResponse.places && searchResponse.places.length > 0) {
+            console.log('🔍 DEBUG - Lugares encontrados por RealTimeSearch:', searchResponse.places.length);
+            
+            responseText = `🏪 **LUGARES RECOMENDADOS EN ${cityName.toUpperCase()}**\n\n`;
+            
+            // Generar tarjetas de lugares usando el formato correcto
+            for (const place of searchResponse.places) {
+              const placeData = {
+                name: place.name,
+                placeId: place.placeId,
+                searchQuery: place.searchQuery || `${place.name}, ${cityName}`,
+                photoUrl: place.photoUrl,
+                photoAttributions: place.photoAttributions,
+                rating: place.rating,
+                userRatingsTotal: place.userRatingsTotal,
+                address: place.address,
+                distance: place.distance,
+                mapsUrl: place.mapsUrl,
+                website: place.website,
+                description: place.description,
+                priceLevel: place.priceLevel,
+                types: place.types,
+                openingHours: place.openingHours,
+                phoneNumber: place.phoneNumber
+              };
+              responseText += `${PLACE_CARD_START_MARKER}${JSON.stringify(placeData)}${PLACE_CARD_END_MARKER}`;
+            }
+            
+            responseText += `\n\n**¿Necesitas más información sobre algún lugar específico o buscas otro tipo de establecimiento?**`;
+          } else {
+            // Fallback si no se encuentran lugares
+            responseText = `🏪 **LUGARES Y RECOMENDACIONES - ${cityName || 'TU CIUDAD'}**
 
-¡Genial! Te ayudo a encontrar los mejores lugares en ${cityName || 'tu ciudad'}.
+¡Te ayudo a encontrar los mejores lugares en ${cityName || 'tu ciudad'}!
 
-🔍 **Para obtener recomendaciones actualizadas:**
-• **Web oficial del ayuntamiento:** Lista de establecimientos autorizados
-• **Oficina de turismo:** Recomendaciones oficiales y mapas
-• **Guías locales:** Información de residentes y expertos
-• **Aplicaciones de reseñas:** Ver opiniones de otros visitantes
-
-🏗️ **Categorías de lugares disponibles:**
-• **Restaurantes y bares:** Gastronomía local y especialidades
-• **Museos y monumentos:** Patrimonio cultural e histórico
-• **Parques y espacios verdes:** Zonas de recreo y naturaleza
-• **Hoteles y alojamientos:** Opciones de hospedaje
-• **Tiendas y comercios:** Compras y artesanía local
-
-ℹ️ **Información práctica:**
-• **Horarios:** Verificar horarios de apertura
-• **Reservas:** Confirmar si se requieren reservas
-• **Accesibilidad:** Consultar opciones para personas con movilidad reducida
-• **Precios:** Verificar rangos de precios
+**¿Qué tipo de lugar buscas?**
+• 🍽️ **Restaurantes** - Comida local, internacional, especialidades
+• ☕ **Cafeterías y bares** - Para desayunar, tomar algo, ambiente
+• 🏛️ **Museos y cultura** - Arte, historia, exposiciones
+• 🏨 **Hoteles y alojamiento** - Para quedarte o recomendar
+• 🛍️ **Tiendas y comercios** - Compras, regalos, productos locales
+• 🌳 **Parques y espacios verdes** - Para pasear, relajarse
+• 🎭 **Entretenimiento** - Cines, teatros, actividades
 
 ¿Qué tipo de lugar te interesa o tienes alguna preferencia específica?`;
+          }
+        } catch (error) {
+          console.error('Error en búsqueda inteligente de lugares:', error);
+          responseText = `🏪 **LUGARES Y RECOMENDACIONES - ${cityName || 'TU CIUDAD'}**
+
+¡Te ayudo a encontrar los mejores lugares en ${cityName || 'tu ciudad'}!
+
+**¿Qué tipo de lugar buscas?**
+• 🍽️ **Restaurantes** - Comida local, internacional, especialidades
+• ☕ **Cafeterías y bares** - Para desayunar, tomar algo, ambiente
+• 🏛️ **Museos y cultura** - Arte, historia, exposiciones
+• 🏨 **Hoteles y alojamiento** - Para quedarte o recomendar
+• 🛍️ **Tiendas y comercios** - Compras, regalos, productos locales
+• 🌳 **Parques y espacios verdes** - Para pasear, relajarse
+• 🎭 **Entretenimiento** - Cines, teatros, actividades
+
+¿Qué tipo de lugar te interesa o tienes alguna preferencia específica?`;
+        }
         
       } else if (intentsForProactiveSearch.has('transport')) {
         // Respuesta específica para transporte

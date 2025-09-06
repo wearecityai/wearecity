@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Clock, MapPin, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, ExternalLink, AlertTriangle, Loader2, Music, Theater, Palette, Camera, BookOpen, Gamepad2, Utensils, ShoppingBag, Heart, Star, Zap, Users, Film, Building2, PartyPopper, Mic, Paintbrush, Dumbbell, Car, Plane, TreePine, Coffee, ShoppingCart, GraduationCap, Briefcase, Home, Wifi } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -21,6 +21,14 @@ const MONTH_ABBRS: Record<string, string[]> = {
   de: ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"]
 };
 
+const MONTH_FULL: Record<string, string[]> = {
+  es: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+  en: ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"],
+  ca: ["gener", "febrer", "març", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"],
+  fr: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+  de: ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember"]
+};
+
 // Función auxiliar para convertir nombres de meses en español a índices
 const getMonthIndexFromSpanishName = (monthName: string): number => {
   const monthMap: Record<string, number> = {
@@ -36,16 +44,145 @@ const getMonthIndexFromSpanishName = (monthName: string): number => {
 interface EventDateDisplayParts {
   day: string;
   monthAbbr: string;
+  monthFull: string;
   year?: string;
   endDay?: string;
   endMonthAbbr?: string;
+  endMonthFull?: string;
   endYear?: string;
 }
+
+// Función para detectar la categoría del evento y asignar icono
+const getEventCategory = (title: string): { icon: React.ReactNode; category: string; color: string } => {
+  const titleLower = title.toLowerCase();
+  
+  // Música y conciertos
+  if (titleLower.includes('concierto') || titleLower.includes('música') || titleLower.includes('musical') || 
+      titleLower.includes('banda') || titleLower.includes('orquesta') || titleLower.includes('coro') ||
+      titleLower.includes('festival') || titleLower.includes('jazz') || titleLower.includes('rock') ||
+      titleLower.includes('pop') || titleLower.includes('clásica') || titleLower.includes('flamenco') ||
+      titleLower.includes('salsa') || titleLower.includes('reggaeton') || titleLower.includes('electrónica') ||
+      titleLower.includes('cantante') || titleLower.includes('cantar') || titleLower.includes('micro') ||
+      titleLower.includes('micrófono') || titleLower.includes('sonido') || titleLower.includes('audio')) {
+    return { icon: <Music className="h-5 w-5" />, category: 'Música', color: 'text-purple-600' };
+  }
+  
+  // Teatro y artes escénicas
+  if (titleLower.includes('teatro') || titleLower.includes('obra') || titleLower.includes('drama') ||
+      titleLower.includes('comedia') || titleLower.includes('musical') || titleLower.includes('danza') ||
+      titleLower.includes('ballet') || titleLower.includes('flamenco') || titleLower.includes('baile') ||
+      titleLower.includes('performance') || titleLower.includes('espectáculo') || titleLower.includes('actuación') ||
+      titleLower.includes('actor') || titleLower.includes('actriz') || titleLower.includes('escenario')) {
+    return { icon: <Theater className="h-5 w-5" />, category: 'Teatro', color: 'text-red-600' };
+  }
+  
+  // Cine y películas
+  if (titleLower.includes('cine') || titleLower.includes('película') || titleLower.includes('film') ||
+      titleLower.includes('proyección') || titleLower.includes('estreno') || titleLower.includes('documental') ||
+      titleLower.includes('cortometraje') || titleLower.includes('festival de cine') || titleLower.includes('cinema') ||
+      titleLower.includes('director') || titleLower.includes('guionista') || titleLower.includes('actor de cine')) {
+    return { icon: <Film className="h-5 w-5" />, category: 'Cine', color: 'text-blue-600' };
+  }
+  
+  // Museos y cultura
+  if (titleLower.includes('museo') || titleLower.includes('exposición') || titleLower.includes('expo') ||
+      titleLower.includes('arte') || titleLower.includes('pintura') || titleLower.includes('escultura') ||
+      titleLower.includes('fotografía') || titleLower.includes('galería') || titleLower.includes('cuadro') ||
+      titleLower.includes('artista') || titleLower.includes('creativo') || titleLower.includes('cultural') ||
+      titleLower.includes('patrimonio') || titleLower.includes('histórico') || titleLower.includes('arqueología')) {
+    return { icon: <Building2 className="h-5 w-5" />, category: 'Museo', color: 'text-indigo-600' };
+  }
+  
+  // Fiestas y celebraciones
+  if (titleLower.includes('fiesta') || titleLower.includes('celebración') || titleLower.includes('festejo') ||
+      titleLower.includes('carnaval') || titleLower.includes('verbenas') || titleLower.includes('fiestas patronales') ||
+      titleLower.includes('feria') || titleLower.includes('romería') || titleLower.includes('festival popular') ||
+      titleLower.includes('baile') || titleLower.includes('discoteca') || titleLower.includes('noche') ||
+      titleLower.includes('party') || titleLower.includes('celebración') || titleLower.includes('aniversario')) {
+    return { icon: <PartyPopper className="h-5 w-5" />, category: 'Fiestas', color: 'text-pink-600' };
+  }
+  
+  // Deportes y actividades físicas
+  if (titleLower.includes('deporte') || titleLower.includes('fútbol') || titleLower.includes('baloncesto') ||
+      titleLower.includes('tenis') || titleLower.includes('natación') || titleLower.includes('carrera') ||
+      titleLower.includes('maratón') || titleLower.includes('ciclismo') || titleLower.includes('gimnasio') ||
+      titleLower.includes('yoga') || titleLower.includes('pilates') || titleLower.includes('fitness') ||
+      titleLower.includes('atletismo') || titleLower.includes('boxeo') || titleLower.includes('artes marciales') ||
+      titleLower.includes('escalada') || titleLower.includes('senderismo') || titleLower.includes('running')) {
+    return { icon: <Dumbbell className="h-5 w-5" />, category: 'Deportes', color: 'text-green-600' };
+  }
+  
+  // Gastronomía y restauración
+  if (titleLower.includes('gastronomía') || titleLower.includes('comida') || titleLower.includes('cocina') ||
+      titleLower.includes('chef') || titleLower.includes('degustación') || titleLower.includes('vino') ||
+      titleLower.includes('cerveza') || titleLower.includes('tapas') || titleLower.includes('restaurante') ||
+      titleLower.includes('cena') || titleLower.includes('almuerzo') || titleLower.includes('desayuno') ||
+      titleLower.includes('café') || titleLower.includes('bar') || titleLower.includes('tasca') ||
+      titleLower.includes('maridaje') || titleLower.includes('cata') || titleLower.includes('culinario')) {
+    return { icon: <Coffee className="h-5 w-5" />, category: 'Gastronomía', color: 'text-orange-600' };
+  }
+  
+  // Compras y mercados
+  if (titleLower.includes('mercado') || titleLower.includes('feria') || titleLower.includes('artesanía') ||
+      titleLower.includes('compra') || titleLower.includes('venta') || titleLower.includes('tienda') ||
+      titleLower.includes('comercio') || titleLower.includes('bazar') || titleLower.includes('rastro') ||
+      titleLower.includes('shopping') || titleLower.includes('centro comercial') || titleLower.includes('outlet') ||
+      titleLower.includes('subasta') || titleLower.includes('antigüedades') || titleLower.includes('coleccionismo')) {
+    return { icon: <ShoppingCart className="h-5 w-5" />, category: 'Compras', color: 'text-yellow-600' };
+  }
+  
+  // Educación y formación
+  if (titleLower.includes('curso') || titleLower.includes('taller') || titleLower.includes('formación') ||
+      titleLower.includes('educación') || titleLower.includes('aprender') || titleLower.includes('enseñanza') ||
+      titleLower.includes('seminario') || titleLower.includes('workshop') || titleLower.includes('masterclass') ||
+      titleLower.includes('universidad') || titleLower.includes('colegio') || titleLower.includes('academia') ||
+      titleLower.includes('conferencia') || titleLower.includes('charla') || titleLower.includes('presentación')) {
+    return { icon: <GraduationCap className="h-5 w-5" />, category: 'Educación', color: 'text-blue-500' };
+  }
+  
+  // Negocios y profesional
+  if (titleLower.includes('negocio') || titleLower.includes('empresa') || titleLower.includes('trabajo') ||
+      titleLower.includes('profesional') || titleLower.includes('networking') || titleLower.includes('congreso') ||
+      titleLower.includes('convención') || titleLower.includes('feria comercial') || titleLower.includes('expo') ||
+      titleLower.includes('reunión') || titleLower.includes('jornada') || titleLower.includes('simposio')) {
+    return { icon: <Briefcase className="h-5 w-5" />, category: 'Negocios', color: 'text-gray-600' };
+  }
+  
+  // Tecnología e innovación
+  if (titleLower.includes('tecnología') || titleLower.includes('digital') || titleLower.includes('innovación') ||
+      titleLower.includes('startup') || titleLower.includes('app') || titleLower.includes('software') ||
+      titleLower.includes('programación') || titleLower.includes('hackathon') || titleLower.includes('tech') ||
+      titleLower.includes('internet') || titleLower.includes('web') || titleLower.includes('online')) {
+    return { icon: <Wifi className="h-5 w-5" />, category: 'Tecnología', color: 'text-cyan-600' };
+  }
+  
+  // Eventos sociales y comunitarios
+  if (titleLower.includes('social') || titleLower.includes('comunidad') || titleLower.includes('vecinos') ||
+      titleLower.includes('asociación') || titleLower.includes('colectivo') || titleLower.includes('grupo') ||
+      titleLower.includes('reunión') || titleLower.includes('asamblea') || titleLower.includes('encuentro') ||
+      titleLower.includes('voluntariado') || titleLower.includes('solidaridad') || titleLower.includes('ayuda')) {
+    return { icon: <Users className="h-5 w-5" />, category: 'Social', color: 'text-indigo-600' };
+  }
+  
+  // Eventos especiales y celebraciones
+  if (titleLower.includes('especial') || titleLower.includes('destacado') || titleLower.includes('importante') ||
+      titleLower.includes('inauguración') || titleLower.includes('inaugura') || titleLower.includes('apertura') ||
+      titleLower.includes('gala') || titleLower.includes('premio') || titleLower.includes('reconocimiento') ||
+      titleLower.includes('homenaje') || titleLower.includes('tributo') || titleLower.includes('memorial')) {
+    return { icon: <Star className="h-5 w-5" />, category: 'Especial', color: 'text-amber-600' };
+  }
+  
+  // Por defecto, evento general
+  return { icon: <Calendar className="h-5 w-5" />, category: 'Evento', color: 'text-gray-600' };
+};
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const [linkStatus, setLinkStatus] = useState<LinkStatus>('idle');
   const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const { i18n, t } = useTranslation();
+  
+  // Obtener categoría del evento
+  const eventCategory = getEventCategory(event.title);
 
   useEffect(() => {
     if (event.sourceUrl) {
@@ -83,6 +220,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
       const cleanDateStr = dateStr.trim();
       const lang = (i18n.language || 'es').split('-')[0];
       const abbrs = MONTH_ABBRS[lang] || MONTH_ABBRS.es;
+      const fullMonths = MONTH_FULL[lang] || MONTH_FULL.es;
       
       // Parse ISO format (YYYY-MM-DD) which is the standard from backend
       const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -96,6 +234,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           return {
             day: parseInt(day, 10).toString(),
             monthAbbr: abbrs[monthIndex],
+            monthFull: fullMonths[monthIndex],
             year
           };
         }
@@ -113,6 +252,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           return {
             day: day.padStart(2, '0'),
             monthAbbr: abbrs[monthIndex],
+            monthFull: fullMonths[monthIndex],
             year
           };
         }
@@ -131,9 +271,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           return {
             day: startDay.padStart(2, '0'),
             monthAbbr: abbrs[startMonthIndex],
+            monthFull: fullMonths[startMonthIndex],
             year,
             endDay: endDay.padStart(2, '0'),
             endMonthAbbr: abbrs[endMonthIndex],
+            endMonthFull: fullMonths[endMonthIndex],
             endYear: year
           };
         }
@@ -151,9 +293,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           return {
             day: startDay.padStart(2, '0'),
             monthAbbr: abbrs[monthIndex],
+            monthFull: fullMonths[monthIndex],
             year,
             endDay: endDay.padStart(2, '0'),
             endMonthAbbr: abbrs[monthIndex],
+            endMonthFull: fullMonths[monthIndex],
             endYear: year
           };
         }
@@ -172,9 +316,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           return {
             day: startDay.padStart(2, '0'),
             monthAbbr: abbrs[startMonthIndex],
+            monthFull: fullMonths[startMonthIndex],
             year: startYear !== endYear ? startYear : undefined,
             endDay: endDay.padStart(2, '0'),
             endMonthAbbr: abbrs[endMonthIndex],
+            endMonthFull: fullMonths[endMonthIndex],
             endYear: endYear
           };
         }
@@ -190,6 +336,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             return {
               day: day.padStart(2, '0'),
               monthAbbr: abbrs[monthIndex],
+              monthFull: fullMonths[monthIndex],
               year
             };
           }
@@ -208,6 +355,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           return {
             day: day.padStart(2, '0'),
             monthAbbr: abbrs[monthIndex],
+            monthFull: fullMonths[monthIndex],
             year
           };
         }
@@ -283,33 +431,32 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     if (!dateParts) {
       // Fallback: mostrar fecha en formato simple si no se puede parsear
       return (
-        <div className="flex-shrink-0 flex flex-col justify-center items-center min-w-[70px] relative">
+        <div className="flex flex-col justify-center items-center">
           <div className="text-xs font-medium text-primary/70 uppercase tracking-wide">
             FECHA
           </div>
           <div className="text-lg font-bold text-primary leading-none mt-1 text-center">
             {event.date || 'N/A'}
           </div>
-          <div className="absolute -right-2 top-0 bottom-0 w-px bg-border"></div>
         </div>
       );
     }
 
     return (
-      <div className="flex-shrink-0 flex flex-col justify-center items-center min-w-[70px] relative">
-        <div className="text-xs font-medium text-primary/70 uppercase tracking-wide">
-          {dateParts.monthAbbr}
-        </div>
-        <div className="text-3xl font-bold text-primary leading-none mt-1">
-          {dateParts.day}
+      <div className="flex flex-col justify-center items-center">
+        <div className="flex items-center justify-center">
+          <div className="text-3xl font-bold text-primary leading-none">
+            {dateParts.day}
+          </div>
+          <div className="text-3xl font-bold text-primary leading-none ml-2">
+            {dateParts.monthFull}
+          </div>
         </div>
         {dateParts.year && (
           <div className="text-xs text-primary/60 mt-1 font-medium">
             {dateParts.year}
           </div>
         )}
-        {/* Separador vertical a la derecha */}
-        <div className="absolute -right-2 top-0 bottom-0 w-px bg-border"></div>
       </div>
     );
   };
@@ -387,81 +534,114 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   return (
-    <Card className="w-full max-w-md border-border md:hover:shadow-md transition-shadow">
-      <div className="flex gap-4 p-4">
-        {/* Fecha del calendario a la izquierda */}
-        {renderCalendarDate()}
+    <Card className="w-full border-t border-border flex flex-col overflow-hidden rounded-none border-0 p-0">
+      {/* Sección con fecha grande a la izquierda */}
+      <div className="flex-shrink-0 flex items-start relative">
+        {/* Caja de fecha grande a la izquierda */}
+        <div className="flex-shrink-0 w-20 sm:w-24 h-20 sm:h-24 bg-primary text-primary-foreground rounded-lg flex flex-col items-center justify-center ml-3 sm:ml-4 mt-3 sm:mt-4">
+          <div className="text-2xl sm:text-3xl font-bold leading-none">
+            {(() => {
+              if (!dateParts) {
+                return event.date ? event.date.split('-')[2] || 'N/A' : 'N/A';
+              }
+              return dateParts.day;
+            })()}
+          </div>
+          <div className="text-sm sm:text-base font-medium mt-1 opacity-90">
+            {(() => {
+              if (!dateParts) {
+                return event.date ? event.date.split('-')[1] || 'N/A' : 'N/A';
+              }
+              return dateParts.monthAbbr;
+            })()}
+          </div>
+        </div>
         
-        {/* Contenido del evento a la derecha */}
-        <div className="flex-1 min-w-0">
-          <div className="space-y-3">
-            <div>
-              <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-2">
-                {(() => {
-                  const lang = (i18n.language || 'es').split('-')[0];
-                  const translated = event.titleTranslations?.[lang];
-                  return translated || event.title;
-                })()}
-              </h3>
-              
-                             {event.time && (
-                 <div className="flex items-center space-x-2 mb-2">
-                   <Clock className="h-4 w-4 text-muted-foreground" />
-                   <span className="text-sm text-muted-foreground">
-                     {formatTimeRange(event.time)}
-                   </span>
-                 </div>
-               )}
+        {/* Contenido del título y detalles centrado verticalmente con el cuadrado de fecha */}
+        <div className="flex-1 px-3 sm:px-4 flex flex-col justify-center mt-3 sm:mt-4">
+          <h3 className="font-semibold text-xl sm:text-2xl leading-tight line-clamp-1 text-foreground pr-12 sm:pr-16 mb-2">
+            {(() => {
+              const lang = (i18n.language || 'es').split('-')[0];
+              const translated = event.titleTranslations?.[lang];
+              return translated || event.title;
+            })()}
+          </h3>
+          
+          {/* Hora y ubicación a la derecha del cuadrado de fecha */}
+          <div className="space-y-1">
+            {/* Hora del evento */}
+            <div className="flex items-center space-x-2">
+              <Clock className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-muted-foreground truncate">
+                {event.time ? formatTimeRange(event.time) : 'No especificado'}
+              </span>
             </div>
-
-            {event.location && (
-              <div className="flex items-start space-x-2">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-muted-foreground line-clamp-2">
-                  {event.location}
-                </span>
-              </div>
-            )}
-
-            {/* Botones de acción */}
-            <div className="flex gap-2 pt-2">
-              {/* Botón Ver detalles - solo mostrar si hay link de detalle */}
-              {(event.eventDetailUrl && event.eventDetailUrl !== 'No disponible') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                  asChild
-                >
-                  <a
-                    href={event.eventDetailUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center space-x-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>Ver detalles</span>
-                  </a>
-                </Button>
-              )}
-
-              {/* Botón Añadir al calendario */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                onClick={addToDeviceCalendar}
-                disabled={isAddingToCalendar || !event.date}
-              >
-                {isAddingToCalendar ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                ) : (
-                  <Calendar className="h-4 w-4 mr-1" />
-                )}
-                <span>Añadir al calendario</span>
-              </Button>
+            
+            {/* Ubicación del evento */}
+            <div className="flex items-start space-x-2">
+              <MapPin className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-muted-foreground line-clamp-1 truncate">
+                {event.location || 'No especificado'}
+              </span>
             </div>
           </div>
+        </div>
+        
+        {/* Icono de categoría */}
+        <div className={`absolute top-3 sm:top-4 right-3 sm:right-4 w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0`}>
+          <div className="w-4 sm:w-6 h-4 sm:h-6 flex items-center justify-center text-white">
+            {eventCategory.icon}
+          </div>
+        </div>
+      </div>
+      
+      {/* Descripción breve del evento (si existe) */}
+      {event.description && (
+        <div className="flex-shrink-0 px-3 sm:px-4 py-2">
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+            {event.description}
+          </p>
+        </div>
+      )}
+
+      {/* Botones de acción - Separados de la fecha */}
+      <div className={`flex-shrink-0 h-12 flex items-center px-3 sm:px-4 ${!event.description ? 'mt-4' : 'mt-auto'}`}>
+        <div className="flex gap-1 sm:gap-2 w-full">
+          {/* Botón Ver detalles - solo mostrar si hay link de detalle */}
+          {(event.eventDetailUrl && event.eventDetailUrl !== 'No disponible') && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 sm:h-8 text-xs sm:text-sm"
+              asChild
+            >
+              <a
+                href={event.eventDetailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center space-x-1 sm:space-x-2"
+              >
+                <ExternalLink className="h-3 sm:h-4 w-3 sm:w-4" />
+                <span>Detalles</span>
+              </a>
+            </Button>
+          )}
+
+          {/* Botón Añadir al calendario */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 sm:h-8 text-xs sm:text-sm"
+            onClick={addToDeviceCalendar}
+            disabled={isAddingToCalendar || !event.date}
+          >
+            {isAddingToCalendar ? (
+              <Loader2 className="h-3 sm:h-4 w-3 sm:w-4 animate-spin mr-1" />
+            ) : (
+              <Calendar className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
+            )}
+            <span>Añadir</span>
+          </Button>
         </div>
       </div>
     </Card>

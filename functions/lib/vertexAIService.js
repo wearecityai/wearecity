@@ -173,8 +173,17 @@ Cuando la consulta sea sobre encontrar lugares (restaurantes, hoteles, tiendas, 
 - Si NO encuentras un enlace específico de detalles, usa la URL de la página donde se muestran las cards de eventos como "eventDetailUrl"
 - NUNCA dejes "eventDetailUrl" vacío - siempre proporciona un enlace útil para el usuario
 
+📝 EXTRACCIÓN DE DESCRIPCIONES:
+- SIEMPRE intenta extraer una descripción breve del evento del contenido web
+- Busca párrafos descriptivos, resúmenes, o información adicional sobre el evento
+- La descripción debe ser atractiva y breve (máximo 150 caracteres, 2-3 líneas)
+- Incluye información relevante como: tipo de evento, público objetivo, características especiales, etc.
+- Si no encuentras descripción específica, crea una breve basada en el título y contexto del evento
+- Incluye "description" en el JSON de cada evento
+
 ⚠️ REGLA IMPORTANTE:
 - SIEMPRE incluye "eventDetailUrl" en cada evento
+- SIEMPRE incluye "description" en cada evento
 - Si no encuentras un enlace específico de detalles, usa "sourceUrl" como "eventDetailUrl"
 - Si no tienes "sourceUrl", usa la URL de la página general de agenda como "eventDetailUrl"
 - NUNCA dejes "eventDetailUrl" como null o vacío

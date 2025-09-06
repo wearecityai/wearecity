@@ -126,41 +126,8 @@ export const useMessages = (conversationId: string | null) => {
         });
       });
       
-      // Merge with existing local messages to avoid dropping optimistic typing/unsaved
-      setMessages(prev => {
-        const byId = new Map<string, ChatMessage>();
-        
-        // Start with server messages (authoritative)
-        for (const m of chatMessages) {
-          byId.set(m.id, { ...m, shouldAnimate: false });
-        }
-        
-        // Only add local messages that don't exist on server and aren't typing
-        for (const m of prev) {
-          if (!byId.has(m.id) && !m.isTyping) {
-            byId.set(m.id, m);
-          }
-        }
-        
-        // Sort by timestamp asc if available, else keep insertion order
-        const merged = Array.from(byId.values()).sort((a, b) => (a.timestamp?.getTime?.() || 0) - (b.timestamp?.getTime?.() || 0));
-        
-        // Debug: Log if we detect potential duplicates
-        const duplicateIds = new Set<string>();
-        const seenIds = new Set<string>();
-        for (const msg of merged) {
-          if (seenIds.has(msg.id)) {
-            duplicateIds.add(msg.id);
-          }
-          seenIds.add(msg.id);
-        }
-        
-        if (duplicateIds.size > 0) {
-          console.warn('🚨 Duplicate message IDs detected:', Array.from(duplicateIds));
-        }
-        
-        return merged;
-      });
+      // Use server messages as the single source of truth
+      setMessages(chatMessages.map(msg => ({ ...msg, shouldAnimate: false })));
     } catch (error) {
       console.error('Error loading messages:', error);
       // Do not clear local messages on error
@@ -235,7 +202,13 @@ export const useMessages = (conversationId: string | null) => {
       return [...prev, message];
     });
 
-    // 2) Persist depending on auth state (in background for speed)
+    // 2) Don't save typing messages to database or localStorage
+    if (message.isTyping) {
+      console.log('Skipping save of typing message:', message.id);
+      return;
+    }
+
+    // 3) Persist depending on auth state (in background for speed)
     if (!user) {
       // Unauthenticated: mirror to localStorage
       const existing = localStorage.getItem(`chat_messages_${conversationIdToUse}`);

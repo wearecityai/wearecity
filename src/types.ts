@@ -24,9 +24,11 @@ export interface EventInfo {
   endDate?: string; // Expected format: YYYY-MM-DD (End date for multi-day events, optional)
   time?: string; // Expected format: HH:mm
   location?: string; // Optional location of the event
+  description?: string; // Optional brief description of the event
   sourceUrl?: string; // Optional URL to the source of the event information
   sourceTitle?: string; // Optional title of the event source page
   eventDetailUrl?: string; // Optional URL to the specific event detail page
+  imageUrl?: string; // Optional URL to the event image
 }
 
 export interface PlaceCardInfo {
@@ -44,6 +46,11 @@ export interface PlaceCardInfo {
   distance?: string; // e.g., "500 m" or "1.2 km"
   mapsUrl?: string; // Link to Google Maps for the place
   website?: string; // Official website of the place
+  description?: string; // Brief description of the place
+  priceLevel?: number; // Price level from 0 to 4
+  types?: string[]; // Types of place (e.g., ["restaurant", "food", "establishment"])
+  openingHours?: string[]; // Opening hours
+  phoneNumber?: string; // Phone number
 
   isLoadingDetails: boolean;
   errorDetails?: string;

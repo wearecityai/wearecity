@@ -39,7 +39,7 @@ export const useAppState = (citySlug?: string) => {
   // Track processed place cards to prevent infinite loops
   const processedCardsRef = useRef<Set<string>>(new Set());
   
-  const [currentView, setCurrentView] = useState<'chat' | 'finetuning' | 'metrics'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'finetuning' | 'metrics' | 'initialize-metrics'>('chat');
   const [selectedChatIndex, setSelectedChatIndex] = useState<number>(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string | null>(null);

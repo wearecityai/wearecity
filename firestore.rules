@@ -8,6 +8,44 @@ service cloud.firestore {
       
       // Permitir lectura y escritura para el servicio de Firebase Functions
       allow read, write: if request.auth != null || request.auth.token.firebase.sign_in_provider == 'google.com';
+      
+      // Reglas para mensajes dentro de conversaciones
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // Reglas para métricas de chat - solo lectura/escritura por Functions
+    match /chat_analytics/{analyticsId} {
+      // Solo Functions pueden escribir, usuarios autenticados pueden leer sus propios datos
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.user_id || 
+                      isAdmin(request.auth.uid, resource.data.city_id));
+      allow write: if false; // Solo Firebase Functions pueden escribir
+    }
+    
+    // Reglas para categorías de chat - solo lectura para usuarios, escritura para admin
+    match /chat_categories/{categoryId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && isAdmin(request.auth.uid, null);
+    }
+    
+    // Reglas para ciudades - lectura pública, escritura para admin
+    match /cities/{cityId} {
+      allow read: if true; // Lectura pública
+      allow write: if request.auth != null && isAdmin(request.auth.uid, cityId);
+    }
+    
+    // Reglas para logs de uso de IA - solo Functions
+    match /ai_usage_logs/{logId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow write: if false; // Solo Firebase Functions pueden escribir
+    }
+    
+    // Función auxiliar para verificar si un usuario es admin de una ciudad
+    function isAdmin(userId, cityId) {
+      return exists(/databases/$(database)/documents/cities/$(cityId)) &&
+             get(/databases/$(database)/documents/cities/$(cityId)).data.admin_user_id == userId;
     }
     
     // Reglas para otras colecciones (ajustar según necesidades)

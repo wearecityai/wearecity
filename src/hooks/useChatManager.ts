@@ -159,7 +159,18 @@ export const useChatManager = (
   // Calcular estado de carga combinando isLoading del handler con presencia de mensajes typing
   const finalIsLoading = useMemo(() => {
     const hasTypingMessage = messages.some(msg => msg.isTyping);
-    return isLoading || hasTypingMessage || messagesLoading;
+    const result = isLoading || hasTypingMessage || messagesLoading;
+    
+    // Debug logging
+    console.log('🔍 Loading state calculation:', {
+      isLoading,
+      hasTypingMessage,
+      messagesLoading,
+      finalResult: result,
+      messageCount: messages.length
+    });
+    
+    return result;
   }, [isLoading, messagesLoading, messages]);
 
   return {

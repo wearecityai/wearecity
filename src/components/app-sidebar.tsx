@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { useCityNavigation } from "@/hooks/useCityNavigation"
+import { useCurrentView } from "@/hooks/useCurrentView"
 import { useState, useEffect } from "react"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -67,6 +68,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onCitySelect?: (city: any) => void
   onShowCitySearch?: () => void
   isInSearchMode?: boolean
+  currentView?: 'chat' | 'finetuning' | 'metrics'
 }
 
 // Navigation data
@@ -89,6 +91,7 @@ export function AppSidebar({
   onCitySelect = () => {},
   onShowCitySearch = () => {},
   isInSearchMode = false,
+  currentView = 'chat',
   ...props 
 }: AppSidebarProps) {
   const { t } = useTranslation();
@@ -107,6 +110,9 @@ export function AppSidebar({
     isDefaultCity, 
     loading 
   } = useCityNavigation()
+  
+  // Hook para detectar la vista actual
+  const { isMetrics, isFinetuning, isCitySearch } = useCurrentView(currentView)
 
   // Forzar re-renderización cuando cambie el defaultChat
   useEffect(() => {
@@ -313,6 +319,7 @@ export function AppSidebar({
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={onOpenMetrics}
+                      isActive={isMetrics}
                       className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
                       size="sm"
                       tooltip={t('navigation.metrics', { defaultValue: 'Metrics' })}
@@ -326,6 +333,7 @@ export function AppSidebar({
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={onOpenFinetuning}
+                      isActive={isFinetuning}
                       className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
                       size="sm"
                       tooltip={t('navigation.configureChat', { defaultValue: 'Configure Chat' })}
@@ -342,7 +350,7 @@ export function AppSidebar({
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={isInSearchMode ? () => {} : onShowCitySearch}
-                      isActive={isInSearchMode}
+                      isActive={isInSearchMode || isCitySearch}
                       disabled={isInSearchMode}
                       className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
                       size="sm"
@@ -394,7 +402,7 @@ export function AppSidebar({
           </SidebarGroup>
 
           {/* Recent Chats */}
-          <SidebarGroup className="flex-1 flex flex-col min-h-0 max-h-[calc(100vh-300px)]">
+          <SidebarGroup className="flex-1 flex flex-col min-h-0">
             <SidebarSeparator className="mb-1 flex-shrink-0" />
             <SidebarMenuItem className="flex-shrink-0">
               <SidebarMenuButton
@@ -417,7 +425,7 @@ export function AppSidebar({
               {chatTitles.length > 0 && (
                 <SidebarGroupLabel className="flex-shrink-0 sidebar-content-transition">{t('sidebar.conversations', { defaultValue: 'Conversations' })}</SidebarGroupLabel>
               )}
-              <SidebarGroupContent className="flex-1 overflow-y-auto min-h-0 scrollbar-hide hover:scrollbar-default sidebar-content-transition">
+              <SidebarGroupContent className="w-full text-sm flex-1 overflow-y-auto min-h-0 scrollbar-hide hover:scrollbar-default sidebar-content-transition">
                 {chatTitles.length > 0 ? (
                   <SidebarMenu>
                     {chatTitles.map((title, index) => (

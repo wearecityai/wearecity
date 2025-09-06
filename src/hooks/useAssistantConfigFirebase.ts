@@ -184,7 +184,7 @@ export const useAssistantConfigFirebase = () => {
     if (user) {
       loadConfig();
     }
-  }, [user, profile]);
+  }, [user?.id, profile?.role]);
 
   return {
     config,

@@ -147,7 +147,7 @@ const logAIUsage = async (
       complexity,
       citySlug: citySlug || null,
       timestamp: new Date(),
-      region: 'europe-west1'
+      region: 'us-central1'
     };
 
     await admin.firestore()
@@ -159,3 +159,14 @@ const logAIUsage = async (
     // Don't fail the main request if logging fails
   }
 };
+
+// Export metrics functions
+export { 
+  initializeCategories, 
+  recordChatMetric,
+  getCityMetrics,
+  cleanupOldMetrics,
+  debugMetrics,
+  migrateMetricsData,
+  setupAndFixMetrics
+} from './metricsService';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +23,7 @@ import { OnboardingFlow } from './OnboardingFlow';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
 import AdminMetrics from '@/pages/AdminMetrics';
+import InitializeMetrics from '@/pages/InitializeMetrics';
 import { City } from '@/types';
 import { Sparkles, Building2 } from 'lucide-react';
 import { Badge } from './ui/badge';
@@ -34,16 +35,6 @@ import { useSimpleViewport } from '@/hooks/useSimpleViewport';
 interface User {
   id: string;
   email?: string;
-}
-
-interface Profile {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  role: 'ciudadano' | 'administrativo';
-  created_at: string;
-  updated_at: string;
 }
 
 const PersistentLayout: React.FC = () => {
@@ -403,7 +394,7 @@ const PersistentLayout: React.FC = () => {
 
   const { handleOpenFinetuningWithAuth } = useAppAuth({
     user,
-    profile,
+    profile: profile as any, // Type assertion to avoid Profile interface mismatch
     onLogin: () => navigate('/auth'),
     handleOpenFinetuning
   });
@@ -590,7 +581,7 @@ const PersistentLayout: React.FC = () => {
   }, [citySlug, user, profile?.role, updateLastVisitedCity]);
 
   // Determinar qué contenido mostrar basado en la ruta actual
-  const getCurrentContent = () => {
+  const getCurrentContent = useMemo(() => {
     const path = location.pathname;
     const searchParams = new URLSearchParams(location.search);
     const isDiscoverPage = searchParams.get('focus') === 'search';
@@ -639,6 +630,18 @@ const PersistentLayout: React.FC = () => {
     if (currentView === 'metrics') {
       console.log('🎯 Rendering AdminMetrics view - ABSOLUTE PRIORITY');
       return <AdminMetrics />;
+    }
+
+    // Página de inicialización de métricas (solo admins) tiene prioridad ABSOLUTA
+    if (currentView === 'initialize-metrics') {
+      console.log('🎯 Rendering InitializeMetrics view - ABSOLUTE PRIORITY');
+      return <InitializeMetrics />;
+    }
+
+    // Manejar ruta directa de inicialización de métricas
+    if (location.pathname === '/admin/initialize-metrics') {
+      console.log('🎯 Direct route to initialize metrics - ABSOLUTE PRIORITY');
+      return <InitializeMetrics />;
     }
 
     // Verificación adicional: solo mostrar loading inicial si no estamos reanudando
@@ -881,7 +884,34 @@ const PersistentLayout: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }, [
+    currentView,
+    location.pathname,
+    location.search,
+    isAppInitialized,
+    isResuming,
+    safetyTimeout,
+    chatConfig?.assistantName,
+    chatConfig?.restrictedCity,
+    isNavigating,
+    isFullyLoaded,
+    profile?.role,
+    showOnboarding,
+    showCitySearch,
+    isAppFullyInitialized,
+    adminCityLoading,
+    adminCitySlug,
+    finetuningActiveTab,
+    user?.id,
+    citySlug,
+    isMobile,
+    currentThemeMode,
+    messages.length,
+    isLoading,
+    appError,
+    shouldShowChatContainer,
+    geolocationStatus
+  ]);
 
   // Determinar el título del breadcrumb
   const getBreadcrumbTitle = () => {
@@ -980,40 +1010,47 @@ const PersistentLayout: React.FC = () => {
             onCitySelect={handleCitySelect}
             onShowCitySearch={handleShowCitySearch}
             isInSearchMode={showCitySearch}
+            currentView={currentView}
             className="sidebar-transition sidebar-stable"
           />
         )}
         <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 layout-transition">
-            <div className="flex flex-1 items-center gap-2 px-3">
-              {shouldShowSidebar && <SidebarTrigger />}
+          <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 layout-transition w-full overflow-hidden">
+            <div className="flex flex-1 items-center gap-2 px-3 min-w-0">
+              {shouldShowSidebar && (
+                <div className="flex-shrink-0">
+                  <SidebarTrigger />
+                </div>
+              )}
               <Separator
                 orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
+                className="mr-2 data-[orientation=vertical]:h-4 flex-shrink-0"
               />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    {typeof getBreadcrumbTitle() === 'string' ? (
-                      <BreadcrumbPage className="line-clamp-1">
-                        {getBreadcrumbTitle()}
-                      </BreadcrumbPage>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {getBreadcrumbTitle()}
-                      </div>
-                    )}
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+              <div className="flex-1 min-w-0">
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      {typeof getBreadcrumbTitle() === 'string' ? (
+                        <BreadcrumbPage className="line-clamp-1 truncate">
+                          {getBreadcrumbTitle()}
+                        </BreadcrumbPage>
+                      ) : (
+                        <div className="flex items-center gap-2 truncate">
+                          {getBreadcrumbTitle()}
+                        </div>
+                      )}
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
             </div>
-            <div className="ml-auto px-3">
+            <div className="ml-auto px-3 flex-shrink-0">
               <NavActions />
             </div>
           </header>
           
           <div className="flex flex-1 flex-col overflow-hidden fade-in chat-transition">
-            {getCurrentContent()}
+            {getCurrentContent}
           </div>
         </SidebarInset>
       </div>

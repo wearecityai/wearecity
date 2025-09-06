@@ -427,13 +427,6 @@ interface MainContentProps {
               onLogin={onLogin}
             />
             <div ref={messagesEndRef} />
-            {/* Espaciador dinámico para posicionar el último mensaje arriba */}
-            <div 
-              style={{ 
-                paddingBottom: `${Math.max(200, (scrollableBoxRef.current?.clientHeight || 200) - 100)}px`, 
-                width: '100%' 
-              }}
-            ></div>
           </div>
           </div>
         )}
@@ -441,7 +434,7 @@ interface MainContentProps {
       
       {/* Chat Input - siempre visible en la parte inferior */}
       <div ref={chatInputRef} className="bg-background flex-shrink-0 chat-input-container">
-        <div className="px-3 py-2 sm:p-4 sm:pt-0">
+        <div className="px-4 py-2 sm:p-4 sm:pt-0">
           <div className="max-w-4xl mx-auto">
             <ChatInput
               onSendMessage={handleSendMessage}

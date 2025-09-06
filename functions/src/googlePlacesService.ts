@@ -287,7 +287,10 @@ export class GooglePlacesService {
     
     if (place.photos && place.photos.length > 0) {
       const photo = place.photos[0];
-      photoUrl = photo.getUrl ? photo.getUrl({ maxWidth: 400, maxHeight: 300 }) : photo.photo_reference;
+      // Generar URL correcta para la foto usando la API de Google Places
+      if (photo.photo_reference) {
+        photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&maxheight=300&photo_reference=${photo.photo_reference}&key=${this.apiKey}`;
+      }
       photoAttributions = photo.html_attributions || [];
     }
 

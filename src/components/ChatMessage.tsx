@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Bot, Download, ExternalLink, Plus, ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Building2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -14,6 +14,7 @@ import { useTypewriter } from '../hooks/useTypewriter';
 import { useStrictSequentialReveal } from '../hooks/useStrictSequentialReveal';
 import { usePlaceCardRetry } from '../hooks/usePlaceCardRetry';
 import { usePlaceCardFilter } from '../hooks/usePlaceCardFilter';
+import { useLoadingPattern } from '../hooks/useLoadingPattern';
 import { toast } from '@/components/ui/sonner';
 
 interface ChatMessageProps {
@@ -22,12 +23,14 @@ interface ChatMessageProps {
   configuredSedeElectronicaUrl?: string;
   onSeeMoreEvents?: (originalUserQuery: string) => void;
   setMessages?: React.Dispatch<React.SetStateAction<ChatMessageType[]>>;
+  userQuery?: string; // Consulta del usuario para detectar patrones de carga
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents, setMessages }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, configuredSedeElectronicaUrl, onSeeMoreEvents, setMessages, userQuery }) => {
   const { t } = useTranslation();
   const { retryPlaceCard } = usePlaceCardRetry();
   const { filterPlaceCards, isFiltering } = usePlaceCardFilter();
+  const { detectLoadingPattern } = useLoadingPattern();
   const isUser = message.role === MessageRole.User;
   const timestamp = new Date(message.timestamp);
   
@@ -193,7 +196,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             asChild
             variant="link"
             size="sm"
-            className="text-inherit p-0 h-auto font-normal inline break-all"
+            className="text-inherit p-0 h-auto font-normal inline break-all overflow-wrap-anywhere"
           >
             <a href={part} target="_blank" rel="noopener noreferrer">
               {part}
@@ -207,10 +210,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       if (part.match(/^`(.*?)`$/)) return <Badge key={index} variant="secondary" className="text-xs mx-1">{part.substring(1, part.length - 1)}</Badge>;
       if (part.match(/^```([\s\S]*?)```$/)) {
         return (
-          <Card key={index} className="my-2">
+          <Card key={index} className="my-2 overflow-hidden">
             <CardContent className="p-3">
-              <pre className="text-sm overflow-x-auto whitespace-pre-wrap">
-                <code>{part.substring(3, part.length - 3)}</code>
+              <pre className="text-sm overflow-x-auto whitespace-pre-wrap break-all">
+                <code className="break-all">{part.substring(3, part.length - 3)}</code>
               </pre>
             </CardContent>
           </Card>
@@ -221,45 +224,84 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
     });
   };
 
-  const getLoadingMessage = (loadingType?: string): string => {
-    switch (loadingType) {
-      case 'events':
-        return t('loading.events', { defaultValue: 'Searching events...' });
-      case 'places':
-        return t('loading.places', { defaultValue: 'Searching places...' });
-      case 'restaurants':
-        return t('loading.restaurants', { defaultValue: 'Searching restaurants...' });
-      case 'information':
-        return t('loading.information', { defaultValue: 'Searching information...' });
-      case 'procedures':
-        return t('loading.procedures', { defaultValue: 'Searching procedures...' });
-      default:
-        return t('loading.wait', { defaultValue: 'One moment...' });
+  const getLoadingMessage = (loadingType?: string, userQuery?: string): string => {
+    // Si hay un loadingType específico, usarlo
+    if (loadingType) {
+      switch (loadingType) {
+        case 'events':
+          return t('loading.events', { defaultValue: 'Buscando eventos...' });
+        case 'places':
+          return t('loading.places', { defaultValue: 'Buscando sitios...' });
+        case 'restaurants':
+          return t('loading.restaurants', { defaultValue: 'Buscando restaurantes...' });
+        case 'information':
+          return t('loading.information', { defaultValue: 'Buscando información...' });
+        case 'procedures':
+          return t('loading.procedures', { defaultValue: 'Buscando procedimientos...' });
+        case 'itinerary':
+          return t('loading.itinerary', { defaultValue: 'Preparando itinerario...' });
+        case 'schedule':
+          return t('loading.schedule', { defaultValue: 'Buscando horarios...' });
+        case 'transport':
+          return t('loading.transport', { defaultValue: 'Buscando opciones de transporte...' });
+        case 'accommodation':
+          return t('loading.accommodation', { defaultValue: 'Buscando alojamiento...' });
+        case 'shopping':
+          return t('loading.shopping', { defaultValue: 'Buscando opciones de compras...' });
+        case 'emergency':
+          return t('loading.emergency', { defaultValue: 'Buscando servicios de emergencia...' });
+        case 'weather':
+          return t('loading.weather', { defaultValue: 'Consultando el clima...' });
+        case 'history':
+          return t('loading.history', { defaultValue: 'Buscando información histórica...' });
+        case 'outdoor':
+          return t('loading.outdoor', { defaultValue: 'Buscando actividades al aire libre...' });
+        default:
+          return t('loading.wait', { defaultValue: 'Cargando respuesta...' });
+      }
     }
+    
+    // Si no hay loadingType específico, detectar patrón en la consulta del usuario
+    return detectLoadingPattern(userQuery || '');
   };
 
   return (
     <div 
-      className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}
+      className={`w-full ${isUser ? 'mb-8' : ''}`}
       data-message-role={message.role}
     >
-      {isUser ? (
-        // User message - right aligned
-        <div className="overflow-hidden">
-          <Card className="bg-muted border-0">
-            <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
-              {(message.content && message.content.trim() !== "") && (
-                <div className="text-base sm:text-base leading-normal break-words select-text">
-                  {processTextForParagraphs(message.content)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        // Assistant message - left aligned
-        <div className="flex items-start w-full overflow-hidden">
-          <div className="flex-1 overflow-hidden max-w-full">
+             <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
+                 {isUser ? (
+           // User message - right aligned with strict width constraints
+           <div 
+             className="max-w-[80%] sm:max-w-[70%] min-w-0 pl-4 sm:pl-6"
+             style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}
+           >
+            <Card className="bg-muted border-0 overflow-hidden">
+              <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
+                {(message.content && message.content.trim() !== "") && (
+                  <div 
+                    className="text-base leading-normal select-text"
+                    style={{ 
+                      wordWrap: 'break-word', 
+                      overflowWrap: 'anywhere',
+                      hyphens: 'auto',
+                      maxWidth: '100%'
+                    }}
+                  >
+                    {processTextForParagraphs(message.content)}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+                 ) : (
+           // Assistant message - left aligned with full control
+           <div 
+             className="w-full min-w-0"
+             style={{ maxWidth: '100%' }}
+           >
+            <div className="w-full min-w-0" style={{ maxWidth: '100%' }}>
             <Card className="bg-transparent border-0 shadow-none">
               <CardContent className="p-0">
                 {message.isTyping ? (
@@ -268,7 +310,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       <Loader2 className="h-5 w-5 text-primary animate-spin" />
                     </div>
                     <div className="text-muted-foreground text-sm animate-pulse">
-                      {getLoadingMessage(message.loadingType)}
+                      {getLoadingMessage(message.loadingType, userQuery)}
                     </div>
                   </div>
                 ) : message.error ? (
@@ -284,75 +326,87 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       <Loader2 className="h-5 w-5 text-primary animate-spin" />
                     </div>
                     <div className="text-muted-foreground text-sm animate-pulse">
-                      {getLoadingMessage(message.loadingType)}
+                      {getLoadingMessage(message.loadingType, userQuery)}
                     </div>
                   </div>
                 ) : (
                   <>
-                    {(contentToDisplay && contentToDisplay.trim() !== "") && (
-                      <div 
-                        className="cursor-pointer"
-                        onClick={typewriterIsTyping ? skipToEnd : undefined}
-                      >
-                        <EnhancedAIResponseRenderer 
-                          content={contentToDisplay} 
-                          className="text-base sm:text-base leading-normal break-words select-text"
-                        />
-                      </div>
-                    )}
-                                          {message.events && message.events.length > 0 && (
-                       <div className="mt-3 space-y-2">
-                         {message.events.map((event, index) => (
-                           <div
-                             key={`${message.id}-event-${index}`}
-                             className="transition-all duration-500 opacity-100 translate-y-0"
-                           >
-                             <EventCard event={event} />
-                           </div>
-                         ))}
-                       </div>
-                     )}
-                     {/* Place Cards - Solo mostrar las filtradas */}
-                     {filteredPlaceCards.length > 0 && (
-                       <div className="mt-3 space-y-2">
-                         {isFiltering && (
-                           <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
-                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                             Validando ubicaciones de lugares...
-                           </div>
-                         )}
-                         {filteredPlaceCards.map((place, index) => (
-                           <div
-                             key={`${message.id}-place-${place.id}`}
-                             className="transition-all duration-500 opacity-100 translate-y-0"
-                           >
-                             <PlaceCard 
-                               place={place} 
-                               onRetry={(placeId) => {
-                                 if (setMessages) {
-                                   const placeCard = message.placeCards?.find(card => card.id === placeId);
-                                   if (placeCard) {
-                                     retryPlaceCard(message.id, placeCard, setMessages);
-                                   }
-                                 }
-                               }}
-                             />
-                           </div>
-                         ))}
-                       </div>
-                     )}
-                     
-                     {/* Mostrar mensaje si se filtraron PlaceCard */}
-                     {message.placeCards && message.placeCards.length > 0 && filteredPlaceCards.length === 0 && !isFiltering && (
-                       <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                         <p className="text-sm text-yellow-800">
-                           ⚠️ Los lugares sugeridos no están en la ciudad configurada y han sido filtrados por seguridad.
-                         </p>
-                       </div>
-                     )}
-                    {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
-                      <p className="text-muted-foreground text-sm">{t('common.error')}</p>
-                    )}
+                    {/* Contenedor principal con layout consistente */}
+                    <div className="w-full min-w-0">
+                      {(contentToDisplay && contentToDisplay.trim() !== "") && (
+                        <div 
+                          className="cursor-pointer min-w-0"
+                          onClick={typewriterIsTyping ? skipToEnd : undefined}
+                          style={{ maxWidth: '100%' }}
+                        >
+                          <div 
+                            style={{
+                              wordWrap: 'break-word',
+                              overflowWrap: 'anywhere',
+                              hyphens: 'auto',
+                              maxWidth: '100%'
+                            }}
+                          >
+                            <EnhancedAIResponseRenderer 
+                              content={contentToDisplay} 
+                              className="text-base leading-normal select-text"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Event Cards y Place Cards */}
+                      {((message.events && message.events.length > 0) || filteredPlaceCards.length > 0) && (
+                        <div className="space-y-0">
+                          {isFiltering && (
+                            <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Validando ubicaciones de lugares...
+                            </div>
+                          )}
+                          
+                          {message.events && message.events.map((event, index) => (
+                            <div key={`${message.id}-event-${index}`} className="mb-0">
+                              <EventCard event={event} />
+                              {index < message.events.length - 1 && (
+                                <div className="border-t border-border/30 my-3"></div>
+                              )}
+                            </div>
+                          ))}
+                          
+                          {filteredPlaceCards.map((place, index) => (
+                            <div key={`${message.id}-place-${place.id}`} className="mb-0">
+                              <PlaceCard 
+                                place={place} 
+                                onRetry={(placeId) => {
+                                  if (setMessages) {
+                                    const placeCard = message.placeCards?.find(card => card.id === placeId);
+                                    if (placeCard) {
+                                      retryPlaceCard(message.id, placeCard, setMessages);
+                                    }
+                                  }
+                                }}
+                              />
+                              {index < filteredPlaceCards.length - 1 && (
+                                <div className="border-t border-border/30 my-3"></div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                       
+                       {/* Mostrar mensaje si se filtraron PlaceCard */}
+                       {message.placeCards && message.placeCards.length > 0 && filteredPlaceCards.length === 0 && !isFiltering && (
+                         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                           <p className="text-sm text-yellow-800">
+                             ⚠️ Los lugares sugeridos no están en la ciudad configurada y han sido filtrados por seguridad.
+                           </p>
+                         </div>
+                       )}
+                      {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
+                        <p className="text-muted-foreground text-sm">{t('common.error')}</p>
+                      )}
+                    </div>
                   </>
                 )}
               </CardContent>
@@ -380,11 +434,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 </Button>
               </div>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
+
 
 export default ChatMessage;
