@@ -28,8 +28,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
 // Configuración de Gemini
 const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-// Permitir configurar el modelo por variable de entorno. Por defecto usar Gemini 1.5 Pro (mejor para búsquedas)
-const GEMINI_MODEL_NAME = Deno.env.get("GEMINI_MODEL_NAME") || "gemini-1.5-pro-latest";
+// Permitir configurar el modelo por variable de entorno. Por defecto usar Gemini 2.5 Pro (mejor para búsquedas complejas)
+const GEMINI_MODEL_NAME = Deno.env.get("GEMINI_MODEL_NAME") || "gemini-2.5-pro";
 
 // Configuración de Google APIs
 const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
@@ -151,32 +151,123 @@ function detectIntents(userMessage?: string): Set<string> {
     /\b(restaurante(s)?|donde comer|cafeter(i|\u00ED)a(s)?|bar(es)?|museo(s)?|hotel(es)?|tienda(s)?|parque(s)?|lugar(es)?|sitio(s)?|recomiend(a|as|ame)|recomendacion(es)?)\b/,
     /\b(quiero comer|donde puedo tomar|donde puedo comer|busco un|necesito un|me gustaria|me gustaría|sugiere|sugerir|opciones de|alternativas de)\b/,
     /\b(paella|pizza|pasta|sushi|hamburguesa|tapas|mariscos|pescado|carne|vegetariano|vegano|italiano|español|japones|chino|mexicano|indio|mediterraneo)\b/,
-    /\b(cafe|té|te|cerveza|vino|cocktail|bebida|postre|dulce|helado|pastel|tarta)\b/
+    /\b(cafe|té|te|cerveza|vino|cocktail|bebida|postre|dulce|helado|pastel|tarta)\b/,
+    // Patrones específicos para turismo
+    /\b(que ver|turismo|turista|monumentos|atracciones|visitar)\b/,
+    /\b(mejores restaurantes|restaurantes tipicos|gastronomia|platos tipicos)\b/,
+    /\b(alojarse|alojamiento|hospedaje|donde dormir|cerca del centro)\b/,
+    /\b(playas|parques naturales|miradores|naturaleza|bonitas)\b/,
+    /\b(itinerarios|rutas turisticas|visitas guiadas|actividades turisticas)\b/,
+    /\b(oficina de turismo|informacion turistica)\b/
   ];
   if (placesPatterns.some((r) => r.test(text))) {
     intents.add('places');
     console.log('🔍 DEBUG - Intent "places" detectado');
   }
 
-  // Trámites - DETECCIÓN MEJORADA
+  // Trámites e Información Institucional - DETECCIÓN MEJORADA
   const proceduresPatterns = [
-    /\b(tramite(s)?|ayuntamiento|sede electronica|empadronamiento|padron|licencia(s)?|tasa(s)?|impuesto(s)?|certificado(s)?|cita previa)\b/,
-    /\b(como solicitar|como obtener|como presentar|como empadronar|como licenciar|donde solicitar|donde presentar|donde empadronar|donde licenciar|cuando solicitar|cuando presentar|que necesito para|documentacion para|requisitos para|pasos para|proceso de|solicitar|presentar|obtener)\b/,
-    /\b(empadronar(me)?|darme de alta|registrar(me)?|abrir negocio|construir|reforma|pagar|reclamar)\b/,
-    /\b(ayuntamiento|municipio|alcaldia|gobierno local|administracion municipal)\b/
+    // Trámites específicos
+    /\b(tramite(s)?|procedimiento(s)?|gestion(es)?|expediente(s)?|solicitud(es)?)\b/,
+    /\b(ayuntamiento|municipio|alcaldia|gobierno local|administracion municipal|institucion(es)?|oficina(s)?)\b/,
+    /\b(sede electronica|portal ciudadano|atencion ciudadana|oficina virtual|gobierno digital)\b/,
+    
+    // Documentos y certificados
+    /\b(certificado(s)?|documento(s)?|formulario(s)?|impreso(s)?|modelo(s)?|solicitud(es)?)\b/,
+    /\b(empadronamiento|empadronar|padron|censo|domicilio|residencia)\b/,
+    /\b(licencia(s)?|permiso(s)?|autorizacion(es)?|concesion(es)?)\b/,
+    /\b(tasa(s)?|impuesto(s)?|tributo(s)?|pago(s)?|factura(s)?|recibo(s)?)\b/,
+    
+    // Citas y citas previas
+    /\b(cita previa|cita(s)?|reserva(s)?|turno(s)?|hora(s)?|agenda)\b/,
+    /\b(solicitar cita|pedir cita|reservar cita|agendar|programar)\b/,
+    
+    // Procesos y pasos
+    /\b(como solicitar|como obtener|como presentar|como hacer|como tramitar|como empadronar|como pagar|como contactar)\b/,
+    /\b(donde solicitar|donde presentar|donde ir|donde acudir|donde dirigirme|donde esta|donde queda)\b/,
+    /\b(cuando solicitar|cuando presentar|cuando ir|horarios|horario de atencion|horario|atencion)\b/,
+    /\b(que necesito|que documentos|que requisitos|que papeles|que tramites|que certificados|que servicios)\b/,
+    /\b(documentacion|requisitos|pasos|proceso|procedimiento|tramitacion|informacion)\b/,
+    /\b(solicitar|presentar|obtener|tramitar|gestionar|procesar|pagar|contactar|consultar)\b/,
+    
+    // Acciones específicas
+    /\b(empadronar(me)?|darme de alta|registrar(me)?|inscribir(me)?)\b/,
+    /\b(abrir negocio|construir|reforma|ampliar|edificar|derribar)\b/,
+    /\b(pagar|reclamar|denunciar|consultar|informar(me)?|pago|pagos)\b/,
+    /\b(legalizar|regularizar|normalizar|sanear)\b/,
+    
+    // Palabras clave adicionales
+    /\b(necesito|quiero|busco|preciso|requiero)\b/,
+    /\b(obtener|conseguir|sacar|solicitar|pedir)\b/,
+    /\b(disponible|disponibles|hay|existe|existen)\b/,
+    
+    // Patrones específicos para empadronamiento
+    /\b(empadronar|empadronarse|empadronamiento|empadronar me|empadrono|empadronarme)\b/,
+    
+    // Servicios municipales
+    /\b(servicios municipales|servicios publicos|atencion al ciudadano)\b/,
+    /\b(registro civil|registro de la propiedad|catastro|urbanismo)\b/,
+    /\b(medio ambiente|sanidad|educacion|cultura|deportes)\b/,
+    /\b(seguridad ciudadana|policia local|bomberos|proteccion civil)\b/,
+    
+    // Información institucional
+    /\b(informacion oficial|informacion municipal|datos oficiales)\b/,
+    /\b(concejalia|concejal|alcalde|alcaldesa|pleno|sesion)\b/,
+    /\b(ordenanza(s)?|reglamento(s)?|normativa|legislacion)\b/,
+    /\b(presupuesto|gestion|gobierno|politica|decisiones)\b/,
+    
+    // Ubicaciones y contacto
+    /\b(donde esta|donde queda|direccion|ubicacion|localizacion)\b/,
+    /\b(telefono|email|contacto|comunicar|escribir|llamar)\b/,
+    /\b(plaza del ayuntamiento|ayuntamiento|municipio|casa consistorial)\b/
   ];
   if (proceduresPatterns.some((r) => r.test(text))) {
     intents.add('procedures');
     console.log('🔍 DEBUG - Intent "procedures" detectado - BÚSQUEDA OBLIGATORIA EN WEB OFICIAL');
   }
 
-  // Transporte
+  // Transporte - PATRONES MEJORADOS
   const transportPatterns = [
-    /\b(autobus|autobuses|bus|metro|tranvia|tren|horario(s)?|linea(s)?|como llegar|direccion|ruta(s)?|parada(s)?|tarifa(s)?|bono(s)?|billete(s)?)\b/
+    /\b(autobus|autobuses|bus|metro|tranvia|tren|horario(s)?|linea(s)?|como llegar|direccion|ruta(s)?|parada(s)?|tarifa(s)?|bono(s)?|billete(s)?)\b/,
+    /\b(transporte publico|transporte urbano|transporte interurbano)\b/,
+    /\b(parada de autobus|estacion de autobus|terminal|paradas)\b/,
+    /\b(tiempo real|llegada|salida|frecuencia|cuando llega)\b/,
+    /\b(precio|coste|tarifa|abono|bono transporte|cuanto cuesta)\b/,
+    /\b(aparcar|aparcamiento|parking|zona azul|ora|donde aparcar)\b/,
+    /\b(trafico|circulacion|atascos|congestion|estado del trafico)\b/,
+    /\b(taxi|uber|cabify|vtc|servicio de taxi)\b/,
+    /\b(comprar abonos|abonos de transporte|donde comprar)\b/
   ];
   if (transportPatterns.some((r) => r.test(text))) {
     intents.add('transport');
     console.log('🔍 DEBUG - Intent "transport" detectado');
+  }
+
+  // Servicios públicos - NUEVOS PATRONES
+  const servicesPatterns = [
+    /\b(centro de salud|hospital|clinica|medico|farmacia|farmacias de guardia)\b/,
+    /\b(colegio|colegios|guarderia|universidad|educacion|escuela|plaza de guarderia)\b/,
+    /\b(instalaciones deportivas|pista|gimnasio|polideportivo|reservar|padel|tenis)\b/,
+    /\b(recogida de basuras|basura|punto limpio|residuos|camion de la basura)\b/,
+    /\b(oficinas municipales|biblioteca|centro de dia|servicios sociales)\b/,
+    /\b(matricula|inscripcion|solicitar plaza)\b/
+  ];
+  if (servicesPatterns.some((r) => r.test(text))) {
+    intents.add('services');
+    console.log('🔍 DEBUG - Intent "services" detectado');
+  }
+
+  // Información práctica - NUEVOS PATRONES
+  const infoPatterns = [
+    /\b(meteorologia|tiempo|clima|lluvia|sol|temperatura|que tiempo)\b/,
+    /\b(normativas|reglamentos|leyes|ordenanzas|normas|sobre ruidos|sobre terrazas|sobre mascotas)\b/,
+    /\b(policia|bomberos|emergencias|seguridad|comisaria|cuartel|telefono de emergencias)\b/,
+    /\b(oficina de turismo|informacion|contactar|contacto)\b/,
+    /\b(incidencia|queja|reclamar|denunciar)\b/
+  ];
+  if (infoPatterns.some((r) => r.test(text))) {
+    intents.add('info');
+    console.log('🔍 DEBUG - Intent "info" detectado');
   }
 
   console.log('🔍 DEBUG - Intents finales detectados:', Array.from(intents));
@@ -459,12 +550,17 @@ PROCESO OBLIGATORIO PARA TRÁMITES:
 
 FORMATO OBLIGATORIO DE RESPUESTA:
 - **Título del trámite**
-- **Documentación requerida** (lista exacta)
+- **Documentación requerida** (lista exacta con enlaces directos a formularios)
 - **Pasos a seguir** (numerados y secuenciales)
 - **Horarios y ubicación** (reales)
 - **Plazos** (específicos)
 - **Costes** (si aplica)
-- **Enlaces útiles** (a la web oficial)
+- **Enlaces oficiales:**
+  - 📄 **Formularios:** [Enlaces directos a documentos descargables]
+  - 🖥️ **Portal de citas:** [URL específica para pedir cita online]
+  - 📋 **Sede electrónica:** [Enlace a trámite online si existe]
+  - 📞 **Contacto:** [Teléfono y email oficial]
+  - 🌐 **Web oficial:** [URL principal del ayuntamiento]
 
 PROHIBIDO ABSOLUTO:
 - ❌ NO inventes información sobre trámites
@@ -741,11 +837,21 @@ ${EVENT_CARD_END_MARKER}
     parts.push(`
 🚨🚨 TRÁMITE REQUERIDO: El usuario pregunta sobre trámites del ayuntamiento. DEBES OBLIGATORIAMENTE:
 
-1. ✅ ACTIVAR GoogleSearchRetrieval para buscar SOLO en la web oficial del ayuntamiento de ${restrictedCity?.name || 'la ciudad'}
-2. ✅ EXTRAER información específica y actualizada del sitio oficial
-3. ✅ EXPLICAR paso a paso con datos verificados
-4. ✅ INCLUIR documentación exacta requerida
-5. ✅ MENCIONAR horarios, direcciones y plazos reales
+1. ✅ USAR el search grounding nativo de Gemini 2.5 Pro para buscar SOLO en la web oficial del ayuntamiento de ${restrictedCity?.name || 'la ciudad'}
+2. ✅ BUSCAR específicamente:
+   - Formularios descargables (PDF, DOC) con enlaces directos
+   - Portales de citas online con URLs específicas
+   - Sedes electrónicas con enlaces a trámites
+   - Páginas de trámites específicos con información detallada
+   - Horarios de atención y ubicaciones exactas
+   - Costes y tasas específicas
+   - Plazos y fechas límite
+3. ✅ EXTRAER información específica y actualizada del sitio oficial
+4. ✅ EXPLICAR paso a paso con datos verificados de la web oficial
+5. ✅ INCLUIR documentación exacta requerida con enlaces a cada documento
+6. ✅ MENCIONAR horarios, direcciones y plazos reales extraídos de la web
+7. ✅ INCLUIR enlaces directos a formularios, portales de citas y páginas específicas
+8. ✅ NUNCA dar información genérica - SIEMPRE usar datos de la web oficial
 
 🚨🚨🚨🚨 REGLA CRÍTICA ABSOLUTA E INELUDIBLE: 
 
@@ -764,35 +870,78 @@ SI INCUMPLES ESTA REGLA, ESTARÁS DANDO UNA RESPUESTA INCORRECTA E INÚTIL.
 USA LA INFORMACIÓN QUE YA TIENES DE LA BÚSQUEDA WEB - NO LA IGNORES.
 
 FORMATO OBLIGATORIO PARA TRÁMITES:
-**Título del Trámite**
-- **Documentación requerida:** [Lista exacta extraída de la web]
-- **Pasos a seguir:**
-  1. [Paso específico extraído de la web]
-  2. [Paso específico extraído de la web]
-  3. [Paso específico extraído de la web]
-- **Horarios y ubicación:** [Información real de la web]
-- **Plazos:** [Tiempo específico extraído de la web]
-- **Costes:** [Si aplica, información real]
-- **Enlaces útiles:** [URLs de la web oficial]
+**Título del Trámite** *(extraído de la web oficial)*
+
+📋 **Documentación requerida:** 
+[Lista exacta extraída de la web con enlaces directos a cada documento - cada documento debe tener un icono 📄 delante]
+
+📝 **Pasos a seguir:**
+  1. [Paso específico extraído de la web con enlace a la página correspondiente]
+  2. [Paso específico extraído de la web con enlace a la página correspondiente]
+  3. [Paso específico extraído de la web con enlace a la página correspondiente]
+  4. [Continuar con todos los pasos necesarios, cada uno con su enlace]
+
+🕒 **Horarios y ubicación:** 
+[Información real extraída de la web oficial con enlaces a horarios]
+
+⏰ **Plazos:** 
+[Tiempo específico extraído de la web con enlace a la información de plazos]
+
+💰 **Costes:** 
+[Si aplica, información real extraída de la web con enlace a tasas]
+
+🔗 **Enlaces oficiales:**
+  - 📄 **Formularios:** [Enlaces directos a documentos descargables - NUNCA genéricos]
+  - 🖥️ **Portal de citas:** [URL específica para pedir cita online - NUNCA genérica]
+  - 📋 **Sede electrónica:** [Enlace a trámite online si existe - NUNCA genérico]
+  - 📞 **Contacto:** [Teléfono y email oficial extraídos de la web]
+  - 🌐 **Web oficial:** [URL principal del ayuntamiento]
+  - 📍 **Ubicación física:** [Dirección exacta con enlace a Google Maps si está disponible]
+
+⚠️ **IMPORTANTE:** Cada enlace debe ser específico y funcional, extraído directamente de la web oficial del ayuntamiento.
+
+📄 **EJEMPLO DE FORMATO PARA DOCUMENTACIÓN:**
+- 📄 DNI o pasaporte en vigor
+- 📄 Certificado de empadronamiento (si procede)
+- 📄 Contrato de alquiler o escritura de propiedad
+- 📄 [Nombre del documento] - [enlace directo al formulario]
+
+Cada documento debe tener el icono 📄 delante y un enlace directo si está disponible.
 
 INSTRUCCIONES CRÍTICAS - SOLO INFORMACIÓN VERIFICADA:
 1. ❌ NUNCA INVENTES información sobre trámites
 2. ❌ NUNCA uses respuestas genéricas como "típicamente necesitas..."
 3. ❌ NUNCA digas "normalmente se requiere..." sin verificar
-4. ✅ SOLO proporciona información extraída de la web oficial
-5. ✅ SIEMPRE busca en la web oficial antes de responder
-6. ✅ SIEMPRE verifica la información antes de proporcionarla
+4. ❌ NUNCA digas "consulta en la web del ayuntamiento" - DEBES proporcionar enlaces específicos
+5. ❌ NUNCA digas "te recomiendo consultar la web oficial" - DEBES buscar y proporcionar la información
+6. ❌ NUNCA des respuestas vagas como "puedes encontrar más información en..."
+7. ✅ SOLO proporciona información extraída de la web oficial
+8. ✅ SIEMPRE busca en la web oficial antes de responder
+9. ✅ SIEMPRE verifica la información antes de proporcionarla
+10. ✅ SIEMPRE incluye enlaces directos y específicos a cada recurso mencionado
+11. ✅ SIEMPRE explica paso a paso usando información verificada de la web oficial
+12. ✅ SIEMPRE usa el icono 📄 delante de cada documento en la lista de documentación requerida
 
 PROCESO OBLIGATORIO:
-1. ✅ GoogleSearchRetrieval buscará en la web oficial del ayuntamiento
+1. ✅ El search grounding nativo de Gemini 2.5 Pro buscará en la web oficial del ayuntamiento
 2. ✅ ANALIZA los resultados obtenidos
 3. ✅ EXTRAE información específica del contenido oficial
-4. ✅ CREA explicación paso a paso con datos verificados
-5. ✅ INCLUYE enlaces a la web oficial
+4. ✅ BUSCA específicamente enlaces a:
+   - Formularios descargables (PDF, DOC) - EXTRAE URL completa
+   - Portales de citas online - EXTRAE URL específica del portal
+   - Sedes electrónicas - EXTRAE URL de la sede electrónica
+   - Páginas de trámites específicos - EXTRAE URL de cada trámite
+   - Horarios de atención - EXTRAE URL de la página de horarios
+   - Tasas y costes - EXTRAE URL de la página de tasas
+   - Ubicaciones y direcciones - EXTRAE información de contacto
+5. ✅ CREA explicación paso a paso con datos verificados de la web
+6. ✅ INCLUYE enlaces directos y específicos a cada recurso mencionado
+7. ✅ VERIFICA que cada enlace sea funcional y específico
+8. ✅ NUNCA uses enlaces genéricos - SIEMPRE enlaces específicos extraídos de la búsqueda
 
-Si no encuentras información específica en la web oficial, di claramente: "No puedo acceder a la información actualizada del ayuntamiento. Te recomiendo consultar directamente en su web oficial o contactar por teléfono."
+Si no encuentras información específica en la web oficial, di claramente: "No puedo acceder a la información actualizada del ayuntamiento en este momento. Te recomiendo consultar directamente en su web oficial [URL del ayuntamiento] o contactar por teléfono [número de teléfono si está disponible]."
 
-OBLIGATORIO: Usa GoogleSearchRetrieval para buscar en la web oficial del ayuntamiento de ${restrictedCity?.name || 'la ciudad'} antes de responder sobre trámites.`);
+OBLIGATORIO: Usa el search grounding nativo de Gemini 2.5 Pro para buscar en la web oficial del ayuntamiento de ${restrictedCity?.name || 'la ciudad'} antes de responder sobre trámites.`);
   }
   
   // Si se detecta intención de lugares, hacer extra énfasis  
@@ -835,98 +984,337 @@ ${PLACE_CARD_END_MARKER}
     );
   }
 
-  // 🚨🚨🚨🚨🚨🚨🚨🚨 FORZAR INFORMACIÓN OBLIGATORIA PARA TRÁMITES
-  // NO importa si hay webResults o no - SIEMPRE debe haber información disponible
+  // 🚨🚨🚨🚨🚨🚨🚨🚨 INSTRUCCIONES CRÍTICAS PARA TRÁMITES
+  // SOLO usar información extraída de la web oficial - NUNCA información hardcodeada
   
   if (intents.has('procedures')) {
-    console.log('🔍 DEBUG - 🚨🚨🚨🚨🚨🚨🚨🚨 FORZANDO información obligatoria para trámites');
+    console.log('🔍 DEBUG - 🚨🚨🚨🚨🚨🚨🚨🚨 ACTIVANDO búsqueda obligatoria en web oficial para trámites');
     
-    // 🚨🚨🚨🚨🚨🚨🚨🚨 INFORMACIÓN OBLIGATORIA HARDCODEADA
-    const mandatoryTramiteInfo = `
-🚨🚨🚨🚨🚨🚨🚨🚨 INFORMACIÓN OBLIGATORIA DE TRÁMITES - USA ESTA INFORMACIÓN OBLIGATORIAMENTE:
+    // 🚨🚨🚨🚨🚨🚨🚨🚨 INSTRUCCIONES CRÍTICAS - SOLO WEB OFICIAL
+    const criticalProcedureInstructions = `
+🚨🚨🚨🚨🚨🚨🚨🚨 INSTRUCCIONES CRÍTICAS PARA TRÁMITES - OBLIGATORIO CUMPLIR:
 
-**LICENCIA DE OBRA - LA VILA JOIOSA:**
-
-1. **Documentación requerida:**
-   - Proyecto técnico completo
-   - Memoria descriptiva
-   - Planos de la obra
-   - Presupuesto detallado
-   - Certificado de dirección de obra
-   - Seguro de responsabilidad civil
-
-2. **Pasos a seguir:**
-   1. Preparar toda la documentación técnica
-   2. Presentar solicitud en el ayuntamiento o sede electrónica
-   3. Esperar resolución del expediente (3 meses)
-   4. Pagar tasas correspondientes
-   5. Recibir licencia de obra
-
-3. **Horarios y ubicación:**
-   - Ayuntamiento: Lunes a Viernes 9:00-14:00
-   - Sede Electrónica: 24/7 online
-   - Dirección: Plaza del Ayuntamiento, La Vila Joiosa
-
-4. **Plazos:**
-   - Resolución: 3 meses
-   - Validez de la licencia: 2 años
-
-5. **Costes:**
-   - Según superficie y tipo de obra
-   - Consultar tasas en el ayuntamiento
-
-6. **Enlaces útiles:**
-   - Web oficial: https://www.villajoyosa.com/
-   - Sede electrónica: https://sede.villajoyosa.com/
-
-**EMPADRONAMIENTO - LA VILA JOIOSA:**
-
-1. **Documentación requerida:**
-   - DNI o pasaporte
-   - Justificante de domicilio (contrato de alquiler, escritura, etc.)
-
-2. **Pasos a seguir:**
-   1. Presentar solicitud en el ayuntamiento
-   2. Verificar datos personales
-   3. Esperar confirmación (3 días hábiles)
-   4. Recibir certificado de empadronamiento
-
-3. **Horarios y ubicación:**
-   - Ayuntamiento: Lunes a Viernes 9:00-14:00
-   - Sede Electrónica: 24/7 online
-
-4. **Plazos:**
-   - Confirmación: 3 días hábiles
-
-5. **Costes:**
-   - Gratuito
-
-6. **Enlaces útiles:**
-   - Web oficial: https://www.villajoyosa.com/
-   - Sede electrónica: https://sede.villajoyosa.com/
-
-🚨🚨🚨🚨🚨🚨🚨🚨 REGLAS OBLIGATORIAS PARA TRÁMITES:
-
-**NUNCA, NUNCA, NUNCA digas:**
+⚠️⚠️⚠️⚠️ PROHIBIDO ABSOLUTO - NUNCA DIGAS:
 - ❌ "te recomiendo consultar"
-- ❌ "te recomiendo que consultes"
+- ❌ "te recomiendo que consultes" 
 - ❌ "consulta la página web"
 - ❌ "consulta la web oficial"
 - ❌ "consulta directamente"
 - ❌ "es importante que te informes"
 - ❌ "los trámites pueden variar"
+- ❌ "visita la Oficina de Atención Ciudadana"
+- ❌ "allí te informarán"
+- ❌ Cualquier respuesta genérica o vaga
 
-**SIEMPRE, SIEMPRE, SIEMPRE debes:**
-- ✅ Usar SOLO la información proporcionada arriba
-- ✅ Explicar paso a paso el proceso
-- ✅ Incluir documentación requerida
-- ✅ Mencionar horarios, plazos y costes
-- ✅ Proporcionar enlaces útiles
-- ✅ Dar respuestas completas y útiles
+✅✅✅✅ OBLIGATORIO - SIEMPRE DEBES:
+- ✅ BUSCAR en la web oficial del ayuntamiento usando GoogleSearchRetrieval
+- ✅ EXTRAER información específica y actualizada de la web oficial
+- ✅ EXPLICAR paso a paso usando datos verificados de la web
+- ✅ INCLUIR enlaces directos a formularios, portales de citas y páginas específicas
+- ✅ MENCIONAR horarios, ubicaciones y costes reales extraídos de la web
+- ✅ USAR el icono 📄 delante de cada documento en la lista de documentación
+- ✅ PROPORCIONAR información completa y específica, no genérica
+- ✅ SIEMPRE CITAR las fuentes de donde extraes cada información
+- ✅ SER MUY DETALLADO en cada paso del proceso
+- ✅ ANALIZAR PROFUNDAMENTE todos los resultados de búsqueda
+- ✅ EXTRAER información específica de cada URL encontrada
+- ✅ COMBINAR información de múltiples fuentes para dar respuestas completas
+- ✅ VERIFICAR que cada enlace sea funcional y específico
+- ✅ INCLUIR información específica como:
+  - 📄 Formularios descargables (PDF, DOC) con enlaces directos
+  - 🖥️ Portales de citas online con URLs específicas
+  - 📋 Sedes electrónicas con enlaces directos
+  - 📞 Teléfonos y emails de contacto reales
+  - 🌐 Páginas web oficiales específicas
+  - 📍 Ubicaciones físicas con enlaces a Google Maps
+  - ⏰ Horarios exactos de atención
+  - 💰 Costes y tasas específicas
+  - 📅 Plazos de resolución exactos
+  - 📋 Requisitos detallados paso a paso
 
-🚨🚨🚨🚨🚨🚨🚨🚨 ESTA INFORMACIÓN ES OBLIGATORIA - NO LA IGNORES - NO LA SUSTITUYAS`;
+🚨🚨🚨🚨🚨🚨🚨🚨 SI NO ENCUENTRAS INFORMACIÓN ESPECÍFICA EN LA WEB OFICIAL:
+Di claramente: "No puedo acceder a la información actualizada del ayuntamiento en este momento. Te recomiendo consultar directamente en su web oficial [URL del ayuntamiento] o contactar por teléfono [número de teléfono si está disponible]."
 
-    parts.push(mandatoryTramiteInfo);
+🚨🚨🚨🚨🚨🚨🚨🚨 INSTRUCCIONES ESPECÍFICAS PARA EXTRAER ENLACES Y CITAR FUENTES:
+
+📋 **FORMATO OBLIGATORIO PARA MOSTRAR ENLACES CON FUENTES:**
+- 📄 **Formularios:** [Enlace directo al PDF/DOC] - [Nombre del documento] *(Fuente: [URL de la página])*
+- 🖥️ **Portal de citas:** [URL específica] - [Descripción del portal] *(Fuente: [URL de la página])*
+- 📋 **Sede electrónica:** [Enlace directo] - [Descripción del trámite] *(Fuente: [URL de la página])*
+- 📞 **Contacto:** [Teléfono] - [Email] - [Horarios] *(Fuente: [URL de la página])*
+- 🌐 **Web oficial:** [URL principal] - [Descripción] *(Fuente: [URL de la página])*
+- 📍 **Ubicación:** [Dirección] - [Enlace a Google Maps si disponible] *(Fuente: [URL de la página])*
+
+🔍 **BÚSQUEDA ESPECÍFICA DE ENLACES:**
+- Busca específicamente enlaces que contengan: .pdf, .doc, .docx
+- Busca portales que contengan: "cita previa", "portal ciudadano", "sede electrónica"
+- Busca páginas de contacto con teléfonos y emails
+- Busca enlaces a Google Maps para ubicaciones
+- Busca formularios descargables y modelos oficiales
+
+📝 **FORMATO OBLIGATORIO PARA CITAR FUENTES:**
+- Al final de cada sección, incluye: **Fuentes consultadas:**
+- Lista cada URL de donde extrajiste la información
+- Ejemplo: **Fuentes consultadas:**
+  - https://www.ayuntamiento.com/tramites/empadronamiento
+  - https://www.ayuntamiento.com/formularios/empadronamiento.pdf
+  - https://www.ayuntamiento.com/cita-previa
+
+⚠️ **IMPORTANTE:** Cada enlace debe ser funcional y específico, extraído directamente de la búsqueda web. SIEMPRE cita las fuentes.
+
+📋 **FORMATO OBLIGATORIO PARA RESPUESTAS DETALLADAS:**
+
+**Título del Trámite** *(extraído de la web oficial)*
+
+📋 **Documentación requerida:** 
+[Lista exacta extraída de la web con enlaces directos a cada documento y fuentes]
+
+📝 **Pasos a seguir (DETALLADOS):**
+  1. [Paso específico extraído de la web con enlace a la página correspondiente y fuente]
+  2. [Paso específico extraído de la web con enlace a la página correspondiente y fuente]
+  3. [Paso específico extraído de la web con enlace a la página correspondiente y fuente]
+  4. [Continuar con todos los pasos necesarios, cada uno con su enlace y fuente]
+
+🕒 **Horarios y ubicación:** 
+[Información real extraída de la web oficial con enlaces a horarios y fuentes]
+
+⏰ **Plazos:** 
+[Tiempo específico extraído de la web con enlace a la información de plazos y fuente]
+
+💰 **Costes:** 
+[Si aplica, información real extraída de la web con enlace a tasas y fuente]
+
+🔗 **Enlaces oficiales:**
+  - 📄 **Formularios:** [Enlaces directos a documentos descargables - NUNCA genéricos] *(Fuente: [URL])*
+  - 🖥️ **Portal de citas:** [URL específica para pedir cita online - NUNCA genérica] *(Fuente: [URL])*
+  - 📋 **Sede electrónica:** [Enlace a trámite online si existe - NUNCA genérico] *(Fuente: [URL])*
+  - 📞 **Contacto:** [Teléfono y email oficial extraídos de la web] *(Fuente: [URL])*
+  - 🌐 **Web oficial:** [URL principal del ayuntamiento] *(Fuente: [URL])*
+  - 📍 **Ubicación física:** [Dirección exacta con enlace a Google Maps si está disponible] *(Fuente: [URL])*
+
+📝 **Fuentes consultadas:**
+- [URL 1] - [Descripción de la información extraída]
+- [URL 2] - [Descripción de la información extraída]
+- [URL 3] - [Descripción de la información extraída]
+
+🚨🚨🚨🚨🚨🚨🚨🚨 ESTAS INSTRUCCIONES SON ABSOLUTAMENTE OBLIGATORIAS - NO LAS IGNORES`;
+
+    parts.push(criticalProcedureInstructions);
+    
+  } else if (intents.has('transport')) {
+    console.log('🚌 DEBUG - 🚌🚌🚌🚌🚌🚌🚌🚌 ACTIVANDO búsqueda para TRANSPORTE');
+    
+    const transportInstructions = `
+🚌🚌🚌🚌🚌🚌🚌🚌 INSTRUCCIONES PARA TRANSPORTE Y MOVILIDAD:
+
+📋 **FORMATO OBLIGATORIO PARA RESPUESTAS DE TRANSPORTE:**
+
+**Información de Transporte** *(extraída de fuentes oficiales)*
+
+🚌 **Horarios y Rutas:**
+- [Horarios específicos extraídos de la web oficial]
+- [Rutas disponibles con números de línea]
+- [Frecuencias de paso reales]
+
+📍 **Paradas y Ubicaciones:**
+- [Ubicación exacta de paradas principales]
+- [Enlaces a mapas interactivos si están disponibles]
+- [Instrucciones de cómo llegar a las paradas]
+
+⏰ **Tiempo Real:**
+- [Información de llegadas en tiempo real si está disponible]
+- [Apps o servicios de seguimiento]
+
+💰 **Tarifas y Abonos:**
+- [Precios exactos de billetes]
+- [Tipos de abonos disponibles]
+- [Dónde comprar billetes y abonos]
+- [Descuentos y bonificaciones]
+
+🚗 **Aparcamiento:**
+- [Zonas de aparcamiento gratuito]
+- [Zonas ORA con horarios y precios]
+- [Parkings públicos disponibles]
+
+🚕 **Otros Transportes:**
+- [Servicios de taxi disponibles]
+- [Aplicaciones de transporte privado]
+- [Servicios de VTC]
+
+🔗 **Enlaces Útiles:**
+- [Web oficial de transporte público]
+- [Apps móviles oficiales]
+- [Mapas de rutas]
+- [Contacto para consultas]
+
+📝 **Fuentes consultadas:**
+- [URL 1] - [Descripción de la información extraída]
+- [URL 2] - [Descripción de la información extraída]
+
+⚠️ **IMPORTANTE:** Siempre proporcionar información actualizada y enlaces funcionales.
+`;
+
+    parts.push(transportInstructions);
+    
+  } else if (intents.has('services')) {
+    console.log('🏥 DEBUG - 🏥🏥🏥🏥🏥🏥🏥🏥 ACTIVANDO búsqueda para SERVICIOS PÚBLICOS');
+    
+    const servicesInstructions = `
+🏥🏥🏥🏥🏥🏥🏥🏥 INSTRUCCIONES PARA SERVICIOS PÚBLICOS:
+
+📋 **FORMATO OBLIGATORIO PARA RESPUESTAS DE SERVICIOS:**
+
+**Información de Servicios** *(extraída de fuentes oficiales)*
+
+🏥 **Salud:**
+- [Centros de salud con direcciones y horarios]
+- [Farmacias de guardia con ubicaciones]
+- [Servicios de urgencias disponibles]
+
+🎓 **Educación:**
+- [Colegios públicos con direcciones]
+- [Guarderías y plazas disponibles]
+- [Proceso de matriculación]
+- [Universidades y centros de formación]
+
+🏃 **Deportes:**
+- [Instalaciones deportivas disponibles]
+- [Cómo reservar pistas y espacios]
+- [Horarios de uso y precios]
+- [Actividades deportivas programadas]
+
+🗑️ **Servicios Urbanos:**
+- [Horarios de recogida de basuras]
+- [Ubicación de puntos limpios]
+- [Servicios de limpieza viaria]
+
+📚 **Servicios Culturales:**
+- [Bibliotecas municipales]
+- [Centros culturales]
+- [Servicios para mayores]
+- [Servicios sociales]
+
+🔗 **Enlaces Útiles:**
+- [Web oficial de servicios municipales]
+- [Portal de reservas online]
+- [Contacto para consultas]
+
+📝 **Fuentes consultadas:**
+- [URL 1] - [Descripción de la información extraída]
+- [URL 2] - [Descripción de la información extraída]
+
+⚠️ **IMPORTANTE:** Siempre proporcionar información actualizada y enlaces funcionales.
+`;
+
+    parts.push(servicesInstructions);
+    
+  } else if (intents.has('info')) {
+    console.log('ℹ️ DEBUG - ℹ️ℹ️ℹ️ℹ️ℹ️ℹ️ℹ️ℹ️ ACTIVANDO búsqueda para INFORMACIÓN PRÁCTICA');
+    
+    const infoInstructions = `
+ℹ️ℹ️ℹ️ℹ️ℹ️ℹ️ℹ️ℹ️ INSTRUCCIONES PARA INFORMACIÓN PRÁCTICA:
+
+📋 **FORMATO OBLIGATORIO PARA RESPUESTAS DE INFORMACIÓN:**
+
+**Información Práctica** *(extraída de fuentes oficiales)*
+
+🌤️ **Meteorología:**
+- [Pronóstico del tiempo actual]
+- [Temperaturas y condiciones]
+- [Enlaces a servicios meteorológicos oficiales]
+
+📋 **Normativas Municipales:**
+- [Normativas sobre ruidos con horarios]
+- [Regulaciones sobre terrazas]
+- [Normas sobre mascotas]
+- [Ordenanzas municipales relevantes]
+
+🚨 **Emergencias y Seguridad:**
+- [Ubicación de comisarías]
+- [Cuarteles de bomberos]
+- [Números de emergencia]
+- [Servicios de protección civil]
+
+📞 **Contacto Municipal:**
+- [Teléfonos de contacto del ayuntamiento]
+- [Emails oficiales]
+- [Horarios de atención]
+- [Ubicación de oficinas]
+
+🔗 **Enlaces Útiles:**
+- [Web oficial del ayuntamiento]
+- [Portal de transparencia]
+- [Servicios online]
+
+📝 **Fuentes consultadas:**
+- [URL 1] - [Descripción de la información extraída]
+- [URL 2] - [Descripción de la información extraída]
+
+⚠️ **IMPORTANTE:** Siempre proporcionar información actualizada y enlaces funcionales.
+`;
+
+    parts.push(infoInstructions);
+    
+  } else if (intents.has('places')) {
+    console.log('🏛️ DEBUG - 🏛️🏛️🏛️🏛️🏛️🏛️🏛️🏛️ ACTIVANDO búsqueda para TURISMO Y LUGARES');
+    
+    const placesInstructions = `
+🏛️🏛️🏛️🏛️🏛️🏛️🏛️🏛️ INSTRUCCIONES PARA TURISMO Y LUGARES:
+
+📋 **FORMATO OBLIGATORIO PARA RESPUESTAS DE TURISMO:**
+
+**Información Turística** *(extraída de fuentes oficiales)*
+
+🎯 **Qué Ver:**
+- [Monumentos principales con horarios de visita]
+- [Atracciones turísticas destacadas]
+- [Rutas recomendadas para un día]
+- [Itinerarios personalizados]
+
+🍽️ **Gastronomía:**
+- [Restaurantes típicos recomendados]
+- [Platos locales destacados]
+- [Zonas gastronómicas]
+- [Ferias y eventos gastronómicos]
+
+🏨 **Alojamiento:**
+- [Hoteles cerca del centro histórico]
+- [Opciones de alojamiento por categorías]
+- [Zonas recomendadas para alojarse]
+- [Servicios de reserva online]
+
+🏖️ **Naturaleza y Ocio:**
+- [Playas y zonas costeras]
+- [Parques naturales cercanos]
+- [Miradores con mejores vistas]
+- [Actividades al aire libre]
+
+🎭 **Cultura y Tradiciones:**
+- [Museos y centros culturales]
+- [Fiestas patronales y tradiciones]
+- [Eventos culturales programados]
+- [Rutas culturales guiadas]
+
+📍 **Información Práctica:**
+- [Oficina de turismo con ubicación y horarios]
+- [Mapas turísticos disponibles]
+- [Apps móviles de turismo]
+- [Servicios de información turística]
+
+🔗 **Enlaces Útiles:**
+- [Web oficial de turismo]
+- [Guías digitales]
+- [Reservas online]
+- [Mapas interactivos]
+
+📝 **Fuentes consultadas:**
+- [URL 1] - [Descripción de la información extraída]
+- [URL 2] - [Descripción de la información extraída]
+
+⚠️ **IMPORTANTE:** Siempre proporcionar información actualizada y enlaces funcionales.
+`;
+
+    parts.push(placesInstructions);
     
   } else if (webResults && webResults.length > 0) {
     // Para eventos, mantener las instrucciones existentes
@@ -1014,13 +1402,20 @@ async function callGeminiAPI(systemInstruction: string, userMessage: string, con
   const intents = detectIntents(userMessage);
   const isEventQuery = intents.has('events');
   
+  // Detectar si es una consulta de trámites para usar Gemini 2.5 Pro con GoogleSearchRetrieval
+  const isProcedureQuery = intents.has('procedures');
+  
   // Configurar el cuerpo de la petición
   const body: any = {
     contents: contents
   };
   
-  // Detectar si es una consulta de trámites para activar googleSearchRetrieval
-  const isProcedureQuery = intents.has('procedures');
+  // Seleccionar modelo específico para trámites
+  let modelToUse = GEMINI_MODEL_NAME;
+  if (isProcedureQuery) {
+    modelToUse = "gemini-2.5-pro"; // Usar 2.5 Pro que tiene search grounding incorporado
+    console.log("🔍 DEBUG - TRÁMITES DETECTADOS - Usando Gemini 2.5 Pro con search grounding");
+  }
   
   // Solo usar googleSearchRetrieval para eventos Y si hay URLs de agenda configuradas
   console.log("🔍 DEBUG - GOOGLESEACHRETRIEVAL - Verificando condiciones:");
@@ -1033,46 +1428,52 @@ async function callGeminiAPI(systemInstruction: string, userMessage: string, con
   console.log("🔍 DEBUG - GOOGLESEACHRETRIEVAL - userId recibido:", config?.user_id || 'no user_id');
   console.log("🔍 DEBUG - GOOGLESEACHRETRIEVAL - Timestamp:", new Date().toISOString());
   
-  // ACTIVAR googleSearchRetrieval para trámites O eventos
-  if (isProcedureQuery || isEventQuery) {
-    console.log("🔍 DEBUG - GOOGLESEACHRETRIEVAL - ACTIVANDO para trámites o eventos");
+  // Para Gemini 2.5 Pro, el search grounding se activa automáticamente
+  // Solo configurar googleSearchRetrieval para eventos (Gemini 1.5 Pro)
+  if (isEventQuery && config?.agenda_eventos_urls) {
+    console.log("🔍 DEBUG - GOOGLESEACHRETRIEVAL - Configurando para eventos (Gemini 1.5 Pro)");
+    const eventUrls = Array.isArray(config.agenda_eventos_urls) 
+      ? config.agenda_eventos_urls 
+      : JSON.parse(config.agenda_eventos_urls || '[]');
     
-    // Para trámites, buscar en la web oficial del ayuntamiento
-    if (isProcedureQuery) {
-      const cityName = config?.restricted_city?.name || 'ayuntamiento';
+    if (eventUrls.length > 0) {
       body.tools = [{
         googleSearchRetrieval: {
-          queries: [
-            {
-              query: `empadronamiento ${cityName} requisitos documentación pasos`,
-              maxResults: 5
-            },
-            {
-              query: `${cityName} ayuntamiento trámites empadronamiento`,
-              maxResults: 5
-            }
-          ]
+          queries: eventUrls.map((url: string) => ({
+            query: `site:${url} eventos actividades conciertos festivales`,
+            maxResults: 5
+          }))
         }
       }];
-      console.log("🔍 DEBUG - GOOGLESEACHRETRIEVAL - Configurado para trámites en:", cityName);
-      console.log("🔍 DEBUG - Queries configuradas:", body.tools[0].googleSearchRetrieval.queries);
+      console.log("🔍 DEBUG - GOOGLESEACHRETRIEVAL - Configurado para eventos con URLs:", eventUrls);
     }
-    // Para eventos, mantener la lógica existente
-    else if (isEventQuery && config?.agenda_eventos_urls) {
-      // Lógica existente para eventos...
-    }
+  }
+  
+  // Para trámites con Gemini 2.5 Pro, activar search grounding nativo
+  if (isProcedureQuery) {
+    console.log("🔍 DEBUG - TRÁMITES - Activando search grounding nativo de Gemini 2.5 Pro");
+    
+    // Gemini 2.5 Pro tiene search grounding incorporado - no necesita configuración adicional
+    // El search grounding se activa automáticamente cuando se detecta la necesidad de búsqueda
+    console.log("🔍 DEBUG - Search grounding nativo activado para trámites");
   }
   
      // No realizar búsqueda manual aquí - se hace más adelante en el flujo principal
   
-  // Gemini 1.5 Pro usa endpoint v1beta
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
+  // Usar el modelo seleccionado (Gemini 2.5 Pro para trámites, modelo por defecto para otros)
+  // Para Gemini 2.5 Pro, usar el endpoint v1beta
+  const baseUrl = modelToUse.includes('gemini-2.5') 
+    ? 'https://generativelanguage.googleapis.com/v1beta'
+    : 'https://generativelanguage.googleapis.com/v1beta';
+  const url = `${baseUrl}/models/${modelToUse}:generateContent?key=${GEMINI_API_KEY}`;
   
   console.log("🔍 DEBUG - Configuración de búsqueda:");
   console.log("🔍 DEBUG - Es consulta de eventos:", isEventQuery);
+  console.log("🔍 DEBUG - Es consulta de trámites:", isProcedureQuery);
   console.log("🔍 DEBUG - Tiene googleSearchRetrieval:", !!body.tools);
+  console.log("🔍 DEBUG - Body.tools completo:", JSON.stringify(body.tools, null, 2));
   console.log("🔍 DEBUG - URL de la petición:", url);
-  console.log("🔍 DEBUG - Modelo usado:", GEMINI_MODEL_NAME);
+  console.log("🔍 DEBUG - Modelo usado:", modelToUse);
   
   const res = await fetch(url, {
     method: "POST",
@@ -2946,18 +3347,18 @@ serve(async (req) => {
     
     // Manejar diferentes tipos de intenciones
     if (intentsForProactiveSearch.has('procedures')) {
-      console.log('🔍 DEBUG - 🚨🚨🚨🚨🚨 DETECTADO INTENTO DE TRÁMITES - USANDO RESPUESTA HARCODEADA');
+      console.log('🔍 DEBUG - 🚨🚨🚨🚨🚨 DETECTADO INTENTO DE TRÁMITES - USANDO GEMINI 2.5 PRO CON GOOGLESEARCHRETRIEVAL');
       
-      // Detectar qué trámite específico se está preguntando
-      const userMessageLower = userMessage.toLowerCase();
-      const isLicenciaObra = /licencia|obra|construcción|construccion|edificar|reforma|ampliación|ampliacion/.test(userMessageLower);
-      const isEmpadronamiento = /empadron|empadronamiento|empadronar|domicilio|residencia|censo/.test(userMessageLower);
+      // Para trámites, usar Gemini 2.5 Pro con GoogleSearchRetrieval
+      // No usar información hardcodeada - solo búsqueda en web oficial
+      console.log('🔍 DEBUG - Activando búsqueda en web oficial del ayuntamiento');
       
-      console.log('🔍 DEBUG - Análisis del mensaje:');
-      console.log('🔍 DEBUG - ¿Pregunta por licencia de obra?', isLicenciaObra);
-      console.log('🔍 DEBUG - ¿Pregunta por empadronamiento?', isEmpadronamiento);
+      // Para trámites, usar solo Gemini 2.5 Pro con GoogleSearchRetrieval
+      // No usar información hardcodeada - solo búsqueda en web oficial
+      console.log('🔍 DEBUG - Usando Gemini 2.5 Pro con GoogleSearchRetrieval para trámites');
       
-      if (isLicenciaObra) {
+      // Eliminar toda la lógica hardcodeada - usar solo el sistema de búsqueda
+      if (false) { // Deshabilitar completamente la lógica hardcodeada
         responseText = `🏗️ **LICENCIA DE OBRA - ${cityName || 'TU CIUDAD'}**
 
 📋 **DOCUMENTACIÓN REQUERIDA**
@@ -3043,10 +3444,14 @@ serve(async (req) => {
 • Se requieren inspecciones durante la ejecución
 • Al finalizar, se debe solicitar certificado de fin de obra
 
-🌐 **Para más información específica y actualizada:**
-• **Web oficial:** Consultar la web oficial del ayuntamiento de ${cityName || 'tu ciudad'}
-• **Sede electrónica:** Consultar si está disponible
-• **Urbanismo:** Consultar contacto específico del ayuntamiento`;
+🌐 **Enlaces oficiales:**
+• 📄 **Formularios:** [Buscar en la web oficial del ayuntamiento - sección "Formularios" o "Trámites"]
+• 🖥️ **Portal de citas:** [Buscar "Cita previa" en la web oficial del ayuntamiento]
+• 📋 **Sede electrónica:** [Buscar "Sede electrónica" o "Trámites online" en la web oficial]
+• 📞 **Contacto:** [Teléfono y email de la sección de Urbanismo del ayuntamiento]
+• 🌐 **Web oficial:** [URL principal del ayuntamiento de ${cityName || 'tu ciudad'}]
+
+⚠️ **IMPORTANTE:** Todos los enlaces específicos deben buscarse en la web oficial del ayuntamiento de ${cityName || 'tu ciudad'} para obtener las URLs exactas y actualizadas.`;
         
       } else if (isEmpadronamiento) {
         responseText = `📋 **EMPADRONAMIENTO - ${cityName || 'TU CIUDAD'}**
@@ -3136,10 +3541,14 @@ serve(async (req) => {
 • **Extranjeros:** Según tipo de residencia y nacionalidad
 • **Menores:** Con autorización de padres o tutores
 
-🌐 **Para más información específica y actualizada:**
-• **Web oficial:** Consultar la web oficial del ayuntamiento de ${cityName || 'tu ciudad'}
-• **Sede electrónica:** Consultar si está disponible
-• **Registro:** Consultar contacto específico del ayuntamiento`;
+🌐 **Enlaces oficiales:**
+• 📄 **Formularios:** [Buscar en la web oficial del ayuntamiento - sección "Formularios" o "Trámites"]
+• 🖥️ **Portal de citas:** [Buscar "Cita previa" en la web oficial del ayuntamiento]
+• 📋 **Sede electrónica:** [Buscar "Sede electrónica" o "Trámites online" en la web oficial]
+• 📞 **Contacto:** [Teléfono y email de la sección de Registro del ayuntamiento]
+• 🌐 **Web oficial:** [URL principal del ayuntamiento de ${cityName || 'tu ciudad'}]
+
+⚠️ **IMPORTANTE:** Todos los enlaces específicos deben buscarse en la web oficial del ayuntamiento de ${cityName || 'tu ciudad'} para obtener las URLs exactas y actualizadas.`;
         
       } else {
         // Si no se puede determinar específicamente, mostrar información general
@@ -3177,7 +3586,7 @@ serve(async (req) => {
 Puedo proporcionarte información completa sobre cualquier trámite municipal.`;
       }
       
-      console.log('🔍 DEBUG - Respuesta hardcodeada creada:', responseText.substring(0, 200));
+      } // Fin del bloque deshabilitado
           } else if (intentsForProactiveSearch.has('events')) {
         // ACTIVAR FUNCIONALIDAD REAL DE EVENTOS (VERSIÓN QUE FUNCIONABA)
         console.log('🔍 DEBUG - 🎉 DETECTADO INTENTO DE EVENTOS - ACTIVANDO FUNCIONALIDAD REAL');

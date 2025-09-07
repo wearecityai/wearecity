@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ChatContainer, { RecommendedPromptsBar } from './ChatContainer';
 import ChatInput from './ChatInput';
+import { ChatMain, ChatMessages } from './ui/chat-layout';
 import { EmptyState } from './ui/empty-state';
 import { DEFAULT_LANGUAGE_CODE } from '../constants';
 import { MessageCircle } from 'lucide-react';
@@ -37,7 +38,13 @@ interface MainContentProps {
 }
 
   const MainContent: React.FC<MainContentProps> = ({
+  theme,
   isMobile,
+  isMenuOpen,
+  handleMenuToggle,
+  currentThemeMode,
+  toggleTheme,
+  handleOpenSettings,
   user,
   onLogin,
   messages,
@@ -54,11 +61,71 @@ interface MainContentProps {
     geolocationStatus = 'idle'
 }) => {
   const { t } = useTranslation();
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
   const [hasUserSentFirstMessage, setHasUserSentFirstMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollableBoxRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLDivElement>(null);
-  const lastUserCountRef = useRef<number>(0);
+  const previousMessagesLength = useRef(0);
+  const lastUserMessageCount = useRef(0);
+  const lastUserMessageId = useRef<string | null>(null);
+  
+  // ALTERNATIVE SCROLL FUNCTION - más directo
+  const alternativeAutoScroll = useCallback(() => {
+    console.log('🔄 ALTERNATIVE scroll function called');
+    
+    if (!scrollableBoxRef.current) {
+      console.log('❌ No scroll container');
+      return;
+    }
+    
+    const scrollContainer = scrollableBoxRef.current;
+    const userMessages = messages.filter(msg => msg.role === 'user');
+    
+    if (userMessages.length === 0) {
+      console.log('❌ No user messages to scroll to');
+      return;
+    }
+    
+    // Buscar el último mensaje de usuario directamente por su posición en el DOM
+    const allMessageElements = scrollContainer.querySelectorAll('[data-message-role]');
+    console.log('🔍 Found all message elements:', allMessageElements.length);
+    
+    // Encontrar el último elemento con data-message-role="user"
+    let lastUserElement = null;
+    for (let i = allMessageElements.length - 1; i >= 0; i--) {
+      const element = allMessageElements[i];
+      if (element.getAttribute('data-message-role') === 'user') {
+        lastUserElement = element;
+        break;
+      }
+    }
+    
+    if (lastUserElement) {
+      const messageTop = (lastUserElement as HTMLElement).offsetTop;
+      const targetScroll = Math.max(0, messageTop - 60); // 60px desde arriba
+      
+      console.log('✅ ALTERNATIVE scroll to:', { messageTop, targetScroll });
+      
+      // Scroll inmediato y suave
+      scrollContainer.scrollTop = targetScroll;
+      scrollContainer.scrollTo({ top: targetScroll, behavior: 'smooth' });
+    } else {
+      console.log('❌ Could not find last user message element');
+    }
+  }, [messages]);
+  
+  // Dynamic bottom/left offset for the scroll button (above input and centered)
+  const [scrollButtonBottom, setScrollButtonBottom] = useState<number>(96);
+  const [scrollButtonLeft, setScrollButtonLeft] = useState<number>(typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+  
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchorEl(null);
+  };
 
   // Función para obtener el avatar de la ciudad
   const getCityAvatar = () => {
@@ -120,97 +187,167 @@ interface MainContentProps {
     }
   }, [messages]);
 
-  // Auto-scroll DOWN to position NEW user message at TOP (ChatGPT behavior)
+    // Auto-scroll: Position last USER message at top - DEBUGGING VERSION
   useEffect(() => {
-    console.log('🔄 Messages changed, analyzing for new user message...');
-    
-    const userMessages = messages.filter(msg => msg.role === 'user');
-    const newUserCount = userMessages.length;
-    const previousUserCount = lastUserCountRef.current;
-    
-    console.log('📊 User message analysis:', { 
-      newUserCount, 
-      previousUserCount, 
+    console.log('🔄 useEffect triggered - analyzing messages:', {
       totalMessages: messages.length,
-      hasNewUserMessage: newUserCount > previousUserCount 
+      messagesArray: messages.map(m => ({ role: m.role, id: m.id.substring(0, 8), content: m.content.substring(0, 30) }))
     });
     
-    // Only scroll when there's a NEW user message
-    if (newUserCount > previousUserCount && scrollableBoxRef.current) {
-      console.log('🎯 NEW USER MESSAGE detected! Performing ChatGPT-style scroll...');
+    const currentUserMessages = messages.filter(msg => msg.role === 'user');
+    const hasNewUserMessage = currentUserMessages.length > lastUserMessageCount.current;
+    
+    console.log('📊 Message analysis:', {
+      currentUserCount: currentUserMessages.length,
+      previousUserCount: lastUserMessageCount.current,
+      hasNewUserMessage,
+      lastUserMessageCountRef: lastUserMessageCount.current
+    });
+    
+    // SIMPLIFICADO: hacer scroll en cualquier cambio de mensajes para debugging
+    if (messages.length > 0) {
+      lastUserMessageCount.current = currentUserMessages.length;
+      previousMessagesLength.current = messages.length;
       
-      lastUserCountRef.current = newUserCount;
+      console.log('🚀 FORCED auto-scroll attempt - total messages:', messages.length);
       
-      // Wait for DOM to render completely
+      // Timing simplificado para debugging
       setTimeout(() => {
         if (scrollableBoxRef.current) {
           const scrollContainer = scrollableBoxRef.current;
+          console.log('📦 Container found:', { 
+            scrollHeight: scrollContainer.scrollHeight,
+            clientHeight: scrollContainer.clientHeight,
+            currentScrollTop: scrollContainer.scrollTop
+          });
           
-          // Find the LAST (newest) user message element
-          const userElements = scrollContainer.querySelectorAll('[data-user-message-row="true"]');
-          console.log('👥 Found user message elements in DOM:', userElements.length);
+          // Buscar mensajes de usuario
+          const userMessageElements = scrollContainer.querySelectorAll('[data-message-role="user"]');
+          console.log('👥 Found user message elements:', userMessageElements.length);
           
-          if (userElements.length > 0) {
-            const lastUserElement = userElements[userElements.length - 1] as HTMLElement;
+          if (userMessageElements.length > 0) {
+            const lastUserMessage = userMessageElements[userMessageElements.length - 1] as HTMLElement;
+            const messageTop = lastUserMessage.offsetTop;
+            const targetScrollTop = Math.max(0, messageTop - 50); // 50px desde arriba
             
-            // Calculate scroll position to put this message at the TOP of viewport
-            const messageOffsetTop = lastUserElement.offsetTop;
-            const topMargin = 20; // Small margin from top
-            const targetScrollPosition = messageOffsetTop - topMargin;
-            
-            console.log('📍 Scroll calculation:', {
-              messageOffsetTop,
-              topMargin,
-              targetScrollPosition,
-              currentScrollTop: scrollContainer.scrollTop,
-              scrollHeight: scrollContainer.scrollHeight,
-              clientHeight: scrollContainer.clientHeight
+            console.log('🎯 Scroll calculation:', {
+              messageTop,
+              targetScrollTop,
+              elementFound: !!lastUserMessage,
+              elementClass: lastUserMessage.className
             });
             
-            // Scroll DOWN to position new user message at TOP
-            scrollContainer.scrollTo({
-              top: targetScrollPosition,
-              behavior: 'smooth'
-            });
+            // Scroll inmediato para debugging
+            scrollContainer.scrollTop = targetScrollTop;
+            console.log('✅ IMMEDIATE scroll applied - new scrollTop:', scrollContainer.scrollTop);
             
-            console.log('✅ AUTO-SCROLL executed - new user message positioned at top');
+            // También intentar scroll suave
+            setTimeout(() => {
+              scrollContainer.scrollTo({
+                top: targetScrollTop,
+                behavior: 'smooth'
+              });
+              console.log('🌊 SMOOTH scroll applied');
+            }, 100);
           } else {
-            console.log('❌ No user message elements found in DOM');
-            // Debug: show all data attributes
-            const allElements = scrollContainer.querySelectorAll('[data-user-message-row]');
-            console.log('🔍 Elements with data-user-message-row:', allElements.length);
+            console.log('❌ No user message elements found');
+            // Debug: mostrar todos los elementos
+            const allElements = scrollContainer.querySelectorAll('*[data-message-role]');
+            console.log('🔍 All elements with data-message-role:', Array.from(allElements).map(el => ({
+              role: el.getAttribute('data-message-role'),
+              className: el.className,
+              tagName: el.tagName
+            })));
           }
+        } else {
+          console.log('❌ scrollableBoxRef.current is null');
         }
-      }, 400); // Longer timeout to ensure DOM is fully rendered
-    } else {
-      console.log('📝 No new user message, updating counter only');
-      lastUserCountRef.current = newUserCount;
+      }, 500); // Timeout más largo para asegurar renderizado
+      
+      // TAMBIÉN probar la función alternativa con timing diferente
+      setTimeout(() => {
+        console.log('🚀 Trying ALTERNATIVE scroll approach...');
+        alternativeAutoScroll();
+      }, 800);
     }
-  }, [messages]);
-
+  }, [messages, alternativeAutoScroll]);
 
   // Check if assistant response exceeds visible area and show scroll button
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   useEffect(() => {
     const checkScrollPosition = () => {
-      if (!scrollableBoxRef.current) return;
-      
       const container = scrollableBoxRef.current;
+      const inputEl = chatInputRef.current;
+      const endEl = messagesEndRef.current;
+      if (!container || !inputEl || !endEl) {
+        setShowScrollButton(false);
+        return;
+      }
+
+      // Rects relative to viewport
+      const inputRect = inputEl.getBoundingClientRect();
+      const endRect = endEl.getBoundingClientRect();
+
+      // True when the end of real content (anchor before spacer) is hidden behind the input
+      const contentHiddenBehindInput = endRect.top > inputRect.top + 4;
+
+      // Also ensure the user is not already pinned to bottom (no need to show)
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
-      
-      setShowScrollButton(!isAtBottom && messages.length > 0);
+      const atBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 2;
+
+      setShowScrollButton(contentHiddenBehindInput && !atBottom);
     };
 
+    // Check initially and on scroll
     checkScrollPosition();
     const el = scrollableBoxRef.current;
     if (el) {
       el.addEventListener('scroll', checkScrollPosition);
-      return () => el.removeEventListener('scroll', checkScrollPosition);
+      // Also recalc on resize (input height/position may change)
+      window.addEventListener('resize', checkScrollPosition);
+      return () => {
+        el.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
     }
   }, [messages]);
 
+  // Measure chat input height to position the scroll button above it
+  useEffect(() => {
+    const updateOffset = () => {
+      const inputEl = chatInputRef.current;
+      const inputHeight = inputEl?.offsetHeight ?? 0;
+
+      // Treat as mobile if prop says so OR viewport <= 640px
+      const isMobileViewport = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 640);
+      const baseGap = isMobileViewport ? 144 : 20; // mobile: a bit higher (~144px above input)
+
+      setScrollButtonBottom(Math.max(baseGap, inputHeight + baseGap));
+
+      // Center horizontally with the input container
+      const rect = inputEl?.getBoundingClientRect();
+      if (rect) {
+        setScrollButtonLeft(rect.left + rect.width / 2);
+      } else if (typeof window !== 'undefined') {
+        setScrollButtonLeft(window.innerWidth / 2);
+      }
+    };
+
+    updateOffset();
+    window.addEventListener('resize', updateOffset);
+
+    let ro: ResizeObserver | undefined;
+    if (chatInputRef.current && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(updateOffset);
+      ro.observe(chatInputRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateOffset);
+      ro?.disconnect();
+    };
+  }, [isMobile, messages]);
 
   if (isInFinetuningMode) {
     return (
@@ -407,16 +544,21 @@ interface MainContentProps {
         </div>
       </div>
 
-      {/* Scroll to bottom button - simplified */}
+      {/* Scroll to bottom button */}
       {showScrollButton && (
-        <div className="fixed bottom-20 right-4 z-50">
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{ bottom: scrollButtonBottom, left: scrollButtonLeft, transform: 'translateX(-50%)' }}
+        >
           <button
             onClick={() => {
-              if (scrollableBoxRef.current) {
+              if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+              } else if (scrollableBoxRef.current) {
                 scrollableBoxRef.current.scrollTop = scrollableBoxRef.current.scrollHeight;
               }
             }}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110"
+            className={`bg-background border border-border text-white hover:bg-accent rounded-full shadow-lg transition-all duration-200 hover:scale-110 pointer-events-auto flex items-center justify-center ${isMobile ? 'h-12 w-12' : 'p-3'}`}
             aria-label="Scroll to bottom"
           >
             <svg
@@ -425,7 +567,7 @@ interface MainContentProps {
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="stroke-current"
+              className="stroke-white"
             >
               <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

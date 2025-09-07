@@ -1,6 +1,10 @@
+/* Streamdown styles are handled internally by the Response component */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Removed custom prose styles - letting Tailwind Typography handle it natively */
 
 /* Transiciones suaves para evitar parpadeos */
 * {

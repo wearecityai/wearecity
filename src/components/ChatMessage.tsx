@@ -16,6 +16,8 @@ import { usePlaceCardRetry } from '../hooks/usePlaceCardRetry';
 import { usePlaceCardFilter } from '../hooks/usePlaceCardFilter';
 import { useLoadingPattern } from '../hooks/useLoadingPattern';
 import { toast } from '@/components/ui/sonner';
+import { Response } from './ai-elements/response';
+import { Message, MessageContent, MessageAvatar } from './ai-elements/message';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -72,6 +74,36 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   // Use typewriter effect only when explicitly requested (e.g., first-time generation)
   const shouldUseTypewriter = !!(message.shouldAnimate && !isUser && !message.isTyping && !message.error && message.content);
   
+  // IMPORTANTE: Limpiar el contenido ANTES del typewriter para evitar mostrar JSON
+  const cleanContent = (content: string): string => {
+    if (!content || typeof content !== 'string') return content;
+    
+    // Si hay eventos o place cards, eliminar todo el JSON y marcadores
+    if (message.events && message.events.length > 0 || message.placeCards && message.placeCards.length > 0) {
+      return content
+        .replace(/\[EVENT_CARD_START\][\s\S]*?\[EVENT_CARD_END\]/g, '')
+        .replace(/\[PLACE_CARD_START\][\s\S]*?\[PLACE_CARD_END\]/g, '')
+        .replace(/```json[\s\S]*?```/g, '')
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/```/g, '')
+        .replace(/^`?json\s*$/i, '')
+        .replace(/\{[^}]*"events"[^}]*\}/g, '') // Eliminar objetos JSON con eventos
+        .replace(/\{[^}]*"places"[^}]*\}/g, '') // Eliminar objetos JSON con lugares
+        .replace(/\{[^}]*"placeCards"[^}]*\}/g, '') // Eliminar objetos JSON con placeCards
+        .replace(/\{[^}]*"eventCards"[^}]*\}/g, '') // Eliminar objetos JSON con eventCards
+        .trim();
+    } else {
+      // Si no hay tarjetas, solo limpiar formato JSON básico
+      return content
+        .replace(/```json[\s\S]*?```/g, '')
+        .replace(/```/g, '')
+        .replace(/^`?json\s*$/i, '');
+    }
+  };
+
+  // Limpiar el contenido original antes de pasarlo al typewriter
+  const cleanedContent = cleanContent(message.content || '');
+
   // Debug: Log typewriter decision
   console.log('🔍 Typewriter debug:', {
     messageId: message.id,
@@ -85,7 +117,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   
   // Only call useTypewriter if we should animate, otherwise use empty string to avoid any side effects
   const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
-    shouldUseTypewriter ? (message.content || '') : '',
+    shouldUseTypewriter ? cleanedContent : '',
     { 
       speed: 8, 
       startDelay: 0, 
@@ -93,33 +125,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       replayOnMount: false 
     }
   );
-
-  // Use typewriter text if active, otherwise use original content
-  let contentToDisplay = shouldUseTypewriter ? displayText : message.content;
   
-  // IMPORTANTE: Si hay eventos o place cards, NO mostrar las tarjetas en el texto
-  // porque se renderizan como componentes separados
-  if (message.events && message.events.length > 0 || message.placeCards && message.placeCards.length > 0) {
-    // Si hay tarjetas, solo mostrar el texto introductorio (sin las tarjetas)
-    if (contentToDisplay && typeof contentToDisplay === 'string') {
-      // Eliminar marcadores de eventos y place cards del texto
-      contentToDisplay = contentToDisplay
-        .replace(/\[EVENT_CARD_START\][\s\S]*?\[EVENT_CARD_END\]/g, '')
-        .replace(/\[PLACE_CARD_START\][\s\S]*?\[PLACE_CARD_END\]/g, '')
-        .replace(/```json[\s\S]*?```/g, '')
-        .replace(/```/g, '')
-        .replace(/^`?json\s*$/i, '')
-        .trim();
-    }
-  } else {
-    // Si no hay tarjetas, solo limpiar formato JSON
-    if (contentToDisplay && typeof contentToDisplay === 'string') {
-      contentToDisplay = contentToDisplay
-        .replace(/```json[\s\S]*?```/g, '')
-        .replace(/```/g, '')
-        .replace(/^`?json\s*$/i, '');
-    }
-  }
+  // Use typewriter text if active, otherwise use cleaned content
+  let contentToDisplay = shouldUseTypewriter ? displayText : cleanedContent;
 
   // Fallback: while typewriter has not started and there is no text yet, show the loading row
   const showPendingTypewriter = shouldUseTypewriter && !typewriterIsTyping && (!contentToDisplay || contentToDisplay.trim() === '');
@@ -270,7 +278,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
       className={`w-full ${isUser ? 'mb-8' : ''}`}
       data-message-role={message.role}
     >
-             <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
+             <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`} data-user-message-row={isUser ? 'true' : undefined} data-message-id={message.id}>
                  {isUser ? (
            // User message - right aligned with strict width constraints
            <div 
@@ -296,14 +304,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             </Card>
           </div>
                  ) : (
-           // Assistant message - left aligned with full control
-           <div 
-             className="w-full min-w-0"
-             style={{ maxWidth: '100%' }}
-           >
-            <div className="w-full min-w-0" style={{ maxWidth: '100%' }}>
-            <Card className="bg-transparent border-0 shadow-none">
-              <CardContent className="p-0">
+           // Assistant message - using AI SDK Message component
+           <Message from="assistant" className="w-full min-w-0">
+            <MessageContent>
                 {message.isTyping ? (
                   <div className="flex items-center space-x-3 h-10">
                     <div className="flex items-center justify-center">
@@ -331,7 +334,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                   </div>
                 ) : (
                   <>
-                    {/* Contenedor principal con layout consistente */}
+                    {/* Contenedor principal con AI SDK Response */}
                     <div className="w-full min-w-0">
                       {(contentToDisplay && contentToDisplay.trim() !== "") && (
                         <div 
@@ -339,19 +342,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                           onClick={typewriterIsTyping ? skipToEnd : undefined}
                           style={{ maxWidth: '100%' }}
                         >
-                          <div 
-                            style={{
-                              wordWrap: 'break-word',
-                              overflowWrap: 'anywhere',
-                              hyphens: 'auto',
-                              maxWidth: '100%'
-                            }}
+                          <Response
+                            parseIncompleteMarkdown={true}
+                            className=""
                           >
-                            <EnhancedAIResponseRenderer 
-                              content={contentToDisplay} 
-                              className="text-base leading-normal select-text"
-                            />
-                          </div>
+                            {contentToDisplay}
+                          </Response>
                         </div>
                       )}
                       
@@ -409,33 +405,34 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     </div>
                   </>
                 )}
-              </CardContent>
-            </Card>
+            </MessageContent>
             
             {!message.isTyping && !message.error && (
-              <div className="flex items-center -space-x-2 sm:space-x-1 mt-1 pl-0 sm:pl-1">
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <ThumbsUp className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <ThumbsDown className="h-3 w-3" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 w-6 p-0"
-                  onClick={handleCopyMessage}
-                  title="Copiar mensaje"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center justify-start mt-2">
+                {/* Botones de acción */}
+                <div className="flex items-center -space-x-2 sm:space-x-1">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <ThumbsUp className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <ThumbsDown className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0"
+                    onClick={handleCopyMessage}
+                    title="Copiar mensaje"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <MoreHorizontal className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             )}
-            </div>
-          </div>
+          </Message>
         )}
       </div>
     </div>
