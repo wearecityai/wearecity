@@ -347,21 +347,24 @@ export function AppSidebar({
                 </>
               ) : (
                 <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={isInSearchMode ? () => {} : onShowCitySearch}
-                      isActive={isInSearchMode || isCitySearch}
-                      disabled={isInSearchMode}
-                      className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
-                      size="sm"
-                      tooltip={isInSearchMode ? t('sidebar.alreadyInSearchMode', { defaultValue: 'You are already in search mode' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
-                    >
-                      <Compass className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
-                      <span className="group-data-[collapsible=icon]:hidden">
-                        {isInSearchMode ? t('sidebar.searchingCities', { defaultValue: 'Searching cities...' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
-                      </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  {/* Solo mostrar búsqueda de ciudades para usuarios no administrativos */}
+                  {!isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={isInSearchMode ? () => {} : onShowCitySearch}
+                        isActive={isInSearchMode || isCitySearch}
+                        disabled={isInSearchMode}
+                        className="w-full group-data-[collapsible=icon]:justify-center h-10 md:hover:bg-sidebar-accent md:hover:text-sidebar-accent-foreground sidebar-button-transition"
+                        size="sm"
+                        tooltip={isInSearchMode ? t('sidebar.alreadyInSearchMode', { defaultValue: 'You are already in search mode' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
+                      >
+                        <Compass className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+                        <span className="group-data-[collapsible=icon]:hidden">
+                          {isInSearchMode ? t('sidebar.searchingCities', { defaultValue: 'Searching cities...' }) : t('sidebar.discoverCities', { defaultValue: 'Discover cities' })}
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={async (e) => {

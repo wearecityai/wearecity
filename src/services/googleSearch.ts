@@ -54,17 +54,12 @@ export interface SearchRequest {
 
 export class GoogleSearchService {
   private static instance: GoogleSearchService;
-  private apiKey: string;
-  private searchEngineId: string;
-  private baseUrl = 'https://www.googleapis.com/customsearch/v1';
+  private backendUrl: string;
 
   private constructor() {
-    this.apiKey = import.meta.env.VITE_GOOGLE_SEARCH_API_KEY || '';
-    this.searchEngineId = import.meta.env.VITE_GOOGLE_SEARCH_ENGINE_ID || '';
-    
-    if (!this.apiKey || !this.searchEngineId) {
-      console.warn('⚠️ Google Search API key or Search Engine ID not configured');
-    }
+    // Use secure backend endpoint instead of direct API access
+    this.backendUrl = import.meta.env.VITE_FUNCTIONS_BASE_URL || 'https://us-central1-wearecity-2ab89.cloudfunctions.net';
+    console.log('✅ Google Search service configured to use secure backend');
   }
 
   public static getInstance(): GoogleSearchService {
@@ -75,51 +70,42 @@ export class GoogleSearchService {
   }
 
   /**
-   * Realizar búsqueda general
+   * Realizar búsqueda general usando el backend seguro
    */
   async search(request: SearchRequest): Promise<SearchResponse> {
-    if (!this.apiKey || !this.searchEngineId) {
-      throw new Error('Google Search API key or Search Engine ID not configured');
-    }
-
-    const params = new URLSearchParams({
-      key: this.apiKey,
-      cx: this.searchEngineId,
-      q: request.query,
-      num: (request.num || 10).toString(),
-      start: (request.start || 1).toString(),
-      lr: `lang_${request.language || 'es'}`,
-      cr: `country${request.country || 'ES'}`,
-      safe: request.safe || 'active'
-    });
-
-    // Añadir restricciones opcionales
-    if (request.dateRestrict) {
-      params.append('dateRestrict', request.dateRestrict);
-    }
-
-    if (request.fileType) {
-      params.append('fileType', request.fileType);
-    }
-
-    if (request.siteSearch) {
-      params.append('siteSearch', request.siteSearch);
-    }
-
     try {
-      const response = await fetch(`${this.baseUrl}?${params}`);
+      // Get authentication token
+      const { auth } = await import('../integrations/firebase/config');
+      const user = auth.currentUser;
+      
+      if (!user) {
+        throw new Error('Usuario no autenticado. Inicia sesión para usar la búsqueda.');
+      }
+
+      const idToken = await user.getIdToken();
+      
+      // Call secure backend endpoint
+      const response = await fetch(`${this.backendUrl}/secureGoogleSearch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(request)
+      });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`Backend error: ${errorData.message || response.statusText}`);
       }
 
-      const data = await response.json();
+      const result = await response.json();
       
-      if (data.error) {
-        throw new Error(`Google Search API error: ${data.error.message}`);
+      if (!result.success) {
+        throw new Error(result.error || 'Error en la respuesta del servidor');
       }
 
-      return data;
+      return result.data;
     } catch (error) {
       console.error('Error performing search:', error);
       throw new Error(`Error al realizar búsqueda: ${error instanceof Error ? error.message : 'Error desconocido'}`);
@@ -313,7 +299,7 @@ export class GoogleSearchService {
    * Verificar si el servicio está disponible
    */
   isAvailable(): boolean {
-    return !!(this.apiKey && this.searchEngineId);
+    return !!(this.backendUrl);
   }
 
   /**

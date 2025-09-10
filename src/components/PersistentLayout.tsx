@@ -276,8 +276,9 @@ const PersistentLayout: React.FC = () => {
           const cityData = cityDoc.data();
           if (cityData.isActive) {
             setAdminCitySlug(cityData.slug);
-            // En cualquier ruta admin distinta, navegar a su slug
-            if (location.pathname.startsWith('/admin') && location.pathname !== `/admin/${cityData.slug}`) {
+            // Redirigir a la ciudad del admin si está en ruta raíz o admin genérica
+            if (location.pathname === '/' || location.pathname === '/admin' || 
+                (location.pathname.startsWith('/admin') && location.pathname !== `/admin/${cityData.slug}`)) {
               navigate(`/admin/${cityData.slug}`, { replace: true });
             }
           } else {
@@ -430,8 +431,13 @@ const PersistentLayout: React.FC = () => {
     }, 500); // Esperar 500ms para que se cargue la configuración de la ciudad
   };
 
-  // Función para mostrar la vista de búsqueda de ciudades
+  // Función para mostrar la vista de búsqueda de ciudades (solo para ciudadanos)
   const handleShowCitySearch = () => {
+    // Los administradores no pueden acceder a la búsqueda de ciudades
+    if (profile?.role === 'administrativo') {
+      console.log('🚫 Acceso denegado: Los administradores no pueden buscar ciudades');
+      return;
+    }
     setShowCitySearch(true);
   };
 
@@ -565,14 +571,23 @@ const PersistentLayout: React.FC = () => {
   // Actualizar última ciudad visitada cuando cambie la ciudad
   useEffect(() => {
     const updateLastVisited = async () => {
+      console.log('🔄 useEffect triggered for city update:', {
+        hasUser: !!user,
+        userRole: profile?.role,
+        citySlug: citySlug,
+        isCitizen: profile?.role === 'ciudadano'
+      });
+      
       if (!user || profile?.role !== 'ciudadano' || !citySlug) {
+        console.log('❌ Skipping city update - conditions not met');
         return;
       }
 
       try {
+        console.log('✅ Calling updateLastVisitedCity for:', citySlug);
         await updateLastVisitedCity(citySlug);
       } catch (error) {
-        console.error('Error updating last visited city:', error);
+        console.error('❌ Error updating last visited city:', error);
       }
     };
 
@@ -713,9 +728,9 @@ const PersistentLayout: React.FC = () => {
       // Los administradores van directamente al chat, continúa con el flujo normal
     }
 
-    // Si no hay configuración de ciudad y el usuario es ciudadano, mostrar selector
-    if (!chatConfig?.restrictedCity && profile?.role === 'ciudadano') {
-      console.log('🔄 EARLY RETURN: Citizen without city config');
+    // Si no hay configuración de ciudad y el usuario NO es administrativo, mostrar selector
+    if (!chatConfig?.restrictedCity && profile?.role !== 'administrativo') {
+      console.log('🔄 EARLY RETURN: Non-admin user without city config');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -756,9 +771,9 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Vista de búsqueda de ciudades (estado local)
-    if (showCitySearch) {
-      console.log('🔄 EARLY RETURN: City search active');
+    // Vista de búsqueda de ciudades (estado local) - solo para ciudadanos
+    if (showCitySearch && profile?.role !== 'administrativo') {
+      console.log('🔄 EARLY RETURN: City search active (citizen only)');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -768,8 +783,8 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Vista de descubrir ciudades (cuando focus=search está presente) - mantener para compatibilidad
-    if (isDiscoverPage) {
+    // Vista de descubrir ciudades (cuando focus=search está presente) - solo para ciudadanos
+    if (isDiscoverPage && profile?.role !== 'administrativo') {
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">

@@ -40,7 +40,6 @@ const App = () => {
               <Route path="/admin" element={<PersistentLayout />} />
               <Route path="/admin/:citySlug" element={<PersistentLayout />} />
               <Route path="/admin/metrics" element={<PersistentLayout />} />
-              <Route path="/admin/initialize-metrics" element={<PersistentLayout />} />
               <Route path="/chat/:chatSlug" element={<PersistentLayout />} />
               <Route path="/city/:citySlug" element={<PersistentLayout />} />
               

@@ -2,6 +2,8 @@ import * as React from "react"
 import { ChevronsUpDown, MapPin } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from '@/hooks/useAuthFirebase'
+import { useCityNavigation } from '@/hooks/useCityNavigation'
+import { useCitiesFirebase } from '@/hooks/useCitiesFirebase'
 
 
 import {
@@ -31,6 +33,8 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
   const navigate = useNavigate()
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrativo';
+  const { recentCities } = useCityNavigation();
+  const { cities } = useCitiesFirebase();
 
   // Obtener información de la ciudad actual
   const getCurrentCityInfo = () => {
@@ -156,6 +160,16 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
 
   const currentCity = getCurrentCityInfo()
 
+  // Obtener ciudades recientes con información completa (excluyendo la ciudad actual)
+  const getRecentCitiesInfo = () => {
+    const currentCitySlug = chatConfig?.restrictedCity?.slug;
+    return recentCities
+      .filter(slug => slug !== currentCitySlug) // Excluir la ciudad actual
+      .map(slug => cities.find(city => city.slug === slug))
+      .filter(Boolean)
+      .slice(0, 3); // Máximo 3 ciudades
+  }
+
   const handleCitySelect = (city: any) => {
     if (onCitySelect) {
       onCitySelect(city)
@@ -176,87 +190,143 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
     <>
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                tooltip={currentCity.name}
-              >
-                {currentCity.image ? (
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-full overflow-hidden border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
-                    <img 
-                      src={currentCity.image} 
-                      alt={currentCity.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
-                    {currentCity.logo}
-                  </div>
-                )}
-                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="truncate font-semibold">{currentCity.name}</span>
-                  {(currentCity.province || currentCity.country) && (
-                    <span className="truncate text-xs text-muted-foreground">
-                      {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
-                    </span>
-                  )}
-                </div>
-                <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-[--radix-dropdown-menu-trigger-width] min-w-64"
-              align="start"
-              side={isMobile ? "bottom" : "right"}
-              sideOffset={12}
-              avoidCollisions={true}
-              collisionPadding={16}
+          {isAdmin ? (
+            // For admin users, show a simple non-interactive display without dropdown
+            <SidebarMenuButton
+              size="lg"
+              className="cursor-default hover:bg-transparent hover:text-inherit focus:bg-transparent focus:text-inherit active:bg-transparent active:text-inherit md:hover:bg-transparent md:hover:text-inherit"
+              tooltip={currentCity.name}
             >
-              <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Ciudad Actual
-              </DropdownMenuLabel>
-              <DropdownMenuItem className="gap-3">
-                {currentCity.image ? (
-                  <div className="flex size-6 items-center justify-center rounded-sm overflow-hidden border border-border/40">
-                    <img 
-                      src={currentCity.image} 
-                      alt={currentCity.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex size-6 items-center justify-center rounded-sm border border-border/40 bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
-                    {currentCity.logo}
-                  </div>
+              {currentCity.image ? (
+                <div className="flex aspect-square size-8 items-center justify-center rounded-full overflow-hidden border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                  <img 
+                    src={currentCity.image} 
+                    alt={currentCity.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                  {currentCity.logo}
+                </div>
+              )}
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold">{currentCity.name}</span>
+                {(currentCity.province || currentCity.country) && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
+                  </span>
                 )}
-                <div>
-                  <div className="font-medium">{currentCity.name}</div>
-                  {(currentCity.province || currentCity.country) && (
-                    <div className="text-xs text-muted-foreground">
-                      {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
+              </div>
+            </SidebarMenuButton>
+          ) : (
+            // For non-admin users, show the dropdown menu
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  tooltip={currentCity.name}
+                >
+                  {currentCity.image ? (
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-full overflow-hidden border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                      <img 
+                        src={currentCity.image} 
+                        alt={currentCity.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                      {currentCity.logo}
                     </div>
                   )}
-                </div>
-              </DropdownMenuItem>
-              {!isAdmin && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    className="gap-2 p-2"
-                    onClick={handleChangeCity}
-                  >
-                    <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                      <MapPin className="size-4" />
+                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                    <span className="truncate font-semibold">{currentCity.name}</span>
+                    {(currentCity.province || currentCity.country) && (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-64"
+                align="start"
+                side={isMobile ? "bottom" : "right"}
+                sideOffset={12}
+                avoidCollisions={true}
+                collisionPadding={16}
+              >
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Ciudades Recientes
+                </DropdownMenuLabel>
+                {getRecentCitiesInfo().map((city, index) => {
+                  if (!city) return null;
+                  
+                  const getCityInitials = (name: string) => {
+                    return name
+                      .split(' ')
+                      .map(word => word.charAt(0))
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+                  };
+
+                  const cityImage = city.profileImageUrl || city.profile_image_url;
+                  const cityInitials = getCityInitials(city.name);
+
+                  return (
+                    <DropdownMenuItem 
+                      key={city.slug}
+                      className="gap-3"
+                      onClick={() => handleCitySelect(city)}
+                    >
+                      {cityImage ? (
+                        <div className="flex size-6 items-center justify-center rounded-sm overflow-hidden border border-border/40">
+                          <img 
+                            src={cityImage} 
+                            alt={city.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex size-6 items-center justify-center rounded-sm border border-border/40 bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
+                          {cityInitials}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium">{city.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {city.name.includes(',') ? city.name.split(',')[1]?.trim() : 'España'}
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+                {getRecentCitiesInfo().length === 0 && (
+                  <DropdownMenuItem className="gap-3 text-muted-foreground">
+                    <div className="flex size-6 items-center justify-center rounded-sm border border-border/40 bg-muted">
+                      <MapPin className="size-3" />
                     </div>
-                    <div className="font-medium text-muted-foreground">Cambiar ciudad</div>
+                    <div className="text-sm">No hay ciudades recientes</div>
                   </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="gap-2 p-2"
+                  onClick={handleChangeCity}
+                >
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                    <MapPin className="size-4" />
+                  </div>
+                  <div className="font-medium text-muted-foreground">Cambiar ciudad</div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </SidebarMenuItem>
       </SidebarMenu>
 

@@ -15,18 +15,20 @@ service cloud.firestore {
       }
     }
     
-    // Reglas para métricas de chat - solo lectura/escritura por Functions
+    // Reglas para métricas de chat - solo Functions pueden escribir, admin puede leer
     match /chat_analytics/{analyticsId} {
-      // TEMPORAL: Permitir lectura pública para debugging métricas
-      allow read: if true;
+      // Solo usuarios autenticados pueden leer métricas
+      allow read: if request.auth != null && 
+                     (isGlobalAdmin(request.auth.uid) || 
+                      resource.data.get('citySlug', '') in getUserCities(request.auth.uid));
       allow write: if false; // Solo Firebase Functions pueden escribir
     }
     
-    // Reglas para categorías de chat - solo lectura para usuarios, escritura para admin
+    // Reglas para categorías de chat - solo admin puede leer/escribir
     match /chat_categories/{categoryId} {
-      // TEMPORAL: Permitir lectura pública para debugging métricas
-      allow read: if true;
-      allow write: if request.auth != null && isAdmin(request.auth.uid, null);
+      // Solo admins pueden leer y escribir categorías
+      allow read: if request.auth != null && isGlobalAdmin(request.auth.uid);
+      allow write: if request.auth != null && isGlobalAdmin(request.auth.uid);
     }
     
     // Reglas para ciudades - lectura pública, escritura para admin
@@ -41,15 +43,41 @@ service cloud.firestore {
       allow write: if false; // Solo Firebase Functions pueden escribir
     }
     
-    // Función auxiliar para verificar si un usuario es admin de una ciudad
+    // Función auxiliar para verificar si un usuario es admin de una ciudad específica
     function isAdmin(userId, cityId) {
       return exists(/databases/$(database)/documents/cities/$(cityId)) &&
              get(/databases/$(database)/documents/cities/$(cityId)).data.admin_user_id == userId;
     }
     
-    // Reglas para otras colecciones (ajustar según necesidades)
+    // Función para verificar si un usuario es admin global
+    function isGlobalAdmin(userId) {
+      return exists(/databases/$(database)/documents/profiles/$(userId)) &&
+             get(/databases/$(database)/documents/profiles/$(userId)).data.role == 'administrativo';
+    }
+    
+    // Función para obtener las ciudades de un usuario
+    function getUserCities(userId) {
+      // Esta función necesitaría ser implementada según la estructura de datos
+      // Por ahora, solo permitimos acceso si es admin global
+      return [];
+    }
+    
+    // Reglas para profiles - solo el propietario y admins globales
+    match /profiles/{userId} {
+      allow read: if request.auth != null && 
+                     (request.auth.uid == userId || isGlobalAdmin(request.auth.uid));
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para logs de búsqueda - solo Functions pueden escribir, usuario puede leer los suyos
+    match /search_usage_logs/{logId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow write: if false; // Solo Firebase Functions pueden escribir
+    }
+    
+    // Reglas restrictivas por defecto - requiere autenticación para todo
     match /{document=**} {
-      // Permitir acceso a usuarios autenticados
+      // SEGURIDAD: Solo usuarios autenticados pueden acceder por defecto
       allow read, write: if request.auth != null;
     }
   }

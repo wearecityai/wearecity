@@ -12,6 +12,15 @@ import { generateEmbeddings, generateBatchEmbeddings, regenerateEmbeddings } fro
 import { vectorSearch, hybridSearch } from './vectorSearch';
 import { ragQuery, getRAGConversations, getRAGStats } from './ragRetrieval';
 
+// Importar servicio de Google Search seguro
+import { googleSearchService, SearchRequest } from './googleSearchService';
+
+// Importar rate limiting
+import { rateLimitService } from './rateLimit';
+
+// Importar validación
+import { ValidationService, ValidationError } from './validation';
+
 // Inicializar Firebase Admin
 admin.initializeApp();
 
@@ -31,47 +40,64 @@ export const healthCheck = functions.https.onRequest((req, res) => {
 export const processAIChat = functions.https.onRequest(async (req, res) => {
     return corsHandler(req, res, async () => {
       try {
-        // For testing, allow unauthenticated access
-        // TODO: Re-enable authentication in production
-        let userId = 'test-user';
-        
-        // Verify authentication (commented out for testing)
+        // SECURITY: Authentication is now REQUIRED
         const authHeader = req.headers.authorization;
-        if (authHeader?.startsWith('Bearer ')) {
-          try {
-            const idToken = authHeader.split('Bearer ')[1];
-            const decodedToken = await admin.auth().verifyIdToken(idToken);
-            if (decodedToken) {
-              userId = decodedToken.uid;
+        if (!authHeader?.startsWith('Bearer ')) {
+          return res.status(401).json({ 
+            error: 'Authorization required',
+            message: 'Must provide valid authentication token'
+          });
+        }
+
+        const idToken = authHeader.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+
+        // Check rate limit
+        const rateLimitResult = await rateLimitService.checkRateLimit(userId, 'ai-chat');
+        if (!rateLimitResult.allowed) {
+          return res.status(429).json({
+            error: 'Rate limit exceeded',
+            message: `Too many requests. Try again after ${rateLimitResult.resetTime.toISOString()}`,
+            remainingRequests: rateLimitResult.remainingRequests,
+            resetTime: rateLimitResult.resetTime.toISOString()
+          });
+        }
+
+        // Extract and validate request data
+        const rawData = req.body;
+        
+        try {
+          const validatedQuery = ValidationService.validateChatQuery(rawData.query);
+          const validatedCitySlug = ValidationService.validateCitySlug(rawData.citySlug);
+          const validatedConversationHistory = ValidationService.validateConversationHistory(rawData.conversationHistory);
+          const validatedMediaUrl = ValidationService.validateMediaUrl(rawData.mediaUrl);
+          const validatedMediaType = ValidationService.validateMediaType(rawData.mediaType);
+
+          const { query, citySlug, conversationHistory, mediaUrl, mediaType } = {
+            query: validatedQuery,
+            citySlug: validatedCitySlug,
+            conversationHistory: validatedConversationHistory,
+            mediaUrl: validatedMediaUrl,
+            mediaType: validatedMediaType
+          };
+
+          // Get city context - either from direct parameter or citySlug lookup
+          let cityContext = rawData.cityContext || '';
+          if (!cityContext && citySlug) {
+            const cityDoc = await admin.firestore()
+              .collection('cities')
+              .where('slug', '==', citySlug)
+              .limit(1)
+              .get();
+
+            if (!cityDoc.empty) {
+              const cityData = cityDoc.docs[0].data();
+              cityContext = cityData.name || '';
             }
-          } catch (authError) {
-            console.log('Auth error, using test user:', authError);
           }
-        }
 
-        // Extract request data
-        const { query, citySlug, cityContext: directCityContext, conversationHistory, mediaUrl, mediaType } = req.body;
-
-        if (!query) {
-          return res.status(400).json({ error: 'Query is required' });
-        }
-
-        // Get city context - either from direct parameter or citySlug lookup
-        let cityContext = directCityContext || '';
-        if (!cityContext && citySlug) {
-          const cityDoc = await admin.firestore()
-            .collection('cities')
-            .where('slug', '==', citySlug)
-            .limit(1)
-            .get();
-
-          if (!cityDoc.empty) {
-            const cityData = cityDoc.docs[0].data();
-            cityContext = cityData.name || '';
-          }
-        }
-
-        let result;
+          let result;
 
         // Handle multimodal queries (images/documents)
         if (mediaUrl && mediaType) {
@@ -108,10 +134,22 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
         // Log usage for monitoring
         await logAIUsage(userId, result.modelUsed, result.complexity, citySlug);
 
-        return res.status(200).json({
-          success: true,
-          data: result
-        });
+          return res.status(200).json({
+            success: true,
+            data: result
+          });
+
+        } catch (validationError) {
+          if (validationError instanceof ValidationError) {
+            console.warn('Validation error in processAIChat:', validationError.message);
+            return res.status(400).json({
+              error: 'Validation error',
+              message: validationError.message,
+              field: validationError.field
+            });
+          }
+          throw validationError; // Re-throw if not validation error
+        }
 
       } catch (error) {
         console.error('Error in processAIChat:', error);
@@ -155,6 +193,64 @@ export const classifyQuery = functions
     });
   });
 
+// SECURE Google Search endpoint - API keys stay on backend
+export const secureGoogleSearch = functions.https.onRequest(async (req, res) => {
+  return corsHandler(req, res, async () => {
+    try {
+      // Verify authentication
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+      }
+
+      const idToken = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const userId = decodedToken.uid;
+
+      // Check rate limit for search
+      const rateLimitResult = await rateLimitService.checkRateLimit(userId, 'google-search');
+      if (!rateLimitResult.allowed) {
+        return res.status(429).json({
+          error: 'Rate limit exceeded',
+          message: `Too many search requests. Try again after ${rateLimitResult.resetTime.toISOString()}`,
+          remainingRequests: rateLimitResult.remainingRequests,
+          resetTime: rateLimitResult.resetTime.toISOString()
+        });
+      }
+
+      // Validate and sanitize request
+      const validatedRequest = ValidationService.validateSearchRequest(req.body);
+      
+      // Perform search with backend API key
+      const results = await googleSearchService.search(validatedRequest);
+      
+      // Log usage
+      await logSearchUsage(userId, validatedRequest.query);
+
+      return res.status(200).json({
+        success: true,
+        data: results
+      });
+
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        console.warn('Validation error in secureGoogleSearch:', error.message);
+        return res.status(400).json({
+          error: 'Validation error',
+          message: error.message,
+          field: error.field
+        });
+      }
+      
+      console.error('Error in secureGoogleSearch:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+});
+
 // Usage logging for monitoring and costs
 const logAIUsage = async (
   userId: string,
@@ -179,6 +275,26 @@ const logAIUsage = async (
   } catch (error) {
     console.error('Error logging AI usage:', error);
     // Don't fail the main request if logging fails
+  }
+};
+
+// Log Google Search usage
+const logSearchUsage = async (userId: string, query: string) => {
+  try {
+    const searchLog = {
+      userId,
+      query: query.substring(0, 100), // Don't log full query for privacy
+      timestamp: new Date(),
+      service: 'google-search',
+      region: 'us-central1'
+    };
+
+    await admin.firestore()
+      .collection('search_usage_logs')
+      .add(searchLog);
+
+  } catch (error) {
+    console.error('Error logging search usage:', error);
   }
 };
 
