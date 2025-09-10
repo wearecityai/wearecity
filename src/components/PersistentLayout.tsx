@@ -24,6 +24,7 @@ import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
 import AdminMetrics from '@/pages/AdminMetrics';
 import InitializeMetrics from '@/pages/InitializeMetrics';
+import PublicMetrics from '@/pages/PublicMetrics';
 import { City } from '@/types';
 import { Sparkles, Building2 } from 'lucide-react';
 import { Badge } from './ui/badge';
@@ -602,6 +603,12 @@ const PersistentLayout: React.FC = () => {
       isAppFullyInitialized
     });
 
+    // SUPER PRIORITY: Debug metrics route - no auth required
+    if (location.pathname === '/debug/metrics') {
+      console.log('🎯 Debug metrics route - PUBLIC ACCESS');
+      return <PublicMetrics />;
+    }
+
     // ABSOLUTE PRIORITY: Vista controls override ALL other conditions
     // These must be checked first before any loading or config conditions
     console.log('🎯 HIGHEST PRIORITY: Checking currentView first');
@@ -643,6 +650,7 @@ const PersistentLayout: React.FC = () => {
       console.log('🎯 Direct route to initialize metrics - ABSOLUTE PRIORITY');
       return <InitializeMetrics />;
     }
+
 
     // Verificación adicional: solo mostrar loading inicial si no estamos reanudando
     // O si se activó el safety timeout

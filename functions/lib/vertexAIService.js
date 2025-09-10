@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.processMultimodalQuery = exports.processUserQuery = exports.processSimpleQuery = exports.processComplexQuery = exports.classifyQueryComplexity = void 0;
+exports.processMultimodalQuery = exports.processUserQuery = exports.processSimpleQuery = exports.processInstitutionalQuery = exports.classifyQueryComplexity = void 0;
 const genai_1 = require("@google/genai");
 const placesService_1 = require("./placesService");
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'wearecity-2ab89';
@@ -9,6 +9,31 @@ console.log('🔑 Google AI Config:', { PROJECT_ID });
 const ai = new genai_1.GoogleGenAI({});
 // Query complexity classifier
 const classifyQueryComplexity = (query) => {
+    // Detectar consultas institucionales primero
+    const institutionalIndicators = [
+        'tramite', 'tramites', 'procedimiento', 'procedimientos', 'gestion', 'gestiones',
+        'ayuntamiento', 'municipio', 'alcaldia', 'gobierno local', 'administracion municipal',
+        'sede electronica', 'portal ciudadano', 'atencion ciudadana', 'oficina virtual',
+        'certificado', 'certificados', 'documento', 'documentos', 'formulario', 'formularios',
+        'empadronamiento', 'empadronar', 'padron', 'censo', 'domicilio', 'residencia',
+        'licencia', 'licencias', 'permiso', 'permisos', 'autorizacion', 'autorizaciones',
+        'tasa', 'tasas', 'impuesto', 'impuestos', 'tributo', 'tributos', 'pago', 'pagos',
+        'cita previa', 'cita', 'citas', 'reserva', 'reservas', 'turno', 'turnos',
+        'como solicitar', 'como obtener', 'como presentar', 'como hacer', 'como tramitar',
+        'donde solicitar', 'donde presentar', 'donde ir', 'donde acudir',
+        'que necesito', 'que documentos', 'que requisitos', 'que papeles',
+        'documentacion', 'requisitos', 'pasos', 'proceso', 'tramitacion'
+    ];
+    const queryNormalized = query.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    // Verificar si es consulta institucional
+    const hasInstitutionalIntent = institutionalIndicators.some(indicator => {
+        const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        return regex.test(queryNormalized);
+    });
+    if (hasInstitutionalIntent) {
+        console.log('🏛️ Institutional query detected - will use Gemini 2.5 Pro with grounding');
+        return 'institutional';
+    }
     const complexIndicators = [
         'buscar', 'busca', 'encuentra', 'localizar', 'ubicar', 'donde está', 'dónde está',
         'información actual', 'noticias', 'eventos', 'horarios', 'agenda', 'tiempo real',
@@ -56,10 +81,11 @@ const classifyQueryComplexity = (query) => {
     return 'simple';
 };
 exports.classifyQueryComplexity = classifyQueryComplexity;
-// Gemini 1.5 Pro for complex queries with Google Search grounding
-const processComplexQuery = async (query, cityContext, conversationHistory) => {
+// Gemini 2.5 Pro for institutional queries with Google Search grounding
+const processInstitutionalQuery = async (query, cityContext, conversationHistory) => {
     try {
-        // Use Gemini 2.5 Pro with Google Search grounding for complex queries
+        console.log('🏛️ Processing institutional query with Gemini 2.5 Pro and grounding');
+        // Use Gemini 2.5 Pro with Google Search grounding for institutional queries
         const groundingTool = {
             googleSearch: {},
         };
@@ -78,7 +104,8 @@ const processComplexQuery = async (query, cityContext, conversationHistory) => {
             hour: '2-digit',
             minute: '2-digit'
         });
-        let systemPrompt = `Eres WeAreCity, el asistente inteligente de ${cityContext || 'la ciudad'}. 
+        const cityName = cityContext?.name || cityContext || 'la ciudad';
+        let systemPrompt = `Eres WeAreCity, el asistente inteligente de ${cityName}. 
 Tienes acceso a Google Search en tiempo real para proporcionar información actualizada y precisa.
 
 🎯 INFORMACIÓN ACTUAL:
@@ -90,21 +117,23 @@ Tienes acceso a Google Search en tiempo real para proporcionar información actu
 - Para consultas sobre eventos, noticias, horarios o información actual, utiliza Google Search automáticamente
 - Busca información específica en webs oficiales cuando sea posible
 - SIEMPRE cita las fuentes de información cuando uses datos de búsquedas
-- Para eventos en ${cityContext || 'la ciudad'}, busca en webs oficiales del ayuntamiento, turismo local, etc.
+- Para eventos en ${cityName}, busca en webs oficiales del ayuntamiento, turismo local, etc.
 
 ⚠️ RESTRICCIÓN GEOGRÁFICA CRÍTICA:
-- SOLO incluye eventos que tengan lugar en ${cityContext || 'la ciudad'}, España
-- SOLO incluye lugares (restaurantes, hoteles, museos, etc.) ubicados en ${cityContext || 'la ciudad'}, España
+- SOLO incluye eventos que tengan lugar en ${cityName}, España
+- SOLO incluye lugares (restaurantes, hoteles, museos, etc.) ubicados en ${cityName}, España
 - NO incluyas eventos o lugares de otras ciudades, aunque estén cerca
-- Verifica que la ubicación sea específicamente ${cityContext || 'la ciudad'}, España
+- Verifica que la ubicación sea específicamente ${cityName}, España
 - Si encuentras eventos/lugares de otras ciudades, NO los incluyas en el JSON
+- NUNCA menciones otras ciudades en tus respuestas
+- Si te preguntan sobre otras ciudades, responde: "Solo puedo ayudarte con información sobre ${cityName}, España"
 
 📝 FORMATO DE RESPUESTA:
 - Responde en español de manera clara y profesional
 - Para eventos y lugares: haz una BREVE introducción (2-3 párrafos máximo) y luego muestra las cards
 - NO repitas en el texto la información que ya aparece en las cards
 - La introducción debe ser general y contextual, las cards contienen los detalles específicos
-- Contextualiza toda la información para ${cityContext || 'la ciudad'}, España
+- Contextualiza toda la información para ${cityName}, España
 
 🎪 FORMATO ESPECIAL PARA EVENTOS:
 Cuando encuentres eventos, formátalos en JSON al final de tu respuesta usando esta estructura:
@@ -125,9 +154,9 @@ Cuando encuentres eventos, formátalos en JSON al final de tu respuesta usando e
 \`\`\`
 
 ⚠️ IMPORTANTE PARA EVENTOS:
-- SOLO incluye eventos que se celebren en ${cityContext || 'la ciudad'}, España
-- Verifica que la ubicación del evento sea específicamente ${cityContext || 'la ciudad'}, España
-- NO incluyas eventos de ciudades cercanas o de la provincia si no son en ${cityContext || 'la ciudad'}
+- SOLO incluye eventos que se celebren en ${cityName}, España
+- Verifica que la ubicación del evento sea específicamente ${cityName}, España
+- NO incluyas eventos de ciudades cercanas o de la provincia si no son en ${cityName}
 
 🗺️ FORMATO ESPECIAL PARA LUGARES:
 Cuando la consulta sea sobre encontrar lugares (restaurantes, hoteles, tiendas, museos, etc.), también incluye un bloque JSON para lugares:
@@ -146,9 +175,9 @@ Cuando la consulta sea sobre encontrar lugares (restaurantes, hoteles, tiendas, 
 \`\`\`
 
 ⚠️ IMPORTANTE PARA LUGARES:
-- SOLO incluye lugares ubicados en ${cityContext || 'la ciudad'}, España
-- Verifica que la dirección sea específicamente en ${cityContext || 'la ciudad'}, España
-- NO incluyas lugares de ciudades cercanas o de la provincia si no son en ${cityContext || 'la ciudad'}
+- SOLO incluye lugares ubicados en ${cityName}, España
+- Verifica que la dirección sea específicamente en ${cityName}, España
+- NO incluyas lugares de ciudades cercanas o de la provincia si no son en ${cityName}
 
 📋 INSTRUCCIONES PARA INTRODUCCIONES:
 - Para eventos: "Te presento los eventos más destacados de [ciudad] para [período]..."
@@ -188,6 +217,131 @@ Cuando la consulta sea sobre encontrar lugares (restaurantes, hoteles, tiendas, 
 - Si no tienes "sourceUrl", usa la URL de la página general de agenda como "eventDetailUrl"
 - NUNCA dejes "eventDetailUrl" como null o vacío
 
+🚨🚨🚨🚨🚨🚨🚨🚨 INSTRUCCIONES CRÍTICAS PARA TRÁMITES Y PROCEDIMIENTOS:
+
+Cuando detectes consultas sobre trámites, procedimientos administrativos, documentación, requisitos, licencias, certificados, empadronamiento, citas previas, sedes electrónicas, formularios, tasas, horarios de oficinas, etc., DEBES:
+
+⚠️⚠️⚠️⚠️ PROHIBIDO ABSOLUTO - NUNCA DIGAS:
+- ❌ "te recomiendo consultar"
+- ❌ "te recomiendo que consultes" 
+- ❌ "consulta la página web"
+- ❌ "consulta la web oficial"
+- ❌ "consulta directamente"
+- ❌ "es importante que te informes"
+- ❌ "los trámites pueden variar"
+- ❌ "visita la Oficina de Atención Ciudadana"
+- ❌ "allí te informarán"
+- ❌ Cualquier respuesta genérica o vaga
+
+✅✅✅✅ OBLIGATORIO - SIEMPRE DEBES:
+- ✅ BUSCAR automáticamente en la web oficial del ayuntamiento usando Google Search grounding
+- ✅ EXTRAER información específica y actualizada de la web oficial
+- ✅ EXPLICAR paso a paso usando datos verificados de la web
+- ✅ INCLUIR enlaces directos a formularios, portales de citas y páginas específicas
+- ✅ MENCIONAR horarios, ubicaciones y costes reales extraídos de la web
+- ✅ USAR el icono 📄 delante de cada documento en la lista de documentación
+- ✅ PROPORCIONAR información completa y específica, no genérica
+- ✅ SIEMPRE CITAR las fuentes de donde extraes cada información
+- ✅ SER MUY DETALLADO en cada paso del proceso
+- ✅ ANALIZAR PROFUNDAMENTE todos los resultados de búsqueda
+- ✅ EXTRAER información específica de cada URL encontrada
+- ✅ COMBINAR información de múltiples fuentes para dar respuestas completas
+- ✅ VERIFICAR que cada enlace sea funcional y específico
+
+📋 FORMATO STREAMDOWN ENRIQUECIDO PARA TRÁMITES:
+
+# Título del Trámite
+> *(Información extraída de la web oficial)*
+
+## 📋 Documentación Requerida
+
+| Documento | Descripción | Enlace |
+|-----------|-------------|--------|
+| 📄 **DNI/NIE** | Documento de identidad en vigor | [Portal Ciudadano](enlace) |
+| 📄 **Justificante** | Comprobante de domicilio | [Formulario](enlace) |
+
+## 📝 Proceso Paso a Paso
+
+### 1. Preparación de Documentos
+- **Reunir** toda la documentación requerida
+- **Verificar** que los documentos estén vigentes
+- **Hacer copias** de seguridad
+
+### 2. Solicitud Online
+\`\`\`bash
+# Acceder al portal
+Portal: sede.lavilajoiosa.es
+Usuario: Tu DNI/NIE
+\`\`\`
+
+### 3. Presentación Presencial
+> **⚠️ Importante**: Cita previa obligatoria
+
+## 🕒 Información Práctica
+
+### Horarios de Atención
+- **Lunes a Viernes**: 8:30h - 14:00h
+- **Martes y Jueves**: 16:00h - 18:30h
+
+### Ubicación
+**Ayuntamiento de La Vila Joiosa**
+📍 Plaça de la Generalitat, 1
+📞 965 89 30 50
+
+## ⏰ Plazos y Costes
+
+| Concepto | Tiempo | Coste |
+|----------|--------|-------|
+| **Tramitación** | 15 días hábiles | Gratuito |
+| **Resolución** | 30 días máximo | - |
+
+---
+*Información actualizada desde la web oficial del ayuntamiento*
+
+🔗 **Enlaces Oficiales:**
+- [🌐 Sede Electrónica](enlace_real)
+- [📋 Formularios](enlace_real)
+- [📞 Cita Previa](enlace_real)
+
+---
+
+🎨 **INSTRUCCIONES STREAMDOWN AVANZADAS:**
+
+✅ **USA SIEMPRE estos elementos para respuestas enriquecidas:**
+
+1. **Títulos Jerárquicos**: Usa # para H1, ## para H2, ### para H3
+2. **Tablas**: Organiza información en formato tabla con | separadores
+3. **Bloques de Código**: Usa triple backticks para URLs y portales
+4. **Citas**: Usa > para advertencias e información importante
+5. **Listas Enriquecidas**: Combina **negrita**, *cursiva* y emojis
+6. **Separadores**: Usa --- para dividir secciones
+7. **Combinaciones de Emojis + Formato** para elementos visuales
+
+**EJEMPLO DE FORMATO ENRIQUECIDO:**
+- Usa # para títulos principales
+- Usa ## para secciones importantes  
+- Usa ### para subsecciones
+- Usa tablas para información estructurada
+- Usa > para advertencias importantes
+- Usa --- para separar secciones
+- Combina 📄 **Documentos**, 🕒 **Horarios**, etc.
+  - 📄 **Formularios:** [Enlaces directos a documentos descargables - NUNCA genéricos] *(Fuente: [URL])*
+  - 🖥️ **Portal de citas:** [URL específica para pedir cita online - NUNCA genérica] *(Fuente: [URL])*
+  - 📋 **Sede electrónica:** [Enlace a trámite online si existe - NUNCA genérico] *(Fuente: [URL])*
+  - 📞 **Contacto:** [Teléfono y email oficial extraídos de la web] *(Fuente: [URL])*
+  - 🌐 **Web oficial:** [URL principal del ayuntamiento] *(Fuente: [URL])*
+  - 📍 **Ubicación física:** [Dirección exacta con enlace a Google Maps si está disponible] *(Fuente: [URL])*
+
+📝 **Fuentes consultadas:**
+- [URL 1] - [Descripción de la información extraída]
+- [URL 2] - [Descripción de la información extraída]
+- [URL 3] - [Descripción de la información extraída]
+
+🚨🚨🚨🚨🚨🚨🚨🚨 SI NO ENCUENTRAS INFORMACIÓN ESPECÍFICA EN LA WEB OFICIAL:
+Di claramente: "No puedo acceder a la información actualizada del ayuntamiento en este momento. Te recomiendo consultar directamente en su web oficial [URL del ayuntamiento] o contactar por teléfono [número de teléfono si está disponible]."
+
+🚨🚨🚨🚨🚨🚨🚨🚨 ESTAS INSTRUCCIONES SON ABSOLUTAMENTE OBLIGATORIAS PARA TRÁMITES - NO LAS IGNORES
+
 IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos, no incluyas el bloque JSON.`;
         // Build conversation context
         let conversationContext = '';
@@ -199,7 +353,7 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
         }
         const fullPrompt = `${systemPrompt}${conversationContext}\n\nConsulta: ${query}`;
         const result = await model({
-            model: "gemini-2.5-pro",
+            model: "gemini-2.5-flash-lite",
             contents: fullPrompt,
             config,
         });
@@ -244,7 +398,7 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
         throw new Error(`Error procesando consulta compleja: ${error}`);
     }
 };
-exports.processComplexQuery = processComplexQuery;
+exports.processInstitutionalQuery = processInstitutionalQuery;
 // Use Gemini 1.5 Pro for all queries (simple queries use lighter config)
 const processSimpleQuery = async (query, cityContext, conversationHistory) => {
     try {
@@ -260,14 +414,23 @@ const processSimpleQuery = async (query, cityContext, conversationHistory) => {
             hour: '2-digit',
             minute: '2-digit'
         });
-        const systemPrompt = `Eres el asistente de ${cityContext || 'la ciudad'}. 
+        const cityName = cityContext?.name || cityContext || 'la ciudad';
+        const systemPrompt = `Eres WeAreCity, el asistente inteligente de ${cityName}. 
 
 INFORMACIÓN ACTUAL:
 - Fecha y hora actual: ${currentDateTime} (España)
 - Usa esta fecha y hora como referencia
 
+⚠️ RESTRICCIÓN GEOGRÁFICA CRÍTICA:
+- SOLO proporciona información sobre ${cityName}, España
+- NO incluyas información sobre otras ciudades, aunque estén cerca
+- NUNCA menciones otras ciudades en tus respuestas
+- Si te preguntan sobre otras ciudades, responde: "Solo puedo ayudarte con información sobre ${cityName}, España"
+- Verifica que toda la información sea específica de ${cityName}, España
+
 Responde de forma concisa y directa en español.
-Mantén un tono amigable y profesional.`;
+Mantén un tono amigable y profesional.
+Contextualiza toda la información para ${cityName}, España.`;
         // Limited conversation context for simple queries
         let conversationContext = '';
         if (conversationHistory && conversationHistory.length > 0) {
@@ -300,22 +463,40 @@ exports.processSimpleQuery = processSimpleQuery;
 const processUserQuery = async (query, cityContext, conversationHistory) => {
     const complexity = (0, exports.classifyQueryComplexity)(query);
     console.log(`🎯 Query classified as: ${complexity}`);
-    console.log(`🤖 Using model: Gemini 2.5 Flash-Lite (US-Central1)${complexity === 'complex' ? ' with Google Search' : ''}`);
+    let modelMessage = '';
+    if (complexity === 'institutional') {
+        modelMessage = 'Gemini 2.5 Pro with Google Search grounding for institutional queries';
+    }
+    else if (complexity === 'complex') {
+        modelMessage = 'Gemini 2.5 Flash-Lite with Google Search';
+    }
+    else {
+        modelMessage = 'Gemini 2.5 Flash-Lite';
+    }
+    console.log(`🤖 Using model: ${modelMessage}`);
     try {
         let result;
         let searchPerformed = false;
-        if (complexity === 'complex') {
-            result = await (0, exports.processComplexQuery)(query, cityContext, conversationHistory);
+        let modelUsed;
+        if (complexity === 'institutional') {
+            result = await (0, exports.processInstitutionalQuery)(query, cityContext, conversationHistory);
+            searchPerformed = true;
+            modelUsed = 'gemini-2.5-pro';
+        }
+        else if (complexity === 'complex') {
+            result = await (0, exports.processInstitutionalQuery)(query, cityContext, conversationHistory);
             searchPerformed = true; // Grounding nativo activado
+            modelUsed = 'gemini-2.5-pro';
         }
         else {
             result = await (0, exports.processSimpleQuery)(query, cityContext, conversationHistory);
+            modelUsed = 'gemini-2.5-flash-lite';
         }
         return {
             response: result.text,
             events: result.events,
             places: result.places,
-            modelUsed: 'gemini-2.5-flash-lite',
+            modelUsed,
             complexity,
             searchPerformed
         };
@@ -349,7 +530,8 @@ const processMultimodalQuery = async (query, mediaUrl, mediaType, cityContext) =
             hour: '2-digit',
             minute: '2-digit'
         });
-        const systemPrompt = `Eres el asistente inteligente de ${cityContext || 'la ciudad'}.
+        const cityName = cityContext?.name || cityContext || 'la ciudad';
+        const systemPrompt = `Eres el asistente inteligente de ${cityName}.
 
 INFORMACIÓN ACTUAL:
 - Fecha y hora actual: ${currentDateTime} (España)

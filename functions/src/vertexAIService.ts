@@ -9,7 +9,36 @@ console.log('🔑 Google AI Config:', { PROJECT_ID });
 const ai = new GoogleGenAI({});
 
 // Query complexity classifier
-export const classifyQueryComplexity = (query: string): 'simple' | 'complex' => {
+export const classifyQueryComplexity = (query: string): 'simple' | 'complex' | 'institutional' => {
+  // Detectar consultas institucionales primero
+  const institutionalIndicators = [
+    'tramite', 'tramites', 'procedimiento', 'procedimientos', 'gestion', 'gestiones',
+    'ayuntamiento', 'municipio', 'alcaldia', 'gobierno local', 'administracion municipal',
+    'sede electronica', 'portal ciudadano', 'atencion ciudadana', 'oficina virtual',
+    'certificado', 'certificados', 'documento', 'documentos', 'formulario', 'formularios',
+    'empadronamiento', 'empadronar', 'padron', 'censo', 'domicilio', 'residencia',
+    'licencia', 'licencias', 'permiso', 'permisos', 'autorizacion', 'autorizaciones',
+    'tasa', 'tasas', 'impuesto', 'impuestos', 'tributo', 'tributos', 'pago', 'pagos',
+    'cita previa', 'cita', 'citas', 'reserva', 'reservas', 'turno', 'turnos',
+    'como solicitar', 'como obtener', 'como presentar', 'como hacer', 'como tramitar',
+    'donde solicitar', 'donde presentar', 'donde ir', 'donde acudir',
+    'que necesito', 'que documentos', 'que requisitos', 'que papeles',
+    'documentacion', 'requisitos', 'pasos', 'proceso', 'tramitacion'
+  ];
+
+  const queryNormalized = query.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  
+  // Verificar si es consulta institucional
+  const hasInstitutionalIntent = institutionalIndicators.some(indicator => {
+    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    return regex.test(queryNormalized);
+  });
+
+  if (hasInstitutionalIntent) {
+    console.log('🏛️ Institutional query detected - will use Gemini 2.5 Pro with grounding');
+    return 'institutional';
+  }
+
   const complexIndicators = [
     'buscar', 'busca', 'encuentra', 'localizar', 'ubicar', 'donde está', 'dónde está',
     'información actual', 'noticias', 'eventos', 'horarios', 'agenda', 'tiempo real',
@@ -64,14 +93,16 @@ export const classifyQueryComplexity = (query: string): 'simple' | 'complex' => 
   return 'simple';
 };
 
-// Gemini 1.5 Pro for complex queries with Google Search grounding
-export const processComplexQuery = async (
+// Gemini 2.5 Pro for institutional queries with Google Search grounding
+export const processInstitutionalQuery = async (
   query: string, 
   cityContext?: string,
   conversationHistory?: any[]
 ): Promise<{ text: string; events?: any[]; places?: PlaceResult[] }> => {
   try {
-    // Use Gemini 2.5 Pro with Google Search grounding for complex queries
+    console.log('🏛️ Processing institutional query with Gemini 2.5 Pro and grounding');
+    
+    // Use Gemini 2.5 Pro with Google Search grounding for institutional queries
     const groundingTool = {
       googleSearch: {},
     };
@@ -204,6 +235,77 @@ Cuando la consulta sea sobre encontrar lugares (restaurantes, hoteles, tiendas, 
 - Si no tienes "sourceUrl", usa la URL de la página general de agenda como "eventDetailUrl"
 - NUNCA dejes "eventDetailUrl" como null o vacío
 
+🚨🚨🚨🚨🚨🚨🚨🚨 INSTRUCCIONES CRÍTICAS PARA TRÁMITES Y PROCEDIMIENTOS:
+
+Cuando detectes consultas sobre trámites, procedimientos administrativos, documentación, requisitos, licencias, certificados, empadronamiento, citas previas, sedes electrónicas, formularios, tasas, horarios de oficinas, etc., DEBES:
+
+⚠️⚠️⚠️⚠️ PROHIBIDO ABSOLUTO - NUNCA DIGAS:
+- ❌ "te recomiendo consultar"
+- ❌ "te recomiendo que consultes" 
+- ❌ "consulta la página web"
+- ❌ "consulta la web oficial"
+- ❌ "consulta directamente"
+- ❌ "es importante que te informes"
+- ❌ "los trámites pueden variar"
+- ❌ "visita la Oficina de Atención Ciudadana"
+- ❌ "allí te informarán"
+- ❌ Cualquier respuesta genérica o vaga
+
+✅✅✅✅ OBLIGATORIO - SIEMPRE DEBES:
+- ✅ BUSCAR automáticamente en la web oficial del ayuntamiento usando Google Search grounding
+- ✅ EXTRAER información específica y actualizada de la web oficial
+- ✅ EXPLICAR paso a paso usando datos verificados de la web
+- ✅ INCLUIR enlaces directos a formularios, portales de citas y páginas específicas
+- ✅ MENCIONAR horarios, ubicaciones y costes reales extraídos de la web
+- ✅ USAR el icono 📄 delante de cada documento en la lista de documentación
+- ✅ PROPORCIONAR información completa y específica, no genérica
+- ✅ SIEMPRE CITAR las fuentes de donde extraes cada información
+- ✅ SER MUY DETALLADO en cada paso del proceso
+- ✅ ANALIZAR PROFUNDAMENTE todos los resultados de búsqueda
+- ✅ EXTRAER información específica de cada URL encontrada
+- ✅ COMBINAR información de múltiples fuentes para dar respuestas completas
+- ✅ VERIFICAR que cada enlace sea funcional y específico
+
+📋 FORMATO OBLIGATORIO PARA TRÁMITES:
+
+**Título del Trámite** *(extraído de la web oficial)*
+
+📋 **Documentación requerida:** 
+📄 [Lista exacta extraída de la web con enlaces directos a cada documento y fuentes]
+
+📝 **Pasos a seguir (DETALLADOS):**
+  1. [Paso específico extraído de la web con enlace a la página correspondiente y fuente]
+  2. [Paso específico extraído de la web con enlace a la página correspondiente y fuente]
+  3. [Paso específico extraído de la web con enlace a la página correspondiente y fuente]
+  4. [Continuar con todos los pasos necesarios, cada uno con su enlace y fuente]
+
+🕒 **Horarios y ubicación:** 
+[Información real extraída de la web oficial con enlaces a horarios y fuentes]
+
+⏰ **Plazos:** 
+[Tiempo específico extraído de la web con enlace a la información de plazos y fuente]
+
+💰 **Costes:** 
+[Si aplica, información real extraída de la web con enlace a tasas y fuente]
+
+🔗 **Enlaces oficiales:**
+  - 📄 **Formularios:** [Enlaces directos a documentos descargables - NUNCA genéricos] *(Fuente: [URL])*
+  - 🖥️ **Portal de citas:** [URL específica para pedir cita online - NUNCA genérica] *(Fuente: [URL])*
+  - 📋 **Sede electrónica:** [Enlace a trámite online si existe - NUNCA genérico] *(Fuente: [URL])*
+  - 📞 **Contacto:** [Teléfono y email oficial extraídos de la web] *(Fuente: [URL])*
+  - 🌐 **Web oficial:** [URL principal del ayuntamiento] *(Fuente: [URL])*
+  - 📍 **Ubicación física:** [Dirección exacta con enlace a Google Maps si está disponible] *(Fuente: [URL])*
+
+📝 **Fuentes consultadas:**
+- [URL 1] - [Descripción de la información extraída]
+- [URL 2] - [Descripción de la información extraída]
+- [URL 3] - [Descripción de la información extraída]
+
+🚨🚨🚨🚨🚨🚨🚨🚨 SI NO ENCUENTRAS INFORMACIÓN ESPECÍFICA EN LA WEB OFICIAL:
+Di claramente: "No puedo acceder a la información actualizada del ayuntamiento en este momento. Te recomiendo consultar directamente en su web oficial [URL del ayuntamiento] o contactar por teléfono [número de teléfono si está disponible]."
+
+🚨🚨🚨🚨🚨🚨🚨🚨 ESTAS INSTRUCCIONES SON ABSOLUTAMENTE OBLIGATORIAS PARA TRÁMITES - NO LAS IGNORES
+
 IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos, no incluyas el bloque JSON.`;
 
     // Build conversation context
@@ -218,7 +320,7 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
     const fullPrompt = `${systemPrompt}${conversationContext}\n\nConsulta: ${query}`;
 
     const result = await model({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-flash-lite",
       contents: fullPrompt,
       config,
     });
@@ -344,31 +446,47 @@ export const processUserQuery = async (
   response: string;
   events?: any[];
   places?: PlaceResult[];
-  modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite';
-  complexity: 'simple' | 'complex';
+  modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-pro';
+  complexity: 'simple' | 'complex' | 'institutional';
   searchPerformed: boolean;
 }> => {
   const complexity = classifyQueryComplexity(query);
   
   console.log(`🎯 Query classified as: ${complexity}`);
-  console.log(`🤖 Using model: Gemini 2.5 Flash-Lite (US-Central1)${complexity === 'complex' ? ' with Google Search' : ''}`);
+  
+  let modelMessage = '';
+  if (complexity === 'institutional') {
+    modelMessage = 'Gemini 2.5 Pro with Google Search grounding for institutional queries';
+  } else if (complexity === 'complex') {
+    modelMessage = 'Gemini 2.5 Flash-Lite with Google Search';
+  } else {
+    modelMessage = 'Gemini 2.5 Flash-Lite';
+  }
+  console.log(`🤖 Using model: ${modelMessage}`);
 
   try {
     let result: { text: string; events?: any[]; places?: PlaceResult[] };
     let searchPerformed = false;
+    let modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-pro';
 
-    if (complexity === 'complex') {
+    if (complexity === 'institutional') {
+      result = await processInstitutionalQuery(query, cityContext, conversationHistory);
+      searchPerformed = true;
+      modelUsed = 'gemini-2.5-pro';
+    } else if (complexity === 'complex') {
       result = await processComplexQuery(query, cityContext, conversationHistory);
       searchPerformed = true; // Grounding nativo activado
+      modelUsed = 'gemini-2.5-flash-lite';
     } else {
       result = await processSimpleQuery(query, cityContext, conversationHistory);
+      modelUsed = 'gemini-2.5-flash-lite';
     }
 
     return {
       response: result.text,
       events: result.events,
       places: result.places,
-      modelUsed: 'gemini-2.5-flash-lite',
+      modelUsed,
       complexity,
       searchPerformed
     };

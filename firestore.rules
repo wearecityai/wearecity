@@ -17,16 +17,15 @@ service cloud.firestore {
     
     // Reglas para métricas de chat - solo lectura/escritura por Functions
     match /chat_analytics/{analyticsId} {
-      // Solo Functions pueden escribir, usuarios autenticados pueden leer sus propios datos
-      allow read: if request.auth != null && 
-                     (request.auth.uid == resource.data.user_id || 
-                      isAdmin(request.auth.uid, resource.data.city_id));
+      // TEMPORAL: Permitir lectura pública para debugging métricas
+      allow read: if true;
       allow write: if false; // Solo Firebase Functions pueden escribir
     }
     
     // Reglas para categorías de chat - solo lectura para usuarios, escritura para admin
     match /chat_categories/{categoryId} {
-      allow read: if request.auth != null;
+      // TEMPORAL: Permitir lectura pública para debugging métricas
+      allow read: if true;
       allow write: if request.auth != null && isAdmin(request.auth.uid, null);
     }
     

@@ -151,6 +151,39 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   console.log('🚨 DEBUG - ChatMessage message.events:', message.events);
   console.log('🚨 DEBUG - ChatMessage message.placeCards:', message.placeCards);
   
+  // 🔍 Logs de identificación del sistema de respuesta
+  if (message.metadata) {
+    console.log('🔍 ===== SISTEMA DE RESPUESTA IDENTIFICADO (FRONTEND) =====');
+    console.log('📊 RAG used:', message.metadata.ragUsed);
+    console.log('📈 RAG results count:', message.metadata.ragResultsCount);
+    console.log('🔍 RAG search type:', message.metadata.ragSearchType);
+    console.log('🔍 Search performed:', message.metadata.searchPerformed);
+    console.log('🤖 Model used:', message.metadata.modelUsed);
+    console.log('📋 Complexity:', message.metadata.complexity);
+    
+    // Identificar el sistema específico
+    if (message.metadata.ragUsed) {
+      if (message.metadata.isDynamicRAG) {
+        console.log('✅ RESPUESTA: RAG Dinámico (Respuestas previas)');
+        console.log(`   - Resultados encontrados: ${message.metadata.ragResultsCount}`);
+        console.log(`   - Tipo de búsqueda: ${message.metadata.ragSearchType}`);
+      } else {
+        console.log('✅ RESPUESTA: RAG Estático (Base de datos local)');
+        console.log(`   - Resultados encontrados: ${message.metadata.ragResultsCount}`);
+        console.log(`   - Tipo de búsqueda: ${message.metadata.ragSearchType}`);
+      }
+    } else if (message.metadata.searchPerformed) {
+      if (message.metadata.modelUsed === 'gemini-2.5-pro') {
+        console.log('✅ RESPUESTA: Gemini 2.5 Pro + Google Search Grounding');
+      } else {
+        console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite + Google Search Grounding');
+      }
+    } else {
+      console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite (Sin búsqueda)');
+    }
+    console.log('🔍 ========================================================');
+  }
+  
   const { shouldShowCard } = useStrictSequentialReveal({
     textContent: contentToDisplay, // Use the content that's actually being displayed
     totalCards,
@@ -348,6 +381,34 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                           >
                             {contentToDisplay}
                           </Response>
+                        </div>
+                      )}
+                      
+                      {/* Indicador del sistema de respuesta */}
+                      {message.metadata && (
+                        <div className="mt-2 flex items-center justify-end">
+                          <div className="text-xs text-muted-foreground flex items-center space-x-2">
+                            {message.metadata.ragUsed ? (
+                              <>
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                  🗄️ RAG
+                                </span>
+                                <span className="text-xs">
+                                  {message.metadata.ragResultsCount} resultados • {message.metadata.ragSearchType}
+                                </span>
+                              </>
+                            ) : message.metadata.searchPerformed ? (
+                              <>
+                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                                  🔍 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'} + Google
+                                </span>
+                              </>
+                            ) : (
+                              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
+                                🤖 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                       

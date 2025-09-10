@@ -75,6 +75,10 @@ start_mcp_server "browser-mcp" "npx @browsermcp/mcp" 3002
 # Google Cloud MCP
 start_mcp_server "google-cloud-mcp" "node node_modules/google-cloud-mcp/dist/index.js" 3003 "GOOGLE_CLOUD_PROJECT=wearecity"
 
+# Firebase MCP
+export FIREBASE_PROJECT_ID="wearecity-2ab89"
+start_mcp_server "firebase-mcp" "npx -y firebase-tools@latest experimental:mcp" 3004
+
 echo ""
 echo "🎉 Todos los servidores MCP han sido iniciados!"
 echo ""
@@ -82,6 +86,7 @@ echo "🤖 Herramientas disponibles para la IA:"
 echo "  - Supabase MCP: http://localhost:3001 (Base de datos)"
 echo "  - Browser MCP: http://localhost:3002 (Navegación web)"
 echo "  - Google Cloud MCP: http://localhost:3003 (Servicios Google)"
+echo "  - Firebase MCP: http://localhost:3004 (Firebase servicios)"
 echo ""
 echo "📝 Logs disponibles en la carpeta 'logs/'"
 echo ""

@@ -4,7 +4,7 @@ import {
   BookOpen, MessageSquare, Send, Loader2, 
   ExternalLink, File, Globe, AlertCircle, CheckCircle
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
 import { libraryService, LibrarySource, LibraryChatMessage } from '../services/libraryService';
+import { enhancedLibraryService, EnhancedLibrarySource, RAGResponse } from '../services/enhancedLibraryService';
 
 // Interfaces are now imported from libraryService
 
@@ -25,6 +26,7 @@ interface LibraryPageProps {
 const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
   
   const [sources, setSources] = useState<LibrarySource[]>([]);
+  const [enhancedSources, setEnhancedSources] = useState<EnhancedLibrarySource[]>([]);
   const [chatMessages, setChatMessages] = useState<LibraryChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +36,8 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
   const [newSourceContent, setNewSourceContent] = useState('');
   const [newSourceUrl, setNewSourceUrl] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [ragEnabled, setRagEnabled] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<Record<string, string>>({});
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +50,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
   // Load sources from Firebase on mount
   useEffect(() => {
     loadSources();
+    loadEnhancedSources();
   }, [user, citySlug]);
 
   const loadSources = async () => {
@@ -56,6 +61,26 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
       setSources(loadedSources);
     } catch (error) {
       console.error('❌ Error loading sources:', error);
+    }
+  };
+
+  const loadEnhancedSources = async () => {
+    try {
+      if (!user?.uid || !citySlug) return;
+      
+      console.log('🔄 Loading enhanced sources for user:', user?.uid, 'city:', citySlug);
+      const loadedEnhancedSources = await enhancedLibraryService.getSourcesWithStatus(user.uid, citySlug);
+      console.log('📚 Loaded enhanced sources:', loadedEnhancedSources);
+      setEnhancedSources(loadedEnhancedSources);
+      
+      // Actualizar estados de procesamiento
+      const statusMap: Record<string, string> = {};
+      loadedEnhancedSources.forEach(source => {
+        statusMap[source.id] = source.processingStatus;
+      });
+      setProcessingStatus(statusMap);
+    } catch (error) {
+      console.error('❌ Error loading enhanced sources:', error);
     }
   };
 
@@ -110,6 +135,192 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
       await loadSources();
     } catch (error) {
       console.error('Error deleting source:', error);
+    }
+  };
+
+  // ===== NUEVAS FUNCIONES RAG =====
+
+  const addSourceWithRAG = async () => {
+    console.log('🚀 addSourceWithRAG called with:', { 
+      newSourceTitle, 
+      newSourceType, 
+      newSourceUrl, 
+      newSourceContent,
+      ragEnabled 
+    });
+    
+    if (!newSourceTitle.trim()) {
+      console.warn('⚠️ No title provided, aborting');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log('🔄 Starting RAG source addition...');
+      
+      if (newSourceType === 'url' && newSourceUrl.trim()) {
+        console.log('🌐 Processing URL with RAG:', newSourceUrl.trim());
+        // Scraping avanzado con RAG
+        const result = await enhancedLibraryService.addSourceWithScraping(
+          newSourceUrl.trim(),
+          user?.uid || 'anonymous',
+          citySlug || 'default',
+          {
+            extractDocumentLinks: true,
+            followInternalLinks: false,
+            includeImages: false
+          },
+          newSourceTitle.trim() // Pasar el título personalizado
+        );
+        
+        if (result.success && result.sourceId) {
+          console.log('✅ Enhanced source added with ID:', result.sourceId);
+          setProcessingStatus(prev => ({ ...prev, [result.sourceId!]: 'scraped' }));
+          
+          // Procesar documentos si hay enlaces
+          if (result.documentLinks && result.documentLinks.length > 0) {
+            for (const docUrl of result.documentLinks) {
+              await enhancedLibraryService.processDocument(
+                docUrl,
+                result.sourceId,
+                user?.uid || 'anonymous',
+                citySlug || 'default'
+              );
+            }
+            setProcessingStatus(prev => ({ ...prev, [result.sourceId!]: 'processed' }));
+          }
+          
+          // Generar embeddings
+          await enhancedLibraryService.generateEmbeddings(
+            result.sourceId,
+            user?.uid || 'anonymous',
+            citySlug || 'default'
+          );
+          setProcessingStatus(prev => ({ ...prev, [result.sourceId!]: 'embedded' }));
+        }
+      } else if (newSourceType === 'text' && newSourceContent.trim()) {
+        // Procesar texto manual con RAG
+        const result = await enhancedLibraryService.processManualText(
+          newSourceTitle.trim(),
+          newSourceContent.trim(),
+          user?.uid || 'anonymous',
+          citySlug || 'default'
+        );
+        
+        if (result.success && result.sourceId) {
+          console.log('✅ Enhanced text source added with ID:', result.sourceId);
+          setProcessingStatus(prev => ({ ...prev, [result.sourceId!]: 'processed' }));
+          
+          // Generar embeddings
+          await enhancedLibraryService.generateEmbeddings(
+            result.sourceId,
+            user?.uid || 'anonymous',
+            citySlug || 'default'
+          );
+          setProcessingStatus(prev => ({ ...prev, [result.sourceId!]: 'embedded' }));
+        }
+      }
+      
+      // Reset form
+      setNewSourceTitle('');
+      setNewSourceContent('');
+      setNewSourceUrl('');
+      
+      // Reload sources
+      await loadEnhancedSources();
+    } catch (error) {
+      console.error('❌ Error adding source with RAG:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendRAGMessage = async () => {
+    if (!inputText.trim() || !user?.uid || !citySlug) return;
+
+    try {
+      setIsLoading(true);
+      
+      // Agregar mensaje del usuario
+      const userMessage: LibraryChatMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: inputText,
+        timestamp: new Date()
+      };
+      
+      setChatMessages(prev => [...prev, userMessage]);
+      setInputText('');
+      
+      // Consulta RAG
+      const ragResponse = await enhancedLibraryService.ragQuery(
+        inputText,
+        user.uid,
+        citySlug,
+        chatMessages.map(msg => ({ role: msg.role, content: msg.content }))
+      );
+      
+      if (ragResponse.success) {
+        const assistantMessage: LibraryChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: ragResponse.response || 'No se pudo generar una respuesta.',
+          timestamp: new Date(),
+          sources: ragResponse.relevantSources?.map(source => ({
+            id: source.sourceId,
+            type: 'url' as const,
+            title: source.title,
+            content: source.contentPreview,
+            url: source.url,
+            status: 'ready' as const,
+            createdAt: new Date(),
+            metadata: { wordCount: 0, language: 'es', tags: [], extractedText: '' }
+          }))
+        };
+        
+        setChatMessages(prev => [...prev, assistantMessage]);
+      } else {
+        const errorMessage: LibraryChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Error: ${ragResponse.error || 'No se pudo procesar la consulta.'}`,
+          timestamp: new Date()
+        };
+        
+        setChatMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('❌ Error sending RAG message:', error);
+      const errorMessage: LibraryChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Error al procesar la consulta. Por favor, inténtalo de nuevo.',
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setupRAGSystem = async () => {
+    try {
+      console.log('🚀 Setting up RAG system...');
+      setIsLoading(true);
+      const result = await enhancedLibraryService.setupRAGSystem();
+      
+      console.log('📊 RAG setup result:', result);
+      
+      if (result.success) {
+        console.log('✅ RAG system setup completed');
+        setRagEnabled(true);
+      } else {
+        console.error('❌ RAG setup failed:', result);
+      }
+    } catch (error) {
+      console.error('❌ Error setting up RAG system:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -238,9 +449,10 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
       </Alert>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="sources">Fuentes</TabsTrigger>
-          <TabsTrigger value="chat">Chat</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="sources">📚 Fuentes</TabsTrigger>
+          <TabsTrigger value="rag">🧠 RAG</TabsTrigger>
+          <TabsTrigger value="chat">💬 Chat</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources" className="space-y-6">
@@ -330,9 +542,19 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
                 )}
               </div>
 
-              <Button onClick={addSource} disabled={!newSourceTitle.trim()}>
+              <Button 
+                onClick={() => {
+                  console.log('🖱️ Button clicked! RAG enabled:', ragEnabled);
+                  if (ragEnabled) {
+                    addSourceWithRAG();
+                  } else {
+                    addSource();
+                  }
+                }} 
+                disabled={isLoading || !newSourceTitle.trim()}
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                Añadir Fuente
+                {isLoading ? 'Procesando...' : ragEnabled ? 'Añadir con RAG' : 'Añadir Fuente'}
               </Button>
             </CardContent>
           </Card>
@@ -416,6 +638,135 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
               ))
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="rag" className="space-y-6">
+          {/* RAG Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>🧠 Sistema RAG Avanzado</CardTitle>
+              <CardDescription>
+                Sistema de Retrieval-Augmented Generation con embeddings vectoriales y búsqueda semántica.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    onClick={setupRAGSystem} 
+                    disabled={isLoading || ragEnabled}
+                    variant={ragEnabled ? "secondary" : "default"}
+                  >
+                    {ragEnabled ? "✅ RAG Activado" : "🚀 Activar RAG"}
+                  </Button>
+                  {ragEnabled && (
+                    <Badge variant="outline" className="text-green-600">
+                      Sistema RAG Activo
+                    </Badge>
+                  )}
+                </div>
+                
+                {ragEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">📊 Fuentes RAG</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{enhancedSources.length}</div>
+                        <p className="text-xs text-muted-foreground">Fuentes procesadas</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">🧠 Embeddings</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {enhancedSources.filter(s => s.embedding).length}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Con embeddings</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">📄 Documentos</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {enhancedSources.reduce((acc, s) => acc + s.documentLinks.length, 0)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Enlaces a documentos</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Enhanced Sources */}
+          {ragEnabled && (
+            <Card>
+              <CardHeader>
+                <CardTitle>📚 Fuentes RAG</CardTitle>
+                <CardDescription>
+                  Fuentes procesadas con embeddings vectoriales para búsqueda semántica.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {enhancedSources.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      No hay fuentes RAG aún. Añade una fuente para comenzar.
+                    </div>
+                  ) : (
+                    enhancedSources.map((source) => (
+                      <div key={source.id} className="border rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium">{source.title}</h3>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant={
+                                source.processingStatus === 'embedded' ? 'default' :
+                                source.processingStatus === 'processed' ? 'secondary' :
+                                source.processingStatus === 'error' ? 'destructive' : 'outline'
+                              }
+                            >
+                              {source.processingStatus}
+                            </Badge>
+                            {source.embedding && (
+                              <Badge variant="outline" className="text-green-600">
+                                🧠 Embedding
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground">
+                          {source.content.substring(0, 200)}...
+                        </p>
+                        
+                        {source.documentLinks.length > 0 && (
+                          <div className="text-xs text-blue-600">
+                            📄 {source.documentLinks.length} documento(s) encontrado(s)
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                          <span>📊 {source.metadata.wordCount} palabras</span>
+                          <span>🏷️ {source.metadata.tags.join(', ') || 'Sin tags'}</span>
+                          <span>📅 {source.createdAt.toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="chat" className="space-y-6">

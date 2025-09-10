@@ -83,15 +83,15 @@ const AdminMetrics: React.FC = () => {
       
       try {
         const citiesRef = collection(db, 'cities');
-        const q = query(citiesRef, where('admin_user_id', '==', user.id));
+        const q = query(citiesRef, where('adminUserId', '==', user.id));
         const querySnapshot = await getDocs(q);
         
         console.log('🔍 AdminMetrics: Query result:', querySnapshot.docs.length, 'cities found');
         
         if (!querySnapshot.empty) {
           const cityDoc = querySnapshot.docs[0];
-          console.log('🔍 AdminMetrics: City found:', cityDoc.id);
-          setCityId(cityDoc.id);
+          console.log('🔍 AdminMetrics: City found:', cityDoc.id, 'slug:', cityDoc.data().slug);
+          setCityId(cityDoc.data().slug);
         } else {
           console.log('🔍 AdminMetrics: No city found for user:', user.id);
           // Try alternative approach - look for city with user ID as document ID
@@ -144,17 +144,14 @@ const AdminMetrics: React.FC = () => {
           where('city_id', '==', cityId)
         );
         
-        console.log('📊 Executing analytics query...');
+        console.log('📊 Fetching analytics for cityId:', cityId);
         const analyticsSnapshot = await getDocs(analyticsQuery);
         let analyticsData = analyticsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        }));
+        } as any));
         
         console.log('📈 Analytics data found:', analyticsData.length, 'records');
-        console.log('📈 Sample analytics data:', analyticsData.slice(0, 3));
-        console.log('📈 cityId being searched:', cityId);
-        console.log('📈 Analytics data city_ids:', analyticsData.map(a => a.city_id));
 
         // Aplicar filtro de fecha si es necesario
         if (fromIso) {

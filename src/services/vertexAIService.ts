@@ -43,9 +43,15 @@ export const processWithVertexAI = async (
     const idToken = await user.getIdToken();
     
     // Prepare request body
+    const cityContext = {
+      name: citySlug === 'la-vila-joiosa' ? 'La Vila Joiosa' : citySlug,
+      slug: citySlug
+    };
+    
     const requestBody = {
       query,
       citySlug,
+      cityContext,
       conversationHistory,
       mediaUrl,
       mediaType

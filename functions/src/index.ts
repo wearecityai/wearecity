@@ -3,6 +3,15 @@ import * as admin from 'firebase-admin';
 import cors from 'cors';
 import { processUserQuery, processMultimodalQuery, classifyQueryComplexity } from './vertexAIService';
 
+// Importar nuevas funciones RAG
+import { setupRAGSystem } from './firestoreSetup';
+import { createRAGCollections } from './createRAGCollections';
+import { advancedScraping, advancedCrawling } from './advancedScraping';
+import { processDocument, processManualText } from './documentProcessor';
+import { generateEmbeddings, generateBatchEmbeddings, regenerateEmbeddings } from './embeddingGenerator';
+import { vectorSearch, hybridSearch } from './vectorSearch';
+import { ragQuery, getRAGConversations, getRAGStats } from './ragRetrieval';
+
 // Inicializar Firebase Admin
 admin.initializeApp();
 
@@ -80,7 +89,20 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
         } else {
           // Handle text queries
           console.log('💬 Processing text query');
-          result = await processUserQuery(query, cityContext, conversationHistory);
+          
+          // 🎯 PASO 1: Intentar RAG primero
+          console.log('🔍 Step 1: Trying RAG first...');
+          const ragResult = await tryRAGFirst(query, userId, citySlug, cityContext);
+          
+          if (ragResult) {
+            // RAG encontró información suficiente
+            console.log('✅ RAG: Found sufficient information, using RAG response');
+            result = ragResult;
+          } else {
+            // RAG no encontró suficiente información, usar router original
+            console.log('🔄 RAG: Insufficient information, falling back to original router');
+            result = await processUserQuery(query, cityContext, conversationHistory);
+          }
         }
 
         // Log usage for monitoring
@@ -170,3 +192,146 @@ export {
   migrateMetricsData,
   setupAndFixMetrics
 } from './metricsService';
+
+// Export clear metrics function
+export { clearAllMetrics } from './clearMetrics';
+
+// ===== NUEVAS FUNCIONES RAG =====
+
+// Configuración inicial de RAG
+export { setupRAGSystem };
+export { createRAGCollections };
+
+// Scraping avanzado
+export const advancedScrapingFunction = functions.https.onCall(advancedScraping);
+export const advancedCrawlingFunction = functions.https.onCall(advancedCrawling);
+
+// Procesamiento de documentos
+export const processDocumentFunction = functions.https.onCall(processDocument);
+export const processManualTextFunction = functions.https.onCall(processManualText);
+
+// Generación de embeddings
+export const generateEmbeddingsFunction = functions.https.onCall(generateEmbeddings);
+export const generateBatchEmbeddingsFunction = functions.https.onCall(generateBatchEmbeddings);
+export const regenerateEmbeddingsFunction = functions.https.onCall(regenerateEmbeddings);
+
+// Búsqueda vectorial
+export const vectorSearchFunction = functions.https.onCall(vectorSearch);
+export const hybridSearchFunction = functions.https.onCall(hybridSearch);
+
+// RAG completo
+export const ragQueryFunction = functions.https.onCall(ragQuery);
+export const getRAGConversationsFunction = functions.https.onCall(getRAGConversations);
+export const getRAGStatsFunction = functions.https.onCall(getRAGStats);
+
+// Función de integración RAG híbrida
+async function tryRAGFirst(query: string, userId: string, citySlug: string, cityContext: any): Promise<any | null> {
+  try {
+    console.log('🔍 RAG: Starting search for query:', query.substring(0, 50) + '...');
+    
+    // Buscar fuentes en Firestore directamente
+    const db = admin.firestore();
+    
+    // Buscar fuentes para el usuario y ciudad
+    const sourcesSnapshot = await db.collection('library_sources_enhanced')
+      .where('userId', '==', userId)
+      .where('citySlug', '==', citySlug)
+      .limit(5)
+      .get();
+    
+    if (sourcesSnapshot.empty) {
+      console.log('❌ RAG: No sources found for user and city');
+      return null;
+    }
+    
+    console.log(`📊 RAG: Found ${sourcesSnapshot.size} sources`);
+    
+    // Buscar chunks relacionados
+    const allChunks: any[] = [];
+    
+    for (const sourceDoc of sourcesSnapshot.docs) {
+      const sourceId = sourceDoc.id;
+      const chunksSnapshot = await db.collection('document_chunks')
+        .where('sourceId', '==', sourceId)
+        .limit(3)
+        .get();
+      
+      chunksSnapshot.forEach(chunkDoc => {
+        const chunkData = chunkDoc.data();
+        allChunks.push({
+          content: chunkData.content,
+          sourceId: sourceId,
+          chunkIndex: chunkData.chunkIndex
+        });
+      });
+    }
+    
+    if (allChunks.length === 0) {
+      console.log('❌ RAG: No chunks found');
+      return null;
+    }
+    
+    console.log(`📄 RAG: Found ${allChunks.length} chunks`);
+    
+    // Búsqueda simple por palabras clave
+    const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2);
+    const relevantChunks = allChunks.filter(chunk => {
+      const content = chunk.content.toLowerCase();
+      return queryWords.some(word => content.includes(word));
+    });
+    
+    if (relevantChunks.length === 0) {
+      console.log('❌ RAG: No relevant chunks found');
+      return null;
+    }
+    
+    console.log(`✅ RAG: Found ${relevantChunks.length} relevant chunks`);
+    
+    // Generar respuesta usando la información RAG
+    const genAI = new (await import('@google/generative-ai')).GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    
+    const relevantContent = relevantChunks
+      .map(chunk => chunk.content)
+      .join('\n\n');
+    
+    const systemInstruction = `Eres un asistente virtual para ${cityContext || 'la ciudad'}. 
+    
+Responde a la consulta del usuario usando ÚNICAMENTE la información proporcionada a continuación.
+Si la información no es suficiente para responder completamente, indica que tienes información parcial.
+
+INFORMACIÓN DISPONIBLE:
+${relevantContent}
+
+INSTRUCCIONES:
+- Responde de manera natural y conversacional
+- Usa solo la información proporcionada
+- Si necesitas más información, sugiere que el usuario haga una consulta más específica
+- Mantén un tono amable y profesional`;
+
+    const result = await model.generateContent({
+      contents: [
+        { role: "user", parts: [{ text: systemInstruction }] },
+        { role: "user", parts: [{ text: query }] }
+      ]
+    });
+    
+    const response = result.response;
+    const text = response.text();
+    
+    return {
+      response: text,
+      events: [],
+      places: [],
+      modelUsed: 'gemini-2.5-flash-lite',
+      searchPerformed: false,
+      ragUsed: true,
+      ragResultsCount: relevantChunks.length,
+      ragSearchType: 'text'
+    };
+    
+  } catch (error) {
+    console.error('❌ RAG: Error in tryRAGFirst:', error);
+    return null;
+  }
+}

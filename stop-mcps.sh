@@ -27,11 +27,13 @@ stop_mcp_server() {
 stop_mcp_server "supabase-mcp"
 stop_mcp_server "browser-mcp"
 stop_mcp_server "google-cloud-mcp"
+stop_mcp_server "firebase-mcp"
 
 # También matar procesos por nombre por si acaso
 pkill -f "supabase-mcp" 2>/dev/null || true
 pkill -f "browser-mcp" 2>/dev/null || true
 pkill -f "google-cloud-mcp" 2>/dev/null || true
+pkill -f "firebase-mcp" 2>/dev/null || true
 
 echo ""
 echo "🎉 Todos los servidores MCP han sido detenidos!"

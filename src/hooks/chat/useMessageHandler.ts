@@ -29,7 +29,10 @@ export const useMessageHandler = (
     currentMessages: ChatMessage[]
   ) => {
     const query = inputText;
-    const cityContext = citySlug || '';
+    const cityContext = {
+      name: citySlug === 'la-vila-joiosa' ? 'La Vila Joiosa' : citySlug,
+      slug: citySlug
+    };
     const conversationHistory = currentMessages;
     console.log('🚀 Processing message with useMessageHandler');
     
@@ -79,6 +82,38 @@ export const useMessageHandler = (
         historyForAI
       );
 
+      // 🔍 Logs de identificación del sistema de respuesta
+      console.log('🔍 ===== SISTEMA DE RESPUESTA IDENTIFICADO =====');
+      console.log('📊 RAG used:', vertexResponse.ragUsed);
+      console.log('📈 RAG results count:', vertexResponse.ragResultsCount);
+      console.log('🔍 RAG search type:', vertexResponse.ragSearchType);
+      console.log('🔄 Dynamic RAG:', vertexResponse.isDynamicRAG);
+      console.log('🔍 Search performed:', vertexResponse.searchPerformed);
+      console.log('🤖 Model used:', vertexResponse.modelUsed);
+      console.log('📋 Complexity:', vertexResponse.complexity);
+      
+      // Identificar el sistema específico
+      if (vertexResponse.ragUsed) {
+        if (vertexResponse.isDynamicRAG) {
+          console.log('✅ RESPUESTA: RAG Dinámico (Respuestas previas)');
+          console.log(`   - Resultados encontrados: ${vertexResponse.ragResultsCount}`);
+          console.log(`   - Tipo de búsqueda: ${vertexResponse.ragSearchType}`);
+        } else {
+          console.log('✅ RESPUESTA: RAG Estático (Base de datos local)');
+          console.log(`   - Resultados encontrados: ${vertexResponse.ragResultsCount}`);
+          console.log(`   - Tipo de búsqueda: ${vertexResponse.ragSearchType}`);
+        }
+      } else if (vertexResponse.searchPerformed) {
+        if (vertexResponse.modelUsed === 'gemini-2.5-pro') {
+          console.log('✅ RESPUESTA: Gemini 2.5 Pro + Google Search Grounding');
+        } else {
+          console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite + Google Search Grounding');
+        }
+      } else {
+        console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite (Sin búsqueda)');
+      }
+      console.log('🔍 ================================================');
+
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: MessageRole.Model,
@@ -104,7 +139,10 @@ export const useMessageHandler = (
           modelUsed: vertexResponse.modelUsed,
           complexity: vertexResponse.complexity,
           searchPerformed: vertexResponse.searchPerformed,
-          multimodal: vertexResponse.multimodal
+          multimodal: vertexResponse.multimodal,
+          ragUsed: vertexResponse.ragUsed,
+          ragResultsCount: vertexResponse.ragResultsCount,
+          ragSearchType: vertexResponse.ragSearchType
         }
       };
       
