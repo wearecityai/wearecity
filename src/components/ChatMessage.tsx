@@ -16,8 +16,7 @@ import { usePlaceCardRetry } from '../hooks/usePlaceCardRetry';
 import { usePlaceCardFilter } from '../hooks/usePlaceCardFilter';
 import { useLoadingPattern } from '../hooks/useLoadingPattern';
 import { toast } from '@/components/ui/sonner';
-import { Response } from './ai-elements/response';
-import { Message, MessageContent, MessageAvatar } from './ai-elements/message';
+// AI Elements removed
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -338,8 +337,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
           </div>
                  ) : (
            // Assistant message - using AI SDK Message component
-           <Message from="assistant" className="w-full min-w-0">
-            <MessageContent>
+           <div className="w-full min-w-0">
+            <div>
                 {message.isTyping ? (
                   <div className="flex items-center space-x-3 h-10">
                     <div className="flex items-center justify-center">
@@ -375,12 +374,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                           onClick={typewriterIsTyping ? skipToEnd : undefined}
                           style={{ maxWidth: '100%' }}
                         >
-                          <Response
-                            parseIncompleteMarkdown={true}
-                            className=""
-                          >
+                          <div className="prose prose-sm max-w-none">
                             {contentToDisplay}
-                          </Response>
+                          </div>
                         </div>
                       )}
                       
@@ -466,7 +462,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                     </div>
                   </>
                 )}
-            </MessageContent>
+            </div>
             
             {!message.isTyping && !message.error && (
               <div className="flex items-center justify-start mt-2">
@@ -493,7 +489,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                 </div>
               </div>
             )}
-          </Message>
+          </div>
         )}
       </div>
     </div>
