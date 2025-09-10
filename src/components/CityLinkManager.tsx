@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAssistantConfig } from '@/hooks/useAssistantConfig';
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed - privacy toggle disabled
 import { useAuth } from '@/hooks/useAuthFirebase';
 
 export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ assistantNameOverride }) => {
@@ -107,24 +107,15 @@ export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ 
     }
   };
 
-  // Cargar el estado actual de privacidad desde la base de datos
+  // Privacy state loading disabled (Supabase removed)
   const loadPrivacyState = async () => {
     if (!user) return;
     
     setIsLoadingPrivacy(true);
     try {
-      const { data, error } = await supabase
-        .from('cities')
-        .select('is_public')
-        .eq('admin_user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error loading privacy state:', error);
-      } else if (data) {
-        setIsPublic(data.is_public ?? true);
-      }
+      console.log('loadPrivacyState: Function disabled (Supabase removed)');
+      // Default to public
+      setIsPublic(true);
     } catch (error) {
       console.error('Error loading privacy state:', error);
     } finally {
@@ -159,25 +150,12 @@ export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ 
     try {
       const newPrivacyState = !isPublic;
       
-      // Actualizar el estado público/privado en la base de datos
-      const { error } = await supabase
-        .from('cities')
-        .update({ 
-          is_public: newPrivacyState,
-          updated_at: new Date().toISOString()
-        })
-        .eq('admin_user_id', user.id)
-        .eq('is_active', true);
-
-      if (error) {
-        console.error('Error updating privacy:', error);
-        // Mostrar error al usuario
-        return;
-      } else {
-        // Actualizar el estado local
-        setIsPublic(newPrivacyState);
-        console.log('Privacy updated successfully:', newPrivacyState);
-      }
+      // Privacy toggle disabled (Supabase removed)
+      console.log('togglePrivacy: Function disabled (Supabase removed)');
+      
+      // Update local state only
+      setIsPublic(newPrivacyState);
+      console.log('Privacy updated locally only:', newPrivacyState);
     } catch (error) {
       console.error('Error updating privacy:', error);
     } finally {

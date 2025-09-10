@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   // Skip non-http requests and external API calls
   if (!event.request.url.startsWith(self.location.origin) || 
-      event.request.url.includes('supabase.co') ||
+      // event.request.url.includes('supabase.co') || // Removed
       event.request.url.includes('googleapis.com')) {
     return;
   }

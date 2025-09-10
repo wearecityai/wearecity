@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { supabase } from '@/integrations/supabase/client';
 
 interface DefaultChat {
   conversationId: string;
@@ -14,7 +13,7 @@ export const useCityNavigation = () => {
   const [lastVisitedCity, setLastVisitedCity] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar datos de navegación del usuario desde Supabase
+  // Navigation data is now handled locally (Supabase removed)
   useEffect(() => {
     const loadUserNavigationData = async () => {
       if (!user) {
@@ -23,35 +22,28 @@ export const useCityNavigation = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('default_chat_data, last_visited_city')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error loading user navigation data:', error);
-        } else {
-          // Cargar ciudad predeterminada
-          if (data?.default_chat_data && typeof data.default_chat_data === 'object') {
-            const chatData = data.default_chat_data as any;
-            if (chatData.citySlug) {
-              setDefaultChat(chatData as DefaultChat);
-            }
+        // Load from localStorage as fallback
+        const storedDefaultChat = localStorage.getItem('defaultChat');
+        const storedLastVisitedCity = localStorage.getItem('lastVisitedCity');
+        
+        if (storedDefaultChat) {
+          try {
+            const chatData = JSON.parse(storedDefaultChat);
+            setDefaultChat(chatData);
+          } catch (e) {
+            console.error('Error parsing stored default chat:', e);
           }
-
-          // Cargar última ciudad visitada
-          if (data?.last_visited_city) {
-            setLastVisitedCity(data.last_visited_city);
-          }
+        }
+        
+        if (storedLastVisitedCity) {
+          setLastVisitedCity(storedLastVisitedCity);
         }
       } catch (error) {
         console.error('Error loading user navigation data:', error);
       } finally {
-        // Delay más agresivo para asegurar que NO se muestre el sidebar prematuramente
         setTimeout(() => {
           setLoading(false);
-        }, 1200);
+        }, 500);
       }
     };
 
@@ -72,17 +64,9 @@ export const useCityNavigation = () => {
     setDefaultChat(chatData);
     
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ default_chat_data: chatData as any })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error saving default city:', error);
-        throw error;
-      } else {
-        console.log('Default city saved successfully');
-      }
+      // Save to localStorage instead of Supabase
+      localStorage.setItem('defaultChat', JSON.stringify(chatData));
+      console.log('Default city saved successfully');
     } catch (error) {
       console.error('Error saving default city:', error);
       throw error;
@@ -97,17 +81,9 @@ export const useCityNavigation = () => {
     setDefaultChat(null);
     
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ default_chat_data: null })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error removing default city:', error);
-        throw error;
-      } else {
-        console.log('Default city removed successfully');
-      }
+      // Remove from localStorage instead of Supabase
+      localStorage.removeItem('defaultChat');
+      console.log('Default city removed successfully');
     } catch (error) {
       console.error('Error removing default city:', error);
       throw error;
@@ -122,17 +98,9 @@ export const useCityNavigation = () => {
     setLastVisitedCity(citySlug);
     
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ last_visited_city: citySlug })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error updating last visited city:', error);
-        throw error;
-      } else {
-        console.log('Last visited city updated successfully');
-      }
+      // Save to localStorage instead of Supabase
+      localStorage.setItem('lastVisitedCity', citySlug);
+      console.log('Last visited city updated successfully');
     } catch (error) {
       console.error('Error updating last visited city:', error);
       throw error;

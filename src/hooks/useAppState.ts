@@ -9,7 +9,6 @@ import { useAssistantConfig } from './useAssistantConfig';
 import { useConversations } from './useConversations';
 import { useAuth } from './useAuth';
 import { MessageRole, CustomChatConfig } from '../types';
-import { supabase } from '../integrations/supabase/client';
 import { DEFAULT_CHAT_CONFIG } from '../constants';
 
 // Custom hook for mobile detection to replace MUI's useMediaQuery

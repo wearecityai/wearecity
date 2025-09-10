@@ -11,7 +11,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config';
 import { ProfilesDoc } from './types';
 
-// Types that match Supabase's interface
+// Auth types
 export interface User {
   id: string;
   email: string | null;
@@ -48,7 +48,7 @@ const createSession = (firebaseUser: FirebaseUser): Session => {
   };
 };
 
-// Sign in with email and password (equivalent to supabase.auth.signInWithPassword)
+// Sign in with email and password
 export const signInWithPassword = async (credentials: { email: string; password: string }): Promise<AuthResponse> => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
@@ -67,7 +67,7 @@ export const signInWithPassword = async (credentials: { email: string; password:
   }
 };
 
-// Sign up with email and password (equivalent to supabase.auth.signUp)
+// Sign up with email and password
 export const signUp = async (credentials: { 
   email: string; 
   password: string; 
@@ -210,7 +210,7 @@ const generateSlugFromName = (name: string): string => {
   return `${baseSlug}-${timestamp}`;
 };
 
-// Sign out (equivalent to supabase.auth.signOut)
+// Sign out
 export const signOutUser = async (): Promise<{ error: Error | null }> => {
   try {
     await signOut(auth);
@@ -220,7 +220,7 @@ export const signOutUser = async (): Promise<{ error: Error | null }> => {
   }
 };
 
-// Get current session (equivalent to supabase.auth.getSession)
+// Get current session
 export const getSession = async (): Promise<{ data: { session: Session | null }; error: Error | null }> => {
   try {
     const user = auth.currentUser;
@@ -243,7 +243,7 @@ export const getSession = async (): Promise<{ data: { session: Session | null };
   }
 };
 
-// Auth state change listener (equivalent to supabase.auth.onAuthStateChange)
+// Auth state change listener
 export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
   return onAuthStateChanged(auth, (user) => {
     if (user) {

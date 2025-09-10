@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed - functions now return null or empty results
 
 // Calcular distancia entre dos puntos usando la fórmula de Haversine
 export const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -16,26 +16,8 @@ export const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2
 // Buscar ciudad por place_id en el campo restricted_city
 export const findCityByPlaceId = async (placeId) => {
   try {
-    const { data: cities, error } = await supabase
-      .from('cities')
-      .select('*')
-      .eq('is_public', true)
-      .not('restricted_city', 'is', null);
-    if (error) {
-      console.error('Error fetching cities:', error);
-      return null;
-    }
-    if (!cities || cities.length === 0) return null;
-    // Buscar coincidencia exacta de place_id
-    const city = cities.find(city => {
-      try {
-        const rc = typeof city.restricted_city === 'string' ? JSON.parse(city.restricted_city) : city.restricted_city;
-        return rc && rc.place_id === placeId;
-      } catch {
-        return false;
-      }
-    });
-    return city || null;
+    console.log('findCityByPlaceId: Function disabled (Supabase removed)');
+    return null;
   } catch (error) {
     console.error('Error finding city by place_id:', error);
     return null;
@@ -45,30 +27,8 @@ export const findCityByPlaceId = async (placeId) => {
 // Buscar ciudad por nombre de municipio
 export const findCityByMunicipalityName = async (municipalityName) => {
   try {
-    const { data: cities, error } = await supabase
-      .from('cities')
-      .select('*')
-      .eq('is_public', true)
-      .not('restricted_city', 'is', null);
-    if (error) {
-      console.error('Error fetching cities:', error);
-      return null;
-    }
-    if (!cities || cities.length === 0) return null;
-    // Buscar coincidencia por nombre de municipio
-    const city = cities.find(city => {
-      try {
-        const rc = typeof city.restricted_city === 'string' ? JSON.parse(city.restricted_city) : city.restricted_city;
-        if (!rc || !rc.name) return false;
-        // Comparar nombres de municipio (ignorar mayúsculas y espacios)
-        const cityName = rc.name.toLowerCase().replace(/\s+/g, '');
-        const searchName = municipalityName.toLowerCase().replace(/\s+/g, '');
-        return cityName.includes(searchName) || searchName.includes(cityName);
-      } catch {
-        return false;
-      }
-    });
-    return city || null;
+    console.log('findCityByMunicipalityName: Function disabled (Supabase removed)');
+    return null;
   } catch (error) {
     console.error('Error finding city by municipality name:', error);
     return null;
@@ -95,40 +55,10 @@ export const findNearestCity = async (userLat, userLng, placeId = null, municipa
     }
   }
   
-  // 3. Si no hay coincidencias, buscar por distancia (si tienes lat/lng en la base de datos)
+  // 3. Distance-based search disabled (Supabase removed)
   try {
-    const { data: cities, error } = await supabase
-      .from('cities')
-      .select('*')
-      .eq('is_public', true)
-      .not('lat', 'is', null)
-      .not('lng', 'is', null);
-
-    if (error) {
-      console.error('Error fetching cities:', error);
-      return null;
-    }
-
-    if (!cities || cities.length === 0) {
-      console.log('No cities found with coordinates');
-      return null;
-    }
-
-    let nearestCity = null;
-    let shortestDistance = Infinity;
-
-    cities.forEach(city => {
-      const distance = calculateDistance(userLat, userLng, city.lat, city.lng);
-      if (distance < shortestDistance) {
-        shortestDistance = distance;
-        nearestCity = { ...city, distance };
-      }
-    });
-
-    if (nearestCity) {
-      console.log('Ciudad encontrada por distancia:', nearestCity.name, 'a', Math.round(nearestCity.distance), 'km');
-    }
-    return nearestCity;
+    console.log('findNearestCity: Distance-based search disabled (Supabase removed)');
+    return null;
   } catch (error) {
     console.error('Error finding nearest city:', error);
     return null;

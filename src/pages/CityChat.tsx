@@ -8,7 +8,7 @@ import { useCities } from '@/hooks/useCities';
 import { useAuth } from '@/hooks/useAuthFirebase';
 import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 import { City } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed
 
 export const CityChat: React.FC = () => {
   const { t } = useTranslation();

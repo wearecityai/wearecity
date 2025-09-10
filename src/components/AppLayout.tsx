@@ -13,7 +13,6 @@ import { SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { Menu, X, Globe, User, Sparkles } from 'lucide-react';
 import { GeolocationNotification } from './GeolocationNotification';
 import { GeolocationStatusBar } from './GeolocationStatusBar';
-import { ConversationDebug } from './ConversationDebug';
 
 interface User {
   id: string;
@@ -367,8 +366,6 @@ const AppLayout: React.FC<AppLayoutProps> = (props) => {
           {/* Geolocation Notification */}
           <GeolocationNotification className="mx-4 mt-2" />
 
-          {/* Conversation Debug (solo en desarrollo) */}
-          <ConversationDebug messages={messages} className="mx-4 mt-2" />
 
           {/* Main content area */}
           <div className="flex-1 overflow-hidden">

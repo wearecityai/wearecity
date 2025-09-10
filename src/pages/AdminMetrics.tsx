@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Calendar, MessageSquare, Users, TrendingUp, BarChart3, PieChart, RefreshCw } from 'lucide-react';
-import DebugMetrics from '@/components/DebugMetrics';
 import { db } from '@/integrations/firebase/config';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { 
@@ -61,11 +60,7 @@ const AdminMetrics: React.FC = () => {
     try {
       const categoriesSnapshot = await getDocs(collection(db, 'chat_categories'));
       if (categoriesSnapshot.empty) {
-        console.log('🔧 No categories found, initializing...');
-        const { useMetricsInitialization } = await import('@/utils/initializeMetrics');
-        const { initializeCategories } = useMetricsInitialization();
-        await initializeCategories();
-        console.log('✅ Categories initialized successfully');
+        console.log('🔧 No categories found');
       }
     } catch (error) {
       console.error('Error checking/initializing categories:', error);
@@ -770,10 +765,6 @@ const AdminMetrics: React.FC = () => {
           </TabsContent>
         </Tabs>
         
-        {/* Componente temporal de debugging */}
-        <div className="mt-8">
-          <DebugMetrics />
-        </div>
       </div>
     </div>
   );

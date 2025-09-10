@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuthFirebase';
 import { useApiInitialization } from '@/hooks/useApiInitialization';
 import { useAppState } from '@/hooks/useAppState';
 import AppContainer from '@/components/AppContainer';
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed - city loading disabled
 import { Button } from '@/components/ui/button';
 
 
@@ -66,28 +66,10 @@ export const PublicChatPage: React.FC = () => {
         console.log('🔍 [PublicChatPage] Usuario autenticado:', !!user);
         console.log('🔍 [PublicChatPage] Estado de carga de auth:', authLoading);
         
-        // Cargar ciudad por slug directamente desde la tabla cities
-        const { data: cityData, error: cityError } = await supabase
-          .from('cities')
-          .select('*')
-          .eq('slug', chatSlug)
-          .eq('is_active', true)
-          .eq('is_public', true)
-          .maybeSingle();
-
-        console.log('📊 [PublicChatPage] Resultado de la búsqueda:', { 
-          cityData, 
-          cityError,
-          hasData: !!cityData,
-          errorMessage: cityError?.message,
-          errorCode: cityError?.code
-        });
-
-        if (cityError) {
-          console.error('❌ [PublicChatPage] Error loading city:', cityError);
-          setError(`Error al cargar la ciudad: ${cityError.message}`);
-          return;
-        }
+        // City loading disabled (Supabase removed)
+        console.log('🚫 [PublicChatPage] City loading disabled (Supabase removed)');
+        const cityData = null;
+        const cityError = null;
 
         if (cityData) {
           console.log('✅ [PublicChatPage] Ciudad encontrada:', {

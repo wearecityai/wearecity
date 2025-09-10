@@ -157,14 +157,14 @@ export class FirestoreQueryBuilder<T> {
   }
 }
 
-// Main database class that mimics Supabase client
+// Main database class for Firebase/Firestore operations
 export class FirestoreClient {
-  // Get a query builder for a collection (equivalent to supabase.from())
+  // Get a query builder for a collection
   from(tableName: string) {
     return new FirestoreQueryBuilder(tableName);
   }
 
-  // Insert data (equivalent to supabase.from().insert())
+  // Insert data
   async insert(tableName: string, data: any | any[]): Promise<DatabaseArrayResponse<any>> {
     try {
       if (Array.isArray(data)) {
@@ -211,7 +211,7 @@ export class FirestoreClient {
     }
   }
 
-  // Update data (equivalent to supabase.from().update())
+  // Update data
   async update(tableName: string, data: any, id: string): Promise<DatabaseResponse<any>> {
     try {
       const docRef = doc(db, tableName, id);
@@ -235,7 +235,7 @@ export class FirestoreClient {
     }
   }
 
-  // Delete data (equivalent to supabase.from().delete())
+  // Delete data
   async delete(tableName: string, id: string): Promise<{ error: Error | null }> {
     try {
       const docRef = doc(db, tableName, id);

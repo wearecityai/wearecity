@@ -23,8 +23,6 @@ import { OnboardingFlow } from './OnboardingFlow';
 import MainContent from './MainContent';
 import FinetuningPage from './FinetuningPage';
 import AdminMetrics from '@/pages/AdminMetrics';
-import InitializeMetrics from '@/pages/InitializeMetrics';
-import PublicMetrics from '@/pages/PublicMetrics';
 import { City } from '@/types';
 import { Sparkles, Building2 } from 'lucide-react';
 import { Badge } from './ui/badge';
@@ -604,10 +602,6 @@ const PersistentLayout: React.FC = () => {
     });
 
     // SUPER PRIORITY: Debug metrics route - no auth required
-    if (location.pathname === '/debug/metrics') {
-      console.log('🎯 Debug metrics route - PUBLIC ACCESS');
-      return <PublicMetrics />;
-    }
 
     // ABSOLUTE PRIORITY: Vista controls override ALL other conditions
     // These must be checked first before any loading or config conditions
@@ -639,17 +633,7 @@ const PersistentLayout: React.FC = () => {
       return <AdminMetrics />;
     }
 
-    // Página de inicialización de métricas (solo admins) tiene prioridad ABSOLUTA
-    if (currentView === 'initialize-metrics') {
-      console.log('🎯 Rendering InitializeMetrics view - ABSOLUTE PRIORITY');
-      return <InitializeMetrics />;
-    }
 
-    // Manejar ruta directa de inicialización de métricas
-    if (location.pathname === '/admin/initialize-metrics') {
-      console.log('🎯 Direct route to initialize metrics - ABSOLUTE PRIORITY');
-      return <InitializeMetrics />;
-    }
 
 
     // Verificación adicional: solo mostrar loading inicial si no estamos reanudando

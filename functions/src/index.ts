@@ -193,8 +193,6 @@ export {
   setupAndFixMetrics
 } from './metricsService';
 
-// Export clear metrics function
-export { clearAllMetrics } from './clearMetrics';
 
 // ===== NUEVAS FUNCIONES RAG =====
 

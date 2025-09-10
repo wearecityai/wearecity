@@ -9,7 +9,6 @@ import PersistentLayout from '@/components/PersistentLayout';
 import AuthPage from '@/components/auth/AuthPage';
 import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
-import PublicMetrics from '@/pages/PublicMetrics';
 
 const App = () => {
   useAutoLanguage();
@@ -48,11 +47,6 @@ const App = () => {
               {/* Rutas independientes */}
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/404" element={<NotFound />} />
-              <Route path="/debug/metrics" element={
-                <div className="min-h-screen bg-background">
-                  <PublicMetrics />
-                </div>
-              } />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
           </AuthProvider>
