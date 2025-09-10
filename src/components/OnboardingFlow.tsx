@@ -217,14 +217,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSk
           <Button 
             variant="outline" 
             onClick={handleSkip}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 rounded-full"
           >
             {t('onboarding.continueWithoutSelecting', { defaultValue: 'Continue without selecting' })}
           </Button>
           <Button 
             onClick={handleContinue}
             disabled={!selectedCity}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 rounded-full"
           >
             {t('onboarding.continueWithCity', { city: selectedCity?.name, defaultValue: 'Continue with {{city}}' })}
             <ArrowRight className="h-4 w-4" />

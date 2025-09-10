@@ -38,7 +38,7 @@ const CountryCombobox: React.FC<CountryComboboxProps> = ({ value, onChange, plac
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between rounded-full">
           <span className={cn('truncate flex items-center gap-2', !current && 'text-muted-foreground')}>
             <Globe className="h-4 w-4" />
             {current ? `${current.flag ?? ''} ${current.name}` : placeholder}

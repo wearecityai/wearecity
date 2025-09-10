@@ -77,7 +77,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <Button
           variant="ghost"
           size={size === 'sm' ? 'sm' : 'default'}
-          className="gap-2"
+          className="gap-2 rounded-full"
         >
           <Globe className="h-4 w-4" />
           <span className="hidden sm:inline">{currentLanguage.flag}</span>
@@ -93,7 +93,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 key={language.code}
                 variant={i18n.language === language.code ? 'secondary' : 'ghost'}
                 size="sm"
-                className="w-full justify-start gap-2"
+                className="w-full justify-start gap-2 rounded-full"
                 onClick={() => handleLanguageChange(language.code)}
               >
                 <span>{language.flag}</span>

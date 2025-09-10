@@ -29,8 +29,7 @@ export const useCityNavigation = () => {
   }, [recentCities]);
 
   // Load user navigation data from Firestore
-  useEffect(() => {
-    const loadUserNavigationData = async () => {
+  const loadUserNavigationData = useCallback(async () => {
       if (!user) {
         setLoading(false);
         return;
@@ -106,10 +105,12 @@ export const useCityNavigation = () => {
           setLoading(false);
         }, 500);
       }
-    };
+    }, [user]);
 
+  // Load data when user changes
+  useEffect(() => {
     loadUserNavigationData();
-  }, [user]);
+  }, [user, loadUserNavigationData]);
 
   // Establecer ciudad como predeterminada
   const setDefaultCity = useCallback(async (citySlug: string, conversationId?: string, title?: string) => {
@@ -137,6 +138,9 @@ export const useCityNavigation = () => {
       
       // Also save to localStorage as backup
       localStorage.setItem('defaultChat', JSON.stringify(chatData));
+      
+      // Reload data to ensure UI is in sync
+      await loadUserNavigationData();
     } catch (error) {
       console.error('Error saving default city to Firestore:', error);
       throw error;
@@ -163,6 +167,9 @@ export const useCityNavigation = () => {
       
       // Also remove from localStorage
       localStorage.removeItem('defaultChat');
+      
+      // Reload data to ensure UI is in sync
+      await loadUserNavigationData();
     } catch (error) {
       console.error('Error removing default city from Firestore:', error);
       throw error;
@@ -249,17 +256,26 @@ export const useCityNavigation = () => {
 
   // Obtener la ciudad de destino para la navegación inicial
   const getInitialCityDestination = useCallback(() => {
+    console.log('🎯 getInitialCityDestination called:', {
+      defaultChat: defaultChat,
+      defaultChatCitySlug: defaultChat?.citySlug,
+      lastVisitedCity: lastVisitedCity
+    });
+
     // Prioridad 1: Ciudad predeterminada
     if (defaultChat?.citySlug) {
+      console.log('✅ getInitialCityDestination - Using default city:', defaultChat.citySlug);
       return defaultChat.citySlug;
     }
     
     // Prioridad 2: Última ciudad visitada
     if (lastVisitedCity) {
+      console.log('✅ getInitialCityDestination - Using last visited city:', lastVisitedCity);
       return lastVisitedCity;
     }
     
     // Prioridad 3: No hay ciudad específica
+    console.log('❌ getInitialCityDestination - No city found');
     return null;
   }, [defaultChat, lastVisitedCity]);
 

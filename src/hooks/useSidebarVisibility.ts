@@ -13,10 +13,8 @@ export const useSidebarVisibility = () => {
 
   useEffect(() => {
     // Solo mostrar el sidebar cuando TODO esté completamente listo
-    // No requerir restrictedCity para evitar bucles infinitos
-    const isReady = user && 
-      profile && 
-      !authLoading && 
+    // Para usuarios anónimos, no requerir user ni profile
+    const isReady = !authLoading && 
       !cityNavigationLoading && 
       isFullyLoaded && 
       chatConfig;

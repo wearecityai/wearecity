@@ -95,7 +95,7 @@ export function AppSidebar({
   ...props 
 }: AppSidebarProps) {
   const { t } = useTranslation();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const isAdmin = profile?.role === 'administrativo';
   const [starUpdateTrigger, setStarUpdateTrigger] = useState(0);
   const navigate = useNavigate()
@@ -469,12 +469,33 @@ export function AppSidebar({
                 ) : (
                   <div className="flex items-end justify-center min-h-[200px] pt-16 group-data-[collapsible=icon]:hidden">
                     <div className="flex flex-col items-center text-center text-sidebar-foreground/60">
-                      <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary/10 text-sidebar-primary border border-border/40 mb-3">
-                        <MessageCircle className="h-8 w-8" />
-                      </div>
-                      <div className="text-sm mt-2">
-                        <div>{t('sidebar.noConversationsYet', { defaultValue: 'You don\'t have conversations yet' })}</div>
-                      </div>
+                      {user ? (
+                        <>
+                          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary/10 text-sidebar-primary border border-border/40 mb-3">
+                            <MessageCircle className="h-8 w-8" />
+                          </div>
+                          <div className="text-sm mt-2">
+                            <div>{t('sidebar.noConversationsYet', { defaultValue: 'You don\'t have conversations yet' })}</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-sidebar-primary/10 text-sidebar-primary border border-border/40 mb-3">
+                            <MessageCircle className="h-8 w-8" />
+                          </div>
+                          <div className="text-sm mt-2 space-y-2">
+                            <div>Para guardar tus conversaciones</div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => navigate('/auth')}
+                              className="bg-white text-black hover:bg-gray-100 rounded-full"
+                            >
+                              Iniciar sesión
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

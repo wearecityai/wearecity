@@ -58,7 +58,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+              className="flex-1 border-red-300 text-red-700 hover:bg-red-50 rounded-full"
               onClick={() => onRetry?.(place.id)}
               disabled={!onRetry}
             >
@@ -294,7 +294,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
+            className="flex-1 rounded-full"
             asChild
           >
             <a
@@ -312,7 +312,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1"
+              className="flex-1 rounded-full"
               asChild
             >
               <a
@@ -329,7 +329,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1"
+              className="flex-1 rounded-full"
               asChild
             >
               <a

@@ -1,0 +1,73 @@
+# Enterprise-grade security headers
+# Government compliance level security
+
+/*
+  # Content Security Policy - Prevents XSS and data injection
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://maps.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' blob:; connect-src 'self' https://api.openai.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://us-central1-wearecity-2ab89.cloudfunctions.net https://firestore.googleapis.com wss://; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  
+  # Prevent clickjacking attacks
+  X-Frame-Options: DENY
+  
+  # Prevent MIME type sniffing
+  X-Content-Type-Options: nosniff
+  
+  # Enable XSS protection
+  X-XSS-Protection: 1; mode=block
+  
+  # Strict transport security (HTTPS only)
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  
+  # Referrer policy for privacy
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # Permissions policy (restrict dangerous APIs)
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=(), usb=()
+  
+  # Prevent caching of sensitive pages
+  Cache-Control: no-store, no-cache, must-revalidate
+  
+  # Cross-Origin policies
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+# API routes - additional security
+/api/*
+  # Rate limiting headers
+  X-RateLimit-Limit: 100
+  X-RateLimit-Window: 3600
+  
+  # API security headers
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: Authorization, Content-Type
+  Access-Control-Max-Age: 86400
+
+# Authentication pages - extra security
+/auth/*
+  # Prevent caching of auth pages
+  Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+  Pragma: no-cache
+  Expires: 0
+  
+  # Additional auth security
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+# Admin pages - maximum security
+/admin/*
+  # Strict CSP for admin
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://us-central1-wearecity-2ab89.cloudfunctions.net https://firestore.googleapis.com; frame-ancestors 'none'
+  
+  # No caching for admin pages
+  Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
+  
+  # Maximum security headers
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: no-referrer

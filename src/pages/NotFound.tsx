@@ -38,7 +38,7 @@ const NotFound = () => {
               <Button
                 variant="ghost"
                 onClick={() => navigate(-1)}
-                className="text-muted-foreground"
+                className="text-muted-foreground rounded-full"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 {t('errors.goBack')}

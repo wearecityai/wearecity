@@ -113,7 +113,7 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
         <DashboardHeader>
           <div className="container flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-3">
-              <Button
+              <Button className="rounded-full"
                 variant="ghost"
                 size="icon"
                 onClick={() => setCurrentView('chat')}

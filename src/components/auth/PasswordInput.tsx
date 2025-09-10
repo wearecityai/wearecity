@@ -45,7 +45,7 @@ export function PasswordInput({
           type="button"
           variant="ghost"
           size="sm"
-          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent disabled:opacity-50"
+          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent disabled:opacity-50 rounded-full"
           onClick={() => setShowPassword(!showPassword)}
           disabled={disabled}
           aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}

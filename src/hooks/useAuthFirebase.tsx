@@ -107,9 +107,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('🔍 Profile data after fetch:', profileData);
             setProfile(profileData);
             if (!profileData) {
-              console.log('❌ No profile data found, redirecting to auth');
-              await firebase.auth.signOut();
-              window.location.href = '/auth';
+              console.log('❌ No profile data found, but allowing anonymous usage');
+              // DISABLED: This was preventing anonymous users from using the app
+              // await firebase.auth.signOut();
+              // window.location.href = '/auth';
             } else {
               console.log('✅ Profile data found, proceeding with auth');
               // Check for default chat and redirect if user just signed in
@@ -146,9 +147,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(profileData);
           setIsLoading(false);
           if (!profileData) {
-            console.log('❌ No initial profile data found, redirecting to auth');
-            await firebase.auth.signOut();
-            window.location.href = '/auth';
+            console.log('❌ No initial profile data found, but allowing anonymous usage');
+            // DISABLED: This was preventing anonymous users from using the app
+            // await firebase.auth.signOut();
+            // window.location.href = '/auth';
           } else {
             console.log('✅ Initial profile data found');
           }

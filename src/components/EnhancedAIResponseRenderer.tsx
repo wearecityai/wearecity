@@ -7,11 +7,13 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 interface EnhancedAIResponseRendererProps {
   content: string;
   className?: string;
+  compact?: boolean; // Para mensajes de usuario sin márgenes extra
 }
 
 export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProps> = ({ 
   content, 
-  className = "" 
+  className = "",
+  compact = false
 }) => {
   return (
     <div className={`prose prose-lg max-w-none dark:prose-invert ${className}`}>
@@ -81,13 +83,13 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
           
           // Listas como ChatGPT - con alineación correcta del texto
           ul: ({ children }) => (
-            <ul className="my-4 list-none ml-0 space-y-1">
+            <ul className={`${compact ? 'my-2' : 'my-4'} list-none ml-0 space-y-1`}>
               {children}
             </ul>
           ),
           
           ol: ({ children }) => (
-            <ol className="my-4 list-none ml-0 space-y-1">
+            <ol className={`${compact ? 'my-2' : 'my-4'} list-none ml-0 space-y-1`}>
               {children}
             </ol>
           ),
@@ -122,7 +124,7 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
           
           // Párrafos como ChatGPT
           p: ({ children }) => (
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+            <p className={`text-gray-700 dark:text-gray-300 leading-relaxed ${compact ? 'mb-0' : 'mb-3'}`}>
               {children}
             </p>
           ),

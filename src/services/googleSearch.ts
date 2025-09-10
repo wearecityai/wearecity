@@ -74,23 +74,28 @@ export class GoogleSearchService {
    */
   async search(request: SearchRequest): Promise<SearchResponse> {
     try {
-      // Get authentication token
+      // Get authentication token (optional for anonymous users)
       const { auth } = await import('../integrations/firebase/config');
       const user = auth.currentUser;
       
-      if (!user) {
-        throw new Error('Usuario no autenticado. Inicia sesión para usar la búsqueda.');
+      let idToken = null;
+      if (user) {
+        idToken = await user.getIdToken();
       }
-
-      const idToken = await user.getIdToken();
       
       // Call secure backend endpoint
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Add authorization header only if user is authenticated
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+      
       const response = await fetch(`${this.backendUrl}/secureGoogleSearch`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
+        headers,
         body: JSON.stringify(request)
       });
       

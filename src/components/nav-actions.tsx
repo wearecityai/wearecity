@@ -50,45 +50,46 @@ export function NavActions() {
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      {/* User Avatar Dropdown */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-full"
-          >
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.user_metadata?.avatar_url} />
-              <AvatarFallback>
-                {user ? getUserInitials(user) : <User className="h-4 w-4" />}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end">
-          {user ? (
-            <>
-              <DropdownMenuItem className="flex flex-col items-start p-3">
-                <div className="font-medium">{user.email}</div>
-                <div className="text-xs text-muted-foreground">{t('auth.user', { defaultValue: 'User' })}</div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>{t('auth.logout')}</span>
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <>
-              <DropdownMenuItem onClick={handleSignIn}>
-                <User className="mr-2 h-4 w-4" />
-                <span>{t('auth.login')}</span>
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {user ? (
+        /* User Avatar Dropdown */
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback>
+                  {getUserInitials(user)}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuItem className="flex flex-col items-start p-3">
+              <div className="font-medium">{user.email}</div>
+              <div className="text-xs text-muted-foreground">{t('auth.user', { defaultValue: 'User' })}</div>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>{t('auth.logout')}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        /* Login Button for unauthenticated users */
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSignIn}
+          className="bg-white text-black hover:bg-gray-100 border border-gray-300 rounded-full"
+        >
+          Iniciar sesión
+        </Button>
+      )}
     </div>
   )
 }

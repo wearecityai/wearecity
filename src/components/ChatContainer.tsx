@@ -107,7 +107,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 <p className="text-sm text-muted-foreground mb-3">
                   {t('chat.loginPrompt', { defaultValue: 'For a personalized experience, please log in' })}
                 </p>
-                <Button onClick={onLogin} variant="outline">
+                <Button className="rounded-full" onClick={onLogin} variant="outline">
                   {t('auth.login')}
                 </Button>
               </div>
@@ -157,7 +157,7 @@ export const RecommendedPromptsBar: React.FC<{
     <div className="w-full overflow-x-auto pb-1 sm:pb-2">
       <div className="flex gap-1 sm:gap-2 px-2 sm:px-4 min-w-max">
         {prompts.slice(0, 6).map((prompt, index) => (
-          <Button
+          <Button className="rounded-full"
             key={index}
             variant="outline"
             size="sm"

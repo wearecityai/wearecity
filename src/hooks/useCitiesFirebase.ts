@@ -213,8 +213,10 @@ export const useCitiesFirebase = () => {
   useEffect(() => {
     if (user) {
       loadUserCity();
+      // También cargar todas las ciudades públicas para el dropdown
+      loadCities();
     }
-  }, [user, profile]);
+  }, [user, profile, loadCities]);
 
   return {
     cities,

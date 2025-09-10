@@ -64,14 +64,27 @@ export class GoogleSearchService {
   private baseUrl = 'https://www.googleapis.com/customsearch/v1';
 
   constructor() {
-    // Usar API keys hardcodeadas como fallback para Firebase Functions v2
-    this.apiKey = process.env.GOOGLE_SEARCH_API_KEY || 'AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0';
-    this.searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID || '017576662512468239146:omuauf_lfve';
-    
-    if (!this.apiKey || !this.searchEngineId) {
-      console.warn('⚠️ Google Search API key or Search Engine ID not configured in Firebase Functions');
-    } else {
-      console.log('✅ Google Search API keys configured');
+    // Keys will be loaded from Secret Manager when needed
+    this.apiKey = '';
+    this.searchEngineId = '';
+    console.log('✅ Google Search service initialized - will load keys from Secret Manager');
+  }
+  
+  /**
+   * Initialize API keys from Secret Manager
+   */
+  private async initializeKeys(): Promise<void> {
+    if (!this.apiKey) {
+      try {
+        const { secretManager } = await import('./secretManager');
+        this.apiKey = await secretManager.getSecret('GOOGLE_SEARCH_API_KEY');
+        this.searchEngineId = await secretManager.getSecret('GOOGLE_SEARCH_ENGINE_ID');
+        console.log('✅ Google Search API keys loaded from Secret Manager');
+      } catch (error) {
+        console.warn('⚠️ Failed to load from Secret Manager, using environment variables');
+        this.apiKey = process.env.GOOGLE_SEARCH_API_KEY || '';
+        this.searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID || '';
+      }
     }
   }
 
@@ -79,6 +92,9 @@ export class GoogleSearchService {
    * Realizar búsqueda general
    */
   async search(request: SearchRequest): Promise<SearchResponse> {
+    // Initialize keys from Secret Manager if not already loaded
+    await this.initializeKeys();
+    
     if (!this.apiKey || !this.searchEngineId) {
       throw new Error('Google Search API key or Search Engine ID not configured');
     }

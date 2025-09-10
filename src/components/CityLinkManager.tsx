@@ -183,14 +183,14 @@ export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ 
                 readOnly
                 className="font-mono text-sm"
               />
-              <Button
+              <Button className="rounded-full"
                 variant="outline"
                 size="icon"
                 onClick={() => copyToClipboard(publicUrl)}
               >
                 <Copy className="h-4 w-4" />
               </Button>
-              <Button
+              <Button className="rounded-full"
                 variant="outline"
                 size="icon"
                 onClick={() => window.open(publicUrl, '_blank')}
@@ -227,7 +227,7 @@ export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ 
                     </>
                   )}
                 </div>
-                <Button
+                <Button className="rounded-full"
                   variant="outline"
                   size="sm"
                   onClick={togglePrivacy}
@@ -278,7 +278,7 @@ export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ 
                     size="sm"
                     onClick={downloadQRAsJPG}
                     disabled={!qrCodeDataUrl}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 rounded-full"
                   >
                     <ImageIcon className="h-4 w-4" />
                     Descargar JPG
@@ -288,7 +288,7 @@ export const CityLinkManager: React.FC<{ assistantNameOverride?: string }> = ({ 
                     size="sm"
                     onClick={downloadQRAsSVG}
                     disabled={!isPublic}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 rounded-full"
                   >
                     <FileCode className="h-4 w-4" />
                     Descargar SVG

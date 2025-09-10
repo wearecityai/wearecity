@@ -69,7 +69,7 @@ export const UserProfile: React.FC = () => {
               <p className="text-muted-foreground mb-4">
                 Como ciudadano, puedes acceder a los chats públicos creados por los administradores.
               </p>
-              <Button
+              <Button className="rounded-full"
                 variant="outline"
                 onClick={() => window.location.href = '/'}
                 className="gap-2"

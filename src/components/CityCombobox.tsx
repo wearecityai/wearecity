@@ -74,7 +74,7 @@ const CityCombobox: React.FC<CityComboboxProps> = ({ value, onChange, placeholde
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between rounded-full">
           <span className={cn('truncate', !value && 'text-muted-foreground flex items-center gap-2')}>
             {!value && <MapPin className="h-4 w-4" />} {buttonLabel}
           </span>
