@@ -202,14 +202,14 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
             >
               {primaryButtonText} <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 ml-1" />
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-full text-sm sm:text-base shadow-none flex-1 sm:flex-none"
-              onClick={handleSecondaryClick}
-            >
-              <User className="h-4 w-4 sm:h-5 sm:w-5 mr-1" /> {secondaryButtonText}
-            </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="rounded-full text-sm sm:text-base shadow-none flex-1 sm:flex-none"
+                      onClick={handleSecondaryClick}
+                    >
+                      {secondaryButtonText} <User className="h-4 w-4 sm:h-5 sm:w-5 ml-1" />
+                    </Button>
           </div>
         </div>
       </div>
