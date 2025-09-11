@@ -157,13 +157,16 @@ exports.ragQuery = functions.https.onCall(async (data, context) => {
             response,
             sourcesUsed: searchResults.length,
             modelUsed: 'gemini-2.5-flash-lite',
-            relevantSources: searchResults.map(result => ({
-                sourceId: result.sourceId,
-                title: result.source?.title,
-                url: result.source?.originalUrl,
-                similarity: result.similarity,
-                contentPreview: result.content.substring(0, 150) + '...'
-            }))
+            relevantSources: searchResults.map(result => {
+                var _a, _b;
+                return ({
+                    sourceId: result.sourceId,
+                    title: (_a = result.source) === null || _a === void 0 ? void 0 : _a.title,
+                    url: (_b = result.source) === null || _b === void 0 ? void 0 : _b.originalUrl,
+                    similarity: result.similarity,
+                    contentPreview: result.content.substring(0, 150) + '...'
+                });
+            })
         };
     }
     catch (error) {
@@ -190,12 +193,7 @@ exports.getRAGConversations = functions.https.onCall(async (data, context) => {
             .orderBy('createdAt', 'desc')
             .limit(limit)
             .get();
-        const conversations = conversationsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt.toDate(),
-            updatedAt: doc.data().updatedAt.toDate()
-        }));
+        const conversations = conversationsSnapshot.docs.map(doc => (Object.assign(Object.assign({ id: doc.id }, doc.data()), { createdAt: doc.data().createdAt.toDate(), updatedAt: doc.data().updatedAt.toDate() })));
         return {
             success: true,
             conversations,

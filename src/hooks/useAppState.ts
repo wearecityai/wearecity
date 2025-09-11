@@ -95,7 +95,7 @@ export const useAppState = (citySlug?: string) => {
   useEffect(() => {
     if (!googleMapsApiKey) {
       console.log('🗝️ Using fallback Google Maps API key');
-      setGoogleMapsApiKey('AIzaSyBHL5n8B2vCcQIZKVVLE2zVBgS4aYclt7g');
+      setGoogleMapsApiKey('AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0');
     }
   }, [googleMapsApiKey]);
 

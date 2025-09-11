@@ -14,6 +14,7 @@
       "memory": "512MiB",
       "timeoutSeconds": 60,
       "environmentVariables": {
+        "GOOGLE_MAPS_API_KEY": "AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0",
         "GOOGLE_PLACES_API_KEY": "AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0",
         "GOOGLE_SEARCH_API_KEY": "AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0",
         "GOOGLE_SEARCH_ENGINE_ID": "017576662512468239146:omuauf_lfve"

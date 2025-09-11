@@ -57,18 +57,21 @@ const searchPlaces = async (query, location, radius = 10000 // 10km default
         });
         const places = response.data.results.slice(0, 6); // Limit to 6 results
         console.log('✅ Found places:', places.length);
-        return places.map(place => ({
-            place_id: place.place_id || '',
-            name: place.name || '',
-            formatted_address: place.formatted_address || '',
-            geometry: place.geometry || { location: { lat: 0, lng: 0 } },
-            rating: place.rating,
-            price_level: place.price_level,
-            photos: place.photos?.slice(0, 1),
-            types: place.types || [],
-            opening_hours: place.opening_hours,
-            plus_code: place.plus_code,
-        }));
+        return places.map(place => {
+            var _a;
+            return ({
+                place_id: place.place_id || '',
+                name: place.name || '',
+                formatted_address: place.formatted_address || '',
+                geometry: place.geometry || { location: { lat: 0, lng: 0 } },
+                rating: place.rating,
+                price_level: place.price_level,
+                photos: (_a = place.photos) === null || _a === void 0 ? void 0 : _a.slice(0, 1),
+                types: place.types || [],
+                opening_hours: place.opening_hours,
+                plus_code: place.plus_code,
+            });
+        });
     }
     catch (error) {
         console.error('❌ Error searching places:', error);

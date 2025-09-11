@@ -273,48 +273,48 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
             </SidebarMenuButton>
           ) : (
             // For non-admin users, show the dropdown menu
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                  tooltip={currentCity.name}
-                >
-                  {currentCity.image ? (
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-full overflow-hidden border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
-                      <img 
-                        src={currentCity.image} 
-                        alt={currentCity.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
-                      {currentCity.logo}
-                    </div>
-                  )}
-                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-semibold tiktok-sans-title">{currentCity.name}</span>
-                    {(currentCity.province || currentCity.country) && (
-                      <span className="truncate text-xs text-muted-foreground">
-                        {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
-                      </span>
-                    )}
-                  </div>
-                  <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-64"
-                align="start"
-                side={isMobile ? "bottom" : "right"}
-                sideOffset={12}
-                avoidCollisions={true}
-                collisionPadding={16}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                tooltip={currentCity.name}
               >
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                {currentCity.image ? (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-full overflow-hidden border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                    <img 
+                      src={currentCity.image} 
+                      alt={currentCity.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold border border-border/40 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!rounded-full">
+                    {currentCity.logo}
+                  </div>
+                )}
+                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                    <span className="truncate font-semibold tiktok-sans-title">{currentCity.name}</span>
+                  {(currentCity.province || currentCity.country) && (
+                    <span className="truncate text-xs text-muted-foreground">
+                      {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </div>
+                <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-[--radix-dropdown-menu-trigger-width] min-w-64"
+              align="start"
+              side={isMobile ? "bottom" : "right"}
+              sideOffset={12}
+              avoidCollisions={true}
+              collisionPadding={16}
+            >
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
                   Ciudades Recientes
-                </DropdownMenuLabel>
+              </DropdownMenuLabel>
                 {getRecentCitiesInfo().map((city, index) => {
                   if (!city) return null;
                   
@@ -423,21 +423,21 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                       onClick={() => handleCitySelect(city)}
                     >
                       {cityImage ? (
-                        <div className="flex size-6 items-center justify-center rounded-sm overflow-hidden border border-border/40">
-                          <img 
+                  <div className="flex size-6 items-center justify-center rounded-sm overflow-hidden border border-border/40">
+                    <img 
                             src={cityImage} 
                             alt={city.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex size-6 items-center justify-center rounded-sm border border-border/40 bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex size-6 items-center justify-center rounded-sm border border-border/40 bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
                           {cityInitials}
-                        </div>
-                      )}
-                      <div>
+                  </div>
+                )}
+                <div>
                         <div className="font-medium tiktok-sans-title">{city.name}</div>
-                        <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                           {[cityInfo.province, cityInfo.country].filter(Boolean).join(', ')}
                         </div>
                       </div>
@@ -580,32 +580,32 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                           ) : (
                             <div className="flex size-6 items-center justify-center rounded-sm border border-border/40 bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
                               {cityInitials}
-                            </div>
-                          )}
+                    </div>
+                  )}
                           <div>
                             <div className="font-medium">{cityInfo.city}</div>
                             <div className="text-xs text-muted-foreground">
                               {[cityInfo.province, cityInfo.country].filter(Boolean).join(', ')}
                             </div>
-                          </div>
-                        </DropdownMenuItem>
+                </div>
+              </DropdownMenuItem>
                       );
                     })()}
                   </>
                 )}
                 
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="gap-2 p-2"
-                  onClick={handleChangeCity}
-                >
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="gap-2 p-2"
+                    onClick={handleChangeCity}
+                  >
                   <div className="flex size-6 items-center justify-center">
                     <Building2 className="size-4" />
-                  </div>
-                  <div className="font-medium text-muted-foreground">Cambiar ciudad</div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    </div>
+                    <div className="font-medium text-muted-foreground">Cambiar ciudad</div>
+                  </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           )}
         </SidebarMenuItem>
       </SidebarMenu>

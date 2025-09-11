@@ -9,7 +9,7 @@ interface Profile {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  role: 'ciudadano' | 'administrativo';
+  role: 'ciudadano' | 'administrativo' | 'superadmin';
   createdAt: string;
   updatedAt: string;
 }
@@ -39,8 +39,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const mapRole = (role: string): 'ciudadano' | 'administrativo' => {
+  const mapRole = (role: string): 'ciudadano' | 'administrativo' | 'superadmin' => {
     switch (role) {
+      case 'superadmin':
+        return 'superadmin';
       case 'admin':
       case 'administrativo':
         return 'administrativo';
@@ -51,12 +53,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  const fetchProfile = async (userId: string, email?: string): Promise<Profile | null> => {
     try {
       const docRef = doc(db, 'profiles', userId);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
+        // Special case for SuperAdmin - create a virtual profile
+        if (userId && email === 'wearecity.ai@gmail.com') {
+          return {
+            id: userId,
+            email: 'wearecity.ai@gmail.com',
+            firstName: 'Super',
+            lastName: 'Admin',
+            role: 'superadmin',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+        }
         return null;
       }
 
@@ -83,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async () => {
     if (user) {
-      const profileData = await fetchProfile(user.id);
+      const profileData = await fetchProfile(user.id, user.email);
       setProfile(profileData);
     }
   };
@@ -96,14 +110,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const unsubscribe = firebase.auth.onAuthStateChange(
       async (event: string, session: Session | null) => {
-        // console.log('Auth state changed:', event, session?.user?.id);
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
+
+        // Handle sign out explicitly
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing state');
+          setProfile(null);
+          setIsLoading(false);
+          return;
+        }
 
         if (session?.user) {
           // Fetch user profile when authenticated
           setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
+            const profileData = await fetchProfile(session.user.id, session.user.email);
             console.log('🔍 Profile data after fetch:', profileData);
             setProfile(profileData);
             if (!profileData) {
@@ -113,7 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               // window.location.href = '/auth';
             } else {
               console.log('✅ Profile data found, proceeding with auth');
-              // Check for default chat and redirect if user just signed in
               if (event === 'SIGNED_IN') {
                 // La redirección ahora se maneja en PersistentLayout usando useCityNavigation
                 console.log('User signed in, navigation will be handled by PersistentLayout');
@@ -142,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id).then(async (profileData) => {
+        fetchProfile(session.user.id, session.user.email).then(async (profileData) => {
           console.log('🔍 Initial profile data after fetch:', profileData);
           setProfile(profileData);
           setIsLoading(false);

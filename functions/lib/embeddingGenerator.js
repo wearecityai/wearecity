@@ -36,8 +36,9 @@ const db = admin.firestore();
  * Generar embedding usando Google Gemini Embedding API
  */
 async function generateEmbedding(text) {
+    var _a;
     try {
-        const geminiApiKey = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key;
+        const geminiApiKey = process.env.GEMINI_API_KEY || ((_a = functions.config().gemini) === null || _a === void 0 ? void 0 : _a.api_key);
         if (!geminiApiKey) {
             throw new Error('GEMINI_API_KEY not found in environment or config');
         }
@@ -55,8 +56,9 @@ async function generateEmbedding(text) {
  * Generar embeddings en lotes para optimizar rendimiento
  */
 async function generateBatchEmbeddings(texts) {
+    var _a;
     try {
-        const geminiApiKey = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key;
+        const geminiApiKey = process.env.GEMINI_API_KEY || ((_a = functions.config().gemini) === null || _a === void 0 ? void 0 : _a.api_key);
         if (!geminiApiKey) {
             throw new Error('GEMINI_API_KEY not found in environment or config');
         }
@@ -83,6 +85,7 @@ async function generateBatchEmbeddings(texts) {
  * Firebase Function para generar embeddings de una fuente
  */
 exports.generateEmbeddings = functions.https.onCall(async (data, context) => {
+    var _a;
     // Verificar autenticación
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -117,12 +120,7 @@ exports.generateEmbeddings = functions.https.onCall(async (data, context) => {
             batch.update(sourceDoc.ref, {
                 embedding: mainEmbedding,
                 processingStatus: 'embedded',
-                metadata: {
-                    ...sourceData.metadata,
-                    embeddingGenerated: true,
-                    embeddingLength: mainEmbedding.length,
-                    embeddedAt: admin.firestore.FieldValue.serverTimestamp()
-                },
+                metadata: Object.assign(Object.assign({}, sourceData.metadata), { embeddingGenerated: true, embeddingLength: mainEmbedding.length, embeddedAt: admin.firestore.FieldValue.serverTimestamp() }),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
             mainContentEmbedded = true;
@@ -137,12 +135,7 @@ exports.generateEmbeddings = functions.https.onCall(async (data, context) => {
             chunksSnapshot.docs.forEach((chunkDoc, index) => {
                 batch.update(chunkDoc.ref, {
                     embedding: chunkEmbeddings[index],
-                    metadata: {
-                        ...chunkDoc.data().metadata,
-                        embeddingGenerated: true,
-                        embeddingLength: chunkEmbeddings[index].length,
-                        embeddedAt: admin.firestore.FieldValue.serverTimestamp()
-                    },
+                    metadata: Object.assign(Object.assign({}, chunkDoc.data().metadata), { embeddingGenerated: true, embeddingLength: chunkEmbeddings[index].length, embeddedAt: admin.firestore.FieldValue.serverTimestamp() }),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
                 chunksProcessed++;
@@ -164,11 +157,7 @@ exports.generateEmbeddings = functions.https.onCall(async (data, context) => {
         try {
             await db.collection('library_sources_enhanced').doc(sourceId).update({
                 processingStatus: 'error',
-                metadata: {
-                    ...(await db.collection('library_sources_enhanced').doc(sourceId).get()).data()?.metadata,
-                    embeddingError: error.message,
-                    embeddingErrorTimestamp: admin.firestore.FieldValue.serverTimestamp()
-                },
+                metadata: Object.assign(Object.assign({}, (_a = (await db.collection('library_sources_enhanced').doc(sourceId).get()).data()) === null || _a === void 0 ? void 0 : _a.metadata), { embeddingError: error.message, embeddingErrorTimestamp: admin.firestore.FieldValue.serverTimestamp() }),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
         }

@@ -37,12 +37,13 @@ const storage = new storage_1.Storage();
  * Descargar documento desde URL
  */
 async function downloadDocument(url) {
+    var _a;
     try {
         console.log('📥 Downloading document from:', url);
         // Para URLs de Firebase Storage
         if (url.includes('firebasestorage.googleapis.com')) {
             const bucket = storage.bucket();
-            const fileName = url.split('/o/')[1]?.split('?')[0];
+            const fileName = (_a = url.split('/o/')[1]) === null || _a === void 0 ? void 0 : _a.split('?')[0];
             if (fileName) {
                 const file = bucket.file(decodeURIComponent(fileName));
                 const [buffer] = await file.download();
@@ -147,6 +148,7 @@ function chunkDocument(text, chunkSize = 1000) {
  * Firebase Function para procesar documentos PDF
  */
 exports.processDocument = functions.https.onCall(async (data, context) => {
+    var _a, _b;
     // Verificar autenticación
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -170,13 +172,7 @@ exports.processDocument = functions.https.onCall(async (data, context) => {
         batch.update(sourceRef, {
             content: extractedText,
             processingStatus: 'processed',
-            metadata: {
-                ...(await sourceRef.get()).data()?.metadata,
-                extractedText,
-                wordCount: extractedText.split(/\s+/).length,
-                chunksCount: chunks.length,
-                processedAt: admin.firestore.FieldValue.serverTimestamp()
-            },
+            metadata: Object.assign(Object.assign({}, (_a = (await sourceRef.get()).data()) === null || _a === void 0 ? void 0 : _a.metadata), { extractedText, wordCount: extractedText.split(/\s+/).length, chunksCount: chunks.length, processedAt: admin.firestore.FieldValue.serverTimestamp() }),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         // Guardar chunks
@@ -206,11 +202,7 @@ exports.processDocument = functions.https.onCall(async (data, context) => {
         // Actualizar estado de error en la fuente
         await db.collection('library_sources_enhanced').doc(sourceId).update({
             processingStatus: 'error',
-            metadata: {
-                ...(await db.collection('library_sources_enhanced').doc(sourceId).get()).data()?.metadata,
-                error: error.message,
-                errorTimestamp: admin.firestore.FieldValue.serverTimestamp()
-            },
+            metadata: Object.assign(Object.assign({}, (_b = (await db.collection('library_sources_enhanced').doc(sourceId).get()).data()) === null || _b === void 0 ? void 0 : _b.metadata), { error: error.message, errorTimestamp: admin.firestore.FieldValue.serverTimestamp() }),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         throw new functions.https.HttpsError('internal', `Document processing failed: ${error.message}`);

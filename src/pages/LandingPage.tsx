@@ -12,29 +12,24 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="flex h-16 shrink-0 items-center gap-2 bg-black sticky top-0 z-50 layout-transition w-full overflow-hidden pt-2">
-        <div className="flex flex-1 items-center gap-2 px-8 min-w-0">
+      <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 layout-transition w-full overflow-hidden">
+        <div className="flex flex-1 items-center gap-2 px-3 min-w-0">
           <div className="flex-1 min-w-0">
-            <div className="flex items-end gap-2">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbPage 
-                      className="line-clamp-1 truncate font-bold text-2xl text-white tiktok-sans-title cursor-pointer sm:hover:text-gray-300 transition-colors"
-                      onClick={() => navigate('/')}
-                    >
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-lg text-foreground tiktok-sans-title">
                       WeAreCity
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-              <Badge variant="outline" className="text-xs text-white border-white/20 mb-1">
-                Beta
-              </Badge>
-            </div>
+                    </span>
+                    <Badge variant="outline" className="text-xs">Beta</Badge>
+                  </div>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
         </div>
-        <div className="ml-auto px-8 flex-shrink-0">
+        <div className="ml-auto px-3 flex-shrink-0">
           <NavActions />
         </div>
       </header>

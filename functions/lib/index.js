@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRAGStatsFunction = exports.getRAGConversationsFunction = exports.ragQueryFunction = exports.hybridSearchFunction = exports.vectorSearchFunction = exports.regenerateEmbeddingsFunction = exports.generateBatchEmbeddingsFunction = exports.generateEmbeddingsFunction = exports.processManualTextFunction = exports.processDocumentFunction = exports.advancedCrawlingFunction = exports.advancedScrapingFunction = exports.createRAGCollections = exports.setupRAGSystem = exports.deleteUserData = exports.onUserDelete = exports.setupAndFixMetrics = exports.migrateMetricsData = exports.debugMetrics = exports.cleanupOldMetrics = exports.getCityMetrics = exports.recordChatMetric = exports.initializeCategories = exports.secureGoogleSearch = exports.classifyQuery = exports.processAIChat = exports.securityDashboard = exports.healthCheck = void 0;
+exports.getRAGStatsFunction = exports.getRAGConversationsFunction = exports.ragQueryFunction = exports.hybridSearchFunction = exports.vectorSearchFunction = exports.regenerateEmbeddingsFunction = exports.generateBatchEmbeddingsFunction = exports.generateEmbeddingsFunction = exports.processManualTextFunction = exports.processDocumentFunction = exports.advancedCrawlingFunction = exports.advancedScrapingFunction = exports.createRAGCollections = exports.setupRAGSystem = exports.deleteUserData = exports.setupAndFixMetrics = exports.migrateMetricsData = exports.debugMetrics = exports.cleanupOldMetrics = exports.getCityMetrics = exports.recordChatMetric = exports.initializeCategories = exports.secureGoogleSearch = exports.classifyQuery = exports.processAIChat = exports.securityDashboard = exports.getGoogleMapsApiKey = exports.healthCheck = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const cors_1 = __importDefault(require("cors"));
@@ -63,13 +63,35 @@ exports.healthCheck = functions.https.onRequest((req, res) => {
         message: 'WeAreCity Functions with Enterprise Security are running'
     });
 });
+// Get Google Maps API key
+exports.getGoogleMapsApiKey = functions.https.onCall(async (data, context) => {
+    try {
+        // Verify authentication
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+        }
+        // Return the Google Maps API key from environment variables
+        const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+        if (!apiKey) {
+            throw new functions.https.HttpsError('internal', 'Google Maps API key not configured');
+        }
+        return {
+            apiKey: apiKey
+        };
+    }
+    catch (error) {
+        console.error('Error getting Google Maps API key:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to get Google Maps API key');
+    }
+});
 // Enterprise Security Dashboard endpoint
 exports.securityDashboard = functions.https.onRequest(async (req, res) => {
     return corsHandler(req, res, async () => {
+        var _a;
         try {
             // Verify admin authentication
             const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
+            if (!(authHeader === null || authHeader === void 0 ? void 0 : authHeader.startsWith('Bearer '))) {
                 return res.status(401).json({ error: 'Authorization required' });
             }
             const idToken = authHeader.split('Bearer ')[1];
@@ -77,7 +99,7 @@ exports.securityDashboard = functions.https.onRequest(async (req, res) => {
             const userId = decodedToken.uid;
             // Check if user is admin
             const userDoc = await admin.firestore().collection('profiles').doc(userId).get();
-            if (!userDoc.exists || userDoc.data()?.role !== 'administrativo') {
+            if (!userDoc.exists || ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.role) !== 'administrativo') {
                 await auditLogger_1.auditLogger.logAuthorizationViolation(userId, 'security_dashboard', { reason: 'insufficient_privileges' }, req);
                 return res.status(403).json({ error: 'Administrative access required' });
             }
@@ -134,7 +156,7 @@ exports.processAIChat = functions.https.onRequest(async (req, res) => {
         try {
             // SECURITY: Authentication is now REQUIRED
             const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
+            if (!(authHeader === null || authHeader === void 0 ? void 0 : authHeader.startsWith('Bearer '))) {
                 return res.status(401).json({
                     error: 'Authorization required',
                     message: 'Must provide valid authentication token'
@@ -293,7 +315,7 @@ exports.secureGoogleSearch = functions.https.onRequest(async (req, res) => {
         try {
             // Verify authentication
             const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
+            if (!(authHeader === null || authHeader === void 0 ? void 0 : authHeader.startsWith('Bearer '))) {
                 return res.status(401).json({ error: 'Authorization required' });
             }
             const idToken = authHeader.split('Bearer ')[1];
@@ -386,158 +408,186 @@ Object.defineProperty(exports, "migrateMetricsData", { enumerable: true, get: fu
 Object.defineProperty(exports, "setupAndFixMetrics", { enumerable: true, get: function () { return metricsService_1.setupAndFixMetrics; } });
 // ===== USER DELETION CLEANUP =====
 // Cloud Function que se ejecuta cuando se elimina un usuario de Firebase Auth
-exports.onUserDelete = functions.auth.user().onDelete(async (user) => {
-    const userId = user.uid;
-    const db = admin.firestore();
-    console.log(`🗑️ Starting cleanup for deleted user: ${userId}`);
-    try {
-        // 1. Eliminar perfil del usuario
-        console.log(`📋 Deleting user profile for: ${userId}`);
-        await db.collection('profiles').doc(userId).delete();
-        // 2. Eliminar conversaciones del usuario
-        console.log(`💬 Deleting conversations for: ${userId}`);
-        const conversationsSnapshot = await db.collection('conversations')
-            .where('userId', '==', userId)
-            .get();
-        const conversationBatch = db.batch();
-        conversationsSnapshot.docs.forEach(doc => {
-            conversationBatch.delete(doc.ref);
-        });
-        await conversationBatch.commit();
-        // 3. Eliminar mensajes del usuario
-        console.log(`📝 Deleting messages for: ${userId}`);
-        const messagesSnapshot = await db.collection('messages')
-            .where('userId', '==', userId)
-            .get();
-        const messageBatch = db.batch();
-        messagesSnapshot.docs.forEach(doc => {
-            messageBatch.delete(doc.ref);
-        });
-        await messageBatch.commit();
-        // 4. Eliminar ciudades vinculadas (si es admin)
-        console.log(`🏙️ Checking for admin cities for: ${userId}`);
-        const citiesSnapshot = await db.collection('cities')
-            .where('adminId', '==', userId)
-            .get();
-        if (!citiesSnapshot.empty) {
-            console.log(`🏙️ Deleting ${citiesSnapshot.size} cities for admin: ${userId}`);
-            const cityBatch = db.batch();
-            citiesSnapshot.docs.forEach(doc => {
-                cityBatch.delete(doc.ref);
-            });
-            await cityBatch.commit();
-        }
-        // 5. Eliminar fuentes RAG del usuario
-        console.log(`📚 Deleting RAG sources for: ${userId}`);
-        const ragSourcesSnapshot = await db.collection('library_sources_enhanced')
-            .where('userId', '==', userId)
-            .get();
-        if (!ragSourcesSnapshot.empty) {
-            const ragBatch = db.batch();
-            ragSourcesSnapshot.docs.forEach(doc => {
-                ragBatch.delete(doc.ref);
-            });
-            await ragBatch.commit();
-        }
-        // 6. Eliminar chunks de documentos del usuario
-        console.log(`📄 Deleting document chunks for: ${userId}`);
-        const chunksSnapshot = await db.collection('document_chunks')
-            .where('userId', '==', userId)
-            .get();
-        if (!chunksSnapshot.empty) {
-            const chunkBatch = db.batch();
-            chunksSnapshot.docs.forEach(doc => {
-                chunkBatch.delete(doc.ref);
-            });
-            await chunkBatch.commit();
-        }
-        // 7. Eliminar logs de uso de IA
-        console.log(`🤖 Deleting AI usage logs for: ${userId}`);
-        const aiLogsSnapshot = await db.collection('ai_usage_logs')
-            .where('userId', '==', userId)
-            .get();
-        if (!aiLogsSnapshot.empty) {
-            const aiLogsBatch = db.batch();
-            aiLogsSnapshot.docs.forEach(doc => {
-                aiLogsBatch.delete(doc.ref);
-            });
-            await aiLogsBatch.commit();
-        }
-        // 8. Eliminar logs de búsqueda
-        console.log(`🔍 Deleting search logs for: ${userId}`);
-        const searchLogsSnapshot = await db.collection('search_usage_logs')
-            .where('userId', '==', userId)
-            .get();
-        if (!searchLogsSnapshot.empty) {
-            const searchLogsBatch = db.batch();
-            searchLogsSnapshot.docs.forEach(doc => {
-                searchLogsBatch.delete(doc.ref);
-            });
-            await searchLogsBatch.commit();
-        }
-        // 9. Eliminar métricas del usuario
-        console.log(`📊 Deleting metrics for: ${userId}`);
-        const metricsSnapshot = await db.collection('chat_metrics')
-            .where('userId', '==', userId)
-            .get();
-        if (!metricsSnapshot.empty) {
-            const metricsBatch = db.batch();
-            metricsSnapshot.docs.forEach(doc => {
-                metricsBatch.delete(doc.ref);
-            });
-            await metricsBatch.commit();
-        }
-        // 10. Eliminar datos de ciudades visitadas recientemente
-        console.log(`🗺️ Deleting recent cities data for: ${userId}`);
-        const recentCitiesSnapshot = await db.collection('recent_cities')
-            .where('userId', '==', userId)
-            .get();
-        if (!recentCitiesSnapshot.empty) {
-            const recentCitiesBatch = db.batch();
-            recentCitiesSnapshot.docs.forEach(doc => {
-                recentCitiesBatch.delete(doc.ref);
-            });
-            await recentCitiesBatch.commit();
-        }
-        console.log(`✅ Successfully cleaned up all data for user: ${userId}`);
-        // Log the cleanup operation
-        await db.collection('user_cleanup_logs').add({
-            userId,
-            deletedAt: admin.firestore.FieldValue.serverTimestamp(),
-            operations: [
-                'profile',
-                'conversations',
-                'messages',
-                'cities',
-                'rag_sources',
-                'document_chunks',
-                'ai_usage_logs',
-                'search_logs',
-                'metrics',
-                'recent_cities'
-            ],
-            status: 'completed'
-        });
+// TEMPORARILY DISABLED DUE TO DEPLOYMENT ISSUES
+/*
+export const onUserDelete = functions.auth.user().onDelete(async (user) => {
+  const userId = user.uid;
+  const db = admin.firestore();
+  
+  console.log(`🗑️ Starting cleanup for deleted user: ${userId}`);
+  
+  try {
+    // 1. Eliminar perfil del usuario
+    console.log(`📋 Deleting user profile for: ${userId}`);
+    await db.collection('profiles').doc(userId).delete();
+    
+    // 2. Eliminar conversaciones del usuario
+    console.log(`💬 Deleting conversations for: ${userId}`);
+    const conversationsSnapshot = await db.collection('conversations')
+      .where('userId', '==', userId)
+      .get();
+    
+    const conversationBatch = db.batch();
+    conversationsSnapshot.docs.forEach(doc => {
+      conversationBatch.delete(doc.ref);
+    });
+    await conversationBatch.commit();
+    
+    // 3. Eliminar mensajes del usuario
+    console.log(`📝 Deleting messages for: ${userId}`);
+    const messagesSnapshot = await db.collection('messages')
+      .where('userId', '==', userId)
+      .get();
+    
+    const messageBatch = db.batch();
+    messagesSnapshot.docs.forEach(doc => {
+      messageBatch.delete(doc.ref);
+    });
+    await messageBatch.commit();
+    
+    // 4. Eliminar ciudades vinculadas (si es admin)
+    console.log(`🏙️ Checking for admin cities for: ${userId}`);
+    const citiesSnapshot = await db.collection('cities')
+      .where('adminId', '==', userId)
+      .get();
+    
+    if (!citiesSnapshot.empty) {
+      console.log(`🏙️ Deleting ${citiesSnapshot.size} cities for admin: ${userId}`);
+      const cityBatch = db.batch();
+      citiesSnapshot.docs.forEach(doc => {
+        cityBatch.delete(doc.ref);
+      });
+      await cityBatch.commit();
     }
-    catch (error) {
-        console.error(`❌ Error cleaning up user data for ${userId}:`, error);
-        // Log the error
-        await db.collection('user_cleanup_logs').add({
-            userId,
-            deletedAt: admin.firestore.FieldValue.serverTimestamp(),
-            error: error instanceof Error ? error.message : 'Unknown error',
-            status: 'failed'
-        });
-        throw error;
+    
+    // 5. Eliminar fuentes RAG del usuario
+    console.log(`📚 Deleting RAG sources for: ${userId}`);
+    const ragSourcesSnapshot = await db.collection('library_sources_enhanced')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!ragSourcesSnapshot.empty) {
+      const ragBatch = db.batch();
+      ragSourcesSnapshot.docs.forEach(doc => {
+        ragBatch.delete(doc.ref);
+      });
+      await ragBatch.commit();
     }
+    
+    // 6. Eliminar chunks de documentos del usuario
+    console.log(`📄 Deleting document chunks for: ${userId}`);
+    const chunksSnapshot = await db.collection('document_chunks')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!chunksSnapshot.empty) {
+      const chunkBatch = db.batch();
+      chunksSnapshot.docs.forEach(doc => {
+        chunkBatch.delete(doc.ref);
+      });
+      await chunkBatch.commit();
+    }
+    
+    // 7. Eliminar logs de uso de IA
+    console.log(`🤖 Deleting AI usage logs for: ${userId}`);
+    const aiLogsSnapshot = await db.collection('ai_usage_logs')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!aiLogsSnapshot.empty) {
+      const aiLogsBatch = db.batch();
+      aiLogsSnapshot.docs.forEach(doc => {
+        aiLogsBatch.delete(doc.ref);
+      });
+      await aiLogsBatch.commit();
+    }
+    
+    // 8. Eliminar logs de búsqueda
+    console.log(`🔍 Deleting search logs for: ${userId}`);
+    const searchLogsSnapshot = await db.collection('search_usage_logs')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!searchLogsSnapshot.empty) {
+      const searchLogsBatch = db.batch();
+      searchLogsSnapshot.docs.forEach(doc => {
+        searchLogsBatch.delete(doc.ref);
+      });
+      await searchLogsBatch.commit();
+    }
+    
+    // 9. Eliminar métricas del usuario
+    console.log(`📊 Deleting metrics for: ${userId}`);
+    const metricsSnapshot = await db.collection('chat_metrics')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!metricsSnapshot.empty) {
+      const metricsBatch = db.batch();
+      metricsSnapshot.docs.forEach(doc => {
+        metricsBatch.delete(doc.ref);
+      });
+      await metricsBatch.commit();
+    }
+    
+    // 10. Eliminar datos de ciudades visitadas recientemente
+    console.log(`🗺️ Deleting recent cities data for: ${userId}`);
+    const recentCitiesSnapshot = await db.collection('recent_cities')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!recentCitiesSnapshot.empty) {
+      const recentCitiesBatch = db.batch();
+      recentCitiesSnapshot.docs.forEach(doc => {
+        recentCitiesBatch.delete(doc.ref);
+      });
+      await recentCitiesBatch.commit();
+    }
+    
+    console.log(`✅ Successfully cleaned up all data for user: ${userId}`);
+    
+    // Log the cleanup operation
+    await db.collection('user_cleanup_logs').add({
+      userId,
+      deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      operations: [
+        'profile',
+        'conversations',
+        'messages',
+        'cities',
+        'rag_sources',
+        'document_chunks',
+        'ai_usage_logs',
+        'search_logs',
+        'metrics',
+        'recent_cities'
+      ],
+      status: 'completed'
+    });
+    
+  } catch (error) {
+    console.error(`❌ Error cleaning up user data for ${userId}:`, error);
+    
+    // Log the error
+    await db.collection('user_cleanup_logs').add({
+      userId,
+      deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      error: error instanceof Error ? error.message : 'Unknown error',
+      status: 'failed'
+    });
+    
+    throw error;
+  }
 });
+*/
 // Función HTTP para eliminar manualmente los datos de un usuario (solo para admins)
 exports.deleteUserData = functions.https.onRequest(async (req, res) => {
     return corsHandler(req, res, async () => {
+        var _a;
         try {
             // Verificar autenticación
             const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
+            if (!(authHeader === null || authHeader === void 0 ? void 0 : authHeader.startsWith('Bearer '))) {
                 return res.status(401).json({ error: 'Authorization required' });
             }
             const idToken = authHeader.split('Bearer ')[1];
@@ -545,7 +595,7 @@ exports.deleteUserData = functions.https.onRequest(async (req, res) => {
             const adminUserId = decodedToken.uid;
             // Verificar que el usuario sea admin
             const adminDoc = await admin.firestore().collection('profiles').doc(adminUserId).get();
-            if (!adminDoc.exists || adminDoc.data()?.role !== 'administrativo') {
+            if (!adminDoc.exists || ((_a = adminDoc.data()) === null || _a === void 0 ? void 0 : _a.role) !== 'administrativo') {
                 return res.status(403).json({ error: 'Administrative access required' });
             }
             const { userId } = req.body;

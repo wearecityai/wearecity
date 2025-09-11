@@ -41,6 +41,105 @@ export const healthCheck = functions.https.onRequest((req, res) => {
   });
 });
 
+// Get Google Maps API key
+export const getGoogleMapsApiKey = functions.https.onCall(async (data, context) => {
+  console.log('🔑 getGoogleMapsApiKey called');
+  console.log('📊 Context auth:', context.auth ? 'authenticated' : 'not authenticated');
+  
+  try {
+    // Verify authentication
+    if (!context.auth) {
+      console.log('❌ No authentication context');
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
+    console.log('✅ User authenticated:', context.auth.uid);
+
+    // Check all environment variables
+    console.log('🔍 Environment variables check:');
+    console.log('   GOOGLE_MAPS_API_KEY:', process.env.GOOGLE_MAPS_API_KEY ? 'SET' : 'NOT SET');
+    console.log('   GOOGLE_PLACES_API_KEY:', process.env.GOOGLE_PLACES_API_KEY ? 'SET' : 'NOT SET');
+    console.log('   GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
+
+    // Try multiple possible variable names
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || 
+                   process.env.GOOGLE_PLACES_API_KEY || 
+                   process.env.GEMINI_API_KEY;
+    
+    console.log('🔑 Final API key:', apiKey ? 'FOUND' : 'NOT FOUND');
+    
+    if (!apiKey) {
+      console.log('❌ No API key found in any environment variable');
+      throw new functions.https.HttpsError('internal', 'Google Maps API key not configured');
+    }
+
+    console.log('✅ Returning API key successfully');
+    return {
+      apiKey: apiKey
+    };
+  } catch (error) {
+    console.error('❌ Error in getGoogleMapsApiKey:', error);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    throw new functions.https.HttpsError('internal', 'Failed to get Google Maps API key');
+  }
+});
+
+// Enable Google Maps APIs
+export const enableMapsAPIs = functions.https.onRequest(async (req, res) => {
+  return corsHandler(req, res, async () => {
+    try {
+      console.log('🔧 Habilitando APIs de Google Maps...');
+      
+      const { GoogleApis } = await import('googleapis');
+      const google = new GoogleApis();
+      const serviceUsage = google.serviceusage('v1');
+      
+      const apisToEnable = [
+        'places-backend.googleapis.com',
+        'maps-backend.googleapis.com',
+        'geocoding-backend.googleapis.com'
+      ];
+      
+      const results = [];
+      
+      for (const api of apisToEnable) {
+        try {
+          console.log(`📡 Habilitando ${api}...`);
+          
+          const result = await serviceUsage.services.enable({
+            name: `projects/wearecity-2ab89/services/${api}`
+          });
+          
+          console.log(`✅ ${api} habilitada correctamente`);
+          results.push({ api, status: 'success', result: result.data });
+          
+        } catch (error) {
+          console.error(`❌ Error habilitando ${api}:`, error);
+          results.push({ api, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      }
+      
+      res.status(200).json({
+        success: true,
+        results,
+        summary: {
+          total: apisToEnable.length,
+          successful: results.filter(r => r.status === 'success').length,
+          failed: results.filter(r => r.status === 'error').length
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Error general:', error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+});
+
 // Enterprise Security Dashboard endpoint
 export const securityDashboard = functions.https.onRequest(async (req, res) => {
   return corsHandler(req, res, async () => {
@@ -412,6 +511,8 @@ export {
 // ===== USER DELETION CLEANUP =====
 
 // Cloud Function que se ejecuta cuando se elimina un usuario de Firebase Auth
+// TEMPORARILY DISABLED DUE TO DEPLOYMENT ISSUES
+/*
 export const onUserDelete = functions.auth.user().onDelete(async (user) => {
   const userId = user.uid;
   const db = admin.firestore();
@@ -581,6 +682,7 @@ export const onUserDelete = functions.auth.user().onDelete(async (user) => {
     throw error;
   }
 });
+*/
 
 // Función HTTP para eliminar manualmente los datos de un usuario (solo para admins)
 export const deleteUserData = functions.https.onRequest(async (req, res) => {

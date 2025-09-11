@@ -11,6 +11,9 @@ import LandingPage from '@/pages/LandingPage';
 import SearchCityPage from '@/pages/SearchCityPage';
 import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
+import { SuperAdminGuard } from '@/components/SuperAdminGuard';
+import { SuperAdminRedirect } from '@/components/SuperAdminRedirect';
+import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
 
 const App = () => {
   useAutoLanguage();
@@ -36,12 +39,20 @@ const App = () => {
       <ThemeProvider>
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
+            <SuperAdminRedirect>
+              <Routes>
               {/* Landing page */}
               <Route path="/" element={<LandingPage />} />
               
               {/* Search city page (sin sidebar) */}
               <Route path="/searchcity" element={<SearchCityPage />} />
+              
+              {/* SuperAdmin route (protected and independent) */}
+              <Route path="/superadmin" element={
+                <SuperAdminGuard>
+                  <SuperAdminDashboard />
+                </SuperAdminGuard>
+              } />
               
               {/* Rutas que usan el layout persistente (con sidebar) */}
               <Route path="/admin" element={<PersistentLayout />} />
@@ -54,7 +65,8 @@ const App = () => {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
+              </Routes>
+            </SuperAdminRedirect>
           </AuthProvider>
         </BrowserRouter>
         <Toaster richColors closeButton />

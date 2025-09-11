@@ -68,6 +68,7 @@ function processContent(content, url) {
  * Firebase Function para scraping avanzado con Firecrawl
  */
 exports.advancedScraping = functions.https.onCall(async (data, context) => {
+    var _a, _b, _c, _d, _e;
     // Verificar autenticación
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -94,7 +95,7 @@ exports.advancedScraping = functions.https.onCall(async (data, context) => {
             throw new Error(`Scraping failed: ${scrapeResult.error}`);
         }
         const scrapedData = scrapeResult.data;
-        console.log('✅ Scraping completed, content length:', scrapedData.markdown?.length || 0);
+        console.log('✅ Scraping completed, content length:', ((_a = scrapedData.markdown) === null || _a === void 0 ? void 0 : _a.length) || 0);
         // Procesar contenido
         const { title, cleanContent } = processContent(scrapedData.markdown || '', url);
         // Extraer enlaces a documentos si está habilitado
@@ -120,10 +121,10 @@ exports.advancedScraping = functions.https.onCall(async (data, context) => {
                 extractedText: cleanContent,
                 scrapedAt: admin.firestore.FieldValue.serverTimestamp(),
                 originalMetadata: {
-                    title: scrapedData.metadata?.title,
-                    description: scrapedData.metadata?.description,
-                    image: scrapedData.metadata?.image,
-                    author: scrapedData.metadata?.author
+                    title: (_b = scrapedData.metadata) === null || _b === void 0 ? void 0 : _b.title,
+                    description: (_c = scrapedData.metadata) === null || _c === void 0 ? void 0 : _c.description,
+                    image: (_d = scrapedData.metadata) === null || _d === void 0 ? void 0 : _d.image,
+                    author: (_e = scrapedData.metadata) === null || _e === void 0 ? void 0 : _e.author
                 }
             },
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -171,6 +172,7 @@ exports.advancedScraping = functions.https.onCall(async (data, context) => {
  * Firebase Function para procesar múltiples URLs (crawling)
  */
 exports.advancedCrawling = functions.https.onCall(async (data, context) => {
+    var _a, _b, _c;
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
     }
@@ -198,14 +200,14 @@ exports.advancedCrawling = functions.https.onCall(async (data, context) => {
         const results = [];
         // Procesar cada página encontrada
         for (const page of crawlResult.data || []) {
-            const { title, cleanContent } = processContent(page.markdown || '', page.metadata?.sourceURL || '');
+            const { title, cleanContent } = processContent(page.markdown || '', ((_a = page.metadata) === null || _a === void 0 ? void 0 : _a.sourceURL) || '');
             const documentLinks = extractDocumentLinks(page.links || []);
             const docRef = await db.collection('library_sources_enhanced').add({
                 userId,
                 citySlug,
                 type: 'url',
                 title,
-                originalUrl: page.metadata?.sourceURL || '',
+                originalUrl: ((_b = page.metadata) === null || _b === void 0 ? void 0 : _b.sourceURL) || '',
                 content: cleanContent,
                 documentLinks,
                 processingStatus: 'scraped',
@@ -223,7 +225,7 @@ exports.advancedCrawling = functions.https.onCall(async (data, context) => {
             });
             results.push({
                 sourceId: docRef.id,
-                url: page.metadata?.sourceURL,
+                url: (_c = page.metadata) === null || _c === void 0 ? void 0 : _c.sourceURL,
                 title,
                 contentLength: cleanContent.length,
                 documentLinks: documentLinks.length

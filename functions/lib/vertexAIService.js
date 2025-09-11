@@ -83,6 +83,7 @@ const classifyQueryComplexity = (query) => {
 exports.classifyQueryComplexity = classifyQueryComplexity;
 // Gemini 2.5 Pro for institutional queries with Google Search grounding
 const processInstitutionalQuery = async (query, cityContext, conversationHistory) => {
+    var _a, _b;
     try {
         console.log('🏛️ Processing institutional query with Gemini 2.5 Pro and grounding');
         // Use Gemini 2.5 Pro with Google Search grounding for institutional queries
@@ -301,7 +302,7 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
             config,
         });
         // Log if grounding was used
-        if (result.candidates?.[0]?.groundingMetadata) {
+        if ((_b = (_a = result.candidates) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.groundingMetadata) {
             console.log('🔍 Google Search grounding activated:', result.candidates[0].groundingMetadata);
         }
         const responseText = result.text || 'No se pudo generar una respuesta adecuada.';
@@ -324,10 +325,10 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
                 console.log('🗺️ Detected place query, searching Google Places...');
                 additionalPlaces = await (0, placesService_1.searchPlaces)(query, cityContext);
                 // Add photo URLs to places
-                additionalPlaces = additionalPlaces.map(place => ({
-                    ...place,
-                    photoUrl: place.photos?.[0] ? (0, placesService_1.getPlacePhotoUrl)(place.photos[0].photo_reference) : undefined
-                }));
+                additionalPlaces = additionalPlaces.map(place => {
+                    var _a;
+                    return (Object.assign(Object.assign({}, place), { photoUrl: ((_a = place.photos) === null || _a === void 0 ? void 0 : _a[0]) ? (0, placesService_1.getPlacePhotoUrl)(place.photos[0].photo_reference) : undefined }));
+                });
             }
         }
         return {
