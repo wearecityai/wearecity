@@ -924,7 +924,7 @@ const PersistentLayout: React.FC = () => {
   const getBreadcrumbTitle = () => {
     return (
       <div className="flex items-center gap-2">
-        <span className="font-bold text-lg text-foreground">
+        <span className="font-bold text-lg text-foreground tiktok-sans-title">
           WeAreCity
         </span>
         <Badge variant="outline" className="text-xs">Beta</Badge>

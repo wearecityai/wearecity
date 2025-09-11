@@ -211,7 +211,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                 </div>
               )}
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">{currentCity.name}</span>
+                <span className="truncate font-semibold tiktok-sans-title">{currentCity.name}</span>
                 {(currentCity.province || currentCity.country) && (
                   <span className="truncate text-xs text-muted-foreground">
                     {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
@@ -242,7 +242,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                     </div>
                   )}
                   <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-semibold">{currentCity.name}</span>
+                    <span className="truncate font-semibold tiktok-sans-title">{currentCity.name}</span>
                     {(currentCity.province || currentCity.country) && (
                       <span className="truncate text-xs text-muted-foreground">
                         {[currentCity.province, currentCity.country].filter(Boolean).join(', ')}
@@ -298,7 +298,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                         </div>
                       )}
                       <div>
-                        <div className="font-medium">{city.name}</div>
+                        <div className="font-medium tiktok-sans-title">{city.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {city.name.includes(',') ? city.name.split(',')[1]?.trim() : 'España'}
                         </div>

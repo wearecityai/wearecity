@@ -107,9 +107,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('🔍 Profile data after fetch:', profileData);
             setProfile(profileData);
             if (!profileData) {
-              console.log('❌ No profile data found, redirecting to auth');
-              await firebase.auth.signOut();
-              window.location.href = '/auth';
+              console.log('❌ No profile data found, creating default profile');
+              console.log('🔍 User ID:', session.user.id);
+              console.log('🔍 User email:', session.user.email);
+              
+              // Create default profile for user
+              try {
+                const defaultProfile = {
+                  email: session.user.email,
+                  firstName: session.user.user_metadata?.full_name?.split(' ')[0] || 'Usuario',
+                  lastName: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+                  role: 'ciudadano',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  default_chat: {
+                    conversationId: '',
+                    title: 'Chat de la-vila-joiosa',
+                    citySlug: 'la-vila-joiosa'
+                  },
+                  last_visited_city: 'la-vila-joiosa',
+                  recent_cities: [],
+                  updated_at: new Date().toISOString()
+                };
+                
+                console.log('📝 Creating default profile:', defaultProfile);
+                
+                // Import setDoc dynamically to avoid issues
+                const { setDoc } = await import('firebase/firestore');
+                const { db } = await import('@/integrations/firebase/config');
+                const profileRef = doc(db, 'profiles', session.user.id);
+                await setDoc(profileRef, defaultProfile);
+                
+                console.log('✅ Default profile created successfully');
+                setProfile(defaultProfile);
+              } catch (createError) {
+                console.error('❌ Error creating default profile:', createError);
+                // If we can't create profile, redirect to auth
+                await firebase.auth.signOut();
+                window.location.href = '/auth';
+                return;
+              }
             } else {
               console.log('✅ Profile data found, proceeding with auth');
               // Check for default chat and redirect if user just signed in
@@ -146,9 +183,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(profileData);
           setIsLoading(false);
           if (!profileData) {
-            console.log('❌ No initial profile data found, redirecting to auth');
-            await firebase.auth.signOut();
-            window.location.href = '/auth';
+            console.log('❌ No initial profile data found, creating default profile');
+            console.log('🔍 Initial User ID:', session.user.id);
+            console.log('🔍 Initial User email:', session.user.email);
+            
+            // Create default profile for user
+            try {
+              const defaultProfile = {
+                email: session.user.email,
+                firstName: session.user.user_metadata?.full_name?.split(' ')[0] || 'Usuario',
+                lastName: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+                role: 'ciudadano',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                default_chat: {
+                  conversationId: '',
+                  title: 'Chat de la-vila-joiosa',
+                  citySlug: 'la-vila-joiosa'
+                },
+                last_visited_city: 'la-vila-joiosa',
+                recent_cities: [],
+                updated_at: new Date().toISOString()
+              };
+              
+              console.log('📝 Creating initial default profile:', defaultProfile);
+              
+              // Import setDoc dynamically to avoid issues
+              const { setDoc } = await import('firebase/firestore');
+              const { db } = await import('@/integrations/firebase/config');
+              const profileRef = doc(db, 'profiles', session.user.id);
+              await setDoc(profileRef, defaultProfile);
+              
+              console.log('✅ Initial default profile created successfully');
+              setProfile(defaultProfile);
+            } catch (createError) {
+              console.error('❌ Error creating initial default profile:', createError);
+              // If we can't create profile, redirect to auth
+              await firebase.auth.signOut();
+              window.location.href = '/auth';
+              return;
+            }
           } else {
             console.log('✅ Initial profile data found');
           }

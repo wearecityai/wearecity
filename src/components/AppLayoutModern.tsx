@@ -178,7 +178,7 @@ const AppLayoutModern: React.FC<AppLayoutModernProps> = (props) => {
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem>
-                      <BreadcrumbPage className="line-clamp-1">
+                      <BreadcrumbPage className="line-clamp-1 tiktok-sans-title">
                         {chatConfig?.restrictedCity?.name || 'WeAreCity AI Chat'}
                       </BreadcrumbPage>
                     </BreadcrumbItem>

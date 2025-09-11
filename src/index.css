@@ -1,5 +1,21 @@
 /* Streamdown styles are handled internally by the Response component */
 
+/* TikTok Sans Font */
+@font-face {
+  font-family: 'TikTok Sans';
+  src: url('/TikTok_Sans/TikTokSans-VariableFont_opsz,slnt,wdth,wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* TikTok Sans para títulos de landing */
+.tiktok-sans-title {
+  font-family: 'TikTok Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

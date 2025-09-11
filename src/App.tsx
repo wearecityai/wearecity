@@ -7,6 +7,7 @@ import { useAutoLanguage } from '@/hooks/useAutoLanguage';
 
 import PersistentLayout from '@/components/PersistentLayout';
 import AuthPage from '@/components/auth/AuthPage';
+import LandingPage from '@/pages/LandingPage';
 import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
 
@@ -35,8 +36,11 @@ const App = () => {
         <BrowserRouter>
           <AuthProvider>
             <Routes>
+              {/* Landing Page */}
+              <Route path="/" element={<LandingPage />} />
+              
               {/* Rutas que usan el layout persistente */}
-              <Route path="/" element={<PersistentLayout />} />
+              <Route path="/home" element={<PersistentLayout />} />
               <Route path="/admin" element={<PersistentLayout />} />
               <Route path="/admin/:citySlug" element={<PersistentLayout />} />
               <Route path="/admin/metrics" element={<PersistentLayout />} />

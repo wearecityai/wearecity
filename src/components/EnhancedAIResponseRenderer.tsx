@@ -14,7 +14,7 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
   className = "" 
 }) => {
   return (
-    <div className={`prose prose-lg max-w-none dark:prose-invert ${className}`}>
+    <div className={`max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -79,45 +79,60 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
             </div>
           ),
           
-          // Listas como ChatGPT - con alineación correcta del texto
+          // Listas con mejor visibilidad
           ul: ({ children }) => (
-            <ul className="my-4 list-none ml-0 space-y-1">
+            <ul className="my-4 ml-4 space-y-2">
               {children}
             </ul>
           ),
           
           ol: ({ children }) => (
-            <ol className="my-4 list-none ml-0 space-y-1">
+            <ol className="my-4 ml-4 space-y-2 list-decimal">
               {children}
             </ol>
           ),
           
           li: ({ children }) => (
-            <li className="flex items-start text-gray-700 dark:text-gray-300 leading-relaxed">
-              <span className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <div className="flex-1">
-                {children}
-              </div>
+            <li className="text-gray-700 dark:text-gray-300 leading-relaxed">
+              {children}
             </li>
           ),
           
-          // Títulos como ChatGPT
+          // Títulos con jerarquía clara
           h1: ({ children }) => (
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 mt-8 first:mt-0 border-b border-gray-200 dark:border-gray-700 pb-2">
               {children}
             </h1>
           ),
           
           h2: ({ children }) => (
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3 mt-6">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4 mt-6">
               {children}
             </h2>
           ),
           
           h3: ({ children }) => (
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 mt-4">
+            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-3 mt-5">
               {children}
             </h3>
+          ),
+          
+          h4: ({ children }) => (
+            <h4 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2 mt-4">
+              {children}
+            </h4>
+          ),
+          
+          h5: ({ children }) => (
+            <h5 className="text-base font-medium text-gray-800 dark:text-gray-200 mb-2 mt-3">
+              {children}
+            </h5>
+          ),
+          
+          h6: ({ children }) => (
+            <h6 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-3">
+              {children}
+            </h6>
           ),
           
           // Párrafos como ChatGPT

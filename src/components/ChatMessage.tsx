@@ -374,9 +374,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                           onClick={typewriterIsTyping ? skipToEnd : undefined}
                           style={{ maxWidth: '100%' }}
                         >
-                          <div className="prose prose-sm max-w-none">
-                            {contentToDisplay}
-                          </div>
+                          <EnhancedAIResponseRenderer content={contentToDisplay} />
                         </div>
                       )}
                       
