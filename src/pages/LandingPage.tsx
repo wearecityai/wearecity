@@ -44,7 +44,7 @@ const LandingPage: React.FC = () => {
         <Hero02Adapted
           badge="WeAreCity"
           title="Transforma Tu Experiencia Ciudadana"
-          description="Conecta con tu ciudad de manera inteligente. Accede a servicios municipales, información local y asistencia personalizada con tecnología de vanguardia."
+          description="Conecta con tu ciudad de manera inteligente. Accede a servicios municipales y asistencia personalizada."
           primaryButtonText="Buscar ciudad"
           secondaryButtonText="Iniciar sesión"
           onPrimaryClick={() => navigate('/searchcity')}
