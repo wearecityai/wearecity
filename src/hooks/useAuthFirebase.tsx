@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { firebase, User, Session } from '@/integrations/firebase/client';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/config';
+import { createSuperAdminProfile } from '@/integrations/firebase/auth';
 import { useCityNavigation } from './useCityNavigation';
 
 interface Profile {
@@ -39,7 +40,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const mapRole = (role: string): 'ciudadano' | 'administrativo' | 'superadmin' => {
+  const mapRole = (role: string, email: string): 'ciudadano' | 'administrativo' | 'superadmin' => {
+    // Check if user is superadmin by email
+    if (email === 'wearecity.ai@gmail.com') {
+      return 'superadmin';
+    }
+    
     switch (role) {
       case 'superadmin':
         return 'superadmin';
@@ -53,23 +59,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const fetchProfile = async (userId: string, email?: string): Promise<Profile | null> => {
+  const fetchProfile = async (userId: string, userEmail?: string): Promise<Profile | null> => {
     try {
       const docRef = doc(db, 'profiles', userId);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
-        // Special case for SuperAdmin - create a virtual profile
-        if (userId && email === 'wearecity.ai@gmail.com') {
-          return {
-            id: userId,
-            email: 'wearecity.ai@gmail.com',
-            firstName: 'Super',
-            lastName: 'Admin',
-            role: 'superadmin',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
+        // Si no existe el perfil y es superadmin, crearlo automáticamente
+        if (userEmail === 'wearecity.ai@gmail.com') {
+          console.log('🔐 Creando perfil superadmin automáticamente...');
+          await createSuperAdminProfile(userId, userEmail);
+          // Intentar obtener el perfil nuevamente
+          const newDocSnap = await getDoc(docRef);
+          if (newDocSnap.exists()) {
+            const data = newDocSnap.data();
+            const mappedProfile: Profile = {
+              id: newDocSnap.id,
+              email: data.email,
+              firstName: data.firstName || null,
+              lastName: data.lastName || null,
+              role: mapRole(data.role, data.email),
+              createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+              updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+            };
+            console.log('✅ Perfil superadmin creado y obtenido:', mappedProfile);
+            return mappedProfile;
+          }
         }
         return null;
       }
@@ -82,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         firstName: data.firstName || null,
         lastName: data.lastName || null,
-        role: mapRole(data.role),
+        role: mapRole(data.role, data.email),
         createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
         updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
       };

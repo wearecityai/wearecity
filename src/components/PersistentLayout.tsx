@@ -267,6 +267,14 @@ const PersistentLayout: React.FC = () => {
     };
   }, [isAppInitialized, isAppFullyInitialized, isResuming, user, profile, authLoading, cityNavigationLoading, isNavigating, chatConfig, isFullyLoaded, isLoading]);
 
+  // Redirigir superadmin a su panel (solo si no está ya en /superadmin)
+  useEffect(() => {
+    if (user && profile?.role === 'superadmin' && location.pathname !== '/superadmin') {
+      navigate('/superadmin', { replace: true });
+      return;
+    }
+  }, [user, profile?.role, navigate, location.pathname]);
+
   // Cargar ciudad del admin y redirigir a /admin/:slug si existe
   useEffect(() => {
     const loadAdminCity = async () => {

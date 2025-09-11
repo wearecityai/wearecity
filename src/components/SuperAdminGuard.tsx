@@ -1,32 +1,56 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuthFirebase';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { LoadingScreen } from './ui/loading-screen';
 
 interface SuperAdminGuardProps {
   children: React.ReactNode;
 }
 
 export const SuperAdminGuard: React.FC<SuperAdminGuardProps> = ({ children }) => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const [isChecking, setIsChecking] = useState(true);
 
-  // Still loading authentication
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Verificando permisos...</p>
-        </div>
-      </div>
-    );
+  useEffect(() => {
+    const checkSuperAdminAccess = () => {
+      if (isLoading) return;
+
+      if (!user || !profile) {
+        navigate('/auth', { replace: true });
+        return;
+      }
+
+      // Solo permitir acceso si es superadmin
+      if (profile.role !== 'superadmin') {
+        // Si no es superadmin, redirigir según el rol
+        if (profile.role === 'administrativo') {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/searchcity', { replace: true });
+        }
+        return;
+      }
+
+      // Verificar que el email sea específicamente wearecity.ai@gmail.com
+      if (user.email !== 'wearecity.ai@gmail.com') {
+        console.log('❌ Acceso denegado: Email no autorizado para superadmin');
+        navigate('/auth', { replace: true });
+        return;
+      }
+
+      setIsChecking(false);
+    };
+
+    checkSuperAdminAccess();
+  }, [user, profile, isLoading, navigate]);
+
+  if (isLoading || isChecking) {
+    return <LoadingScreen />;
   }
 
-  // Only allow access to wearecity.ai@gmail.com
-  const isSuperAdmin = user?.email === 'wearecity.ai@gmail.com';
-
-  if (!user || !isSuperAdmin) {
-    // Redirect to home if not authorized
-    return <Navigate to="/" replace />;
+  if (!user || profile?.role !== 'superadmin') {
+    return null; // Se redirigirá automáticamente
   }
 
   return <>{children}</>;
