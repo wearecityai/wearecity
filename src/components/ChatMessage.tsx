@@ -217,7 +217,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             asChild
             variant="link"
             size="sm"
-            className="text-inherit p-0 h-auto font-normal inline"
+            className="text-inherit p-0 h-auto font-normal inline rounded-full"
           >
             <a href={linkUrl} target="_blank" rel="noopener noreferrer">
               {linkText}
@@ -236,7 +236,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             asChild
             variant="link"
             size="sm"
-            className="text-inherit p-0 h-auto font-normal inline break-all overflow-wrap-anywhere"
+            className="text-inherit p-0 h-auto font-normal inline break-all overflow-wrap-anywhere rounded-full"
           >
             <a href={part} target="_blank" rel="noopener noreferrer">
               {part}
@@ -320,17 +320,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             <Card className="bg-muted border-0 overflow-hidden">
               <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
                 {(message.content && message.content.trim() !== "") && (
-                  <div 
+                  <EnhancedAIResponseRenderer 
+                    content={message.content}
                     className="text-base leading-normal select-text"
-                    style={{ 
-                      wordWrap: 'break-word', 
-                      overflowWrap: 'anywhere',
-                      hyphens: 'auto',
-                      maxWidth: '100%'
-                    }}
-                  >
-                    {processTextForParagraphs(message.content)}
-                  </div>
+                    compact={true}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -374,37 +368,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                           onClick={typewriterIsTyping ? skipToEnd : undefined}
                           style={{ maxWidth: '100%' }}
                         >
+<<<<<<< HEAD
                           <EnhancedAIResponseRenderer content={contentToDisplay} />
+=======
+                          <EnhancedAIResponseRenderer 
+                            content={contentToDisplay}
+                            className="prose-sm"
+                          />
+>>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
                         </div>
                       )}
                       
-                      {/* Indicador del sistema de respuesta */}
-                      {message.metadata && (
-                        <div className="mt-2 flex items-center justify-end">
-                          <div className="text-xs text-muted-foreground flex items-center space-x-2">
-                            {message.metadata.ragUsed ? (
-                              <>
-                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                                  🗄️ RAG
-                                </span>
-                                <span className="text-xs">
-                                  {message.metadata.ragResultsCount} resultados • {message.metadata.ragSearchType}
-                                </span>
-                              </>
-                            ) : message.metadata.searchPerformed ? (
-                              <>
-                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                                  🔍 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'} + Google
-                                </span>
-                              </>
-                            ) : (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
-                                🤖 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
                       
                       {/* Event Cards y Place Cards */}
                       {((message.events && message.events.length > 0) || filteredPlaceCards.length > 0) && (
@@ -464,26 +438,45 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
             
             {!message.isTyping && !message.error && (
               <div className="flex items-center justify-start mt-2">
-                {/* Botones de acción */}
+                {/* Botones de acción y etiqueta del modelo */}
                 <div className="flex items-center -space-x-2 sm:space-x-1">
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full">
                     <ThumbsUp className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full">
                     <ThumbsDown className="h-3 w-3" />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 rounded-full"
                     onClick={handleCopyMessage}
                     title="Copiar mensaje"
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full">
                     <MoreHorizontal className="h-3 w-3" />
                   </Button>
+                  
+                  {/* Etiqueta del modelo */}
+                  {message.metadata && (
+                    <div className="ml-2">
+                      {message.metadata.ragUsed ? (
+                        <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md text-xs opacity-70">
+                          🗄️ RAG
+                        </span>
+                      ) : message.metadata.searchPerformed ? (
+                        <span className="px-1.5 py-0.5 bg-green-50 text-green-600 rounded-md text-xs opacity-70">
+                          🔍 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'} + Google
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded-md text-xs opacity-70">
+                          🤖 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

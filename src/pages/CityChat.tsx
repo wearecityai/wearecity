@@ -115,11 +115,11 @@ export const CityChat: React.FC = () => {
               {error || 'La ciudad no existe o no tienes permisos para acceder.'}
             </p>
             {!user && (
-              <Button onClick={() => window.location.href = '/auth'} className="mr-2">
+              <Button className="rounded-full" onClick={() => window.location.href = '/auth'} className="mr-2">
                 {t('auth.login')}
               </Button>
             )}
-            <Button variant="outline" onClick={() => window.location.href = '/'}>
+            <Button className="rounded-full" variant="outline" onClick={() => window.location.href = '/'}>
               {t('errors.backToHome')}
             </Button>
           </CardContent>
@@ -171,11 +171,11 @@ export const CityChat: React.FC = () => {
                 {t('city.privateCityDesc', { defaultValue: 'This city is configured as private. Only the administrator can access the chat and modify settings.' })}
               </p>
               {!user ? (
-                <Button onClick={() => window.location.href = '/auth'}>
+                <Button className="rounded-full" onClick={() => window.location.href = '/auth'}>
                   {t('auth.login')}
                 </Button>
               ) : (
-                <Button variant="outline" onClick={() => window.location.href = '/'}>
+                <Button className="rounded-full" variant="outline" onClick={() => window.location.href = '/'}>
                   {t('errors.backToHome')}
                 </Button>
               )}

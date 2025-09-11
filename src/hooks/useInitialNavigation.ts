@@ -18,18 +18,33 @@ export const useInitialNavigation = () => {
 
   useEffect(() => {
     const handleInitialNavigation = async () => {
+      console.log('🚀 useInitialNavigation - handleInitialNavigation called:', {
+        user: !!user,
+        profileRole: profile?.role,
+        pathname: location.pathname,
+        cityNavigationLoading,
+        isNavigating
+      });
+
       // Solo aplicar para ciudadanos y cuando estemos en la página principal
       if (!user || profile?.role !== 'ciudadano' || location.pathname !== '/') {
+        console.log('❌ useInitialNavigation - Conditions not met:', {
+          hasUser: !!user,
+          isCitizen: profile?.role === 'ciudadano',
+          isRootPath: location.pathname === '/'
+        });
         setIsNavigating(false);
         return;
       }
 
       // Esperar a que se carguen los datos de navegación
       if (cityNavigationLoading) {
+        console.log('⏳ useInitialNavigation - Still loading city navigation data');
         return;
       }
 
       const destinationCity = getInitialCityDestination();
+      console.log('🎯 useInitialNavigation - Destination city:', destinationCity);
       
       if (destinationCity) {
         console.log('🚀 Navegando a ciudad inicial:', destinationCity);
@@ -45,6 +60,7 @@ export const useInitialNavigation = () => {
           setIsNavigating(false);
         }
       } else {
+        console.log('❌ useInitialNavigation - No destination city found');
         setIsNavigating(false);
       }
     };

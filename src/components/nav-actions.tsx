@@ -86,6 +86,7 @@ export function NavActions() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
+<<<<<<< HEAD
         /* Login Button or Back Button */
         location.pathname === '/auth' ? (
           <Button
@@ -105,6 +106,17 @@ export function NavActions() {
             Iniciar sesión
           </Button>
         )
+=======
+        /* Login Button for unauthenticated users */
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSignIn}
+          className="bg-white text-black hover:bg-gray-100 border border-gray-300 rounded-full"
+        >
+          Iniciar sesión
+        </Button>
+>>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
       )}
     </div>
   )

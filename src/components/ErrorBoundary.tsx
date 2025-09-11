@@ -27,7 +27,7 @@ const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ isGeminiReady, appError }
                   size="sm" 
                   variant="link" 
                   asChild
-                  className="p-0 h-auto mt-2"
+                  className="p-0 h-auto mt-2 rounded-full"
                 >
                   <a 
                     href="https://aistudio.google.com/app/apikey" 

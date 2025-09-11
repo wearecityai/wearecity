@@ -28,7 +28,7 @@ const Search = React.forwardRef<HTMLDivElement, SearchProps>(
           onKeyDown={(e) => e.key === 'Enter' && onSearch?.()}
           className="flex-1"
         />
-        <Button type="button" onClick={onSearch} size="icon">
+        <Button className="rounded-full" type="button" onClick={onSearch} size="icon">
           <SearchIcon className="h-4 w-4" />
           <span className="sr-only">{searchLabel}</span>
         </Button>

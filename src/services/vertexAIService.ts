@@ -32,15 +32,14 @@ export const processWithVertexAI = async (
       isMultimodal: !!(mediaUrl && mediaType)
     });
 
-    // Get authentication token
+    // Get authentication token (optional for anonymous users)
     const { auth } = await import('../integrations/firebase/config');
     const user = auth.currentUser;
     
-    if (!user) {
-      throw new Error('Usuario no autenticado');
+    let idToken = null;
+    if (user) {
+      idToken = await user.getIdToken();
     }
-
-    const idToken = await user.getIdToken();
     
     // Prepare request body
     const cityContext = {
@@ -63,12 +62,18 @@ export const processWithVertexAI = async (
     });
 
     // Call Firebase Function
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Add authorization header only if user is authenticated
+    if (idToken) {
+      headers['Authorization'] = `Bearer ${idToken}`;
+    }
+    
     const response = await fetch(`${FUNCTIONS_BASE_URL}/processAIChat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-      },
+      headers,
       body: JSON.stringify(requestBody)
     });
 

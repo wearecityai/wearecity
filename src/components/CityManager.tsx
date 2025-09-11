@@ -99,7 +99,7 @@ export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span>Tu Ciudad: {currentCity.name}</span>
-              <Button
+              <Button className="rounded-full"
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(getCityUrl(currentCity.slug), '_blank')}
@@ -119,7 +119,7 @@ export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
                     readOnly
                     className="font-mono text-sm"
                   />
-                  <Button
+                  <Button className="rounded-full"
                     variant="outline"
                     size="sm"
                     onClick={() => navigator.clipboard.writeText(getCityUrl(currentCity.slug))}
@@ -202,7 +202,7 @@ export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
                 <Button
                   onClick={handleCreateCity}
                   disabled={isCreating || !cityName.trim() || !citySlug.trim()}
-                  className="flex-1"
+                  className="flex-1 rounded-full"
                 >
                   {isCreating ? (
                     <>
@@ -218,7 +218,7 @@ export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
                 </Button>
                 
                 {currentCity && (
-                  <Button
+                  <Button className="rounded-full"
                     variant="outline"
                     onClick={() => setShowCreateForm(false)}
                     disabled={isCreating}
@@ -241,7 +241,7 @@ export const CityManager: React.FC<CityManagerProps> = ({ onCityCreated }) => {
                 Cada administrador puede gestionar una ciudad. 
                 Ya tienes "{currentCity.name}" asignada.
               </p>
-              <Button
+              <Button className="rounded-full"
                 variant="outline"
                 onClick={() => setShowCreateForm(true)}
                 className="gap-2"

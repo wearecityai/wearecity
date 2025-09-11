@@ -466,7 +466,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2">
-                <Button
+                <Button className="rounded-full"
                   variant={newSourceType === 'url' ? 'default' : 'outline'}
                   onClick={() => setNewSourceType('url')}
                   className="flex items-center gap-2"
@@ -474,7 +474,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
                   <Globe className="h-4 w-4" />
                   URL
                 </Button>
-                <Button
+                <Button className="rounded-full"
                   variant={newSourceType === 'text' ? 'default' : 'outline'}
                   onClick={() => setNewSourceType('text')}
                   className="flex items-center gap-2"
@@ -482,7 +482,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
                   <FileText className="h-4 w-4" />
                   Texto
                 </Button>
-                <Button
+                <Button className="rounded-full"
                   variant={newSourceType === 'document' ? 'default' : 'outline'}
                   onClick={() => setNewSourceType('document')}
                   className="flex items-center gap-2"
@@ -542,7 +542,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
                 )}
               </div>
 
-              <Button 
+              <Button className="rounded-full" 
                 onClick={() => {
                   console.log('🖱️ Button clicked! RAG enabled:', ragEnabled);
                   if (ragEnabled) {
@@ -624,7 +624,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
                         )}
                       </div>
 
-                      <Button
+                      <Button className="rounded-full"
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteSource(source.id)}
@@ -652,7 +652,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
-                  <Button 
+                  <Button className="rounded-full" 
                     onClick={setupRAGSystem} 
                     disabled={isLoading || ragEnabled}
                     variant={ragEnabled ? "secondary" : "default"}
@@ -838,7 +838,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ user, citySlug }) => {
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                   disabled={isLoading}
                 />
-                <Button onClick={sendMessage} disabled={!inputText.trim() || isLoading}>
+                <Button className="rounded-full" onClick={sendMessage} disabled={!inputText.trim() || isLoading}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

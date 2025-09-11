@@ -51,7 +51,7 @@ const UserButton = () => {
   // If user is not authenticated, show login button
   if (!user) {
     return (
-      <Button variant="outline" size="sm" onClick={handleLogin}>
+      <Button className="rounded-full" variant="outline" size="sm" onClick={handleLogin}>
         <LogIn className="w-4 h-4 mr-2" />
         {t('auth.login')}
       </Button>

@@ -83,7 +83,7 @@ export const GeolocationIndicator: React.FC<GeolocationIndicatorProps> = ({
             variant="ghost"
             size="sm"
             onClick={onRetry}
-            className="h-6 px-2 text-xs"
+            className="h-6 px-2 text-xs rounded-full"
           >
             <RefreshCw className="h-3 w-3 mr-1" />
             Reintentar

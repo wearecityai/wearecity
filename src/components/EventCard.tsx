@@ -612,7 +612,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 sm:h-8 text-xs sm:text-sm"
+              className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 sm:h-8 text-xs sm:text-sm rounded-full"
               asChild
             >
               <a
@@ -631,7 +631,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 sm:h-8 text-xs sm:text-sm"
+            className="flex-1 border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 sm:h-8 text-xs sm:text-sm rounded-full"
             onClick={addToDeviceCalendar}
             disabled={isAddingToCalendar || !event.date}
           >

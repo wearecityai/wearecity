@@ -83,14 +83,17 @@ const PersistentLayout: React.FC = () => {
 
   // Verificación más estricta de todos los estados necesarios
   // Separar la carga inicial de la app de la carga del chat
-  const isAppInitialized = user && 
-    profile && 
-    !authLoading && 
-    !cityNavigationLoading && 
-    !isNavigating;
+  // Para rutas /chat/:slug, permitir acceso anónimo
+  const isChatRoute = location.pathname.startsWith('/chat/');
+  const isAppInitialized = isChatRoute 
+    ? !authLoading && !cityNavigationLoading && !isNavigating
+    : user && profile && !authLoading && !cityNavigationLoading && !isNavigating;
     
   // Verificar si la autenticación está en progreso
-  const isAuthInProgress = authLoading || (!user && !profile);
+  // Para rutas /chat/:slug, no bloquear usuarios anónimos
+  const isAuthInProgress = isChatRoute 
+    ? authLoading
+    : authLoading || (!user && !profile);
 
   // Al volver a la pestaña, dar un margen para evitar flashes de loaders
   useEffect(() => {
@@ -152,7 +155,8 @@ const PersistentLayout: React.FC = () => {
   } = useAppState(citySlug);
 
   // Verificación más estable que no cambie durante el uso normal de la app
-  const isAppFullyInitialized = isAppInitialized && chatConfig;
+  // Para usuarios anónimos, no requerir chatConfig inmediatamente
+  const isAppFullyInitialized = isAppInitialized && (chatConfig || !user);
   
   // Asegurar que chatConfig tenga un valor válido
   const safeChatConfig = chatConfig || {
@@ -182,17 +186,18 @@ const PersistentLayout: React.FC = () => {
     }
   }, [user, profile, authLoading, cityNavigationLoading, isNavigating, chatConfig, isAppInitialized, isAppFullyInitialized, isFullyLoaded, isLoading]);
 
-  // Redirigir a autenticación si no hay usuario después de un tiempo razonable
-  useEffect(() => {
-    if (!user && !authLoading && !isResuming) {
-      const timer = setTimeout(() => {
-        console.log('🔍 No user found after timeout, redirecting to auth');
-        window.location.href = '/auth';
-      }, 5000); // 5 segundos de espera
+  // DISABLED: Redirigir a autenticación si no hay usuario después de un tiempo razonable
+  // This was preventing anonymous users from using the app
+  // useEffect(() => {
+  //   if (!user && !authLoading && !isResuming) {
+  //     const timer = setTimeout(() => {
+  //       console.log('🔍 No user found after timeout, redirecting to auth');
+  //       window.location.href = '/auth';
+  //     }, 5000); // 5 segundos de espera
 
-      return () => clearTimeout(timer);
-    }
-  }, [user, authLoading, isResuming]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [user, authLoading, isResuming]);
 
   // Additional safety timeout that depends on chatConfig (after it's declared)
   useEffect(() => {
@@ -648,9 +653,6 @@ const PersistentLayout: React.FC = () => {
       return <AdminMetrics />;
     }
 
-
-
-
     // Verificación adicional: solo mostrar loading inicial si no estamos reanudando
     // O si se activó el safety timeout
     if ((!isAppInitialized && !isResuming) || safetyTimeout) {
@@ -666,7 +668,7 @@ const PersistentLayout: React.FC = () => {
                   La aplicación está tardando más de lo esperado en cargar. 
                   Intenta recargar la página o contacta con soporte.
                 </p>
-                <Button onClick={() => window.location.reload()}>
+                <Button onClick={() => window.location.reload()} className="rounded-full">
                   Recargar Página
                 </Button>
               </div>
@@ -713,7 +715,7 @@ const PersistentLayout: React.FC = () => {
               <p className="text-muted-foreground mb-6">
                 Para comenzar, necesitas configurar tu ciudad en el panel de administración.
               </p>
-              <Button onClick={() => setCurrentView('finetuning')}>
+              <Button className="rounded-full" onClick={() => setCurrentView('finetuning')}>
                 Configurar Ciudad
               </Button>
             </div>
@@ -729,8 +731,9 @@ const PersistentLayout: React.FC = () => {
     }
 
     // Si no hay configuración de ciudad y el usuario NO es administrativo, mostrar selector
-    if (!chatConfig?.restrictedCity && profile?.role !== 'administrativo') {
-      console.log('🔄 EARLY RETURN: Non-admin user without city config');
+    // PERO solo si no hay un citySlug en la URL (para permitir acceso directo a /chat/:slug)
+    if (!chatConfig?.restrictedCity && profile?.role !== 'administrativo' && !citySlug) {
+      console.log('🔄 EARLY RETURN: Non-admin user without city config and no citySlug in URL');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -740,25 +743,6 @@ const PersistentLayout: React.FC = () => {
       );
     }
 
-    // Si no hay configuración de ciudad pero la app está inicializada, mostrar chat básico (solo para ciudadanos)
-    if (!chatConfig?.restrictedCity && isAppFullyInitialized && profile?.role !== 'administrativo') {
-      console.log('🔄 EARLY RETURN: No city config but app initialized (citizen)');
-      return (
-        <div className="flex-1 overflow-auto bg-background">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4">Bienvenido a City Chat</h2>
-              <p className="text-muted-foreground mb-6">
-                Selecciona una ciudad para comenzar a chatear.
-              </p>
-              <Button onClick={() => setShowCitySearch(true)}>
-                Seleccionar Ciudad
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
     // Mostrar onboarding si está activo
     if (showOnboarding) {
@@ -774,6 +758,18 @@ const PersistentLayout: React.FC = () => {
     // Vista de búsqueda de ciudades (estado local) - solo para ciudadanos
     if (showCitySearch && profile?.role !== 'administrativo') {
       console.log('🔄 EARLY RETURN: City search active (citizen only)');
+      return (
+        <div className="flex-1 overflow-auto bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <CitySelector onCitySelect={handleCitySelect} />
+          </div>
+        </div>
+      );
+    }
+
+    // Si no hay configuración de ciudad y el usuario NO es administrativo, mostrar selector
+    if (!chatConfig?.restrictedCity && profile?.role !== 'administrativo') {
+      console.log('🔄 EARLY RETURN: Non-admin user without city config');
       return (
         <div className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto px-4 py-8">
@@ -810,7 +806,7 @@ const PersistentLayout: React.FC = () => {
                 <div className="text-xl font-semibold">{t('city.noCityConfigured', { defaultValue: 'No hay ninguna ciudad configurada' })}</div>
                 <div className="text-sm text-muted-foreground">{t('city.createCityHint', { defaultValue: 'Crea tu ciudad para comenzar a configurar tu asistente' })}</div>
               </div>
-              <Button onClick={handleCreateAdminCity} disabled={adminCityLoading}>
+              <Button className="rounded-full" onClick={handleCreateAdminCity} disabled={adminCityLoading}>
                 {t('city.createCity', { defaultValue: 'Crear ciudad' })}
               </Button>
             </div>
@@ -976,7 +972,7 @@ const PersistentLayout: React.FC = () => {
               <p className="text-muted-foreground mb-6">
                 No se pudo autenticar tu sesión. Por favor, inicia sesión nuevamente.
               </p>
-              <Button onClick={() => window.location.href = '/auth'}>
+              <Button className="rounded-full" onClick={() => window.location.href = '/auth'}>
                 Ir a Autenticación
               </Button>
             </div>

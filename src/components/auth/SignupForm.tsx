@@ -184,6 +184,13 @@ export function SignupForm() {
             </Select>
           </div>
           
+<<<<<<< HEAD
+=======
+          <Button type="submit" className="w-full rounded-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Crear cuenta
+          </Button>
+>>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
         </div>
       </form>
       

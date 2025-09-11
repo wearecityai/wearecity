@@ -133,6 +133,7 @@ export function LoginForm() {
             disabled={isLoading}
           />
           
+<<<<<<< HEAD
           <div className="flex items-center justify-end">
             <a
               href="#"
@@ -147,6 +148,12 @@ export function LoginForm() {
             </a>
           </div>
           
+=======
+          <Button type="submit" className="w-full rounded-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('auth.login')}
+          </Button>
+>>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
         </div>
       </form>
       

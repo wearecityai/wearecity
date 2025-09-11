@@ -36,6 +36,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         <Button
           variant={action.variant || "default"}
           onClick={action.onClick}
+          className="rounded-full"
         >
           {action.label}
         </Button>

@@ -44,7 +44,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="mr-2"
+              className="mr-2 rounded-full"
               onClick={onMenuToggle}
               aria-label="menu"
             >
@@ -61,18 +61,29 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           
           {/* Right-aligned user menu */}
           <div className="flex items-center justify-end flex-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleUserMenuClick}
-              className="relative h-8 w-8 rounded-full"
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleUserMenuClick}
+                className="relative h-8 w-8 rounded-full"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUserMenuClick}
+                className="bg-white text-black hover:bg-gray-100 border border-gray-300 rounded-full"
+              >
+                Iniciar sesión
+              </Button>
+            )}
           </div>
         </div>
       </header>

@@ -7,11 +7,13 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 interface EnhancedAIResponseRendererProps {
   content: string;
   className?: string;
+  compact?: boolean; // Para mensajes de usuario sin márgenes extra
 }
 
 export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProps> = ({ 
   content, 
-  className = "" 
+  className = "",
+  compact = false
 }) => {
   return (
     <div className={`max-w-none ${className}`}>
@@ -81,13 +83,21 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
           
           // Listas con mejor visibilidad
           ul: ({ children }) => (
+<<<<<<< HEAD
             <ul className="my-4 ml-4 space-y-2">
+=======
+            <ul className={`${compact ? 'my-2' : 'my-4'} list-none ml-0 space-y-1`}>
+>>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
               {children}
             </ul>
           ),
           
           ol: ({ children }) => (
+<<<<<<< HEAD
             <ol className="my-4 ml-4 space-y-2 list-decimal">
+=======
+            <ol className={`${compact ? 'my-2' : 'my-4'} list-none ml-0 space-y-1`}>
+>>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
               {children}
             </ol>
           ),
@@ -137,7 +147,7 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
           
           // Párrafos como ChatGPT
           p: ({ children }) => (
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+            <p className={`text-gray-700 dark:text-gray-300 leading-relaxed ${compact ? 'mb-0' : 'mb-3'}`}>
               {children}
             </p>
           ),

@@ -180,7 +180,7 @@ export const PublicChatPage: React.FC = () => {
             <p className="text-muted-foreground mb-4">
               {t('publicChat.invalidSlugDesc', { defaultValue: 'The chat URL is invalid. Please verify the link.' })}
             </p>
-            <Button onClick={() => window.location.href = '/'} variant="outline">
+            <Button onClick={() => window.location.href = '/'} variant="outline" className="rounded-full">
               {t('publicChat.backHome', { defaultValue: 'Back to home' })}
             </Button>
           </CardContent>
@@ -199,7 +199,7 @@ export const PublicChatPage: React.FC = () => {
             <p className="text-muted-foreground mb-4">
               {t('publicChat.cityNotFoundDesc', { city: chatSlug, defaultValue: 'The city "{{city}}" does not exist or is not publicly available.' })}
             </p>
-            <Button onClick={() => window.location.href = '/'} variant="outline">
+            <Button onClick={() => window.location.href = '/'} variant="outline" className="rounded-full">
               {t('publicChat.backHome', { defaultValue: 'Back to home' })}
             </Button>
           </CardContent>

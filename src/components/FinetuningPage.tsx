@@ -550,7 +550,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                             </Button>
                           </div>
                         )}
-                        <Button variant="outline" asChild>
+                        <Button className="rounded-full" variant="outline" asChild>
                           <label>
                             <Upload className="h-4 w-4 mr-2" />
                             {profileImageUrl ? 'Cambiar Imagen' : 'Subir Imagen'}
@@ -670,7 +670,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                                placeholder="https://agenda.ejemplo.es"
                                className="flex-1"
                              />
-                             <Button
+                             <Button className="rounded-full"
                                variant="outline"
                                size="sm"
                                onClick={() => {
@@ -690,7 +690,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                              placeholder="https://agenda.ejemplo.es"
                              className="flex-1"
                            />
-                           <Button
+                           <Button className="rounded-full"
                              variant="outline"
                              size="sm"
                              onClick={() => {
@@ -814,7 +814,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                       <Avatar className="h-10 w-10 bg-primary text-primary-foreground">
                         {React.createElement(getIconComponent(newPromptIcon), { className: "h-4 w-4" })}
                       </Avatar>
-                      <Button 
+                      <Button className="rounded-full" 
                         onClick={memoizedHandleAddPrompt} 
                         disabled={!newPrompt.trim()}
                       >
@@ -834,7 +834,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                               readOnly
                               className="flex-1"
                             />
-                            <Button
+                            <Button className="rounded-full"
                               size="sm"
                               variant="destructive"
                               onClick={() => handleRemovePrompt(index)}
@@ -861,7 +861,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                         placeholder="Nueva URL de Trámite"
                         className="flex-1"
                       />
-                      <Button
+                      <Button className="rounded-full"
                         onClick={memoizedHandleAddProcedureUrl}
                         disabled={!newProcedureUrl.trim() || !isValidUrl(newProcedureUrl.trim())}
                       >
@@ -877,7 +877,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-4 w-4 p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground"
+                              className="h-4 w-4 p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full"
                               onClick={() => handleRemoveProcedureUrl(index)}
                             >
                               <X className="h-3 w-3" />
@@ -903,7 +903,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                       />
                     </div>
                     
-                    <Button variant="outline" asChild className="w-full">
+                    <Button variant="outline" asChild className="w-full rounded-full">
                       <label>
                         <Upload className="h-4 w-4 mr-2" />
                         Seleccionar PDF
@@ -933,7 +933,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                     <Button
                       onClick={memoizedHandleAddProcedureDocument}
                       disabled={!currentProcedureNameToUpload.trim() || !currentPdfFile}
-                      className="w-full"
+                      className="w-full rounded-full"
                     >
                       Adjuntar PDF al Trámite
                     </Button>
@@ -948,7 +948,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-4 w-4 p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground"
+                                className="h-4 w-4 p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full"
                                 onClick={() => handleRemoveProcedureDocument(doc.procedureName)}
                               >
                                 <X className="h-3 w-3" />
@@ -981,13 +981,13 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
         {activeTab === 'customize' && (
           <div className="sticky bottom-0 z-10 bg-background border-t border-border p-4">
             <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-2 justify-end">
-              <Button variant="outline" onClick={onCancel}>
+              <Button className="rounded-full" variant="outline" onClick={onCancel}>
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
               </Button>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" onClick={handleResetToAppDefaults}>
+                  <Button className="rounded-full" variant="outline" onClick={handleResetToAppDefaults}>
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Restablecer
                   </Button>
@@ -996,7 +996,7 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                   <p>Restablecer a los valores por defecto del Asistente</p>
                 </TooltipContent>
               </Tooltip>
-              <Button onClick={handleSaveAndClose}>
+              <Button className="rounded-full" onClick={handleSaveAndClose}>
                 <Save className="h-4 w-4 mr-2" />
                 Guardar
               </Button>

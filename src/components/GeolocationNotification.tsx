@@ -48,7 +48,7 @@ export const GeolocationNotification: React.FC<GeolocationNotificationProps> = (
           title: 'Geolocalización requerida',
           description: 'Esta aplicación necesita acceso a tu ubicación para ofrecerte información personalizada de tu ciudad.',
           action: (
-            <Button onClick={handleEnableLocation} size="sm">
+            <Button onClick={handleEnableLocation} size="sm" className="rounded-full">
               <MapPin className="h-4 w-4 mr-2" />
               Habilitar ubicación
             </Button>
@@ -62,11 +62,11 @@ export const GeolocationNotification: React.FC<GeolocationNotificationProps> = (
           description: geolocationError || 'No se pudo obtener tu ubicación. Verifica los permisos en tu navegador.',
           action: (
             <div className="space-y-2">
-              <Button onClick={handleEnableLocation} size="sm" variant="outline">
+              <Button onClick={handleEnableLocation} size="sm" variant="outline" className="rounded-full">
                 <MapPin className="h-4 w-4 mr-2" />
                 Reintentar
               </Button>
-              <Button onClick={handleDismiss} size="sm" variant="ghost">
+              <Button onClick={handleDismiss} size="sm" variant="ghost" className="rounded-full">
                 Cerrar
               </Button>
             </div>
@@ -79,7 +79,7 @@ export const GeolocationNotification: React.FC<GeolocationNotificationProps> = (
           title: 'Ubicación activa',
           description: `Tu ubicación está siendo rastreada: ${userLocation?.latitude.toFixed(6)}, ${userLocation?.longitude.toFixed(6)}`,
           action: (
-            <Button onClick={handleDismiss} size="sm" variant="ghost">
+            <Button onClick={handleDismiss} size="sm" variant="ghost" className="rounded-full">
               Cerrar
             </Button>
           )

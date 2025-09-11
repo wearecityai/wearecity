@@ -256,7 +256,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
             <h3 className="text-lg font-semibold">Error al cargar las ciudades</h3>
             <p className="text-muted-foreground">No se pudieron cargar las ciudades disponibles</p>
           </div>
-          <Button variant="outline" onClick={loadCities}>
+          <Button variant="outline" onClick={loadCities} className="rounded-full">
             Reintentar
           </Button>
         </div>
@@ -383,7 +383,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({ onCitySelect }) => {
                 </div>
                 
                 <Button 
-                  className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-medium transition-all duration-200 group-hover:shadow-lg"
+                  className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-medium transition-all duration-200 group-hover:shadow-lg rounded-full"
                   size="lg"
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
