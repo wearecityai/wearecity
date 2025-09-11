@@ -86,7 +86,6 @@ export function NavActions() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-<<<<<<< HEAD
         /* Login Button or Back Button */
         location.pathname === '/auth' ? (
           <Button
@@ -95,28 +94,19 @@ export function NavActions() {
             className="rounded-full shadow-none"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al inicio
+            <span className="hidden sm:inline">Volver al inicio</span>
           </Button>
         ) : (
           <Button
             onClick={handleSignIn}
             variant="outline"
-            className="rounded-full shadow-none"
+            size="icon"
+            className="h-7 w-7 rounded-full shadow-none sm:h-auto sm:w-auto sm:px-4"
           >
-            Iniciar sesión
+            <User className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline sm:ml-2">Iniciar sesión</span>
           </Button>
         )
-=======
-        /* Login Button for unauthenticated users */
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSignIn}
-          className="bg-white text-black hover:bg-gray-100 border border-gray-300 rounded-full"
-        >
-          Iniciar sesión
-        </Button>
->>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
       )}
     </div>
   )

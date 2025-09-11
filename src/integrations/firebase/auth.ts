@@ -5,7 +5,9 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
   getAuth,
-  updateProfile
+  updateProfile,
+  signInWithPopup,
+  GoogleAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config';
@@ -208,6 +210,47 @@ const generateSlugFromName = (name: string): string => {
   // Add timestamp to ensure uniqueness
   const timestamp = Date.now().toString().slice(-6);
   return `${baseSlug}-${timestamp}`;
+};
+
+// Sign in with OAuth (Google)
+export const signInWithOAuth = async ({ provider }: { provider: 'google' }): Promise<AuthResponse> => {
+  try {
+    let authProvider;
+    if (provider === 'google') {
+      authProvider = new GoogleAuthProvider();
+    } else {
+      throw new Error(`Unsupported provider: ${provider}`);
+    }
+
+    const result = await signInWithPopup(auth, authProvider);
+    const user = convertFirebaseUser(result.user);
+    const session = createSession(result.user);
+
+    // Check if user profile exists, if not create one
+    const profileDoc = await getDoc(doc(db, 'profiles', result.user.uid));
+    if (!profileDoc.exists()) {
+      const profileData: ProfilesDoc = {
+        id: result.user.uid,
+        email: result.user.email || '',
+        firstName: result.user.displayName?.split(' ')[0] || null,
+        lastName: result.user.displayName?.split(' ').slice(1).join(' ') || null,
+        role: 'ciudadano',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await setDoc(doc(db, 'profiles', result.user.uid), profileData);
+    }
+
+    return {
+      data: { user, session },
+      error: null,
+    };
+  } catch (error) {
+    return {
+      data: { user: null, session: null },
+      error: error as Error,
+    };
+  }
 };
 
 // Sign out

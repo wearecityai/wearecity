@@ -83,21 +83,13 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
           
           // Listas con mejor visibilidad
           ul: ({ children }) => (
-<<<<<<< HEAD
-            <ul className="my-4 ml-4 space-y-2">
-=======
             <ul className={`${compact ? 'my-2' : 'my-4'} list-none ml-0 space-y-1`}>
->>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
               {children}
             </ul>
           ),
           
           ol: ({ children }) => (
-<<<<<<< HEAD
-            <ol className="my-4 ml-4 space-y-2 list-decimal">
-=======
             <ol className={`${compact ? 'my-2' : 'my-4'} list-none ml-0 space-y-1`}>
->>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
               {children}
             </ol>
           ),

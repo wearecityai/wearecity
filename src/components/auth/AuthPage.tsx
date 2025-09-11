@@ -23,10 +23,10 @@ const AuthPage = () => {
         "¿Dónde está la farmacia más cercana?"
       ],
       positions: [
-        "top-4 left-4",
-        "top-16 right-6", 
-        "bottom-20 left-8",
-        "bottom-8 right-12"
+        "top-2 left-2",
+        "top-12 right-2", 
+        "bottom-16 left-4",
+        "bottom-4 right-6"
       ]
     },
     { 
@@ -39,10 +39,10 @@ const AuthPage = () => {
         "¿Hay visitas guiadas disponibles?"
       ],
       positions: [
-        "top-8 left-6",
-        "top-20 right-4",
+        "top-2 left-2",
+        "top-12 right-2",
         "bottom-16 left-4", 
-        "bottom-4 right-8"
+        "bottom-4 right-6"
       ]
     },
     { 
@@ -55,10 +55,10 @@ const AuthPage = () => {
         "Especialidades del chef"
       ],
       positions: [
-        "top-6 left-8",
-        "top-20 right-8",
-        "bottom-20 left-6",
-        "bottom-6 right-6"
+        "top-2 left-2",
+        "top-12 right-2",
+        "bottom-16 left-4",
+        "bottom-4 right-6"
       ]
     },
     { 
@@ -71,10 +71,10 @@ const AuthPage = () => {
         "Horarios de verano"
       ],
       positions: [
-        "top-4 right-4",
-        "top-16 left-4",
-        "bottom-20 right-6",
-        "bottom-8 left-6"
+        "top-2 right-2",
+        "top-12 left-2",
+        "bottom-16 right-4",
+        "bottom-4 left-6"
       ]
     }
   ];
@@ -146,14 +146,9 @@ const AuthPage = () => {
         <BackgroundPattern />
         {/* Degradado para ocultar el patrón debajo del formulario */}
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent z-5"></div>
-        <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-2 gap-12 px-6 py-12 relative z-10">
-          {/* Lado izquierdo - Formulario */}
-          <div className="flex flex-col justify-center items-center -pt-8">
-            <LoginForm />
-          </div>
-        
-        {/* Lado derecho - Imagen con mensajes dinámicos */}
-        <div className="w-full aspect-square rounded-xl overflow-hidden group cursor-pointer relative">
+        <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-12 px-4 sm:px-6 py-8 sm:py-12 relative z-10">
+          {/* Imagen - solo visible en desktop */}
+          <div className="hidden lg:block w-full aspect-square rounded-xl overflow-hidden group cursor-pointer relative lg:-mt-8 order-1 lg:order-2">
           <div className="relative w-full h-full overflow-hidden">
             {images.map((image, index) => {
               const isCurrent = index === currentImageIndex;
@@ -180,15 +175,20 @@ const AuthPage = () => {
           {images[currentImageIndex].messages.map((message, index) => (
             <div 
               key={index}
-              className={`absolute ${images[currentImageIndex].positions[index]} bg-background/80 backdrop-blur-sm rounded-2xl p-3 shadow-lg max-w-[200px] border border-border transition-all duration-500 ease-out z-30 ${
+              className={`absolute ${images[currentImageIndex].positions[index]} bg-background/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-1.5 sm:p-3 shadow-lg max-w-[120px] sm:max-w-[200px] transition-all duration-500 ease-out z-30 border border-border ${
                 visibleMessages.includes(index) 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-4'
               }`}
             >
-              <p className="text-sm font-medium text-foreground">{message}</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground leading-tight">{message}</p>
             </div>
           ))}
+        </div>
+        
+        {/* Formulario - ocupa todo el ancho en mobile */}
+        <div className="flex flex-col justify-center items-center pt-2 sm:pt-4 order-2 lg:order-1 w-full lg:w-auto">
+          <LoginForm />
         </div>
         </div>
       </div>

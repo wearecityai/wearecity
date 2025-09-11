@@ -6,6 +6,7 @@ import {
   signOutUser, 
   getSession, 
   onAuthStateChange,
+  signInWithOAuth,
   User,
   Session,
   AuthResponse
@@ -168,6 +169,7 @@ class FirebaseDeleteBuilder {
 const auth = {
   signInWithPassword,
   signUp,
+  signInWithOAuth,
   signOut: signOutUser,
   getSession,
   onAuthStateChange,

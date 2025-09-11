@@ -436,11 +436,7 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
                         </div>
                       )}
                       <div>
-<<<<<<< HEAD
                         <div className="font-medium tiktok-sans-title">{city.name}</div>
-=======
-                        <div className="font-medium">{cityInfo.city}</div>
->>>>>>> 758a4c1c083430009a820dbdea36dbe7e6151d5f
                         <div className="text-xs text-muted-foreground">
                           {[cityInfo.province, cityInfo.country].filter(Boolean).join(', ')}
                         </div>

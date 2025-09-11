@@ -38,10 +38,10 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
         "¿Dónde está la farmacia más cercana?"
       ],
       positions: [
-        "top-4 left-4",
-        "top-16 right-6", 
-        "bottom-20 left-8",
-        "bottom-8 right-12"
+        "top-2 left-2",
+        "top-12 right-2", 
+        "bottom-16 left-4",
+        "bottom-4 right-6"
       ]
     },
     { 
@@ -54,10 +54,10 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
         "¿Hay visitas guiadas disponibles?"
       ],
       positions: [
-        "top-8 left-6",
-        "top-20 right-4",
+        "top-2 left-2",
+        "top-12 right-2",
         "bottom-16 left-4", 
-        "bottom-4 right-8"
+        "bottom-4 right-6"
       ]
     },
     { 
@@ -70,10 +70,10 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
         "Especialidades del chef"
       ],
       positions: [
-        "top-6 left-8",
-        "top-20 right-8",
-        "bottom-20 left-6",
-        "bottom-6 right-6"
+        "top-2 left-2",
+        "top-12 right-2",
+        "bottom-16 left-4",
+        "bottom-4 right-6"
       ]
     },
     { 
@@ -86,10 +86,10 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
         "Horarios de verano"
       ],
       positions: [
-        "top-4 right-4",
-        "top-16 left-4",
-        "bottom-20 right-6",
-        "bottom-8 left-6"
+        "top-2 right-2",
+        "top-12 left-2",
+        "bottom-16 right-4",
+        "bottom-4 left-6"
       ]
     }
   ];
@@ -145,33 +145,9 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
   return (
     <div className="min-h-screen flex items-center justify-center bg-black relative">
       <BackgroundPattern />
-      <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-2 gap-12 px-6 py-12 relative z-10">
-        <div className="flex flex-col justify-center pt-4">
-          <h1 className="max-w-[17ch] text-4xl md:text-5xl lg:text-[2.75rem] xl:text-[3.25rem] font-semibold leading-[1.2] tracking-tighter tiktok-sans-title">
-            {title}
-          </h1>
-          <p className="mt-6 max-w-[60ch] sm:text-lg text-muted-foreground">
-            {description}
-          </p>
-          <div className="mt-12 flex items-center gap-4">
-            <Button 
-              size="lg" 
-              className="rounded-full text-base"
-              onClick={handlePrimaryClick}
-            >
-              {primaryButtonText} <ArrowUpRight className="h-5 w-5 ml-1" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-full text-base shadow-none"
-              onClick={handleSecondaryClick}
-            >
-              <User className="h-5 w-5 mr-1" /> {secondaryButtonText}
-            </Button>
-          </div>
-        </div>
-        <div className="w-full aspect-square rounded-xl overflow-hidden group cursor-pointer relative -mt-8">
+      <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-12 px-4 sm:px-6 py-8 sm:py-12 relative z-10">
+        {/* Imagen - aparece primero en mobile */}
+        <div className="w-full aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden group cursor-pointer relative lg:-mt-8 order-1 lg:order-2">
           <div className="relative w-full h-full overflow-hidden">
             {images.map((image, index) => {
               const isCurrent = index === currentImageIndex;
@@ -198,15 +174,43 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
           {images[currentImageIndex].messages.map((message, index) => (
             <div 
               key={index}
-              className={`absolute ${images[currentImageIndex].positions[index]} bg-background/80 backdrop-blur-sm rounded-2xl p-3 shadow-lg max-w-[200px] transition-all duration-500 ease-out z-30 border border-border ${
+              className={`absolute ${images[currentImageIndex].positions[index]} bg-background/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-1.5 sm:p-3 shadow-lg max-w-[120px] sm:max-w-[200px] transition-all duration-500 ease-out z-30 border border-border ${
                 visibleMessages.includes(index) 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-4'
               }`}
             >
-              <p className="text-sm font-medium text-foreground">{message}</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground leading-tight">{message}</p>
             </div>
           ))}
+        </div>
+        
+        {/* Contenido de texto - aparece segundo en mobile */}
+        <div className="flex flex-col justify-center pt-2 sm:pt-4 order-2 lg:order-1">
+          <h1 className="max-w-[17ch] text-3xl sm:text-4xl md:text-5xl lg:text-[2.75rem] xl:text-[3.25rem] font-semibold leading-[1.1] sm:leading-[1.2] tracking-tighter tiktok-sans-title">
+            <span className="block">Transformando tu</span>
+            <span className="block">experiencia ciudadana</span>
+          </h1>
+          <p className="mt-4 sm:mt-6 max-w-[60ch] text-sm sm:text-base lg:text-lg text-muted-foreground">
+            {description}
+          </p>
+          <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            <Button 
+              size="lg" 
+              className="rounded-full text-sm sm:text-base w-full sm:w-auto"
+              onClick={handlePrimaryClick}
+            >
+              {primaryButtonText} <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 ml-1" />
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="rounded-full text-sm sm:text-base shadow-none w-full sm:w-auto"
+              onClick={handleSecondaryClick}
+            >
+              <User className="h-4 w-4 sm:h-5 sm:w-5 mr-1" /> {secondaryButtonText}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
