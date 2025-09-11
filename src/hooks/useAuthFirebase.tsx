@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { firebase, User, Session } from '@/integrations/firebase/client';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/config';
+import { createSuperAdminProfile } from '@/integrations/firebase/auth';
 import { useCityNavigation } from './useCityNavigation';
 
 interface Profile {
@@ -9,7 +10,7 @@ interface Profile {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  role: 'ciudadano' | 'administrativo';
+  role: 'ciudadano' | 'administrativo' | 'superadmin';
   createdAt: string;
   updatedAt: string;
 }
@@ -39,7 +40,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const mapRole = (role: string): 'ciudadano' | 'administrativo' => {
+  const mapRole = (role: string, email: string): 'ciudadano' | 'administrativo' | 'superadmin' => {
+    // Check if user is superadmin by email
+    if (email === 'wearecity.ai@gmail.com') {
+      return 'superadmin';
+    }
+    
     switch (role) {
       case 'admin':
       case 'administrativo':
@@ -51,12 +57,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  const fetchProfile = async (userId: string, userEmail?: string): Promise<Profile | null> => {
     try {
       const docRef = doc(db, 'profiles', userId);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
+        // Si no existe el perfil y es superadmin, crearlo automáticamente
+        if (userEmail === 'wearecity.ai@gmail.com') {
+          console.log('🔐 Creando perfil superadmin automáticamente...');
+          await createSuperAdminProfile(userId, userEmail);
+          // Intentar obtener el perfil nuevamente
+          const newDocSnap = await getDoc(docRef);
+          if (newDocSnap.exists()) {
+            const data = newDocSnap.data();
+            const mappedProfile: Profile = {
+              id: newDocSnap.id,
+              email: data.email,
+              firstName: data.firstName || null,
+              lastName: data.lastName || null,
+              role: mapRole(data.role, data.email),
+              createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+              updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+            };
+            console.log('✅ Perfil superadmin creado y obtenido:', mappedProfile);
+            return mappedProfile;
+          }
+        }
         return null;
       }
 
@@ -68,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         firstName: data.firstName || null,
         lastName: data.lastName || null,
-        role: mapRole(data.role),
+        role: mapRole(data.role, data.email),
         createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
         updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
       };
@@ -83,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async () => {
     if (user) {
-      const profileData = await fetchProfile(user.id);
+      const profileData = await fetchProfile(user.id, user.email);
       setProfile(profileData);
     }
   };
@@ -103,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Fetch user profile when authenticated
           setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
+            const profileData = await fetchProfile(session.user.id, session.user.email);
             console.log('🔍 Profile data after fetch:', profileData);
             setProfile(profileData);
             if (!profileData) {
@@ -142,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id).then(async (profileData) => {
+        fetchProfile(session.user.id, session.user.email).then(async (profileData) => {
           console.log('🔍 Initial profile data after fetch:', profileData);
           setProfile(profileData);
           setIsLoading(false);

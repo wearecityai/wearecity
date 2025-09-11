@@ -9,6 +9,8 @@ import PersistentLayout from '@/components/PersistentLayout';
 import AuthPage from '@/components/auth/AuthPage';
 import LandingPage from '@/pages/LandingPage';
 import SearchCityPage from '@/pages/SearchCityPage';
+import { SuperAdminDashboard } from '@/pages/SuperAdminDashboard';
+import { SuperAdminGuard } from '@/components/SuperAdminGuard';
 import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
 
@@ -52,6 +54,11 @@ const App = () => {
               
               {/* Rutas independientes */}
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/superadmin" element={
+                <SuperAdminGuard>
+                  <SuperAdminDashboard />
+                </SuperAdminGuard>
+              } />
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>

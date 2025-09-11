@@ -211,6 +211,32 @@ const createCityForAdmin = async (userId: string, firstName: string) => {
   }
 };
 
+// Helper function to check if user is superadmin
+export const isSuperAdmin = (email: string): boolean => {
+  return email === 'wearecity.ai@gmail.com';
+};
+
+// Helper function to create superadmin profile if it doesn't exist
+export const createSuperAdminProfile = async (userId: string, email: string): Promise<void> => {
+  if (email !== 'wearecity.ai@gmail.com') return;
+  
+  try {
+    const profileData = {
+      email: email,
+      firstName: 'Wearecity',
+      lastName: 'SuperAdmin',
+      role: 'superadmin',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    };
+
+    await setDoc(doc(db, 'profiles', userId), profileData, { merge: true });
+    console.log('✅ Perfil superadmin creado/actualizado:', userId);
+  } catch (error) {
+    console.error('❌ Error creando perfil superadmin:', error);
+  }
+};
+
 // Helper function to generate slug from city name
 const generateSlugFromName = (name: string): string => {
   const baseSlug = name
