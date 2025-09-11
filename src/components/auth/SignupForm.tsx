@@ -8,8 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react"
 import { PasswordInput } from "./PasswordInput"
 import { firebase } from "@/integrations/firebase/client"
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/integrations/firebase/config';
 
 export function SignupForm() {
   const navigate = useNavigate()
@@ -28,6 +26,14 @@ export function SignupForm() {
     setIsLoading(true)
     setError(null)
     setSuccess(null)
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Por favor, introduce un email válido')
+      setIsLoading(false)
+      return
+    }
 
     try {
       const redirectUrl = `${window.location.origin}/`
@@ -75,7 +81,6 @@ export function SignupForm() {
   const handleGoogleSignup = async () => {
     setIsGoogleLoading(true)
     setError(null)
-    setSuccess(null)
 
     try {
       const { data, error } = await firebase.auth.signInWithOAuth({
@@ -85,27 +90,12 @@ export function SignupForm() {
       if (error) {
         setError(error.message)
       } else if (data.user) {
-        // Check user role to determine redirect
-        try {
-          const docRef = doc(db, 'profiles', data.user.id);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            const profile = docSnap.data();
-            if (profile && profile.role === 'administrativo') {
-              navigate('/admin')
-            } else {
-              navigate('/home')
-            }
-          } else {
-            navigate('/home')
-          }
-        } catch (profileError) {
-          navigate('/home')
-        }
+        // After Google signup, redirect based on role
+        // Default to citizen view for new Google users
+        navigate('/chat/valencia')
       }
     } catch (err) {
-      setError('Error inesperado durante el registro con Google')
+      setError('Error inesperado al registrarse con Google.')
     } finally {
       setIsGoogleLoading(false)
     }
@@ -154,11 +144,13 @@ export function SignupForm() {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              type="email"
+              type="text"
               placeholder="m@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              inputMode="email"
+              autoComplete="email"
             />
           </div>
           
@@ -174,7 +166,7 @@ export function SignupForm() {
           <div className="grid gap-2">
             <Label htmlFor="role">Tipo de usuario</Label>
             <Select value={role} onValueChange={(value: 'ciudadano' | 'administrativo') => setRole(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-full">
                 <SelectValue placeholder="Selecciona tu rol" />
               </SelectTrigger>
               <SelectContent>
@@ -183,16 +175,15 @@ export function SignupForm() {
               </SelectContent>
             </Select>
           </div>
-
-        </div> {/* End of form fields grid gap-4 */}
+          
+          <Button type="submit" className="w-full rounded-full" disabled={isLoading || isGoogleLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Crear cuenta
+          </Button>
+        </div>
       </form>
 
-      <div className="mt-6 space-y-3"> {/* New div for buttons */}
-        <Button type="submit" className="w-full rounded-full" disabled={isLoading || isGoogleLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Crear cuenta
-        </Button>
-
+      <div className="mt-6 space-y-3">
         <Button
           type="button"
           variant="outline"

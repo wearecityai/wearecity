@@ -20,7 +20,7 @@ const LandingPage: React.FC = () => {
                 <BreadcrumbList>
                   <BreadcrumbItem>
                     <BreadcrumbPage 
-                      className="line-clamp-1 truncate font-bold text-2xl text-white tiktok-sans-title cursor-pointer hover:text-gray-300 transition-colors"
+                      className="line-clamp-1 truncate font-bold text-2xl text-white tiktok-sans-title cursor-pointer sm:hover:text-gray-300 transition-colors"
                       onClick={() => navigate('/')}
                     >
                       WeAreCity
@@ -44,7 +44,7 @@ const LandingPage: React.FC = () => {
         <Hero02Adapted
           badge="WeAreCity"
           title="Transforma Tu Experiencia Ciudadana"
-          description="Conecta con tu ciudad de manera inteligente. Accede a servicios municipales y asistencia personalizada."
+          description="Conecta con tu ciudad de manera inteligente. Accede a servicios municipales."
           primaryButtonText="Buscar ciudad"
           secondaryButtonText="Iniciar sesión"
           onPrimaryClick={() => navigate('/searchcity')}

@@ -145,6 +145,8 @@ export interface City {
   uploaded_procedure_documents?: any;
   sede_electronica_url?: string;
   restricted_city?: any;
+  // Biografía automática de la ciudad
+  bio?: string;
   // Firebase uses isActive/isPublic instead of is_active/is_public
   is_active?: boolean;
   is_public?: boolean;

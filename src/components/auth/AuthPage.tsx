@@ -122,7 +122,7 @@ const AuthPage = () => {
                 <BreadcrumbList>
                   <BreadcrumbItem>
                     <BreadcrumbPage 
-                      className="line-clamp-1 truncate font-bold text-2xl text-white tiktok-sans-title cursor-pointer hover:text-gray-300 transition-colors"
+                      className="line-clamp-1 truncate font-bold text-2xl text-white tiktok-sans-title cursor-pointer sm:hover:text-gray-300 transition-colors"
                       onClick={() => navigate('/')}
                     >
                       WeAreCity
@@ -159,7 +159,7 @@ const AuthPage = () => {
                   key={index}
                   src={image.src}
                   alt={image.alt}
-                  className={`absolute inset-0 w-full h-full object-contain transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-105 hover:lg:scale-105 ${
+                  className={`absolute inset-0 w-full h-full object-contain transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] sm:hover:scale-105 hover:lg:scale-105 ${
                     isCurrent
                       ? 'opacity-100 translate-y-0 z-10'
                       : isPrevious

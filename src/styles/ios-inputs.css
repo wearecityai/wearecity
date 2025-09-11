@@ -1,0 +1,15 @@
+/* Estilos específicos para inputs en iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    border-radius: 9999px !important;
+    -webkit-appearance: none !important;
+    -webkit-border-radius: 9999px !important;
+    -moz-border-radius: 9999px !important;
+    border-top-left-radius: 9999px !important;
+    border-top-right-radius: 9999px !important;
+    border-bottom-left-radius: 9999px !important;
+    border-bottom-right-radius: 9999px !important;
+  }
+}

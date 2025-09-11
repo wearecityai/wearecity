@@ -147,7 +147,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
       <BackgroundPattern />
       <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-12 px-4 sm:px-6 py-4 sm:py-8 lg:py-12 relative z-10">
         {/* Imagen - aparece primero en mobile */}
-        <div className="w-full aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden group cursor-pointer relative -mt-4 sm:mt-0 lg:-mt-8 order-1 lg:order-2">
+        <div className="w-full aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden group cursor-pointer relative -mt-16 sm:mt-0 lg:-mt-8 order-1 lg:order-2">
           <div className="relative w-full h-full overflow-hidden">
             {images.map((image, index) => {
               const isCurrent = index === currentImageIndex;
@@ -158,7 +158,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
                   key={index}
                   src={image.src}
                   alt={image.alt}
-                  className={`absolute inset-0 w-full h-full object-contain transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-105 hover:lg:scale-105 ${
+                  className={`absolute inset-0 w-full h-full object-contain transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] sm:hover:scale-105 hover:lg:scale-105 ${
                     isCurrent
                       ? 'opacity-100 translate-y-0 z-10'
                       : isPrevious
@@ -200,7 +200,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
               className="rounded-full text-sm sm:text-base flex-1 sm:flex-none"
               onClick={handlePrimaryClick}
             >
-              {primaryButtonText} <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 ml-1" />
+              {primaryButtonText}<ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 -ml-1" />
             </Button>
                     <Button
                       variant="outline"
@@ -208,7 +208,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
                       className="rounded-full text-sm sm:text-base shadow-none flex-1 sm:flex-none"
                       onClick={handleSecondaryClick}
                     >
-                      {secondaryButtonText} <User className="h-4 w-4 sm:h-5 sm:w-5 ml-1" />
+                      {secondaryButtonText}<User className="h-4 w-4 sm:h-5 sm:w-5 -ml-1" />
                     </Button>
           </div>
         </div>

@@ -12,10 +12,17 @@ export const useAutoLanguage = () => {
 
   useEffect(() => {
     const initializeLanguage = () => {
+      // Evitar múltiples inicializaciones
+      if (i18n.isInitialized) {
+        return;
+      }
+      
       console.log('🔧 Initializing language detection...');
       
-      // Limpiar localStorage para forzar nueva detección
-      localStorage.removeItem('i18nextLng');
+      // Solo limpiar localStorage si no hay idioma guardado
+      if (!localStorage.getItem('i18nextLng')) {
+        localStorage.removeItem('i18nextLng');
+      }
       
       // Obtener idioma del navegador con mejor detección
       const browserLanguage = navigator.language || navigator.languages?.[0] || 'es';

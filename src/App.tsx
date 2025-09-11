@@ -14,7 +14,7 @@ import AppErrorBoundary from '@/components/AppErrorBoundary';
 
 const App = () => {
   useAutoLanguage();
-  console.log('🗺️ FULL APP: App component rendering with all components');
+  // console.log('🗺️ FULL APP: App component rendering with all components');
   
   return (
     <AppErrorBoundary 

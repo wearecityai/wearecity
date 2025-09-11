@@ -129,9 +129,48 @@ export const useCitiesFirebase = () => {
     try {
       console.log('🏗️ Creating admin city in Firebase...');
       
-      // Esta función debería ser llamada automáticamente por un Cloud Function cuando se crea el perfil admin
-      // Si no existe ciudad, la creamos manualmente
+      // Generar slug del nombre de la ciudad
+      const citySlug = chatName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      
+      // Importar la función de generación de biografía
+      const { generateCityBio } = await import('../utils/cityBioGenerator');
+      
+      // Crear datos de la ciudad
+      const cityData = {
+        name: chatName,
+        slug: citySlug,
+        admin_user_id: user.id,
+        assistant_name: `Asistente de ${chatName}`,
+        system_instruction: "",
+        service_tags: ["tramites", "informacion", "servicios", "municipal", "ciudadanos"],
+        bio: generateCityBio(chatName),
+        enable_google_search: true,
+        allow_geolocation: true,
+        allow_map_display: true,
+        current_language_code: 'es',
+        is_active: true,
+        is_public: true, // Hacer pública para que aparezca en el selector
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        lat: null,
+        lng: null
+      };
+      
+      // Crear la ciudad en Firebase
+      const result = await firestoreClient.insert('cities', cityData);
+      
+      if (result.error) {
+        console.error('Error creating city in Firebase:', result.error);
+        setError('Error al crear la ciudad');
+        return false;
+      }
+      
+      console.log('✅ Ciudad creada exitosamente:', result.data?.[0]?.id);
+      
+      // Recargar la ciudad del usuario
       await loadUserCity();
+      await loadCities(); // Recargar todas las ciudades para el selector
+      
       return true;
     } catch (error) {
       console.error('Error creating admin chat in Firebase:', error);

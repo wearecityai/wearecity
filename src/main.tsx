@@ -2,10 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import './styles/ios-inputs.css';
 import './i18n';
 
 // Registrar Service Worker para PWA con mejor manejo de errores
-if ('serviceWorker' in navigator && typeof window !== 'undefined') {
+if ('serviceWorker' in navigator && typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {

@@ -409,6 +409,362 @@ export {
   setupAndFixMetrics
 } from './metricsService';
 
+// ===== USER DELETION CLEANUP =====
+
+// Cloud Function que se ejecuta cuando se elimina un usuario de Firebase Auth
+export const onUserDelete = functions.auth.user().onDelete(async (user) => {
+  const userId = user.uid;
+  const db = admin.firestore();
+  
+  console.log(`🗑️ Starting cleanup for deleted user: ${userId}`);
+  
+  try {
+    // 1. Eliminar perfil del usuario
+    console.log(`📋 Deleting user profile for: ${userId}`);
+    await db.collection('profiles').doc(userId).delete();
+    
+    // 2. Eliminar conversaciones del usuario
+    console.log(`💬 Deleting conversations for: ${userId}`);
+    const conversationsSnapshot = await db.collection('conversations')
+      .where('userId', '==', userId)
+      .get();
+    
+    const conversationBatch = db.batch();
+    conversationsSnapshot.docs.forEach(doc => {
+      conversationBatch.delete(doc.ref);
+    });
+    await conversationBatch.commit();
+    
+    // 3. Eliminar mensajes del usuario
+    console.log(`📝 Deleting messages for: ${userId}`);
+    const messagesSnapshot = await db.collection('messages')
+      .where('userId', '==', userId)
+      .get();
+    
+    const messageBatch = db.batch();
+    messagesSnapshot.docs.forEach(doc => {
+      messageBatch.delete(doc.ref);
+    });
+    await messageBatch.commit();
+    
+    // 4. Eliminar ciudades vinculadas (si es admin)
+    console.log(`🏙️ Checking for admin cities for: ${userId}`);
+    const citiesSnapshot = await db.collection('cities')
+      .where('adminId', '==', userId)
+      .get();
+    
+    if (!citiesSnapshot.empty) {
+      console.log(`🏙️ Deleting ${citiesSnapshot.size} cities for admin: ${userId}`);
+      const cityBatch = db.batch();
+      citiesSnapshot.docs.forEach(doc => {
+        cityBatch.delete(doc.ref);
+      });
+      await cityBatch.commit();
+    }
+    
+    // 5. Eliminar fuentes RAG del usuario
+    console.log(`📚 Deleting RAG sources for: ${userId}`);
+    const ragSourcesSnapshot = await db.collection('library_sources_enhanced')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!ragSourcesSnapshot.empty) {
+      const ragBatch = db.batch();
+      ragSourcesSnapshot.docs.forEach(doc => {
+        ragBatch.delete(doc.ref);
+      });
+      await ragBatch.commit();
+    }
+    
+    // 6. Eliminar chunks de documentos del usuario
+    console.log(`📄 Deleting document chunks for: ${userId}`);
+    const chunksSnapshot = await db.collection('document_chunks')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!chunksSnapshot.empty) {
+      const chunkBatch = db.batch();
+      chunksSnapshot.docs.forEach(doc => {
+        chunkBatch.delete(doc.ref);
+      });
+      await chunkBatch.commit();
+    }
+    
+    // 7. Eliminar logs de uso de IA
+    console.log(`🤖 Deleting AI usage logs for: ${userId}`);
+    const aiLogsSnapshot = await db.collection('ai_usage_logs')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!aiLogsSnapshot.empty) {
+      const aiLogsBatch = db.batch();
+      aiLogsSnapshot.docs.forEach(doc => {
+        aiLogsBatch.delete(doc.ref);
+      });
+      await aiLogsBatch.commit();
+    }
+    
+    // 8. Eliminar logs de búsqueda
+    console.log(`🔍 Deleting search logs for: ${userId}`);
+    const searchLogsSnapshot = await db.collection('search_usage_logs')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!searchLogsSnapshot.empty) {
+      const searchLogsBatch = db.batch();
+      searchLogsSnapshot.docs.forEach(doc => {
+        searchLogsBatch.delete(doc.ref);
+      });
+      await searchLogsBatch.commit();
+    }
+    
+    // 9. Eliminar métricas del usuario
+    console.log(`📊 Deleting metrics for: ${userId}`);
+    const metricsSnapshot = await db.collection('chat_metrics')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!metricsSnapshot.empty) {
+      const metricsBatch = db.batch();
+      metricsSnapshot.docs.forEach(doc => {
+        metricsBatch.delete(doc.ref);
+      });
+      await metricsBatch.commit();
+    }
+    
+    // 10. Eliminar datos de ciudades visitadas recientemente
+    console.log(`🗺️ Deleting recent cities data for: ${userId}`);
+    const recentCitiesSnapshot = await db.collection('recent_cities')
+      .where('userId', '==', userId)
+      .get();
+    
+    if (!recentCitiesSnapshot.empty) {
+      const recentCitiesBatch = db.batch();
+      recentCitiesSnapshot.docs.forEach(doc => {
+        recentCitiesBatch.delete(doc.ref);
+      });
+      await recentCitiesBatch.commit();
+    }
+    
+    console.log(`✅ Successfully cleaned up all data for user: ${userId}`);
+    
+    // Log the cleanup operation
+    await db.collection('user_cleanup_logs').add({
+      userId,
+      deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      operations: [
+        'profile',
+        'conversations',
+        'messages',
+        'cities',
+        'rag_sources',
+        'document_chunks',
+        'ai_usage_logs',
+        'search_logs',
+        'metrics',
+        'recent_cities'
+      ],
+      status: 'completed'
+    });
+    
+  } catch (error) {
+    console.error(`❌ Error cleaning up user data for ${userId}:`, error);
+    
+    // Log the error
+    await db.collection('user_cleanup_logs').add({
+      userId,
+      deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      error: error instanceof Error ? error.message : 'Unknown error',
+      status: 'failed'
+    });
+    
+    throw error;
+  }
+});
+
+// Función HTTP para eliminar manualmente los datos de un usuario (solo para admins)
+export const deleteUserData = functions.https.onRequest(async (req, res) => {
+  return corsHandler(req, res, async () => {
+    try {
+      // Verificar autenticación
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+      }
+
+      const idToken = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const adminUserId = decodedToken.uid;
+
+      // Verificar que el usuario sea admin
+      const adminDoc = await admin.firestore().collection('profiles').doc(adminUserId).get();
+      if (!adminDoc.exists || adminDoc.data()?.role !== 'administrativo') {
+        return res.status(403).json({ error: 'Administrative access required' });
+      }
+
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      console.log(`🗑️ Manual cleanup requested for user: ${userId} by admin: ${adminUserId}`);
+
+      // Ejecutar la misma lógica de limpieza que onUserDelete
+      const db = admin.firestore();
+      
+      // 1. Eliminar perfil del usuario
+      await db.collection('profiles').doc(userId).delete();
+      
+      // 2. Eliminar conversaciones del usuario
+      const conversationsSnapshot = await db.collection('conversations')
+        .where('userId', '==', userId)
+        .get();
+      
+      const conversationBatch = db.batch();
+      conversationsSnapshot.docs.forEach(doc => {
+        conversationBatch.delete(doc.ref);
+      });
+      await conversationBatch.commit();
+      
+      // 3. Eliminar mensajes del usuario
+      const messagesSnapshot = await db.collection('messages')
+        .where('userId', '==', userId)
+        .get();
+      
+      const messageBatch = db.batch();
+      messagesSnapshot.docs.forEach(doc => {
+        messageBatch.delete(doc.ref);
+      });
+      await messageBatch.commit();
+      
+      // 4. Eliminar ciudades vinculadas (si es admin)
+      const citiesSnapshot = await db.collection('cities')
+        .where('adminId', '==', userId)
+        .get();
+      
+      if (!citiesSnapshot.empty) {
+        const cityBatch = db.batch();
+        citiesSnapshot.docs.forEach(doc => {
+          cityBatch.delete(doc.ref);
+        });
+        await cityBatch.commit();
+      }
+      
+      // 5. Eliminar fuentes RAG del usuario
+      const ragSourcesSnapshot = await db.collection('library_sources_enhanced')
+        .where('userId', '==', userId)
+        .get();
+      
+      if (!ragSourcesSnapshot.empty) {
+        const ragBatch = db.batch();
+        ragSourcesSnapshot.docs.forEach(doc => {
+          ragBatch.delete(doc.ref);
+        });
+        await ragBatch.commit();
+      }
+      
+      // 6. Eliminar chunks de documentos del usuario
+      const chunksSnapshot = await db.collection('document_chunks')
+        .where('userId', '==', userId)
+        .get();
+      
+      if (!chunksSnapshot.empty) {
+        const chunkBatch = db.batch();
+        chunksSnapshot.docs.forEach(doc => {
+          chunkBatch.delete(doc.ref);
+        });
+        await chunkBatch.commit();
+      }
+      
+      // 7. Eliminar logs de uso de IA
+      const aiLogsSnapshot = await db.collection('ai_usage_logs')
+        .where('userId', '==', userId)
+        .get();
+      
+      if (!aiLogsSnapshot.empty) {
+        const aiLogsBatch = db.batch();
+        aiLogsSnapshot.docs.forEach(doc => {
+          aiLogsBatch.delete(doc.ref);
+        });
+        await aiLogsBatch.commit();
+      }
+      
+      // 8. Eliminar logs de búsqueda
+      const searchLogsSnapshot = await db.collection('search_usage_logs')
+        .where('userId', '==', userId)
+        .get();
+      
+      if (!searchLogsSnapshot.empty) {
+        const searchLogsBatch = db.batch();
+        searchLogsSnapshot.docs.forEach(doc => {
+          searchLogsBatch.delete(doc.ref);
+        });
+        await searchLogsBatch.commit();
+      }
+      
+      // 9. Eliminar métricas del usuario
+      const metricsSnapshot = await db.collection('chat_metrics')
+        .where('userId', '==', userId)
+        .get();
+      
+      if (!metricsSnapshot.empty) {
+        const metricsBatch = db.batch();
+        metricsSnapshot.docs.forEach(doc => {
+          metricsBatch.delete(doc.ref);
+        });
+        await metricsBatch.commit();
+      }
+      
+      // 10. Eliminar datos de ciudades visitadas recientemente
+      const recentCitiesSnapshot = await db.collection('recent_cities')
+        .where('userId', '==', userId)
+        .get();
+      
+      if (!recentCitiesSnapshot.empty) {
+        const recentCitiesBatch = db.batch();
+        recentCitiesSnapshot.docs.forEach(doc => {
+          recentCitiesBatch.delete(doc.ref);
+        });
+        await recentCitiesBatch.commit();
+      }
+
+      // Log the manual cleanup operation
+      await db.collection('user_cleanup_logs').add({
+        userId,
+        deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+        deletedBy: adminUserId,
+        operations: [
+          'profile',
+          'conversations',
+          'messages',
+          'cities',
+          'rag_sources',
+          'document_chunks',
+          'ai_usage_logs',
+          'search_logs',
+          'metrics',
+          'recent_cities'
+        ],
+        status: 'completed',
+        type: 'manual'
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Successfully deleted all data for user: ${userId}`,
+        deletedBy: adminUserId
+      });
+
+    } catch (error) {
+      console.error('Error in deleteUserData:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+});
+
 
 // ===== NUEVAS FUNCIONES RAG =====
 

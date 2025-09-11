@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('🔐 AuthProvider rendering...');
+  // console.log('🔐 AuthProvider rendering...');
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const unsubscribe = firebase.auth.onAuthStateChange(
       async (event: string, session: Session | null) => {
-        console.log('Auth state changed:', event, session?.user?.id);
+        // console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for existing session
     firebase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.id);
+      // console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
 

@@ -25,6 +25,14 @@ export function LoginForm() {
     setIsLoading(true)
     setError(null)
 
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Por favor, introduce un email válido')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const { data, error } = await firebase.auth.signInWithPassword({
         email,
@@ -46,15 +54,19 @@ export function LoginForm() {
           if (docSnap.exists()) {
             const profile = docSnap.data();
             if (profile && profile.role === 'administrativo') {
-              navigate('/admin')
+              // Admin goes to admin view with city slug
+              navigate('/admin/valencia')
             } else {
-              navigate('/home')
+              // Citizen goes to chat view with city slug
+              navigate('/chat/valencia')
             }
           } else {
-            navigate('/home')
+            // Default to citizen view
+            navigate('/chat/valencia')
           }
         } catch (profileError) {
-          navigate('/home')
+          // Default to citizen view
+          navigate('/chat/valencia')
         }
       }
     } catch (err) {
@@ -84,15 +96,19 @@ export function LoginForm() {
           if (docSnap.exists()) {
             const profile = docSnap.data();
             if (profile && profile.role === 'administrativo') {
-              navigate('/admin')
+              // Admin goes to admin view with city slug
+              navigate('/admin/valencia')
             } else {
-              navigate('/home')
+              // Citizen goes to chat view with city slug
+              navigate('/chat/valencia')
             }
           } else {
-            navigate('/home')
+            // Default to citizen view
+            navigate('/chat/valencia')
           }
         } catch (profileError) {
-          navigate('/home')
+          // Default to citizen view
+          navigate('/chat/valencia')
         }
       }
     } catch (err) {
@@ -116,11 +132,13 @@ export function LoginForm() {
             <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
               id="email"
-              type="email"
+              type="text"
               placeholder="m@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              inputMode="email"
+              autoComplete="email"
             />
           </div>
           
@@ -136,7 +154,7 @@ export function LoginForm() {
           <div className="flex items-center justify-end">
             <a
               href="#"
-              className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              className="text-sm text-muted-foreground sm:hover:text-foreground underline-offset-4 sm:hover:underline"
               onClick={(e) => {
                 e.preventDefault();
                 alert('Funcionalidad de recuperación de contraseña próximamente');
@@ -145,16 +163,15 @@ export function LoginForm() {
               ¿Olvidaste tu contraseña?
             </a>
           </div>
-
-        </div> {/* End of form fields grid gap-4 */}
+          
+          <Button type="submit" className="w-full rounded-full" disabled={isLoading || isGoogleLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('auth.login')}
+          </Button>
+        </div>
       </form>
 
-      <div className="mt-6 space-y-3"> {/* New div for buttons */}
-        <Button type="submit" className="w-full rounded-full" disabled={isLoading || isGoogleLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t('auth.login')}
-        </Button>
-
+      <div className="mt-6 space-y-3">
         <Button
           type="button"
           variant="outline"

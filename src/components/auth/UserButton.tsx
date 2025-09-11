@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu,
@@ -63,6 +63,7 @@ const UserButton = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0">
           <Avatar className="h-8 w-8">
+            <AvatarImage src={user?.user_metadata?.avatar_url || profile?.avatarUrl} />
             <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
           </Avatar>
         </Button>

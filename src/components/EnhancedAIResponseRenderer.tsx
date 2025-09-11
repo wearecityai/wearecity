@@ -150,7 +150,7 @@ export const EnhancedAIResponseRenderer: React.FC<EnhancedAIResponseRendererProp
               href={href} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 dark:text-blue-400 sm:hover:underline"
             >
               {children}
             </a>

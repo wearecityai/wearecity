@@ -9,15 +9,22 @@ import {
   signInWithPopup,
   GoogleAuthProvider
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 import { ProfilesDoc } from './types';
+import { generateCityBio } from '../../utils/cityBioGenerator';
 
 // Auth types
 export interface User {
   id: string;
   email: string | null;
   created_at?: string;
+  user_metadata?: {
+    avatar_url?: string | null;
+    full_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  };
 }
 
 export interface Session {
@@ -39,6 +46,12 @@ const convertFirebaseUser = (firebaseUser: FirebaseUser): User => {
     id: firebaseUser.uid,
     email: firebaseUser.email,
     created_at: firebaseUser.metadata.creationTime,
+    user_metadata: {
+      avatar_url: firebaseUser.photoURL || null,
+      full_name: firebaseUser.displayName || null,
+      first_name: firebaseUser.displayName?.split(' ')[0] || null,
+      last_name: firebaseUser.displayName?.split(' ').slice(1).join(' ') || null,
+    },
   };
 };
 
@@ -101,8 +114,8 @@ export const signUp = async (credentials: {
       firstName: credentials.options?.data?.first_name || null,
       lastName: credentials.options?.data?.last_name || null,
       role: userRole,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
 
     await setDoc(doc(db, 'profiles', userCredential.user.uid), profileData);
@@ -174,12 +187,15 @@ const createCityForAdmin = async (userId: string, firstName: string) => {
       // Tags de servicios (editables)
       serviceTags: ["tramites", "informacion", "servicios", "municipal", "ciudadanos"],
       
+      // Biografía automática de la ciudad
+      bio: generateCityBio(cityName),
+      
       // Restricciones de ciudad (configurable)
       restrictedCity: null, // El admin puede restringir la ciudad desde ajustes
       
       // Metadatos
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
 
     await setDoc(doc(db, 'cities', cityData.id), cityData);
@@ -229,16 +245,44 @@ export const signInWithOAuth = async ({ provider }: { provider: 'google' }): Pro
     // Check if user profile exists, if not create one
     const profileDoc = await getDoc(doc(db, 'profiles', result.user.uid));
     if (!profileDoc.exists()) {
+      // Extract first and last name from displayName
+      const displayName = result.user.displayName || '';
+      const nameParts = displayName.trim().split(' ');
+      const firstName = nameParts[0] || null;
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
+
       const profileData: ProfilesDoc = {
         id: result.user.uid,
         email: result.user.email || '',
-        firstName: result.user.displayName?.split(' ')[0] || null,
-        lastName: result.user.displayName?.split(' ').slice(1).join(' ') || null,
+        firstName: firstName,
+        lastName: lastName,
+        avatarUrl: result.user.photoURL || null, // Use Google avatar
         role: 'ciudadano',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       };
       await setDoc(doc(db, 'profiles', result.user.uid), profileData);
+    } else {
+      // Update existing profile with Google data if missing
+      const existingProfile = profileDoc.data();
+      const needsUpdate = !existingProfile.avatarUrl || 
+                         !existingProfile.firstName || 
+                         !existingProfile.lastName;
+
+      if (needsUpdate) {
+        const displayName = result.user.displayName || '';
+        const nameParts = displayName.trim().split(' ');
+        const firstName = nameParts[0] || existingProfile.firstName;
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : existingProfile.lastName;
+
+        const updatedProfileData: Partial<ProfilesDoc> = {
+          avatarUrl: result.user.photoURL || existingProfile.avatarUrl,
+          firstName: firstName,
+          lastName: lastName,
+          updatedAt: Timestamp.now(),
+        };
+        await setDoc(doc(db, 'profiles', result.user.uid), updatedProfileData, { merge: true });
+      }
     }
 
     return {

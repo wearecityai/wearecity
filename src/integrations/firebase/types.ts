@@ -102,6 +102,7 @@ export interface MessagesDoc {
 
 export interface ProfilesDoc {
   id: string;
+  avatarUrl?: string | null;
   createdAt?: Timestamp | null;
   defaultChatData?: Json | null;
   email: string;

@@ -101,7 +101,7 @@ export function NavActions() {
             onClick={handleSignIn}
             variant="outline"
             size="icon"
-            className="h-7 w-7 rounded-full shadow-none sm:h-auto sm:w-auto sm:px-4"
+            className="!h-3 !w-3 rounded-full shadow-none !p-0 sm:h-auto sm:w-auto sm:px-4 sm:py-2"
           >
             <User className="h-3.5 w-3.5" />
             <span className="hidden sm:inline sm:ml-2">Iniciar sesión</span>

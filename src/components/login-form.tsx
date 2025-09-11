@@ -23,7 +23,7 @@ export function LoginForm({
   return (
     <div className={cn("flex flex-col gap-6 w-full max-w-sm sm:max-w-md", className)} {...props}>
       <Card className="bg-transparent border-0 shadow-none">
-        <CardHeader className="px-0 sm:px-6">
+        <CardHeader className="px-0 sm:px-6 hidden sm:block">
           <CardTitle className="text-xl sm:text-2xl text-foreground">Conecta con tu ciudad inteligente</CardTitle>
           <CardDescription className="text-muted-foreground text-sm sm:text-base">
             Accede a servicios municipales, información local y asistencia personalizada
