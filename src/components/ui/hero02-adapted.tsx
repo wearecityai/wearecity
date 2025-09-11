@@ -147,7 +147,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
       <BackgroundPattern />
       <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-12 px-4 sm:px-6 py-4 sm:py-8 lg:py-12 relative z-10">
         {/* Imagen - aparece primero en mobile */}
-        <div className="w-full aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden group cursor-pointer relative lg:-mt-8 order-1 lg:order-2">
+        <div className="w-full aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden group cursor-pointer relative -mt-4 sm:mt-0 lg:-mt-8 order-1 lg:order-2">
           <div className="relative w-full h-full overflow-hidden">
             {images.map((image, index) => {
               const isCurrent = index === currentImageIndex;
