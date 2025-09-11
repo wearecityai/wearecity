@@ -194,10 +194,10 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
           <p className="mt-4 sm:mt-6 max-w-[60ch] text-sm sm:text-base lg:text-lg text-muted-foreground">
             {description}
           </p>
-          <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+          <div className="mt-8 sm:mt-12 flex flex-row items-center gap-3 sm:gap-4">
             <Button 
               size="lg" 
-              className="rounded-full text-sm sm:text-base w-full sm:w-auto"
+              className="rounded-full text-sm sm:text-base flex-1 sm:flex-none"
               onClick={handlePrimaryClick}
             >
               {primaryButtonText} <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 ml-1" />
@@ -205,7 +205,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
             <Button
               variant="outline"
               size="lg"
-              className="rounded-full text-sm sm:text-base shadow-none w-full sm:w-auto"
+              className="rounded-full text-sm sm:text-base shadow-none flex-1 sm:flex-none"
               onClick={handleSecondaryClick}
             >
               <User className="h-4 w-4 sm:h-5 sm:w-5 mr-1" /> {secondaryButtonText}
