@@ -3,8 +3,6 @@ run:
   env: production
   build:
     commands:
-      - npm ci
-      - npm run build
-      - npm install -g serve
+      - echo "Using Dockerfile for build"
   start:
-    command: serve -s dist -l 8080
+    command: echo "Using Dockerfile for runtime"
