@@ -112,7 +112,7 @@ const AuthPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-dvh flex flex-col">
       {/* Header - Mismo que landing page */}
       <header className="flex h-16 shrink-0 items-center gap-2 bg-black sticky top-0 z-50 layout-transition w-full overflow-hidden pt-2">
         <div className="flex flex-1 items-center gap-2 px-8 min-w-0">

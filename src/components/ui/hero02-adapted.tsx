@@ -143,7 +143,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black relative">
+    <div className="min-h-dvh flex items-center justify-center bg-black relative">
       <BackgroundPattern />
       <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-12 px-4 sm:px-6 py-8 sm:py-12 relative z-10">
         {/* Imagen - aparece primero en mobile */}
