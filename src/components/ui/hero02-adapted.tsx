@@ -145,7 +145,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
   return (
     <div className="min-h-dvh flex items-center justify-center bg-black relative">
       <BackgroundPattern />
-      <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-12 px-4 sm:px-6 py-8 sm:py-12 relative z-10">
+      <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-12 px-4 sm:px-6 py-4 sm:py-8 lg:py-12 relative z-10">
         {/* Imagen - aparece primero en mobile */}
         <div className="w-full aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden group cursor-pointer relative lg:-mt-8 order-1 lg:order-2">
           <div className="relative w-full h-full overflow-hidden">
@@ -186,7 +186,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
         </div>
         
         {/* Contenido de texto - aparece segundo en mobile */}
-        <div className="flex flex-col justify-center pt-2 sm:pt-4 order-2 lg:order-1">
+        <div className="flex flex-col justify-center pt-1 sm:pt-4 order-2 lg:order-1">
           <h1 className="max-w-[17ch] text-3xl sm:text-4xl md:text-5xl lg:text-[2.75rem] xl:text-[3.25rem] font-semibold leading-[1.1] sm:leading-[1.2] tracking-tighter tiktok-sans-title">
             <span className="block">Transformando tu</span>
             <span className="block">experiencia ciudadana</span>
@@ -194,7 +194,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
           <p className="mt-4 sm:mt-6 max-w-[60ch] text-sm sm:text-base lg:text-lg text-muted-foreground">
             {description}
           </p>
-          <div className="mt-8 sm:mt-12 flex flex-row items-center gap-3 sm:gap-4">
+          <div className="mt-6 sm:mt-12 flex flex-row items-center gap-3 sm:gap-4">
             <Button 
               size="lg" 
               className="rounded-full text-sm sm:text-base flex-1 sm:flex-none"
