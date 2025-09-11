@@ -24,6 +24,9 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "apphosting": {
+    "backend": "wearecity"
+  },
   "emulators": {
     "functions": {
       "port": 5001

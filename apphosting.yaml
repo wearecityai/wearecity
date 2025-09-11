@@ -1,0 +1,9 @@
+run:
+  runtime: nodejs20
+  env: production
+  build:
+    commands:
+      - npm ci
+      - npm run build
+  start:
+    command: npx serve -s dist -l 8080
