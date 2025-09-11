@@ -19,7 +19,7 @@ const Hero02Adapted: React.FC<Hero02AdaptedProps> = ({
   badge = "WeAreCity",
   title = "Transforma Tu Experiencia Ciudadana",
   description = "Conecta con tu ciudad de manera inteligente. Accede a servicios municipales, información local y asistencia personalizada con tecnología de vanguardia.",
-  primaryButtonText = "Buscar mi ciudad",
+  primaryButtonText = "Buscar ciudad",
   secondaryButtonText = "Iniciar sesión",
   onPrimaryClick,
   onSecondaryClick,
