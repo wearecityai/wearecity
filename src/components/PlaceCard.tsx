@@ -84,7 +84,16 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
 
   const formatPriceLevel = (priceLevel?: number): string => {
     if (!priceLevel) return '';
-    return '$'.repeat(priceLevel);
+    // Convertir nivel de precio a rango de euros como en la captura
+    const priceRanges = ['Gratis', '€', '€€', '€€€', '€€€€'];
+    return priceRanges[priceLevel] || '';
+  };
+
+  const formatPriceRange = (priceLevel?: number): string => {
+    if (!priceLevel) return '';
+    // Convertir a rangos específicos como en la captura
+    const priceRanges = ['Gratis', '10-20 €', '20-30 €', '30-40 €', '40+ €'];
+    return priceRanges[priceLevel] || '';
   };
 
   const formatUserRatingsTotal = (total?: number): string => {
@@ -135,6 +144,76 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
     return types[0];
   };
 
+  const getAvailableServices = (types?: string[]): string[] => {
+    if (!types) return [];
+    
+    const services: string[] = [];
+    
+    // Detectar servicios basados en tipos
+    if (types.includes('meal_takeaway') || types.includes('fast_food')) {
+      services.push('Para llevar');
+    }
+    if (types.includes('meal_delivery')) {
+      services.push('Delivery');
+    }
+    if (types.includes('restaurant') || types.includes('food')) {
+      services.push('Comer allí');
+    }
+    
+    // Si no hay servicios específicos, asumir que es restaurante
+    if (services.length === 0 && types.includes('restaurant')) {
+      services.push('Comer allí');
+    }
+    
+    return services;
+  };
+
+  const getPlaceStatus = (openingHours?: string[], businessStatus?: string): { status: string; nextOpening?: string } => {
+    // Priorizar businessStatus si está disponible
+    if (businessStatus) {
+      switch (businessStatus) {
+        case 'OPERATIONAL':
+          return { status: 'Abierto' };
+        case 'CLOSED_TEMPORARILY':
+          return { status: 'Cerrado temporalmente' };
+        case 'CLOSED_PERMANENTLY':
+          return { status: 'Cerrado permanentemente' };
+        default:
+          return { status: 'Estado desconocido' };
+      }
+    }
+    
+    if (!openingHours || openingHours.length === 0) {
+      return { status: 'Horarios no disponibles' };
+    }
+    
+    // Buscar indicadores de estado en los horarios
+    const currentHour = new Date().getHours();
+    const currentDay = new Date().getDay(); // 0 = Domingo, 1 = Lunes, etc.
+    
+    // Buscar si está cerrado hoy
+    const todayHours = openingHours.find(hour => 
+      hour.toLowerCase().includes('cerrado') || 
+      hour.toLowerCase().includes('closed')
+    );
+    
+    if (todayHours) {
+      return { status: 'Cerrado', nextOpening: todayHours };
+    }
+    
+    // Buscar horarios de apertura
+    const openingMatch = openingHours.find(hour => 
+      hour.toLowerCase().includes('apertura') || 
+      hour.toLowerCase().includes('opening')
+    );
+    
+    if (openingMatch) {
+      return { status: 'Abierto', nextOpening: openingMatch };
+    }
+    
+    return { status: 'Abierto' };
+  };
+
   const generateMapsUrl = (): string => {
     if (place.placeId) {
       return `https://www.google.com/maps/place/?q=place_id:${place.placeId}`;
@@ -149,17 +228,20 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
     return `https://www.google.com/search?q=${query}`;
   };
 
+  const services = getAvailableServices(place.types);
+  const placeStatus = getPlaceStatus(place.openingHours, place.businessStatus);
+
   return (
     <Card className="w-full border-t border-border flex flex-col overflow-hidden rounded-none border-0 p-0">
-      {/* Sección con imagen grande a la izquierda */}
-      <div className="flex-shrink-0 flex items-start relative">
-        {/* Caja de imagen grande a la izquierda */}
-        <div className="flex-shrink-0 w-20 sm:w-24 h-20 sm:h-24 rounded-lg flex flex-col items-center justify-center ml-3 sm:ml-4 mt-3 sm:mt-4 overflow-hidden">
+      {/* Sección principal con imagen y información básica */}
+      <div className="flex-shrink-0 flex items-start relative p-4">
+        {/* Imagen del lugar */}
+        <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden mr-4">
           {place.photoUrl ? (
             <img
               src={place.photoUrl}
               alt={place.name}
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-cover"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';
@@ -172,113 +254,100 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
           )}
         </div>
         
-        {/* Contenido del título y detalles centrado verticalmente con la imagen */}
-        <div className="flex-1 px-3 sm:px-4 flex flex-col justify-center mt-3 sm:mt-4">
-          <h3 className="font-semibold text-xl sm:text-2xl leading-tight line-clamp-2 text-foreground pr-12 sm:pr-16 mb-2">
+        {/* Información principal del lugar */}
+        <div className="flex-1 min-w-0">
+          {/* Nombre del lugar */}
+          <h3 className="font-semibold text-lg leading-tight text-foreground mb-2 line-clamp-2">
             {place.name}
           </h3>
           
-          {/* Información del lugar a la derecha de la imagen */}
-          <div className="space-y-1">
-            {/* Rating del lugar */}
-            {place.rating && (
-              <div className="flex items-center space-x-2">
-                <Star className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground flex-shrink-0 fill-current" />
-                <span className="text-xs sm:text-sm text-muted-foreground truncate">
-                  {formatRating(place.rating)}
-                  {place.userRatingsTotal && (
-                    <span className="ml-1">({formatUserRatingsTotal(place.userRatingsTotal)})</span>
-                  )}
-                </span>
-              </div>
+          {/* Rating y número de reseñas */}
+          {place.rating && (
+            <div className="flex items-center space-x-1 mb-1">
+              <Star className="h-4 w-4 text-yellow-500 fill-current" />
+              <span className="text-sm font-medium text-foreground">
+                {place.rating.toFixed(1)}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                ({place.userRatingsTotal ? formatUserRatingsTotal(place.userRatingsTotal) : '0'} reseñas)
+              </span>
+            </div>
+          )}
+          
+          {/* Rango de precios */}
+          {place.priceLevel && (
+            <div className="text-sm text-muted-foreground mb-1">
+              {formatPriceRange(place.priceLevel)}
+            </div>
+          )}
+          
+          {/* Tipo de lugar */}
+          {place.types && (
+            <div className="text-sm text-muted-foreground mb-1">
+              {getPlaceType(place.types)}
+            </div>
+          )}
+          
+          {/* Dirección */}
+          {place.address && (
+            <div className="text-sm text-muted-foreground mb-2 line-clamp-1">
+              {place.address}
+            </div>
+          )}
+          
+          {/* Servicios disponibles */}
+          {services.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {services.map((service, index) => (
+                <Badge key={index} variant="secondary" className="text-xs px-2 py-1">
+                  {service}
+                </Badge>
+              ))}
+            </div>
+          )}
+          
+          {/* Estado y horarios */}
+          <div className="flex items-center space-x-2 text-sm">
+            <span className={`font-medium ${
+              placeStatus.status === 'Cerrado' ? 'text-red-600' : 
+              placeStatus.status === 'Abierto' ? 'text-green-600' : 
+              'text-muted-foreground'
+            }`}>
+              {placeStatus.status}
+            </span>
+            {placeStatus.nextOpening && (
+              <span className="text-muted-foreground">
+                • {placeStatus.nextOpening}
+              </span>
             )}
-            
-            {/* Distancia del lugar */}
-            {place.distance && (
-              <div className="flex items-center space-x-2">
-                <Navigation className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-muted-foreground truncate">
-                  {formatDistance(place.distance)}
-                </span>
-              </div>
-            )}
-
-            {/* Tipo de lugar */}
-            {place.types && (
-              <div className="flex items-center space-x-2">
-                <Users className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-muted-foreground truncate">
-                  {getPlaceType(place.types)}
-                </span>
-              </div>
-            )}
-
-            {/* Nivel de precio */}
-            {place.priceLevel && (
-              <div className="flex items-center space-x-2">
-                <DollarSign className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-muted-foreground truncate">
-                  {formatPriceLevel(place.priceLevel)}
-                </span>
-              </div>
-            )}
-
-            {/* Teléfono */}
-            {place.phoneNumber && (
-              <div className="flex items-center space-x-2">
-                <Phone className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-muted-foreground truncate">
-                  {place.phoneNumber}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Icono de categoría */}
-        <div className="absolute top-3 sm:top-4 right-3 sm:right-4 w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0">
-          <div className="w-4 sm:w-6 h-4 sm:h-6 flex items-center justify-center text-white">
-            <MapPin className="h-5 w-5" />
           </div>
         </div>
       </div>
       
-      {/* Dirección del lugar (si existe) */}
-      {place.address && (
-        <div className="flex-shrink-0 px-3 sm:px-4 py-2">
-          <div className="flex items-start space-x-2">
-            <MapPin className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-              {place.address}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Descripción del lugar (si existe) */}
       {place.description && (
-        <div className="flex-shrink-0 px-3 sm:px-4 py-2">
-          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+        <div className="px-4 pb-2">
+          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
             {place.description}
           </p>
         </div>
       )}
 
-      {/* Horarios de apertura (si existen) */}
-      {place.openingHours && place.openingHours.length > 0 && (
-        <div className="flex-shrink-0 px-3 sm:px-4 py-2">
+      {/* Horarios detallados (si existen y no se mostraron arriba) */}
+      {place.openingHours && place.openingHours.length > 0 && !placeStatus.nextOpening && (
+        <div className="px-4 pb-2">
           <div className="flex items-start space-x-2">
-            <Clock className="h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <div className="text-xs sm:text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-muted-foreground">
               <div className="font-medium mb-1">Horarios:</div>
               <div className="space-y-1">
                 {place.openingHours.slice(0, 3).map((hour, index) => (
-                  <div key={index} className="text-xs">
+                  <div key={index} className="text-sm">
                     {hour}
                   </div>
                 ))}
                 {place.openingHours.length > 3 && (
-                  <div className="text-xs text-muted-foreground/70">
+                  <div className="text-sm text-muted-foreground/70">
                     +{place.openingHours.length - 3} más...
                   </div>
                 )}
@@ -288,9 +357,9 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
         </div>
       )}
 
-      {/* Botones de acción - Separados de la imagen */}
-      <div className="flex-shrink-0 h-12 flex items-center px-3 sm:px-4 mt-4">
-        <div className="flex gap-1 sm:gap-2 w-full">
+      {/* Botones de acción */}
+      <div className="px-4 pb-4">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -301,10 +370,10 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
               href={generateMapsUrl()}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center space-x-1 sm:space-x-2"
+              className="flex items-center justify-center space-x-2"
             >
-              <MapPin className="h-3 sm:h-4 w-3 sm:w-4" />
-              <span className="text-xs sm:text-sm">Mapas</span>
+              <MapPin className="h-4 w-4" />
+              <span className="text-sm">Mapas</span>
             </a>
           </Button>
 
@@ -319,10 +388,10 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
                 href={place.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center space-x-1 sm:space-x-2"
+                className="flex items-center justify-center space-x-2"
               >
-                <Globe className="h-3 sm:h-4 w-3 sm:w-4" />
-                <span className="text-xs sm:text-sm">Web</span>
+                <Globe className="h-4 w-4" />
+                <span className="text-sm">Sitio web</span>
               </a>
             </Button>
           ) : (
@@ -336,10 +405,10 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRetry }) => {
                 href={generateWebsiteSearchUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center space-x-1 sm:space-x-2"
+                className="flex items-center justify-center space-x-2"
               >
-                <ExternalLink className="h-3 sm:h-4 w-3 sm:w-4" />
-                <span className="text-xs sm:text-sm">Buscar</span>
+                <ExternalLink className="h-4 w-4" />
+                <span className="text-sm">Buscar</span>
               </a>
             </Button>
           )}

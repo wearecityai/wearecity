@@ -33,38 +33,16 @@ export const useStrictSequentialReveal = ({
     setVisibleCards(0);
     setHasStartedDelay(false);
     
-    // MODIFICACIÓN: Lógica más rápida para mostrar cards
-    // Si no hay typewriter activo (typewriterIsComplete = true), mostrar cards inmediatamente
-    if (typewriterIsComplete) {
-      if (totalCards > 0) {
-        // Add a small delay to prevent flashing
-        setTimeout(() => {
-          showCardsSequentially();
-        }, 200);
-      }
-      return;
-    }
-
-    // Si no hay textContent, mostrar cards inmediatamente
-    if (!textContent || textContent.trim() === '') {
-      if (totalCards > 0) {
-        // Add a small delay to prevent flashing
-        setTimeout(() => {
-          showCardsSequentially();
-        }, 100);
-      }
-      return;
-    }
-
-    // Si hay typewriter activo, esperar a que se complete
-    if (typewriterIsComplete && totalCards > 0 && !hasStartedDelay) {
+    // Esperar a que el typewriter se complete Y haya contenido de texto
+    if (typewriterIsComplete && textContent && textContent.trim() !== '' && totalCards > 0 && !hasStartedDelay) {
       setHasStartedDelay(true);
-      // Reducir el delay después del typewriter de 1000ms a 300ms
+      
+      // Delay después de que termine la introducción para mostrar las cards
       setTimeout(() => {
         showCardsSequentially();
-      }, 300);
+      }, 500); // 500ms después de terminar la introducción
     }
-  }, [textContent, totalCards, typewriterIsComplete, cardDelay, messageId, hasStartedDelay]);
+  }, [textContent, totalCards, typewriterIsComplete, cardDelay, messageId]);
 
   const showCardsSequentially = () => {
     const timers: NodeJS.Timeout[] = [];
@@ -72,6 +50,7 @@ export const useStrictSequentialReveal = ({
     for (let i = 0; i < totalCards; i++) {
       const timer = setTimeout(() => {
         setVisibleCards(i + 1);
+        
         // Save the revealed state when all cards are shown
         if (i === totalCards - 1 && messageId) {
           revealedCards.set(messageId, totalCards);
@@ -86,23 +65,23 @@ export const useStrictSequentialReveal = ({
   };
 
   const shouldShowCard = (cardIndex: number): boolean => {
-    // MODIFICACIÓN: Lógica más simple y rápida
-    // Si el typewriter está completo, mostrar cards inmediatamente
-    if (typewriterIsComplete) {
-      return cardIndex < visibleCards;
+    // 🎯 LÓGICA ESTRICTA: Solo mostrar cards DESPUÉS de la introducción
+    // Si el typewriter NO está completo, no mostrar ninguna card
+    if (!typewriterIsComplete) {
+      return false;
     }
     
-    // Si no hay textContent, mostrar cards inmediatamente
+    // Si no hay contenido de texto, no mostrar cards
     if (!textContent || textContent.trim() === '') {
-      return cardIndex < visibleCards;
+      return false;
     }
     
-    // Si hay typewriter activo, esperar a que se complete
+    // Si no ha empezado el delay, no mostrar cards
     if (!hasStartedDelay) {
       return false;
     }
     
-    // Show cards sequentially
+    // Mostrar cards secuencialmente
     return cardIndex < visibleCards;
   };
 

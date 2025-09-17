@@ -64,12 +64,14 @@ class GooglePlacesService {
     /**
      * Buscar restaurantes cerca de una ubicación
      */
-    async searchRestaurants(location, radius = 2000) {
+    async searchRestaurants(location, radius = 1500, city) {
+        const query = city ? `restaurantes ${city}, España` : 'restaurantes';
         const response = await this.searchPlaces({
-            query: 'restaurantes',
+            query,
             location,
             radius,
             type: 'restaurant',
+            region: 'es',
             maxResults: 10
         });
         return response.results || [];
@@ -77,12 +79,14 @@ class GooglePlacesService {
     /**
      * Buscar monumentos y lugares de interés
      */
-    async searchMonuments(location, radius = 5000) {
+    async searchMonuments(location, radius = 2000, city) {
+        const query = city ? `monumentos lugares turísticos ${city}, España` : 'monumentos lugares de interés turístico';
         const response = await this.searchPlaces({
-            query: 'monumentos lugares de interés turístico',
+            query,
             location,
             radius,
             type: 'tourist_attraction',
+            region: 'es',
             maxResults: 15
         });
         return response.results || [];
@@ -90,12 +94,14 @@ class GooglePlacesService {
     /**
      * Buscar instituciones públicas
      */
-    async searchInstitutions(location, radius = 5000) {
+    async searchInstitutions(location, radius = 2000, city) {
+        const query = city ? `ayuntamiento instituciones ${city}, España` : 'ayuntamiento instituciones públicas gobierno';
         const response = await this.searchPlaces({
-            query: 'ayuntamiento instituciones públicas gobierno',
+            query,
             location,
             radius,
             type: 'local_government_office',
+            region: 'es',
             maxResults: 10
         });
         return response.results || [];
@@ -103,12 +109,14 @@ class GooglePlacesService {
     /**
      * Buscar lugares públicos (parques, plazas, etc.)
      */
-    async searchPublicPlaces(location, radius = 3000) {
+    async searchPublicPlaces(location, radius = 1500, city) {
+        const query = city ? `parques plazas ${city}, España` : 'parques plazas espacios públicos';
         const response = await this.searchPlaces({
-            query: 'parques plazas espacios públicos',
+            query,
             location,
             radius,
             type: 'park',
+            region: 'es',
             maxResults: 10
         });
         return response.results || [];
@@ -116,12 +124,14 @@ class GooglePlacesService {
     /**
      * Buscar farmacias
      */
-    async searchPharmacies(location, radius = 2000) {
+    async searchPharmacies(location, radius = 1500, city) {
+        const query = city ? `farmacias ${city}, España` : 'farmacias';
         const response = await this.searchPlaces({
-            query: 'farmacias',
+            query,
             location,
             radius,
             type: 'pharmacy',
+            region: 'es',
             maxResults: 10
         });
         return response.results || [];
@@ -129,12 +139,14 @@ class GooglePlacesService {
     /**
      * Buscar hospitales y centros de salud
      */
-    async searchHospitals(location, radius = 10000) {
+    async searchHospitals(location, radius = 2000, city) {
+        const query = city ? `hospitales centros salud ${city}, España` : 'hospitales centros de salud';
         const response = await this.searchPlaces({
-            query: 'hospitales centros de salud',
+            query,
             location,
             radius,
             type: 'hospital',
+            region: 'es',
             maxResults: 10
         });
         return response.results || [];
@@ -142,12 +154,14 @@ class GooglePlacesService {
     /**
      * Buscar estaciones de transporte
      */
-    async searchTransportStations(location, radius = 5000) {
+    async searchTransportStations(location, radius = 1500, city) {
+        const query = city ? `estaciones transporte metro bus ${city}, España` : 'estaciones transporte público metro bus';
         const response = await this.searchPlaces({
-            query: 'estaciones transporte público metro bus',
+            query,
             location,
             radius,
             type: 'transit_station',
+            region: 'es',
             maxResults: 10
         });
         return response.results || [];
@@ -203,6 +217,18 @@ class GooglePlacesService {
             }
             photoAttributions = photo.html_attributions || [];
         }
+        // Procesar horarios de apertura
+        let openingHours;
+        if (place.opening_hours) {
+            if (place.opening_hours.weekday_text) {
+                openingHours = place.opening_hours.weekday_text;
+            }
+            else if (Array.isArray(place.opening_hours)) {
+                openingHours = place.opening_hours;
+            }
+        }
+        // Mapear tipos para el frontend
+        const types = place.types || [];
         return {
             id: `place_${placeId || Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name: name,
@@ -215,6 +241,13 @@ class GooglePlacesService {
             address: address,
             mapsUrl: mapsUrl,
             website: place.website,
+            // Nuevos campos para PlaceCard
+            priceLevel: place.price_level,
+            types: types,
+            openingHours: openingHours,
+            phoneNumber: place.international_phone_number || place.formatted_phone_number,
+            businessStatus: place.business_status,
+            reviews: place.reviews ? place.reviews.slice(0, 3) : undefined,
             isLoadingDetails: false,
             errorDetails: undefined
         };

@@ -12,7 +12,7 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 layout-transition w-full overflow-hidden">
+      <header className="flex h-14 shrink-0 items-center gap-2 bg-black sticky top-0 z-50 layout-transition w-full overflow-hidden">
         <div className="flex flex-1 items-center gap-2 px-3 min-w-0">
           <div className="flex-1 min-w-0">
             <Breadcrumb>

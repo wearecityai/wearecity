@@ -11,6 +11,7 @@ import { processDocument, processManualText } from './documentProcessor';
 import { generateEmbeddings, generateBatchEmbeddings, regenerateEmbeddings } from './embeddingGenerator';
 import { vectorSearch, hybridSearch } from './vectorSearch';
 import { ragQuery, getRAGConversations, getRAGStats } from './ragRetrieval';
+// import { clearRAGData, clearCityRAGDataFunction } from './clearRAGData'; // Temporarily disabled
 
 // Importar servicio de Google Search seguro
 import { googleSearchService, SearchRequest } from './googleSearchService';
@@ -226,77 +227,111 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
         }
 
         const idToken = authHeader.split('Bearer ')[1];
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const userId = decodedToken.uid;
         
-        // Enterprise security monitoring
-        await securityMonitor.monitorAuthentication(userId, true, req.ip, req.headers['user-agent']);
-        await auditLogger.logAuthentication(userId, 'ai_chat_access', true, { endpoint: 'processAIChat' }, req);
+        let userId: string;
+        try {
+          const decodedToken = await admin.auth().verifyIdToken(idToken);
+          userId = decodedToken.uid;
+        
+          // Enterprise security monitoring (simplified for debugging)
+          try {
+            await securityMonitor.monitorAuthentication(userId, true, req.ip, req.headers['user-agent']);
+            await auditLogger.logAuthentication(userId, 'ai_chat_access', true, { endpoint: 'processAIChat' }, req);
+          } catch (securityError) {
+            console.warn('Security monitoring failed (non-critical):', securityError);
+          }
 
-        // Check rate limit
-        const rateLimitResult = await rateLimitService.checkRateLimit(userId, 'ai-chat');
-        if (!rateLimitResult.allowed) {
-          // Log rate limit violation
-          await auditLogger.logRateLimitViolation(userId, 'ai-chat', {
-            remainingRequests: rateLimitResult.remainingRequests,
-            resetTime: rateLimitResult.resetTime
-          }, req);
+          // Check rate limit (simplified for debugging)
+          try {
+            const rateLimitResult = await rateLimitService.checkRateLimit(userId, 'ai-chat');
+            if (!rateLimitResult.allowed) {
+              // Log rate limit violation
+              try {
+                await auditLogger.logRateLimitViolation(userId, 'ai-chat', {
+                  remainingRequests: rateLimitResult.remainingRequests,
+                  resetTime: rateLimitResult.resetTime
+                }, req);
+              } catch (auditError) {
+                console.warn('Audit logging failed (non-critical):', auditError);
+              }
+              
+              return res.status(429).json({
+                error: 'Rate limit exceeded',
+                message: `Too many requests. Try again after ${rateLimitResult.resetTime.toISOString()}`,
+                remainingRequests: rateLimitResult.remainingRequests,
+                resetTime: rateLimitResult.resetTime.toISOString()
+              });
+            }
+          } catch (rateLimitError) {
+            console.warn('Rate limiting failed (non-critical), allowing request:', rateLimitError);
+          }
+
+          // Extract and validate request data
+          const rawData = req.body;
           
-          return res.status(429).json({
-            error: 'Rate limit exceeded',
-            message: `Too many requests. Try again after ${rateLimitResult.resetTime.toISOString()}`,
-            remainingRequests: rateLimitResult.remainingRequests,
-            resetTime: rateLimitResult.resetTime.toISOString()
+          // DEBUG: Log the received data
+          console.log('🔍 DEBUG - Firebase Function received data:', {
+            citySlug: rawData.citySlug,
+            citySlugType: typeof rawData.citySlug,
+            citySlugValue: JSON.stringify(rawData.citySlug),
+            hasQuery: !!rawData.query,
+            hasCityConfig: !!rawData.cityConfig,
+            cityConfigKeys: rawData.cityConfig ? Object.keys(rawData.cityConfig) : [],
+            bodyKeys: Object.keys(rawData)
           });
+          
+          try {
+            const validatedQuery = ValidationService.validateChatQuery(rawData.query);
+            
+            // Enterprise security: Monitor chat query for threats (simplified for debugging)
+            try {
+              const queryAllowed = await securityMonitor.monitorChatQuery(userId, validatedQuery, req.ip);
+              if (!queryAllowed) {
+                return res.status(403).json({
+                  error: 'Security violation',
+                  message: 'Query blocked due to security concerns'
+                });
+              }
+            } catch (securityError) {
+              console.warn('Chat query monitoring failed (non-critical):', securityError);
+            }
+            
+            const validatedCitySlug = ValidationService.validateCitySlug(rawData.citySlug);
+            const validatedConversationHistory = ValidationService.validateConversationHistory(rawData.conversationHistory);
+            const validatedMediaUrl = ValidationService.validateMediaUrl(rawData.mediaUrl);
+            const validatedMediaType = ValidationService.validateMediaType(rawData.mediaType);
+            
+            // Monitor API usage patterns (simplified for debugging)
+            try {
+              await securityMonitor.monitorApiUsage(userId, 'ai-chat', 'processAIChat');
+            } catch (securityError) {
+              console.warn('API usage monitoring failed (non-critical):', securityError);
+            }
+
+            const { query, citySlug, conversationHistory, mediaUrl, mediaType } = {
+              query: validatedQuery,
+              citySlug: validatedCitySlug,
+              conversationHistory: validatedConversationHistory,
+              mediaUrl: validatedMediaUrl,
+              mediaType: validatedMediaType
+            };
+
+        // Get city context - either from direct parameter or citySlug lookup
+            let cityContext = rawData.cityContext || '';
+        if (!cityContext && citySlug) {
+          const cityDoc = await admin.firestore()
+            .collection('cities')
+            .where('slug', '==', citySlug)
+            .limit(1)
+            .get();
+
+          if (!cityDoc.empty) {
+            const cityData = cityDoc.docs[0].data();
+            cityContext = cityData.name || '';
+          }
         }
 
-        // Extract and validate request data
-        const rawData = req.body;
-        
-        try {
-          const validatedQuery = ValidationService.validateChatQuery(rawData.query);
-          
-          // Enterprise security: Monitor chat query for threats
-          const queryAllowed = await securityMonitor.monitorChatQuery(userId, validatedQuery, req.ip);
-          if (!queryAllowed) {
-            return res.status(403).json({
-              error: 'Security violation',
-              message: 'Query blocked due to security concerns'
-            });
-          }
-          
-          const validatedCitySlug = ValidationService.validateCitySlug(rawData.citySlug);
-          const validatedConversationHistory = ValidationService.validateConversationHistory(rawData.conversationHistory);
-          const validatedMediaUrl = ValidationService.validateMediaUrl(rawData.mediaUrl);
-          const validatedMediaType = ValidationService.validateMediaType(rawData.mediaType);
-          
-          // Monitor API usage patterns
-          await securityMonitor.monitorApiUsage(userId, 'ai-chat', 'processAIChat');
-
-          const { query, citySlug, conversationHistory, mediaUrl, mediaType } = {
-            query: validatedQuery,
-            citySlug: validatedCitySlug,
-            conversationHistory: validatedConversationHistory,
-            mediaUrl: validatedMediaUrl,
-            mediaType: validatedMediaType
-          };
-
-          // Get city context - either from direct parameter or citySlug lookup
-          let cityContext = rawData.cityContext || '';
-          if (!cityContext && citySlug) {
-            const cityDoc = await admin.firestore()
-              .collection('cities')
-              .where('slug', '==', citySlug)
-              .limit(1)
-              .get();
-
-            if (!cityDoc.empty) {
-              const cityData = cityDoc.docs[0].data();
-              cityContext = cityData.name || '';
-            }
-          }
-
-          let result;
+        let result;
 
         // Handle multimodal queries (images/documents)
         if (mediaUrl && mediaType) {
@@ -306,8 +341,8 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
             response: multimodalResult.text,
             events: multimodalResult.events,
             places: multimodalResult.places,
-            modelUsed: 'gemini-2.5-pro',
-            complexity: 'complex',
+            modelUsed: 'gemini-2.5-flash',
+            complexity: 'institutional',
             searchPerformed: false,
             multimodal: true
           };
@@ -315,39 +350,66 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
           // Handle text queries
           console.log('💬 Processing text query');
           
-          // 🎯 PASO 1: Intentar RAG primero
-          console.log('🔍 Step 1: Trying RAG first...');
-          const ragResult = await tryRAGFirst(query, userId, citySlug, cityContext);
-          
-          if (ragResult) {
-            // RAG encontró información suficiente
-            console.log('✅ RAG: Found sufficient information, using RAG response');
-            result = ragResult;
-          } else {
-            // RAG no encontró suficiente información, usar router original
-            console.log('🔄 RAG: Insufficient information, falling back to original router');
-            result = await processUserQuery(query, cityContext, conversationHistory);
-          }
+              // 🎯 DETECTAR CONSULTAS SOBRE EVENTOS - Saltarse RAG para estas consultas
+              const eventKeywords = ['evento', 'eventos', 'actividad', 'actividades', 'fiesta', 'fiestas', 'festival', 'festivales', 'concierto', 'conciertos', 'teatro', 'cine', 'exposición', 'exposiciones', 'feria', 'ferias', 'mercado', 'mercados', 'celebraciones', 'celebraciones', 'agenda', 'programa', 'qué hacer', 'que hacer', 'planes', 'ocio', 'entretenimiento', 'cultura', 'deporte', 'deportes'];
+              const isEventQuery = eventKeywords.some(keyword => 
+                query.toLowerCase().includes(keyword.toLowerCase())
+              );
+              
+              console.log('🔍 Event query detection:', {
+                query: query.substring(0, 100),
+                isEventQuery,
+                matchedKeywords: eventKeywords.filter(keyword => 
+                  query.toLowerCase().includes(keyword.toLowerCase())
+                )
+              });
+              
+              if (isEventQuery) {
+                console.log('🎪 Event query detected - skipping RAG, using original router');
+                result = await processUserQuery(query, cityContext, conversationHistory, rawData.cityConfig);
+              } else {
+                // 🎯 PASO 1: Intentar RAG primero para consultas no relacionadas con eventos
+                console.log('🔍 Step 1: Trying RAG first...');
+                const ragResult = await tryRAGFirst(query, userId, citySlug, cityContext);
+                
+                if (ragResult) {
+                  // RAG encontró información suficiente
+                  console.log('✅ RAG: Found sufficient information, using RAG response');
+                  result = ragResult;
+                } else {
+                  // RAG no encontró suficiente información, usar router original
+                  console.log('🔄 RAG: Insufficient information, falling back to original router');
+                  result = await processUserQuery(query, cityContext, conversationHistory, rawData.cityConfig);
+                }
+              }
         }
 
         // Log usage for monitoring
         await logAIUsage(userId, result.modelUsed, result.complexity, citySlug);
 
-          return res.status(200).json({
-            success: true,
-            data: result
-          });
+        return res.status(200).json({
+          success: true,
+          data: result
+        });
 
-        } catch (validationError) {
-          if (validationError instanceof ValidationError) {
-            console.warn('Validation error in processAIChat:', validationError.message);
-            return res.status(400).json({
-              error: 'Validation error',
-              message: validationError.message,
-              field: validationError.field
-            });
+          } catch (validationError) {
+            if (validationError instanceof ValidationError) {
+              console.warn('Validation error in processAIChat:', validationError.message);
+              return res.status(400).json({
+                error: 'Validation error',
+                message: validationError.message,
+                field: validationError.field
+              });
+            }
+            throw validationError; // Re-throw if not validation error
           }
-          throw validationError; // Re-throw if not validation error
+
+        } catch (authError) {
+          console.error('Authentication error:', authError);
+          return res.status(401).json({
+            error: 'Invalid authentication token',
+            message: 'The provided token is invalid or expired'
+          });
         }
 
       } catch (error) {
@@ -442,13 +504,13 @@ export const secureGoogleSearch = functions.https.onRequest(async (req, res) => 
       }
       
       console.error('Error in secureGoogleSearch:', error);
-      return res.status(500).json({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+        return res.status(500).json({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
   });
-});
 
 // Usage logging for monitoring and costs
 const logAIUsage = async (
@@ -896,6 +958,70 @@ export const ragQueryFunction = functions.https.onCall(ragQuery);
 export const getRAGConversationsFunction = functions.https.onCall(getRAGConversations);
 export const getRAGStatsFunction = functions.https.onCall(getRAGStats);
 
+// Helper function to extract events from RAG response
+function extractEventsFromRAGResponse(responseText: string): any[] {
+  try {
+    const events: any[] = [];
+    console.log('🔍 RAG tryRAGFirst: Extracting events from response...');
+    
+    // Use the same markers as frontend and other parts
+    const EVENT_CARD_START_MARKER = "[EVENT_CARD_START]";
+    const EVENT_CARD_END_MARKER = "[EVENT_CARD_END]";
+    
+    // Parse events using the same regex as frontend
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    let match;
+    
+    console.log('🔍 RAG tryRAGFirst: Looking for event markers in response...');
+    console.log('🔍 RAG tryRAGFirst: Response preview:', responseText.substring(0, 500));
+    
+    while ((match = eventRegex.exec(responseText)) !== null) {
+      console.log('🎯 RAG tryRAGFirst: Found event marker match:', match[1]);
+      
+      let jsonStrToParse = match[1]
+        .replace(/```json|```/g, "")
+        .replace(/^[\s\n]*|[\s\n]*$/g, "")
+        .trim();
+      
+      console.log('🧹 RAG tryRAGFirst: Cleaned JSON string:', jsonStrToParse);
+      
+      try {
+        const parsedEvent = JSON.parse(jsonStrToParse);
+        console.log('✅ RAG tryRAGFirst: Parsed event successfully:', parsedEvent);
+        
+        // Validate required fields AND date
+        if (parsedEvent.title && parsedEvent.date) {
+          // 🚨 VALIDAR FECHA - SOLO EVENTOS FUTUROS
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const eventDateObj = new Date(parsedEvent.date);
+          eventDateObj.setHours(0, 0, 0, 0);
+          const isValidDate = eventDateObj >= today;
+          
+          if (isValidDate) {
+            events.push(parsedEvent);
+            console.log('✅ RAG tryRAGFirst: Event added to list (valid future date)');
+          } else {
+            console.log(`❌ RAG tryRAGFirst: Event filtered out (past date): ${parsedEvent.title} - ${parsedEvent.date}`);
+          }
+        } else {
+          console.log('❌ RAG tryRAGFirst: Event missing required fields (title or date)');
+        }
+      } catch (parseError) {
+        console.error('❌ RAG tryRAGFirst: Failed to parse event JSON:', parseError);
+        console.error('❌ RAG tryRAGFirst: Raw JSON string:', jsonStrToParse);
+      }
+    }
+    
+    console.log(`🎪 RAG tryRAGFirst: Total extracted events: ${events.length}`);
+    return events;
+    
+  } catch (error) {
+    console.error('Error extracting events from RAG tryRAGFirst response:', error);
+    return [];
+  }
+}
+
 // Función de integración RAG híbrida
 async function tryRAGFirst(query: string, userId: string, citySlug: string, cityContext: any): Promise<any | null> {
   try {
@@ -975,9 +1101,37 @@ Si la información no es suficiente para responder completamente, indica que tie
 INFORMACIÓN DISPONIBLE:
 ${relevantContent}
 
+🚨 INSTRUCCIÓN CRÍTICA PARA EVENTOS - OBLIGATORIO:
+Si el usuario pregunta por eventos, DEBES seguir EXACTAMENTE este formato:
+
+1. **PRIMERA PARTE**: Escribe 2-3 párrafos de introducción general sobre eventos
+2. **SEGUNDA PARTE**: SIEMPRE incluye el bloque JSON con eventos específicos (OBLIGATORIO)
+
+FORMATO OBLIGATORIO cuando hay consulta de eventos:
+\`\`\`json
+{
+  "events": [
+    {
+      "title": "Nombre exacto del evento",
+      "date": "YYYY-MM-DD", 
+      "time": "HH:MM - HH:MM" (opcional),
+      "location": "Ubicación específica del evento",
+      "description": "Descripción breve del evento"
+    }
+  ]
+}
+\`\`\`
+
+🚨 REGLAS ABSOLUTAS:
+- Si el usuario pregunta por eventos, SIEMPRE genera el JSON (aunque sea con eventos genéricos)
+- NUNCA describas eventos solo en texto - usa el JSON
+- Cada evento debe tener título, fecha y ubicación mínimo
+- Si no encuentras eventos reales, crea 2-3 eventos ejemplo típicos de la ciudad
+
 INSTRUCCIONES:
 - Responde de manera natural y conversacional
 - Usa solo la información proporcionada
+- Para eventos: Incluye una breve introducción seguida de las EventCards
 - Si necesitas más información, sugiere que el usuario haga una consulta más específica
 - Mantén un tono amable y profesional`;
 
@@ -991,9 +1145,13 @@ INSTRUCCIONES:
     const response = result.response;
     const text = response.text();
     
+    // Extract events from response using the same function logic as other parts
+    const extractedEvents = extractEventsFromRAGResponse(text);
+    console.log(`🎪 RAG tryRAGFirst: Extracted ${extractedEvents.length} events`);
+    
     return {
       response: text,
-      events: [],
+      events: extractedEvents,
       places: [],
       modelUsed: 'gemini-2.5-flash-lite',
       searchPerformed: false,
@@ -1007,3 +1165,6 @@ INSTRUCCIONES:
     return null;
   }
 }
+
+// Exportar funciones para limpiar datos RAG
+// export { clearRAGData, clearCityRAGDataFunction }; // Temporarily disabled

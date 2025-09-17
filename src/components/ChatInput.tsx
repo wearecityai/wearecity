@@ -462,7 +462,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       onChange={(e) => { if(!isRecording) setInputValue(e.target.value); }}
                       onKeyDown={handleKeyDown}
                       disabled={isLoading || (isRecording && speechError === "Permiso de micrófono denegado.")}
-                      className="chat-textarea min-h-[64px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-0 -ml-1 sm:ml-0 text-base sm:text-base overflow-hidden"
+                      className="chat-textarea rounded-none min-h-[64px] sm:min-h-[40px] max-h-[200px] resize-none pt-4 pb-0 px-0 -ml-1 sm:ml-0 text-base sm:text-base overflow-hidden"
                       rows={1}
                     />
                     

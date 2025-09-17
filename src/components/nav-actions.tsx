@@ -86,27 +86,15 @@ export function NavActions() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        /* Login Button or Back Button */
-        location.pathname === '/auth' ? (
-          <Button
-            onClick={handleGoBack}
-            variant="outline"
-            className="rounded-full shadow-none"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Volver al inicio</span>
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSignIn}
-            variant="outline"
-            size="icon"
-            className="!h-3 !w-3 rounded-full shadow-none !p-0 sm:h-auto sm:w-auto sm:px-4 sm:py-2"
-          >
-            <User className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline sm:ml-2">Iniciar sesión</span>
-          </Button>
-        )
+        /* Show login button when not authenticated */
+        <Button
+          onClick={handleSignIn}
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 rounded-full"
+        >
+          <User className="h-4 w-4" />
+        </Button>
       )}
     </div>
   )

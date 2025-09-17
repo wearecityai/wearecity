@@ -8,7 +8,7 @@ export interface AIResponse {
   response: string;
   events?: any[];
   places?: any[];
-  modelUsed: 'gemini-2.5-flash-lite' | 'gemini-2.5-pro';
+  modelUsed: 'gemini-2.5-flash';
   complexity: 'simple' | 'complex';
   searchPerformed: boolean;
   multimodal?: boolean;
@@ -19,38 +19,45 @@ const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || 'https://u
 // Main function to process queries with Firebase Functions
 export const processWithVertexAI = async (
   query: string,
-  citySlug?: string,
+  cityContext?: { name: string; slug: string },
   conversationHistory?: ChatMessage[],
   mediaUrl?: string,
-  mediaType?: 'image' | 'document'
+  mediaType?: 'image' | 'document',
+  cityConfig?: any // Nueva: configuración completa de la ciudad
 ): Promise<AIResponse> => {
   try {
     console.log('🤖 Processing with Firebase Functions:', {
       query: query.substring(0, 50) + '...',
-      citySlug,
+      cityContext,
+      cityContextType: typeof cityContext,
+      cityContextValue: cityContext,
       hasHistory: !!conversationHistory?.length,
       isMultimodal: !!(mediaUrl && mediaType)
     });
 
-    // Get authentication token (optional for anonymous users)
+    // Get authentication token (REQUIRED for security)
     const { auth } = await import('../integrations/firebase/config');
     const user = auth.currentUser;
     
-    let idToken = null;
-    if (user) {
-      idToken = await user.getIdToken();
+    console.log('🔐 Auth check:', {
+      hasUser: !!user,
+      userId: user?.uid || 'none',
+      isAnonymous: user?.isAnonymous || false
+    });
+    
+    if (!user) {
+      throw new Error('Usuario no autenticado. Por favor, inicia sesión.');
     }
     
-    // Prepare request body
-    const cityContext = {
-      name: citySlug === 'la-vila-joiosa' ? 'La Vila Joiosa' : citySlug,
-      slug: citySlug
-    };
+    const idToken = await user.getIdToken();
+    console.log('🎫 Token obtained:', idToken ? 'YES' : 'NO');
     
+    // Prepare request body
     const requestBody = {
       query,
-      citySlug,
-      cityContext,
+      citySlug: cityContext?.slug,
+      cityContext: cityContext?.name || '', // Enviar cityContext como string
+      cityConfig: cityConfig || null, // Nueva: enviar configuración completa de la ciudad
       conversationHistory,
       mediaUrl,
       mediaType
@@ -58,7 +65,9 @@ export const processWithVertexAI = async (
 
     console.log('📤 Sending request to Firebase Functions:', {
       url: `${FUNCTIONS_BASE_URL}/processAIChat`,
-      body: requestBody
+      body: requestBody,
+      citySlugInBody: requestBody.citySlug,
+      citySlugTypeInBody: typeof requestBody.citySlug
     });
 
     // Call Firebase Function
@@ -66,20 +75,66 @@ export const processWithVertexAI = async (
       'Content-Type': 'application/json'
     };
     
-    // Add authorization header only if user is authenticated
-    if (idToken) {
-      headers['Authorization'] = `Bearer ${idToken}`;
-    }
+    // Add authorization header (now required)
+    headers['Authorization'] = `Bearer ${idToken}`;
     
-    const response = await fetch(`${FUNCTIONS_BASE_URL}/processAIChat`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody)
+    console.log('📡 Making request to Firebase Function:', {
+      url: `${FUNCTIONS_BASE_URL}/processAIChat`,
+      hasAuth: !!idToken,
+      method: 'POST'
     });
+    
+    // Create an AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+
+    let response;
+    try {
+      response = await fetch(`${FUNCTIONS_BASE_URL}/processAIChat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error('❌ Request timeout after 2 minutes');
+        throw new Error('Request timeout - the query is taking too long to process');
+      }
+      throw error;
+    }
+
+    console.log('📨 Response status:', response.status, response.statusText);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Firebase Function error: ${errorData.message || response.statusText}`);
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        errorData = { message: await response.text() };
+      }
+      
+      console.error('❌ Firebase Function error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
+      // Better error message handling
+      let errorMessage = 'Error desconocido';
+      if (typeof errorData === 'object' && errorData) {
+        errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
+      } else if (typeof errorData === 'string') {
+        errorMessage = errorData;
+      } else if (response.statusText) {
+        errorMessage = response.statusText;
+      }
+      
+      throw new Error(`Firebase Function error (${response.status}): ${errorMessage}`);
     }
 
     const result = await response.json();
@@ -103,7 +158,7 @@ export const processWithVertexAI = async (
     // Fallback response
     return {
       response: `Lo siento, hubo un problema procesando tu consulta. ${error instanceof Error ? error.message : 'Error desconocido'}`,
-      modelUsed: 'gemini-2.5-flash-lite',
+      modelUsed: 'gemini-2.5-flash',
       complexity: 'simple',
       searchPerformed: false
     };

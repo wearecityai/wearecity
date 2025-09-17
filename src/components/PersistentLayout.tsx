@@ -37,19 +37,11 @@ interface User {
 }
 
 const PersistentLayout: React.FC = () => {
-  console.log('🚀 PersistentLayout component rendering...');
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
   const { user, profile, isLoading: authLoading } = useAuth();
-  
-  console.log('🔐 PersistentLayout auth state:', { 
-    hasUser: !!user, 
-    hasProfile: !!profile, 
-    authLoading, 
-    profileRole: profile?.role 
-  });
   const { isGeminiReady, appError, setAppError, setIsGeminiReady } = useApiInitialization();
   const { viewportHeight, isSafari, isKeyboardOpen } = useSimpleViewport();
   // Evitar flashes de loaders al volver de background
@@ -110,12 +102,22 @@ const PersistentLayout: React.FC = () => {
   // Extraer citySlug de la URL
   const getCitySlug = () => {
     const path = location.pathname;
-    if (path.startsWith('/chat/') || path.startsWith('/city/') || path.startsWith('/admin/')) {
-      // Extraer el slug de la ruta, ignorando parámetros de búsqueda
-      const pathParts = path.split('/');
-      const slug = pathParts[2];
-      return slug || params.chatSlug || params.citySlug;
+    
+    // Para rutas /chat/:chatSlug, usar chatSlug como citySlug
+    if (path.startsWith('/chat/') && params.chatSlug) {
+      return params.chatSlug;
     }
+    
+    // Para rutas /city/:citySlug, usar citySlug
+    if (path.startsWith('/city/') && params.citySlug) {
+      return params.citySlug;
+    }
+    
+    // Para rutas /admin/:citySlug, usar citySlug
+    if (path.startsWith('/admin/') && params.citySlug) {
+      return params.citySlug;
+    }
+    
     return undefined;
   };
 
@@ -171,18 +173,7 @@ const PersistentLayout: React.FC = () => {
   // Debug logging para entender el estado de inicialización
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-      console.log('🔍 Debug - Initialization state:', {
-        user: !!user,
-        profile: !!profile,
-        authLoading,
-        cityNavigationLoading,
-        isNavigating,
-        chatConfig: !!chatConfig,
-        isAppInitialized,
-        isAppFullyInitialized,
-        isFullyLoaded,
-        isLoading
-      });
+      // Logs removidos para evitar bucles infinitos
     }
   }, [user, profile, authLoading, cityNavigationLoading, isNavigating, chatConfig, isAppInitialized, isAppFullyInitialized, isFullyLoaded, isLoading]);
 
@@ -239,16 +230,7 @@ const PersistentLayout: React.FC = () => {
     const timer = setTimeout(() => {
       if (!isAppFullyInitialized && !isResuming) {
         console.warn('⚠️ Safety timeout triggered - forcing app initialization');
-        console.log('🔍 Debug - Current state:', {
-          user: !!user,
-          profile: !!profile,
-          authLoading,
-          cityNavigationLoading,
-          isNavigating,
-          chatConfig: !!chatConfig,
-          isFullyLoaded,
-          isLoading
-        });
+        // Logs removidos para evitar bucles infinitos
         setSafetyTimeout(true);
       }
     }, 15000); // Aumentado a 15 segundos para ser menos agresivo
@@ -275,29 +257,50 @@ const PersistentLayout: React.FC = () => {
     }
   }, [user, profile?.role, navigate, location.pathname]);
 
-  // Cargar ciudad del admin y redirigir a /admin/:slug si existe
+  // Cargar ciudad del admin desde su perfil (restrictedCity) y redirigir a /admin/:slug si existe
   useEffect(() => {
     const loadAdminCity = async () => {
       if (!user || profile?.role !== 'administrativo') return;
       setAdminCityLoading(true);
       try {
-        // Buscar ciudad del admin en Firebase
-        const cityId = `city_${user.id}`;
-        const cityDoc = await getDoc(doc(db, 'cities', cityId));
+        // Buscar el perfil del admin para obtener su ciudad asignada (restrictedCity)
+        const profileDoc = await getDoc(doc(db, 'profiles', user.id));
         
-        if (cityDoc.exists()) {
-          const cityData = cityDoc.data();
-          if (cityData.isActive) {
-            setAdminCitySlug(cityData.slug);
-            // Redirigir a la ciudad del admin si está en ruta raíz o admin genérica
-            if (location.pathname === '/' || location.pathname === '/admin' || 
-                (location.pathname.startsWith('/admin') && location.pathname !== `/admin/${cityData.slug}`)) {
-              navigate(`/admin/${cityData.slug}`, { replace: true });
+        if (profileDoc.exists()) {
+          const profileData = profileDoc.data();
+          const restrictedCityId = profileData.restrictedCity;
+          console.log('🔍 Admin profile data:', profileData);
+          console.log('🔍 Admin restrictedCityId:', restrictedCityId);
+          
+          if (restrictedCityId) {
+            // Buscar la ciudad usando el restrictedCity ID
+            const cityDoc = await getDoc(doc(db, 'cities', restrictedCityId));
+            
+            if (cityDoc.exists()) {
+              const cityData = cityDoc.data();
+              if (cityData.isActive !== false) { // Activa por defecto
+                setAdminCitySlug(cityData.slug);
+                console.log('✅ Admin city loaded:', cityData.slug);
+                // Redirigir a la ciudad del admin si está en ruta raíz o admin genérica
+                if (location.pathname === '/' || location.pathname === '/admin' || 
+                    (location.pathname.startsWith('/admin') && location.pathname !== `/admin/${cityData.slug}`)) {
+                  console.log(`🔄 Redirecting admin to /admin/${cityData.slug}`);
+                  navigate(`/admin/${cityData.slug}`, { replace: true });
+                }
+              } else {
+                console.log('❌ Admin city is inactive');
+                setAdminCitySlug(null);
+              }
+            } else {
+              console.log('❌ Admin city not found in database');
+              setAdminCitySlug(null);
             }
           } else {
+            console.log('❌ Admin has no restrictedCity assigned');
             setAdminCitySlug(null);
           }
         } else {
+          console.log('❌ Admin profile not found');
           setAdminCitySlug(null);
         }
       } catch (e) {

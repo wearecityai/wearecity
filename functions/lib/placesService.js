@@ -6,7 +6,7 @@ const google_maps_services_js_1 = require("@googlemaps/google-maps-services-js")
 const mapsClient = new google_maps_services_js_1.Client({});
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 // Search for places using Google Places API
-const searchPlaces = async (query, location, radius = 10000 // 10km default
+const searchPlaces = async (query, location, radius = 1000 // 1km default - muy restrictivo para ciudades
 ) => {
     try {
         if (!GOOGLE_MAPS_API_KEY) {
@@ -31,9 +31,10 @@ const searchPlaces = async (query, location, radius = 10000 // 10km default
                 console.log('❌ Geocoding failed:', geocodeError);
             }
         }
-        // Search for places
+        // Search for places - incluir ciudad en la query para mayor precisión
+        const enhancedQuery = location ? `${query} en ${location}` : query;
         const searchParams = {
-            query,
+            query: enhancedQuery,
             key: GOOGLE_MAPS_API_KEY,
             fields: [
                 'place_id',
@@ -41,10 +42,15 @@ const searchPlaces = async (query, location, radius = 10000 // 10km default
                 'formatted_address',
                 'geometry',
                 'rating',
+                'user_ratings_total',
                 'price_level',
                 'photos',
                 'types',
                 'opening_hours',
+                'website',
+                'international_phone_number',
+                'business_status',
+                'reviews',
                 'plus_code'
             ].join(','),
         };
@@ -55,8 +61,41 @@ const searchPlaces = async (query, location, radius = 10000 // 10km default
         const response = await mapsClient.textSearch({
             params: searchParams,
         });
-        const places = response.data.results.slice(0, 6); // Limit to 6 results
-        console.log('✅ Found places:', places.length);
+        let places = response.data.results.slice(0, 10); // Get more results initially for filtering
+        // 🔍 FILTRAR POR CIUDAD: Solo lugares que realmente estén en la ciudad especificada
+        if (location) {
+            const cityName = location.toLowerCase();
+            // Crear variaciones del nombre de la ciudad para mejor matching
+            const cityVariations = [
+                cityName,
+                cityName.replace(/^la\s+/, ''),
+                cityName.replace(/^el\s+/, ''),
+                cityName.replace(/\s+/g, ''),
+                cityName.replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u'), // Sin acentos
+            ];
+            // 🚨 FILTRO MÁS ESTRICTO: Excluir ciudades cercanas conocidas
+            const nearbyCities = ['benidorm', 'alicante', 'el campello', 'campello', 'villajoyosa', 'vila joiosa'];
+            const isTargetCity = nearbyCities.includes(cityName);
+            places = places.filter(place => {
+                var _a, _b;
+                const address = ((_a = place.formatted_address) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '';
+                const name = ((_b = place.name) === null || _b === void 0 ? void 0 : _b.toLowerCase()) || '';
+                // Verificar si la dirección contiene alguna variación del nombre de la ciudad
+                const isInCity = cityVariations.some(variation => address.includes(variation) || name.includes(variation));
+                // 🚨 EXCLUIR CIUDADES CERCANAS: Si estamos buscando en La Vila Joiosa, excluir Benidorm
+                let isExcluded = false;
+                if (isTargetCity) {
+                    const otherCities = nearbyCities.filter(city => city !== cityName);
+                    isExcluded = otherCities.some(otherCity => address.includes(otherCity) || name.includes(otherCity));
+                }
+                const finalResult = isInCity && !isExcluded;
+                // console.log(`🔍 Place filter: "${place.name}" - Address: "${place.formatted_address}" - In ${location}: ${isInCity} - Excluded: ${isExcluded} - Final: ${finalResult}`);
+                return finalResult;
+            });
+        }
+        // Limitar a 6 resultados finales
+        places = places.slice(0, 6);
+        console.log('✅ Found places after city filtering:', places.length);
         return places.map(place => {
             var _a;
             return ({
@@ -65,10 +104,15 @@ const searchPlaces = async (query, location, radius = 10000 // 10km default
                 formatted_address: place.formatted_address || '',
                 geometry: place.geometry || { location: { lat: 0, lng: 0 } },
                 rating: place.rating,
+                user_ratings_total: place.user_ratings_total,
                 price_level: place.price_level,
                 photos: (_a = place.photos) === null || _a === void 0 ? void 0 : _a.slice(0, 1),
                 types: place.types || [],
                 opening_hours: place.opening_hours,
+                website: place.website,
+                international_phone_number: place.international_phone_number,
+                business_status: place.business_status,
+                reviews: place.reviews,
                 plus_code: place.plus_code,
             });
         });

@@ -51,9 +51,16 @@ export interface PlaceCardInfo {
   types?: string[]; // Types of place (e.g., ["restaurant", "food", "establishment"])
   openingHours?: string[]; // Opening hours
   phoneNumber?: string; // Phone number
+  businessStatus?: string; // Business status (OPERATIONAL, CLOSED_TEMPORARILY, etc.)
 
   isLoadingDetails: boolean;
   errorDetails?: string;
+}
+
+export interface FormButtonInfo {
+  title: string;
+  url: string;
+  description?: string;
 }
 
 export interface UploadedProcedureDocument {
@@ -76,6 +83,7 @@ export interface ChatMessage {
   error?: string;
   events?: EventInfo[];
   placeCards?: PlaceCardInfo[];
+  formButtonsForMessage?: FormButtonInfo[];
   mapQuery?: string;
   downloadablePdfInfo?: DownloadablePdfInfo;
   telematicProcedureLink?: string;
@@ -88,7 +96,7 @@ export interface ChatMessage {
   shouldAnimate?: boolean;
   // Vertex AI metadata
   metadata?: {
-    modelUsed?: 'gemini-1.5-pro' | 'gemini-2.0-flash' | 'gemini-2.5-flash-lite' | 'gemini-2.5-pro';
+    modelUsed?: 'gemini-2.5-flash';
     complexity?: 'simple' | 'complex';
     searchPerformed?: boolean;
     multimodal?: boolean;

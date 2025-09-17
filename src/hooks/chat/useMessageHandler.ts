@@ -4,6 +4,7 @@ import { useAuth } from '../useAuth';
 import { useTranslation } from 'react-i18next';
 import { processWithVertexAI } from '../../services/vertexAIService';
 import { useMetrics } from '../../services/metricsService';
+import { useMessageParser } from '../useMessageParser';
 
 export const useMessageHandler = (
   chatConfig: CustomChatConfig,
@@ -16,6 +17,7 @@ export const useMessageHandler = (
   const { i18n } = useTranslation();
   const lastProcessedMessageRef = useRef<string | null>(null);
   const { recordUserMessage, recordAssistantResponse } = useMetrics();
+  const { parseAIResponse } = useMessageParser();
 
   const processMessage = useCallback(async (
     geminiChatSession: any,
@@ -34,7 +36,13 @@ export const useMessageHandler = (
       slug: citySlug
     };
     const conversationHistory = currentMessages;
-    console.log('🚀 Processing message with useMessageHandler');
+    console.log('🚀 Processing message with useMessageHandler:', {
+      citySlug,
+      citySlugType: typeof citySlug,
+      citySlugValue: citySlug,
+      citySlugStringified: JSON.stringify(citySlug),
+      cityContext
+    });
     
     if (lastProcessedMessageRef.current === inputText) {
       console.log('⚠️ Message already being processed, skipping:', inputText);
@@ -76,10 +84,19 @@ export const useMessageHandler = (
         timestamp: msg.timestamp
       })) || [];
 
+      // Crear cityContext como objeto (como estaba en el commit "seguridad")
+      const cityContext = {
+        name: citySlug === 'la-vila-joiosa' ? 'La Vila Joiosa' : citySlug,
+        slug: citySlug
+      };
+
       const vertexResponse = await processWithVertexAI(
         query,
-        cityContext,
-        historyForAI
+        cityContext, // Pasar cityContext como objeto
+        historyForAI,
+        undefined, // mediaUrl
+        undefined, // mediaType
+        chatConfig // Nueva: pasar configuración completa de la ciudad
       );
 
       // 🔍 Logs de identificación del sistema de respuesta
@@ -104,47 +121,74 @@ export const useMessageHandler = (
           console.log(`   - Tipo de búsqueda: ${vertexResponse.ragSearchType}`);
         }
       } else if (vertexResponse.searchPerformed) {
-        if (vertexResponse.modelUsed === 'gemini-2.5-pro') {
-          console.log('✅ RESPUESTA: Gemini 2.5 Pro + Google Search Grounding');
-        } else {
-          console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite + Google Search Grounding');
-        }
+        console.log('✅ RESPUESTA: Gemini 2.5 Flash + Google Search Grounding');
       } else {
-        console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite (Sin búsqueda)');
+        console.log('✅ RESPUESTA: Gemini 2.5 Flash (Sin búsqueda)');
       }
       console.log('🔍 ================================================');
 
-      const aiMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: MessageRole.Model,
-        content: vertexResponse.response,
-        timestamp: new Date(),
-        shouldAnimate: true,
-        events: vertexResponse.events || [],
-        placeCards: vertexResponse.places?.map(place => ({
-          id: place.place_id || crypto.randomUUID(),
-          placeId: place.place_id,
-          name: place.name,
-          address: place.formatted_address,
-          rating: place.rating,
-          distance: undefined, // Will be calculated if needed
-          photoUrl: place.photoUrl,
-          website: undefined, // Will be fetched if needed
-          isLoadingDetails: false,
-          errorDetails: undefined,
-          searchQuery: query,
-          photoAttributions: []
-        })) || [],
-        metadata: {
-          modelUsed: vertexResponse.modelUsed,
-          complexity: vertexResponse.complexity,
-          searchPerformed: vertexResponse.searchPerformed,
-          multimodal: vertexResponse.multimodal,
-          ragUsed: vertexResponse.ragUsed,
-          ragResultsCount: vertexResponse.ragResultsCount,
-          ragSearchType: vertexResponse.ragSearchType
-        }
-      };
+                      // 🎯 USAR DIRECTAMENTE LOS EVENTOS DE LA RESPUESTA (como en commit "Seguridad")
+                      console.log('🔍 DEBUG - Datos de la respuesta:', {
+                        responseText: typeof vertexResponse.response === 'string' ? vertexResponse.response?.substring(0, 200) : 'No es string',
+                        responseTextType: typeof vertexResponse.response,
+                        eventsFromResponse: vertexResponse.events,
+                        eventsType: typeof vertexResponse.events,
+                        eventsIsArray: Array.isArray(vertexResponse.events),
+                        eventsCount: vertexResponse.events?.length || 0,
+                        placesFromResponse: vertexResponse.places,
+                        placesType: typeof vertexResponse.places,
+                        placesIsArray: Array.isArray(vertexResponse.places),
+                        placesCount: vertexResponse.places?.length || 0,
+                        fullVertexResponse: vertexResponse
+                      });
+
+                      // Procesar la respuesta para extraer formularios y otros elementos
+                      const parsedResponse = parseAIResponse(
+                        vertexResponse.response,
+                        null, // finalResponse no se usa aquí
+                        chatConfig,
+                        inputText
+                      );
+
+                      const aiMessage: ChatMessage = {
+                        id: crypto.randomUUID(),
+                        role: MessageRole.Model,
+                        content: parsedResponse.processedContent,
+                        timestamp: new Date(),
+                        shouldAnimate: true,
+                        events: vertexResponse.events || [],
+                        placeCards: vertexResponse.places?.map(place => ({
+                          id: place.place_id || crypto.randomUUID(),
+                          placeId: place.place_id,
+                          name: place.name,
+                          address: place.formatted_address,
+                          rating: place.rating,
+                          userRatingsTotal: place.user_ratings_total,
+                          distance: undefined, // Will be calculated if needed
+                          photoUrl: place.photoUrl,
+                          photoAttributions: place.photoAttributions || [],
+                          website: place.website,
+                          description: place.description,
+                          priceLevel: place.price_level,
+                          types: place.types,
+                          openingHours: place.opening_hours?.weekday_text || place.opening_hours,
+                          phoneNumber: place.international_phone_number || place.phone_number,
+                          businessStatus: place.business_status,
+                          isLoadingDetails: false,
+                          errorDetails: undefined,
+                          searchQuery: query
+                        })) || [],
+                        formButtonsForMessage: parsedResponse.formButtonsForMessage || [],
+                        metadata: {
+                          modelUsed: vertexResponse.modelUsed,
+                          complexity: vertexResponse.complexity,
+                          searchPerformed: vertexResponse.searchPerformed,
+                          multimodal: vertexResponse.multimodal,
+                          ragUsed: vertexResponse.ragUsed,
+                          ragResultsCount: vertexResponse.ragResultsCount,
+                          ragSearchType: vertexResponse.ragSearchType
+                        }
+                      };
       
       // Replace typing indicator with actual response
       setMessages((prev: ChatMessage[]) => {
@@ -201,8 +245,8 @@ export const useMessageHandler = (
       
       setIsLoading(false);
     } finally {
-      // Always clear the typing indicator and reset the processed message ref
-      setMessages((prev: ChatMessage[]) => prev.filter(msg => msg.id !== typingMessage.id));
+      // Only clear the processed message ref, don't touch typing indicators here
+      // as they are handled in the try/catch blocks
       lastProcessedMessageRef.current = null;
     }
   }, [onError, chatConfig, user?.id, i18n]);

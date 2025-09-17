@@ -172,13 +172,27 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
 
   const currentCity = getCurrentCityInfo()
 
+  // Generar slug del chat basado en el nombre del asistente
+  const generateChatSlug = (assistantName: string): string => {
+    return assistantName
+      .toLowerCase()
+      .normalize('NFD') // Decompose unicode
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+      .trim()
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-'); // Replace multiple hyphens with single
+  };
+
   // Obtener ciudades recientes con información completa (excluyendo la ciudad actual)
   const getRecentCitiesInfo = () => {
-    const currentCitySlug = chatConfig?.restrictedCity?.slug;
+    // Usar el slug generado del nombre del asistente en lugar del restrictedCity.slug
+    const currentCitySlug = chatConfig?.assistantName ? generateChatSlug(chatConfig.assistantName) : chatConfig?.restrictedCity?.slug;
     console.log('🔍 TeamSwitcher - Debug info:', {
       recentCities,
       cities: cities.length,
       currentCitySlug,
+      assistantName: chatConfig?.assistantName,
       recentCitiesSlugs: recentCities
     });
     
@@ -198,10 +212,14 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
 
   // Obtener información de la ciudad predeterminada
   const getDefaultCityInfo = () => {
+    // Usar el slug generado del nombre del asistente en lugar del restrictedCity.slug
+    const currentCitySlug = chatConfig?.assistantName ? generateChatSlug(chatConfig.assistantName) : chatConfig?.restrictedCity?.slug;
+    
     console.log('🔍 getDefaultCityInfo called:', {
       defaultChat,
       defaultCitySlug: defaultChat?.citySlug,
-      currentCitySlug: chatConfig?.restrictedCity?.slug,
+      currentCitySlug,
+      assistantName: chatConfig?.assistantName,
       citiesCount: cities.length
     });
     
@@ -210,7 +228,6 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
       return null;
     }
     
-    const currentCitySlug = chatConfig?.restrictedCity?.slug;
     // No mostrar la ciudad predeterminada si es la ciudad actual
     if (defaultChat.citySlug === currentCitySlug) {
       console.log('❌ Default city is current city, not showing');
@@ -226,8 +243,9 @@ export function TeamSwitcher({ chatConfig, onCitySelect, onShowCitySearch }: Tea
     if (onCitySelect) {
       onCitySelect(city)
     } else {
-      // Navegar a la nueva ciudad
-      navigate(`/chat/${city.slug}`)
+      // Navegar a la nueva ciudad usando el slug generado del nombre del asistente
+      const citySlug = city.assistantName ? generateChatSlug(city.assistantName) : city.slug;
+      navigate(`/chat/${citySlug}`)
     }
   }
 

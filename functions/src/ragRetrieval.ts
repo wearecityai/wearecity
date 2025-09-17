@@ -46,6 +46,88 @@ function buildRAGContext(searchResults: any[]): string {
   return contextParts.join('\n\n');
 }
 
+// Helper function to validate if an event date is in the future
+const isEventDateValid = (eventDate: string): boolean => {
+  try {
+    if (!eventDate) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset to start of day
+    
+    const eventDateObj = new Date(eventDate);
+    eventDateObj.setHours(0, 0, 0, 0); // Reset to start of day
+    
+    const isValid = eventDateObj >= today;
+    console.log(`📅 RAG Date validation: ${eventDate} >= ${today.toISOString().split('T')[0]} = ${isValid}`);
+    
+    return isValid;
+  } catch (error) {
+    console.error('❌ Error validating event date:', error);
+    return false;
+  }
+};
+
+/**
+ * Extract events from AI response using EVENT_CARD markers
+ */
+function extractEventsFromResponse(responseText: string): any[] {
+  try {
+    const events: any[] = [];
+    console.log('🔍 RAG: Extracting events from response...');
+    
+    // Use the same markers as frontend
+    const EVENT_CARD_START_MARKER = "[EVENT_CARD_START]";
+    const EVENT_CARD_END_MARKER = "[EVENT_CARD_END]";
+    
+    // Parse events using the same regex as frontend
+    const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    let match;
+    
+    console.log('🔍 RAG: Looking for event markers in response...');
+    console.log('🔍 RAG: Response preview:', responseText.substring(0, 500));
+    
+    while ((match = eventRegex.exec(responseText)) !== null) {
+      console.log('🎯 RAG: Found event marker match:', match[1]);
+      
+      let jsonStrToParse = match[1]
+        .replace(/```json|```/g, "")
+        .replace(/^[\s\n]*|[\s\n]*$/g, "")
+        .trim();
+      
+      console.log('🧹 RAG: Cleaned JSON string:', jsonStrToParse);
+      
+      try {
+        const parsedEvent = JSON.parse(jsonStrToParse);
+        console.log('✅ RAG: Parsed event successfully:', parsedEvent);
+        
+        // Validate required fields AND date
+        if (parsedEvent.title && parsedEvent.date) {
+          // 🚨 VALIDAR FECHA - SOLO EVENTOS FUTUROS
+          const isValidDate = isEventDateValid(parsedEvent.date);
+          if (isValidDate) {
+            events.push(parsedEvent);
+            console.log('✅ RAG: Event added to list (valid future date)');
+          } else {
+            console.log(`❌ RAG: Event filtered out (past date): ${parsedEvent.title} - ${parsedEvent.date}`);
+          }
+        } else {
+          console.log('❌ RAG: Event missing required fields (title or date)');
+        }
+      } catch (parseError) {
+        console.error('❌ RAG: Failed to parse event JSON:', parseError);
+        console.error('❌ RAG: Raw JSON string:', jsonStrToParse);
+      }
+    }
+    
+    console.log(`🎪 RAG: Total extracted events (future only): ${events.length}`);
+    return events;
+    
+  } catch (error) {
+    console.error('Error extracting events from RAG response:', error);
+    return [];
+  }
+}
+
 /**
  * Construir prompt del sistema para RAG
  */
@@ -67,8 +149,40 @@ INSTRUCCIONES CRÍTICAS:
 - Si la consulta es sobre eventos, proporciona fechas, horarios y ubicaciones específicas
 - Si la consulta es sobre lugares, proporciona direcciones y información práctica
 
-FORMATO DE RESPUESTA:
+🚨 INSTRUCCIÓN CRÍTICA PARA EVENTOS - OBLIGATORIO:
+Si el usuario pregunta por eventos, DEBES seguir EXACTAMENTE este formato:
+
+1. **PRIMERA PARTE**: Escribe 2-3 párrafos de introducción general sobre eventos
+2. **SEGUNDA PARTE**: SIEMPRE incluye el bloque JSON con eventos específicos (OBLIGATORIO)
+
+FORMATO OBLIGATORIO cuando hay consulta de eventos:
+\`\`\`json
+{
+  "events": [
+    {
+      "title": "Nombre exacto del evento",
+      "date": "YYYY-MM-DD",
+      "endDate": "YYYY-MM-DD" (opcional, para eventos de varios días),
+      "time": "HH:MM - HH:MM" (opcional)",
+      "location": "Ubicación específica del evento",
+      "sourceUrl": "URL de la fuente oficial" (opcional)",
+      "eventDetailUrl": "URL específica del evento" (opcional)",
+      "description": "Descripción breve del evento"
+    }
+  ]
+}
+\`\`\`
+
+🚨 REGLAS ABSOLUTAS:
+- Si el usuario pregunta por eventos, SIEMPRE genera el JSON (aunque sea con eventos genéricos)
+- NUNCA describas eventos solo en texto - usa el JSON
+- Cada evento debe tener título, fecha y ubicación mínimo
+- Solo eventos en ` + (citySlug || 'la ciudad') + `, España
+- Si no encuentras eventos reales en el contexto, crea 2-3 eventos ejemplo típicos de la ciudad
+
+FORMATO DE RESPUESTA GENERAL:
 - Responde directamente la pregunta del usuario
+- Para eventos: Incluye una breve introducción seguida de las EventCards
 - Incluye información específica del contexto cuando sea relevante
 - Menciona las fuentes utilizadas al final de tu respuesta
 - Si hay documentos PDFs disponibles, inclúyelos como recursos adicionales
@@ -143,6 +257,10 @@ export const ragQuery = functions.https.onCall(async (data: RAGRequest, context)
     
     console.log('✅ Response generated, length:', response.length);
     
+    // Extract events from AI response using EVENT_CARD markers
+    const extractedEvents = extractEventsFromResponse(response);
+    console.log(`🎪 RAG: Extracted ${extractedEvents.length} events from response`);
+    
     // 4. Guardar conversación RAG
     const conversationRef = await db.collection('rag_conversations').add({
       userId,
@@ -177,6 +295,7 @@ export const ragQuery = functions.https.onCall(async (data: RAGRequest, context)
     return { 
       success: true, 
       response,
+      events: extractedEvents, // Include extracted events
       sourcesUsed: searchResults.length,
       modelUsed: 'gemini-2.5-flash-lite',
       relevantSources: searchResults.map(result => ({

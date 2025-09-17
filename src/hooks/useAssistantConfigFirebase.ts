@@ -11,12 +11,20 @@ export const useAssistantConfigFirebase = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoadedInitially, setHasLoadedInitially] = useState(false);
 
+  // Ejecutar loadConfig cuando cambie el usuario o el perfil
+  useEffect(() => {
+    console.log('🔄 useAssistantConfigFirebase useEffect triggered - user:', user?.id, 'profile:', profile?.role);
+    if (user && profile) {
+      loadConfig();
+    }
+  }, [user?.id, profile?.role]);
+
   // Cargar configuración
   const loadConfig = async () => {
-    console.log('🔍 loadConfig iniciado - user:', user?.id, 'profile.role:', profile?.role);
+    console.log('🔍 loadConfig iniciado - user:', user?.id, 'profile:', profile, 'profile.role:', profile?.role);
     
     if (!user || profile?.role !== 'administrativo') {
-      console.log('📝 Usuario no admin, usando localStorage');
+      console.log('📝 Usuario no admin, usando localStorage. User:', !!user, 'Profile:', !!profile, 'Role:', profile?.role);
       // Para usuarios normales, usar localStorage
       const stored = localStorage.getItem('chatConfig');
       if (stored) {
@@ -32,18 +40,39 @@ export const useAssistantConfigFirebase = () => {
 
     setIsLoading(true);
     try {
-      // Cargar configuración de la ciudad del admin desde Firebase
-      const cityId = `city_${user.id}`;
-      console.log('🔍 Buscando ciudad en Firebase con ID:', cityId);
+      // Cargar configuración de la ciudad asignada del admin desde Firebase
+      // Primero obtener el perfil del admin para conseguir su restrictedCity
+      const profileRef = doc(db, 'profiles', user.id);
+      const profileDoc = await getDoc(profileRef);
       
-      const cityRef = doc(db, 'cities', cityId);
+      if (!profileDoc.exists()) {
+        console.log('❌ No se encontró el perfil del admin');
+        setConfig(DEFAULT_CHAT_CONFIG);
+        return;
+      }
+      
+      const profileData = profileDoc.data();
+      const restrictedCityId = profileData.restrictedCity;
+      
+      if (!restrictedCityId) {
+        console.log('❌ Admin no tiene ciudad asignada (restrictedCity)');
+        setConfig(DEFAULT_CHAT_CONFIG);
+        return;
+      }
+      
+      console.log('🔍 Buscando ciudad asignada en Firebase con ID:', restrictedCityId);
+      
+      const cityRef = doc(db, 'cities', restrictedCityId);
       const cityDoc = await getDoc(cityRef);
       
-      console.log('🔍 Documento de ciudad existe?', cityDoc.exists());
+      console.log('🔍 Documento de ciudad asignada existe?', cityDoc.exists());
       
       if (cityDoc.exists()) {
         const cityData = cityDoc.data();
         console.log('🔍 Datos de ciudad encontrados:', cityData);
+        console.log('🔍 cityData.restrictedCity específicamente:', cityData.restrictedCity);
+        console.log('🔍 cityData.assistantName:', cityData.assistantName);
+        console.log('🔍 cityData.name:', cityData.name);
         
         const firestoreConfig: CustomChatConfig = {
           assistantName: cityData.assistantName || DEFAULT_CHAT_CONFIG.assistantName,
@@ -108,9 +137,24 @@ export const useAssistantConfigFirebase = () => {
 
       const newSlug = generateSlug(newConfig.assistantName);
 
-      // Buscar la ciudad del admin (debería existir porque se crea automáticamente)
-      const cityId = `city_${user.id}`;
-      const cityRef = doc(db, 'cities', cityId);
+      // Buscar la ciudad asignada del admin desde su perfil
+      const profileRef = doc(db, 'profiles', user.id);
+      const profileDoc = await getDoc(profileRef);
+      
+      if (!profileDoc.exists()) {
+        console.log('❌ No se encontró el perfil del admin para guardar');
+        return false;
+      }
+      
+      const profileData = profileDoc.data();
+      const restrictedCityId = profileData.restrictedCity;
+      
+      if (!restrictedCityId) {
+        console.log('❌ Admin no tiene ciudad asignada (restrictedCity) para guardar');
+        return false;
+      }
+      
+      const cityRef = doc(db, 'cities', restrictedCityId);
       const cityDoc = await getDoc(cityRef);
 
       if (!cityDoc.exists()) {
@@ -143,7 +187,7 @@ export const useAssistantConfigFirebase = () => {
         console.log('✅ Nueva ciudad creada en Firebase');
       } else {
         // Actualizar ciudad existente en Firebase
-        console.log('🔍 Actualizando ciudad existente con ID:', cityId);
+        console.log('🔍 Actualizando ciudad asignada con ID:', restrictedCityId);
         console.log('🔍 newConfig.restrictedCity:', newConfig.restrictedCity);
         
         const updateData = {

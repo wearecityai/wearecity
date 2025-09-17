@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChartAreaInteractive } from '@/components/chart-area-interactive';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList } from '@/components/ui/breadcrumb';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SuperAdminSidebar } from '@/components/SuperAdminSidebar';
 import CityCombobox from '@/components/CityCombobox';
 import { RestrictedCityInfo } from '@/types';
 import { 
@@ -19,7 +21,6 @@ import {
   MessageSquare, 
   BarChart3, 
   TrendingUp, 
-  Globe, 
   Settings, 
   Plus,
   Search,
@@ -37,131 +38,20 @@ import {
   Clock,
   Database,
   UserCog,
-  Shield,
-  Loader2
+  Loader2,
+  Upload,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuthFirebase';
-import { firestoreClient } from '@/integrations/firebase/database';
 import { NavActions } from '@/components/nav-actions';
-import { useGoogleMaps } from '@/hooks/useGoogleMaps';
 import { useAppState } from '@/hooks/useAppState';
-import { collection, getDocs, query, orderBy, limit, where, Timestamp } from 'firebase/firestore';
-import { db } from '@/integrations/firebase/config';
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { db, auth } from '@/integrations/firebase/config';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { RAGService } from '@/services/ragService';
 
-// SuperAdmin Sidebar Component
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupContent,
-} from "@/components/ui/sidebar"
-
-interface SuperAdminSidebarProps {
-  user?: {
-    name: string
-    email: string
-    avatar?: string
-  }
-  activeTab?: string
-  onTabChange?: (tab: string) => void
-}
-
-function SuperAdminSidebar({ user, activeTab, onTabChange }: SuperAdminSidebarProps) {
-  const navItems = [
-    {
-      title: "Resumen",
-      icon: BarChart3,
-      id: "overview",
-      isActive: activeTab === "overview",
-    },
-    {
-      title: "Usuarios",
-      icon: Users,
-      id: "users", 
-      isActive: activeTab === "users",
-    },
-    {
-      title: "Ciudades",
-      icon: Building2,
-      id: "cities",
-      isActive: activeTab === "cities", 
-    },
-    {
-      title: "Mensajes",
-      icon: MessageSquare,
-      id: "messages",
-      isActive: activeTab === "messages",
-    },
-    {
-      title: "Configuración",
-      icon: Settings,
-      id: "settings",
-      isActive: activeTab === "settings",
-    },
-  ];
-
-  return (
-    <Sidebar variant="inset">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="#">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Shield className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Wearecity</span>
-                  <span className="truncate text-xs">SuperAdmin Panel</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    tooltip={item.title}
-                    onClick={() => onTabChange?.(item.id)}
-                    className={item.isActive ? "bg-accent text-accent-foreground" : ""}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
-  )
-}
 
 // Interfaces
-=======
-  Building,
-  Activity,
-  Calendar,
-  MapPin,
-  Star,
-  AlertTriangle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
-import { useAuth } from '@/hooks/useAuthFirebase';
-import { firestoreClient } from '@/integrations/firebase/database';
-
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
 interface SuperAdminStats {
   totalUsers: number;
   totalCities: number;
@@ -178,72 +68,83 @@ interface SuperAdminStats {
 interface City {
   id: string;
   name: string;
-<<<<<<< HEAD
   country?: string;
   created_at: string;
   is_active: boolean;
   is_public: boolean;
-=======
-  slug: string;
-  admin_user_id: string;
-  is_active: boolean;
-  is_public: boolean;
-  created_at: string;
-  updated_at: string;
-  bio?: string;
-  assistant_name?: string;
-  service_tags?: string[];
-  lat?: number;
-  lng?: number;
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
 }
 
 interface AdminUser {
   id: string;
   email: string;
-<<<<<<< HEAD
   first_name?: string;
   last_name?: string;
-=======
-  first_name: string;
-  last_name: string;
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
   role: string;
   created_at: string;
   last_login?: string;
   city?: City;
   is_active: boolean;
-<<<<<<< HEAD
   avatar_url?: string;
 }
 
 export const SuperAdminDashboard: React.FC = () => {
   const { user, profile } = useAuth();
-=======
-}
-
-export const SuperAdminDashboard: React.FC = () => {
-  const { user } = useAuth();
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
   const [stats, setStats] = useState<SuperAdminStats | null>(null);
   const [cities, setCities] = useState<City[]>([]);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState('overview');
-=======
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
   const [showCreateCity, setShowCreateCity] = useState(false);
-<<<<<<< HEAD
   const [selectedCityPlace, setSelectedCityPlace] = useState<RestrictedCityInfo | null>(null);
+  const [chatAvatarUrl, setChatAvatarUrl] = useState<string>('');
+  const [chatAvatarError, setChatAvatarError] = useState<string | null>(null);
+  const chatAvatarInputRef = useRef<HTMLInputElement>(null);
   const [appError, setAppError] = useState<string | null>(null);
+  const [isCreatingCity, setIsCreatingCity] = useState(false);
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
+  const [selectedAdminCity, setSelectedAdminCity] = useState<string>('');
+  const [showAssignAdmin, setShowAssignAdmin] = useState(false);
+  const [cityToAssign, setCityToAssign] = useState<City | null>(null);
+  const [isClearingRAG, setIsClearingRAG] = useState(false);
 
   // Use the same approach as finetuning panel - use AppState and hardcoded API key
   const { googleMapsScriptLoaded } = useAppState();
   const googleMapsApiKey = 'AIzaSyDksNTEkRDILZimpnX7vUc36u66SAAH5l0'; // Same as finetuning panel
+
+  // Handle chat avatar image upload
+  const handleChatAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setChatAvatarError(null);
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      if (file.type.startsWith('image/')) {
+        if (file.size > 2 * 1024 * 1024) {
+          setChatAvatarError("Imagen demasiado grande (máx 2MB).");
+          return;
+        }
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          setChatAvatarUrl(reader.result as string);
+        };
+        reader.onerror = () => {
+          setChatAvatarError("Error al leer la imagen.");
+        };
+      } else {
+        setChatAvatarError("Selecciona un archivo de imagen válido.");
+      }
+    }
+  };
+
+  const handleRemoveChatAvatar = () => {
+    setChatAvatarUrl('');
+    if (chatAvatarInputRef.current) {
+      chatAvatarInputRef.current.value = '';
+    }
+  };
   const apiKeyLoading = false;
   const apiKeyError = null;
 
@@ -257,6 +158,219 @@ export const SuperAdminDashboard: React.FC = () => {
       appError
     });
   }, [googleMapsScriptLoaded, googleMapsApiKey, apiKeyLoading, apiKeyError, appError]);
+
+  // Create city function
+  const handleCreateCity = async () => {
+    if (!selectedCityPlace) {
+      setCreationError('Debes seleccionar una ciudad');
+      return;
+    }
+
+    setIsCreatingCity(true);
+    setCreationError(null);
+
+    try {
+      const chatNameInput = document.getElementById('chat-name') as HTMLInputElement;
+      const descriptionInput = document.getElementById('city-description') as HTMLTextAreaElement;
+      
+      const chatName = chatNameInput?.value || selectedCityPlace.name;
+      const description = descriptionInput?.value || '';
+
+      // Generate slug from city name
+      const slug = selectedCityPlace.name.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+
+      // Create city data
+      const cityData = {
+        name: selectedCityPlace.name,
+        slug: slug,
+        assistantName: chatName,
+        bio: description || `Asistente virtual de ${selectedCityPlace.name}. Aquí para ayudarte con información local, trámites municipales y servicios de la ciudad.`,
+        placeId: selectedCityPlace.placeId,
+        formattedAddress: selectedCityPlace.formattedAddress,
+        lat: (selectedCityPlace as any)?.lat || null,
+        lng: (selectedCityPlace as any)?.lng || null,
+        country: (selectedCityPlace as any)?.country || '',
+        avatarUrl: chatAvatarUrl || '',
+        isActive: true,
+        isPublic: true,
+        enableGoogleSearch: true,
+        allowGeolocation: true,
+        allowMapDisplay: true,
+        currentLanguageCode: 'es',
+        serviceTags: ['tramites', 'informacion', 'servicios', 'municipal', 'ciudadanos'],
+        systemInstruction: `Eres el asistente virtual oficial de ${selectedCityPlace.name}. Tu función es ayudar a los ciudadanos con información local, trámites municipales, y servicios de la ciudad.`,
+        // Add restrictedCity object with all the city data
+        restrictedCity: {
+          name: selectedCityPlace.name,
+          placeId: selectedCityPlace.placeId,
+          formattedAddress: selectedCityPlace.formattedAddress,
+          lat: (selectedCityPlace as any)?.lat || null,
+          lng: (selectedCityPlace as any)?.lng || null,
+          country: (selectedCityPlace as any)?.country || ''
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      // Add to Firestore
+      const docRef = await addDoc(collection(db, 'cities'), cityData);
+      console.log('✅ Ciudad creada con ID:', docRef.id);
+
+      // Close modal and refresh data
+      setShowCreateCity(false);
+      setSelectedCityPlace(null);
+      setChatAvatarUrl('');
+      setChatAvatarError(null);
+      
+      // Refresh the data
+      window.location.reload();
+
+    } catch (error) {
+      console.error('❌ Error creating city:', error);
+      setCreationError('Error al crear la ciudad. Inténtalo de nuevo.');
+    } finally {
+      setIsCreatingCity(false);
+    }
+  };
+
+  // Create admin user function
+  const handleCreateAdmin = async () => {
+    setIsCreatingAdmin(true);
+    setCreationError(null);
+
+    try {
+      const emailInput = document.getElementById('admin-email') as HTMLInputElement;
+      const firstNameInput = document.getElementById('admin-first-name') as HTMLInputElement;
+      const lastNameInput = document.getElementById('admin-last-name') as HTMLInputElement;
+      const passwordInput = document.getElementById('admin-password') as HTMLInputElement;
+      const email = emailInput?.value;
+      const firstName = firstNameInput?.value;
+      const lastName = lastNameInput?.value;
+      const password = passwordInput?.value;
+      const selectedCityId = selectedAdminCity;
+
+      if (!email || !firstName || !lastName || !password || !selectedCityId) {
+        setCreationError('Todos los campos son obligatorios');
+        return;
+      }
+
+      if (password.length < 6) {
+        setCreationError('La contraseña debe tener al menos 6 caracteres');
+        return;
+      }
+
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      // Create profile in Firestore
+      const profileData = {
+        userId: newUser.uid,
+        email: email,
+        firstName: firstName,
+        lastName: lastName,
+        role: 'administrativo',
+        restrictedCity: selectedCityId,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      // Use setDoc with the userId as the document ID so it can be found later
+      const profileDocRef = doc(db, 'profiles', newUser.uid);
+      await setDoc(profileDocRef, profileData);
+
+      // Update city with admin user ID
+      const cityDoc = doc(db, 'cities', selectedCityId);
+      await updateDoc(cityDoc, {
+        adminUserId: newUser.uid,
+        updatedAt: new Date()
+      });
+
+      console.log('✅ Administrador creado:', newUser.uid);
+
+      // Close modal and refresh data
+      setShowCreateAdmin(false);
+      
+      // Refresh the data
+      window.location.reload();
+
+    } catch (error: any) {
+      console.error('❌ Error creating admin:', error);
+      let errorMessage = 'Error al crear el administrador';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Este email ya está en uso';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'La contraseña es demasiado débil';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Email inválido';
+      }
+      
+      setCreationError(errorMessage);
+    } finally {
+      setIsCreatingAdmin(false);
+    }
+  };
+
+  // Assign admin to city function
+  const handleAssignAdmin = async (adminId: string) => {
+    if (!cityToAssign) return;
+
+    try {
+      // Update the admin profile with the city using userId as document ID
+      const profileDocRef = doc(db, 'profiles', adminId);
+      await updateDoc(profileDocRef, {
+        restrictedCity: cityToAssign.id,
+        updatedAt: new Date()
+      });
+
+      // Update city with admin user ID
+      const cityDoc = doc(db, 'cities', cityToAssign.id);
+      await updateDoc(cityDoc, {
+        adminUserId: adminId,
+        updatedAt: new Date()
+      });
+
+      console.log('✅ Admin asignado a ciudad:', adminId, cityToAssign.name);
+      
+      // Close modal and refresh data
+      setShowAssignAdmin(false);
+      setCityToAssign(null);
+      window.location.reload();
+
+    } catch (error) {
+      console.error('❌ Error assigning admin to city:', error);
+      setCreationError('Error al asignar administrador a la ciudad');
+    }
+  };
+
+  // Clear all RAG data function
+  const handleClearAllRAG = async () => {
+    if (!confirm('⚠️ ¿Estás seguro de que quieres vaciar TODOS los datos RAG del sistema?\n\nEsta acción eliminará:\n- Todos los chunks de documentos\n- Todas las conversaciones RAG\n- Todas las fuentes de biblioteca\n- Todas las respuestas dinámicas\n\n✅ La configuración RAG se mantendrá para que funcione inmediatamente\n\nEsta acción NO se puede deshacer.')) {
+      return;
+    }
+
+    setIsClearingRAG(true);
+    try {
+      const result = await RAGService.clearAllRAGData();
+      
+      if (result.success) {
+        alert(`✅ RAG data cleared successfully!\n\nTotal documents deleted: ${result.data?.totalDeleted || 0}\n\n✅ La configuración RAG se mantuvo - el sistema estará listo para el próximo mensaje.`);
+      } else {
+        alert(`❌ Error: ${result.message || 'Failed to clear RAG data'}`);
+      }
+    } catch (error) {
+      console.error('Error clearing RAG data:', error);
+      alert('❌ Error al limpiar los datos RAG. Inténtalo de nuevo.');
+    } finally {
+      setIsClearingRAG(false);
+    }
+  };
 
   // Filtered data
   const filteredAdmins = adminUsers.filter(admin => {
@@ -402,159 +516,6 @@ export const SuperAdminDashboard: React.FC = () => {
     loadData();
   }, []);
 
-=======
-
-  // Formulario para crear admin
-  const [newAdmin, setNewAdmin] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-    password: '',
-    cityName: ''
-  });
-
-  // Formulario para crear ciudad
-  const [newCity, setNewCity] = useState({
-    name: '',
-    slug: '',
-    adminEmail: '',
-    bio: ''
-  });
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    setIsLoading(true);
-    try {
-      // Cargar estadísticas generales
-      await loadStats();
-      
-      // Cargar ciudades
-      await loadCities();
-      
-      // Cargar usuarios admin
-      await loadAdminUsers();
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      // Simular estadísticas (en producción, estas vendrían de Cloud Functions)
-      const mockStats: SuperAdminStats = {
-        totalUsers: 1247,
-        totalCities: 42,
-        totalMessages: 15689,
-        totalConversations: 3421,
-        activeUsers: 892,
-        newUsersToday: 23,
-        newCitiesThisWeek: 3,
-        averageMessagesPerUser: 12.6,
-        topCities: [
-          { name: 'Alicante', messages: 2341, users: 156 },
-          { name: 'Benidorm', messages: 1987, users: 134 },
-          { name: 'Elche', messages: 1654, users: 98 },
-          { name: 'Torrevieja', messages: 1432, users: 87 },
-          { name: 'La Vila Joiosa', messages: 1298, users: 76 }
-        ],
-        recentActivity: [
-          { type: 'user', description: 'Nuevo usuario registrado', timestamp: '2024-01-15T10:30:00Z', city: 'Alicante' },
-          { type: 'city', description: 'Ciudad creada', timestamp: '2024-01-15T09:15:00Z', city: 'Orihuela' },
-          { type: 'message', description: '1000+ mensajes enviados', timestamp: '2024-01-15T08:45:00Z', city: 'Benidorm' },
-          { type: 'admin', description: 'Admin actualizado', timestamp: '2024-01-15T07:20:00Z', city: 'Elche' }
-        ]
-      };
-      setStats(mockStats);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  };
-
-  const loadCities = async () => {
-    try {
-      const result = await firestoreClient
-        .from('cities')
-        .select('*')
-        .execute();
-
-      if (result.error) {
-        console.error('Error loading cities:', result.error);
-        return;
-      }
-
-      setCities(result.data || []);
-    } catch (error) {
-      console.error('Error loading cities:', error);
-    }
-  };
-
-  const loadAdminUsers = async () => {
-    try {
-      const result = await firestoreClient
-        .from('profiles')
-        .select('*')
-        .eq('role', 'administrativo')
-        .execute();
-
-      if (result.error) {
-        console.error('Error loading admin users:', result.error);
-        return;
-      }
-
-      const adminUsers = result.data || [];
-      
-      // Enriquecer con datos de ciudades
-      const enrichedAdmins = await Promise.all(
-        adminUsers.map(async (admin: any) => {
-          const cityResult = await firestoreClient
-            .from('cities')
-            .select('*')
-            .eq('admin_user_id', admin.id)
-            .single();
-          
-          return {
-            ...admin,
-            city: cityResult.data || null
-          };
-        })
-      );
-
-      setAdminUsers(enrichedAdmins);
-    } catch (error) {
-      console.error('Error loading admin users:', error);
-    }
-  };
-
-  const handleCreateAdmin = async () => {
-    // Implementar creación de admin
-    console.log('Creating admin:', newAdmin);
-    setShowCreateAdmin(false);
-    setNewAdmin({ email: '', firstName: '', lastName: '', password: '', cityName: '' });
-  };
-
-  const handleCreateCity = async () => {
-    // Implementar creación de ciudad
-    console.log('Creating city:', newCity);
-    setShowCreateCity(false);
-    setNewCity({ name: '', slug: '', adminEmail: '', bio: '' });
-  };
-
-  const filteredCities = cities.filter(city => 
-    selectedCity === 'all' || city.id === selectedCity
-  );
-
-  const filteredAdmins = adminUsers.filter(admin =>
-    (admin.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (admin.last_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (admin.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -567,48 +528,40 @@ export const SuperAdminDashboard: React.FC = () => {
   }
 
   return (
-<<<<<<< HEAD
     <SidebarProvider>
       <SuperAdminSidebar 
-        user={{
-          name: (profile?.firstName || '') + ' ' + (profile?.lastName || ''),
-          email: user?.email || 'admin@wearecity.ai',
-        }}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 layout-transition w-full overflow-hidden">
-          <div className="flex flex-1 items-center gap-2 px-3 min-w-0">
-            <div className="flex-shrink-0">
-              <SidebarTrigger />
+      <SidebarInset className="flex flex-col h-screen">
+          <header className="flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 layout-transition w-full overflow-hidden">
+            <div className="flex flex-1 items-center gap-2 px-3 min-w-0">
+              <div className="flex-shrink-0">
+                <SidebarTrigger className="-ml-1" />
+              </div>
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <div className="flex-1 min-w-0">
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg text-foreground tiktok-sans-title">
+                          WeAreCity
+                        </span>
+                        <Badge variant="outline" className="text-xs">Beta</Badge>
+                      </div>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
             </div>
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg text-foreground tiktok-sans-title">
-                        WeAreCity
-                      </span>
-                      <Badge variant="outline" className="text-xs">Beta</Badge>
-                    </div>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+            <div className="ml-auto px-3 flex-shrink-0">
+              <NavActions />
             </div>
-          </div>
-          <div className="ml-auto px-3 flex-shrink-0">
-            <NavActions />
-          </div>
-        </header>
-
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="min-h-[100vh] flex-1 rounded-xl md:min-h-min p-6">
+          </header>
+          
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0 overflow-hidden">
+            <div className="flex-1 rounded-xl p-6 overflow-y-auto">
             
             {/* Overview Tab */}
             {activeTab === 'overview' && (
@@ -821,416 +774,10 @@ export const SuperAdminDashboard: React.FC = () => {
                             {city.name}
                           </SelectItem>
                         ))}
-=======
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="flex h-16 items-center px-6">
-          <div className="flex items-center space-x-4">
-            <Building2 className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">Wearecity SuperAdmin</h1>
-              <p className="text-sm text-muted-foreground">Panel de control de la plataforma</p>
-            </div>
-          </div>
-          <div className="ml-auto flex items-center space-x-4">
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              <Activity className="h-3 w-3 mr-1" />
-              Sistema Activo
-            </Badge>
-            <div className="text-sm text-muted-foreground">
-              {user?.email}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-6">
-        {/* Estadísticas principales */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalUsers.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                +{stats?.newUsersToday} hoy
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ciudades Activas</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalCities}</div>
-              <p className="text-xs text-muted-foreground">
-                +{stats?.newCitiesThisWeek} esta semana
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mensajes Totales</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalMessages.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.averageMessagesPerUser} por usuario
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.activeUsers}</div>
-              <p className="text-xs text-muted-foreground">
-                {Math.round((stats?.activeUsers || 0) / (stats?.totalUsers || 1) * 100)}% del total
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs principales */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Resumen</TabsTrigger>
-            <TabsTrigger value="cities">Ciudades</TabsTrigger>
-            <TabsTrigger value="admins">Administradores</TabsTrigger>
-            <TabsTrigger value="analytics">Analíticas</TabsTrigger>
-            <TabsTrigger value="settings">Configuración</TabsTrigger>
-          </TabsList>
-
-          {/* Tab Resumen */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Top Ciudades */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Ciudades por Actividad</CardTitle>
-                  <CardDescription>Ciudades con mayor número de mensajes</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {stats?.topCities.map((city, index) => (
-                      <div key={city.name} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                            <span className="text-sm font-medium">{index + 1}</span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{city.name}</p>
-                            <p className="text-sm text-muted-foreground">{city.users} usuarios</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">{city.messages.toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">mensajes</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Actividad Reciente */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Actividad Reciente</CardTitle>
-                  <CardDescription>Últimas acciones en la plataforma</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {stats?.recentActivity.map((activity, index) => (
-                      <div key={index} className="flex items-start space-x-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                          {activity.type === 'user' && <UserPlus className="h-4 w-4" />}
-                          {activity.type === 'city' && <Building className="h-4 w-4" />}
-                          {activity.type === 'message' && <MessageSquare className="h-4 w-4" />}
-                          {activity.type === 'admin' && <Settings className="h-4 w-4" />}
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">{activity.description}</p>
-                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            <span>{new Date(activity.timestamp).toLocaleString()}</span>
-                            {activity.city && (
-                              <>
-                                <span>•</span>
-                                <span>{activity.city}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Tab Ciudades */}
-          <TabsContent value="cities" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="city-filter">Filtrar por ciudad:</Label>
-                  <Select value={selectedCity} onValueChange={setSelectedCity}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Todas las ciudades" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas las ciudades</SelectItem>
-                      {cities.map((city) => (
-                        <SelectItem key={city.id} value={city.id}>
-                          {city.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button onClick={() => setShowCreateCity(true)} className="rounded-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Crear Ciudad
-              </Button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredCities.map((city) => (
-                <Card key={city.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{city.name}</CardTitle>
-                      <div className="flex space-x-2">
-                        <Badge variant={city.is_active ? "default" : "secondary"}>
-                          {city.is_active ? "Activa" : "Inactiva"}
-                        </Badge>
-                        <Badge variant={city.is_public ? "outline" : "secondary"}>
-                          {city.is_public ? "Pública" : "Privada"}
-                        </Badge>
-                      </div>
-                    </div>
-                    <CardDescription>
-                      {city.bio || "Sin descripción"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        {city.lat && city.lng ? `${city.lat.toFixed(4)}, ${city.lng.toFixed(4)}` : "Sin ubicación"}
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Creada: {new Date(city.created_at).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Admin: {city.admin_user_id}
-                      </div>
-                    </div>
-                    <div className="flex space-x-2 mt-4">
-                      <Button variant="outline" size="sm" className="rounded-full">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver
-                      </Button>
-                      <Button variant="outline" size="sm" className="rounded-full">
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                      <Button variant="outline" size="sm" className="rounded-full text-destructive">
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Eliminar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Tab Administradores */}
-          <TabsContent value="admins" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar administradores..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-[300px] rounded-full"
-                  />
-                </div>
-              </div>
-              <Button onClick={() => setShowCreateAdmin(true)} className="rounded-full">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Crear Admin
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {filteredAdmins.map((admin) => (
-                <Card key={admin.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={admin.avatar_url} />
-                          <AvatarFallback>
-                            {admin.first_name?.[0] || 'N'}{admin.last_name?.[0] || 'A'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold">{admin.first_name} {admin.last_name}</h3>
-                          <p className="text-sm text-muted-foreground">{admin.email}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant={admin.is_active ? "default" : "secondary"}>
-                              {admin.is_active ? "Activo" : "Inactivo"}
-                            </Badge>
-                            {admin.city && (
-                              <Badge variant="outline">
-                                {admin.city.name}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right text-sm text-muted-foreground">
-                        <p>Último acceso: {admin.last_login ? new Date(admin.last_login).toLocaleDateString() : "Nunca"}</p>
-                        <p>Registrado: {new Date(admin.created_at).toLocaleDateString()}</p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" className="rounded-full">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button variant="outline" size="sm" className="rounded-full text-destructive">
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Eliminar
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Tab Analíticas */}
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Métricas de Uso</CardTitle>
-                  <CardDescription>Estadísticas de uso de la plataforma</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Tiempo promedio de sesión</span>
-                      <span className="text-sm text-muted-foreground">12.5 min</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Mensajes por conversación</span>
-                      <span className="text-sm text-muted-foreground">4.6</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Tasa de satisfacción</span>
-                      <span className="text-sm text-muted-foreground">94.2%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Ciudades más activas</span>
-                      <span className="text-sm text-muted-foreground">Alicante, Benidorm</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Estado del Sistema</CardTitle>
-                  <CardDescription>Monitoreo de la infraestructura</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Estado de la API</span>
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                        <span className="text-sm text-green-600">Operativa</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Base de datos</span>
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                        <span className="text-sm text-green-600">Conectada</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Tiempo de respuesta</span>
-                      <span className="text-sm text-muted-foreground">245ms</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Uso de CPU</span>
-                      <span className="text-sm text-muted-foreground">23%</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Tab Configuración */}
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración de la Plataforma</CardTitle>
-                <CardDescription>Ajustes globales del sistema</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="maintenance">Modo Mantenimiento</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Desactivado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="disabled">Desactivado</SelectItem>
-                        <SelectItem value="enabled">Activado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registration">Registro de Usuarios</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Abierto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open">Abierto</SelectItem>
-                        <SelectItem value="closed">Cerrado</SelectItem>
-                        <SelectItem value="invite">Solo invitación</SelectItem>
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-<<<<<<< HEAD
 
                 {/* Admin Users List */}
                 <div className="space-y-4">
@@ -1358,7 +905,15 @@ export const SuperAdminDashboard: React.FC = () => {
                           </div>
                           
                           {!cityAdmin && (
-                            <Button variant="secondary" size="sm" className="w-full mt-2">
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              className="w-full mt-2"
+                              onClick={() => {
+                                setCityToAssign(city);
+                                setShowAssignAdmin(true);
+                              }}
+                            >
                               <UserPlus className="h-4 w-4 mr-2" />
                               Asignar Admin
                             </Button>
@@ -1598,6 +1153,18 @@ export const SuperAdminDashboard: React.FC = () => {
                       <Database className="h-4 w-4 mr-2" />
                       Limpiar Cache
                     </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleClearAllRAG}
+                      disabled={isClearingRAG}
+                    >
+                      {isClearingRAG ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      {isClearingRAG ? 'Limpiando...' : 'Vaciar RAG'}
+                    </Button>
                   </div>
                   <div className="flex space-x-2">
                     <Button variant="outline">
@@ -1613,10 +1180,9 @@ export const SuperAdminDashboard: React.FC = () => {
 
           </div>
         </div>
-      </SidebarInset>
 
-      {/* Create Admin Modal */}
-      {showCreateAdmin && (
+        {/* Create Admin Modal */}
+        {showCreateAdmin && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md border-0 bg-input">
             <CardHeader>
@@ -1644,7 +1210,7 @@ export const SuperAdminDashboard: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="admin-city">Ciudad Asignada</Label>
-                <Select>
+                <Select value={selectedAdminCity} onValueChange={setSelectedAdminCity}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar ciudad" />
                   </SelectTrigger>
@@ -1657,106 +1223,35 @@ export const SuperAdminDashboard: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="admin-chat-name">Nombre del Chat</Label>
-                <Input id="admin-chat-name" placeholder="Asistente de Valencia" />
-                <p className="text-xs text-muted-foreground">
-                  Nombre que aparecerá en el chat para los usuarios
-                </p>
-              </div>
+              {creationError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{creationError}</AlertDescription>
+                </Alert>
+              )}
             </CardContent>
             <CardContent>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowCreateAdmin(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={() => {
-                  // TODO: Implement admin creation logic
+                <Button variant="outline" onClick={() => {
                   setShowCreateAdmin(false);
+                  setCreationError(null);
+                  setSelectedAdminCity('');
                 }}>
-                  Crear Administrador
-=======
-                <div className="flex space-x-4">
-                  <Button className="rounded-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    Exportar Datos
-                  </Button>
-                  <Button variant="outline" className="rounded-full">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configuración Avanzada
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Modales para crear admin y ciudad */}
-      {showCreateAdmin && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Crear Administrador</CardTitle>
-              <CardDescription>Crear un nuevo administrador de ciudad</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newAdmin.email}
-                  onChange={(e) => setNewAdmin({...newAdmin, email: e.target.value})}
-                  placeholder="admin@ciudad.com"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">Nombre</Label>
-                  <Input
-                    id="firstName"
-                    value={newAdmin.firstName}
-                    onChange={(e) => setNewAdmin({...newAdmin, firstName: e.target.value})}
-                    placeholder="Juan"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Apellido</Label>
-                  <Input
-                    id="lastName"
-                    value={newAdmin.lastName}
-                    onChange={(e) => setNewAdmin({...newAdmin, lastName: e.target.value})}
-                    placeholder="Pérez"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newAdmin.password}
-                  onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})}
-                  placeholder="••••••••"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cityName">Ciudad Asignada</Label>
-                <Input
-                  id="cityName"
-                  value={newAdmin.cityName}
-                  onChange={(e) => setNewAdmin({...newAdmin, cityName: e.target.value})}
-                  placeholder="Alicante"
-                />
-              </div>
-              <div className="flex space-x-2">
-                <Button onClick={handleCreateAdmin} className="flex-1 rounded-full">
-                  Crear Admin
-                </Button>
-                <Button variant="outline" onClick={() => setShowCreateAdmin(false)} className="rounded-full">
                   Cancelar
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
+                </Button>
+                <Button 
+                  onClick={handleCreateAdmin}
+                  disabled={isCreatingAdmin}
+                >
+                  {isCreatingAdmin ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    'Crear Administrador'
+                  )}
+                  Crear Administrador
                 </Button>
               </div>
             </CardContent>
@@ -1764,209 +1259,208 @@ export const SuperAdminDashboard: React.FC = () => {
         </div>
       )}
 
-<<<<<<< HEAD
-      {/* Create City Modal */}
-      {showCreateCity && (
+        {/* Create City Modal */}
+        {showCreateCity && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto border-0 bg-input">
             <CardHeader>
-              <CardTitle>Crear Nueva Ciudad y Administrador</CardTitle>
-              <CardDescription>Registra una nueva ciudad en la plataforma y crea su administrador</CardDescription>
+              <CardTitle>Crear Nueva Ciudad</CardTitle>
+              <CardDescription>Configura una nueva ciudad para que aparezca en la plataforma</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-               {/* City Selection with Google Places */}
-               <div className="space-y-4">
-                 <h3 className="text-lg font-medium">Información de la Ciudad</h3>
-                 <div className="space-y-2">
-                   <Label>Restringir a Municipio</Label>
-                   <div className="space-y-1">
-                     <CityCombobox
-                       value={selectedCityPlace}
-                       onChange={(city) => {
-                         setSelectedCityPlace(city);
-                       }}
-                       countryCode={undefined}
-                       placeholder="Selecciona ciudad"
-                       disabled={false}
-                     />
-                   </div>
-                   {selectedCityPlace && (
-                     <div className="mt-2 p-3 bg-muted rounded-md">
-                       <p className="text-sm font-medium">Ciudad seleccionada:</p>
-                       <p className="text-sm text-muted-foreground">{selectedCityPlace.formattedAddress}</p>
-                       <p className="text-xs text-muted-foreground">
-                         Nombre: {selectedCityPlace.name}
-                       </p>
-                       {selectedCityPlace.placeId && (
-                         <p className="text-xs text-muted-foreground">
-                           Place ID: {selectedCityPlace.placeId}
-                         </p>
-                       )}
-                     </div>
-                   )}
-                 </div>
-               </div>
-
-              {/* Admin User Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Información del Administrador</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-first-name">Nombre</Label>
-                    <Input id="admin-first-name" placeholder="Juan" />
+              {/* Restringir a Municipio */}
+              <div className="space-y-2">
+                <Label>Restringir a Municipio</Label>
+                <div className="space-y-1">
+                  <CityCombobox
+                    value={selectedCityPlace}
+                    onChange={(city) => {
+                      setSelectedCityPlace(city);
+                    }}
+                    countryCode={undefined}
+                    placeholder="Selecciona ciudad"
+                    disabled={false}
+                  />
+                </div>
+                {selectedCityPlace && (
+                  <div className="mt-2 p-3 bg-muted rounded-md">
+                    <p className="text-sm font-medium">Ciudad seleccionada:</p>
+                    <p className="text-sm text-muted-foreground">{selectedCityPlace.formattedAddress}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Nombre: {selectedCityPlace.name}
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-last-name">Apellido</Label>
-                    <Input id="admin-last-name" placeholder="García" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-email">Email</Label>
-                  <Input id="admin-email" type="email" placeholder="admin@ciudad.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-password">Contraseña</Label>
-                  <Input id="admin-password" type="password" placeholder="••••••••" />
-                </div>
+                )}
               </div>
 
-              {/* Additional Settings */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Configuración</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city-timezone">Zona Horaria</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar zona horaria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Europe/Madrid">Europe/Madrid</SelectItem>
-                        <SelectItem value="America/New_York">America/New_York</SelectItem>
-                        <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Asia/Tokyo</SelectItem>
-                        <SelectItem value="America/Mexico_City">America/Mexico_City</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city-language">Idioma Principal</Label>
-                    <Select defaultValue="es">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="es">Español</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="fr">Français</SelectItem>
-                        <SelectItem value="it">Italiano</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              {/* Nombre del Chat */}
+              <div className="space-y-2">
+                <Label htmlFor="chat-name">Nombre del Chat</Label>
+                <Input id="chat-name" placeholder="Asistente de Valencia" />
+                <p className="text-xs text-muted-foreground">
+                  Nombre que aparecerá en el chat para los usuarios
+                </p>
               </div>
+
+              {/* Foto de Avatar del Chat */}
+              <div className="space-y-2">
+                <Label>Foto de Avatar del Chat</Label>
+                <div className="flex items-center gap-4">
+                  {chatAvatarUrl && (
+                    <div className="relative">
+                      <Avatar className="h-16 w-16 border-2 border-border dark:border-input">
+                        <AvatarImage src={chatAvatarUrl} alt="Avatar preview" />
+                        <AvatarFallback>IMG</AvatarFallback>
+                      </Avatar>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
+                        onClick={handleRemoveChatAvatar}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <Button className="rounded-full" variant="outline" asChild>
+                    <label>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {chatAvatarUrl ? 'Cambiar Imagen' : 'Subir Imagen'}
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        ref={chatAvatarInputRef}
+                        onChange={handleChatAvatarChange}
+                      />
+                    </label>
+                  </Button>
+                </div>
+                {chatAvatarError && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{chatAvatarError}</AlertDescription>
+                  </Alert>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Imagen que aparecerá como avatar del chat. Formatos: JPG, PNG, GIF. Máximo 2MB.
+                </p>
+              </div>
+
+              {/* Descripción */}
+              <div className="space-y-2">
+                <Label htmlFor="city-description">Descripción</Label>
+                <Textarea 
+                  id="city-description" 
+                  placeholder="Describe la ciudad y sus características principales..."
+                  className="min-h-[100px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Descripción que aparecerá en la card de la ciudad
+                </p>
+              </div>
+              {creationError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{creationError}</AlertDescription>
+                </Alert>
+              )}
             </CardContent>
             <CardContent>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => {
                   setShowCreateCity(false);
                   setSelectedCityPlace(null);
+                  setChatAvatarUrl('');
+                  setChatAvatarError(null);
+                  setCreationError(null);
                 }}>
                   Cancelar
                 </Button>
-                 <Button 
-                   onClick={() => {
-                     // TODO: Implement city and admin creation logic
-                     console.log('Creating city and admin with:', {
-                       city: {
-                         name: selectedCityPlace?.name,
-                         placeId: selectedCityPlace?.placeId,
-                         formattedAddress: selectedCityPlace?.formattedAddress,
-                         lat: (selectedCityPlace as any)?.lat,
-                         lng: (selectedCityPlace as any)?.lng,
-                         country: (selectedCityPlace as any)?.country
-                       },
-                       admin: {
-                         firstName: (document.getElementById('admin-first-name') as HTMLInputElement)?.value,
-                         lastName: (document.getElementById('admin-last-name') as HTMLInputElement)?.value,
-                         email: (document.getElementById('admin-email') as HTMLInputElement)?.value,
-                         password: (document.getElementById('admin-password') as HTMLInputElement)?.value,
-                       }
-                     });
-                     setShowCreateCity(false);
-                     setSelectedCityPlace(null);
-                   }}
-                   disabled={!selectedCityPlace}
-                 >
-                   Crear Ciudad y Administrador
+                <Button 
+                  onClick={handleCreateCity}
+                  disabled={!selectedCityPlace || isCreatingCity}
+                >
+                  {isCreatingCity ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    'Crear Ciudad'
+                  )}
+                   Crear Ciudad
                  </Button>
-=======
-      {showCreateCity && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Crear Ciudad</CardTitle>
-              <CardDescription>Crear una nueva ciudad en la plataforma</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="cityName">Nombre de la Ciudad</Label>
-                <Input
-                  id="cityName"
-                  value={newCity.name}
-                  onChange={(e) => setNewCity({...newCity, name: e.target.value})}
-                  placeholder="Valencia"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="citySlug">Slug (URL)</Label>
-                <Input
-                  id="citySlug"
-                  value={newCity.slug}
-                  onChange={(e) => setNewCity({...newCity, slug: e.target.value})}
-                  placeholder="valencia"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="adminEmail">Email del Admin</Label>
-                <Input
-                  id="adminEmail"
-                  type="email"
-                  value={newCity.adminEmail}
-                  onChange={(e) => setNewCity({...newCity, adminEmail: e.target.value})}
-                  placeholder="admin@valencia.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cityBio">Biografía</Label>
-                <Input
-                  id="cityBio"
-                  value={newCity.bio}
-                  onChange={(e) => setNewCity({...newCity, bio: e.target.value})}
-                  placeholder="Descripción de la ciudad..."
-                />
-              </div>
-              <div className="flex space-x-2">
-                <Button onClick={handleCreateCity} className="flex-1 rounded-full">
-                  Crear Ciudad
-                </Button>
-                <Button variant="outline" onClick={() => setShowCreateCity(false)} className="rounded-full">
-                  Cancelar
-                </Button>
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215
               </div>
             </CardContent>
           </Card>
         </div>
       )}
-<<<<<<< HEAD
+
+        {/* Assign Admin Modal */}
+        {showAssignAdmin && cityToAssign && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md border-0 bg-input">
+            <CardHeader>
+              <CardTitle>Asignar Administrador</CardTitle>
+              <CardDescription>Asignar un administrador a la ciudad "{cityToAssign.name}"</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                {adminUsers.filter(admin => !admin.city).map((admin) => (
+                  <div key={admin.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={admin.avatar_url} />
+                        <AvatarFallback>
+                          {admin.first_name?.[0] || 'N'}{admin.last_name?.[0] || 'A'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{admin.first_name} {admin.last_name}</p>
+                        <p className="text-xs text-muted-foreground">{admin.email}</p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm"
+                      onClick={() => handleAssignAdmin(admin.id)}
+                    >
+                      Asignar
+                    </Button>
+                  </div>
+                ))}
+                {adminUsers.filter(admin => !admin.city).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <UserCog className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No hay administradores disponibles</p>
+                    <p className="text-xs">Crea un nuevo administrador primero</p>
+                  </div>
+                )}
+              </div>
+              {creationError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{creationError}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardContent>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => {
+                  setShowAssignAdmin(false);
+                  setCityToAssign(null);
+                  setCreationError(null);
+                }}>
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        )}
+      </SidebarInset>
     </SidebarProvider>
   );
 };
 
 export default SuperAdminDashboard;
-=======
-    </div>
-  );
-};
->>>>>>> bb641d44239347bd21d474715b8b4adf5dba2215

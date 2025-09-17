@@ -9,9 +9,24 @@ console.log('🔑 Google AI Config:', { PROJECT_ID });
 const ai = new GoogleGenAI({});
 
 // Query complexity classifier
-export const classifyQueryComplexity = (query: string): 'simple' | 'complex' | 'institutional' => {
-  // Detectar consultas institucionales primero
-  const institutionalIndicators = [
+export const classifyQueryComplexity = (query: string): 'simple' | 'institutional' => {
+  // 🎯 NUEVA LÓGICA: Detectar consultas que necesitan Gemini 2.5 Flash + Google Search Grounding
+  const flashGroundingIndicators = [
+    // Eventos y actividades - SIEMPRE Gemini 2.5 Flash + grounding
+    'evento', 'eventos', 'actividad', 'actividades', 'fiesta', 'fiestas', 'festival', 'festivales',
+    'concierto', 'conciertos', 'teatro', 'cine', 'exposicion', 'exposiciones', 'feria', 'ferias',
+    'mercado', 'mercados', 'celebraciones', 'agenda', 'programa', 'que hacer', 'que hacer',
+    'planes', 'ocio', 'entretenimiento', 'cultura', 'deporte', 'deportes',
+    // 🎯 CONSULTAS TEMPORALES (SIEMPRE necesitan información en tiempo real)
+    'octubre', 'noviembre', 'diciembre', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'este mes', 'próximo mes', 'esta semana', 'próxima semana',
+    'hoy', 'mañana', 'fin de semana', 'finde', 'puente', 'vacaciones', 'navidad', 'semana santa',
+    // 🎯 LUGARES Y RECOMENDACIONES (SIEMPRE necesitan información actualizada)
+    'restaurante', 'restaurantes', 'hotel', 'hoteles', 'tienda', 'tiendas', 'museo', 'museos',
+    'parque', 'parques', 'lugar', 'lugares', 'sitio', 'sitios', 'recomienda', 'recomendame',
+    'mejor', 'mejores', 'donde comer', 'donde ir', 'donde visitar', 'que visitar',
+    'pizzeria', 'bar', 'bares', 'cafe', 'cafes', 'cafeteria', 'cafeterias',
+    // 🎯 TRÁMITES Y PROCEDIMIENTOS ADMINISTRATIVOS (SIEMPRE 2.5 Flash + grounding)
     'tramite', 'tramites', 'procedimiento', 'procedimientos', 'gestion', 'gestiones',
     'ayuntamiento', 'municipio', 'alcaldia', 'gobierno local', 'administracion municipal',
     'sede electronica', 'portal ciudadano', 'atencion ciudadana', 'oficina virtual',
@@ -20,40 +35,70 @@ export const classifyQueryComplexity = (query: string): 'simple' | 'complex' | '
     'licencia', 'licencias', 'permiso', 'permisos', 'autorizacion', 'autorizaciones',
     'tasa', 'tasas', 'impuesto', 'impuestos', 'tributo', 'tributos', 'pago', 'pagos',
     'cita previa', 'cita', 'citas', 'reserva', 'reservas', 'turno', 'turnos',
+    // 🎯 SERVICIOS PÚBLICOS Y OFICINAS (SIEMPRE 2.5 Flash + grounding)
+    'oficina', 'oficinas', 'dependencia', 'dependencias', 'departamento', 'departamentos',
+    'ventanilla', 'ventanillas', 'mostrador', 'mostradores', 'atencion publico',
+    'registro civil', 'hacienda', 'seguridad social', 'sanidad', 'educacion',
+    'bomberos', 'policia local', 'guardia civil', 'proteccion civil',
+    // 🎯 INFORMACIÓN BUROCRÁTICA E INSTITUCIONAL (SIEMPRE 2.5 Flash + grounding)
     'como solicitar', 'como obtener', 'como presentar', 'como hacer', 'como tramitar',
     'donde solicitar', 'donde presentar', 'donde ir', 'donde acudir',
     'que necesito', 'que documentos', 'que requisitos', 'que papeles',
-    'documentacion', 'requisitos', 'pasos', 'proceso', 'tramitacion'
+    'documentacion', 'requisitos', 'pasos', 'proceso', 'tramitacion',
+    // 🎯 HORARIOS Y TRANSPORTE (SIEMPRE 2.5 Flash + grounding)
+    'horario', 'horarios', 'abierto', 'cerrado', 'funcionamiento',
+    'transporte', 'autobus', 'autobuses', 'tren', 'metro', 'taxi',
+    'itinerario', 'itinerarios', 'ruta', 'rutas', 'linea', 'lineas'
   ];
 
   const queryNormalized = query.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
   
-  // Verificar si es consulta institucional
-  const hasInstitutionalIntent = institutionalIndicators.some(indicator => {
+  // 🎯 NUEVA LÓGICA: Flash Lite SOLO para casos muy específicos
+  const flashLiteIndicators = [
+    // Preguntas históricas que nunca cambian
+    'historia', 'historico', 'historica', 'fundacion', 'fundado', 'origen', 'origenes',
+    'cuando se fundo', 'cuando se creo', 'siglo', 'antigua', 'antiguo', 'epoca', 'pasado',
+    'patrimonio historico', 'monumento historico', 'edificio historico',
+    // Saludos y bienvenidas
+    'hola', 'buenos dias', 'buenas tardes', 'buenas noches', 'saludos', 'bienvenido',
+    'gracias', 'de nada', 'por favor', 'disculpa', 'perdon',
+    // Respuestas muy rápidas y simples
+    'si', 'no', 'ok', 'vale', 'perfecto', 'entendido', 'claro',
+    'que tal', 'como estas', 'como va', 'todo bien',
+    // Itinerarios turísticos básicos (información que no cambia frecuentemente)
+    'ruta turistica', 'itinerario turistico', 'que ver en', 'lugares turisticos',
+    'sitios turisticos', 'puntos de interes', 'monumentos principales'
+  ];
+
+  // Verificar si es consulta que necesita Flash Lite (casos muy específicos)
+  const needsFlashLite = flashLiteIndicators.some(indicator => {
     const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     return regex.test(queryNormalized);
   });
 
-  if (hasInstitutionalIntent) {
-    console.log('🏛️ Institutional query detected - will use Gemini 2.5 Pro with grounding');
-    return 'institutional';
+  if (needsFlashLite) {
+    console.log('🎯 Flash Lite query detected - simple historical/greeting content');
+    console.log('🔍 Matched indicators:', flashLiteIndicators.filter(indicator => {
+      const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(queryNormalized);
+    }));
+    return 'simple';
   }
 
-  const complexIndicators = [
-    'buscar', 'busca', 'encuentra', 'localizar', 'ubicar', 'donde está', 'dónde está',
-    'información actual', 'noticias', 'eventos', 'horarios', 'agenda', 'tiempo real',
-    'analizar', 'comparar', 'evaluar', 'explicar en detalle', 'profundizar',
-    'múltiples', 'varios', 'opciones', 'alternativas',
-    'paso a paso', 'proceso', 'procedimiento', 'cómo hacer', 'tutorial',
-    'imagen', 'foto', 'mapa', 'ubicación', 'documento', 'pdf',
-    'restaurante', 'hotel', 'tienda', 'museo', 'parque', 'lugar', 'sitio'
-  ];
+  // Verificar si es consulta que necesita información en tiempo real (Gemini 2.5 Flash + grounding)
+  const hasRealTimeIntent = flashGroundingIndicators.some(indicator => {
+    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    return regex.test(queryNormalized);
+  });
 
-  const simpleIndicators = [
-    'hola', 'gracias', 'sí', 'no', 'ok', 'vale',
-    'qué tal', 'cómo estás', 'buenos días', 'buenas tardes',
-    'definir', 'qué es', 'significa'
-  ];
+  if (hasRealTimeIntent) {
+    console.log('🎯 Flash + Grounding query detected - real-time information needed');
+    console.log('🔍 Matched indicators:', flashGroundingIndicators.filter(indicator => {
+      const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(queryNormalized);
+    }));
+    return 'institutional';
+  }
 
   const queryLower = query.toLowerCase();
   
@@ -63,46 +108,23 @@ export const classifyQueryComplexity = (query: string): 'simple' | 'complex' | '
     queryLength: query.length,
     wordCount: query.split(' ').length
   });
-  
-  // Check for simple indicators (using word boundary matching)
-  const foundSimpleIndicators = simpleIndicators.filter(indicator => {
-    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    return regex.test(queryLower);
-  });
-  if (foundSimpleIndicators.length > 0) {
-    console.log('✅ Found simple indicators:', foundSimpleIndicators);
-    return 'simple';
-  }
 
-  // Check for complex indicators (using word boundary matching)
-  const foundComplexIndicators = complexIndicators.filter(indicator => {
-    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    return regex.test(queryLower);
-  });
-  if (foundComplexIndicators.length > 0) {
-    console.log('✅ Found complex indicators:', foundComplexIndicators);
-    return 'complex';
-  }
-
-  if (query.length > 100 || query.split(' ').length > 20) {
-    console.log('✅ Query length/complexity triggers complex classification');
-    return 'complex';
-  }
-
-  console.log('✅ Defaulting to simple classification');
-  return 'simple';
+  // Por defecto, usar Flash + Grounding para todo lo demás (principio de precaución)
+  console.log('✅ Defaulting to Flash + Grounding for comprehensive information');
+  return 'institutional';
 };
 
-// Gemini 2.5 Pro for institutional queries with Google Search grounding
+// Gemini 2.5 Flash for institutional queries with Google Search grounding
 export const processInstitutionalQuery = async (
   query: string, 
   cityContext?: string,
-  conversationHistory?: any[]
+  conversationHistory?: any[],
+  cityConfig?: any // Nueva: configuración completa de la ciudad
 ): Promise<{ text: string; events?: any[]; places?: PlaceResult[] }> => {
   try {
-    console.log('🏛️ Processing institutional query with Gemini 2.5 Pro and grounding');
+    console.log('🏛️ Processing institutional query with Gemini 2.5 Flash + Google Search grounding');
     
-    // Use Gemini 2.5 Pro with Google Search grounding for institutional queries
+    // Use Gemini 2.5 Flash with Google Search grounding for institutional queries
     const groundingTool = {
       googleSearch: {},
     };
@@ -125,6 +147,30 @@ export const processInstitutionalQuery = async (
       minute: '2-digit'
     });
 
+    // 🎯 CONFIGURACIÓN DE URLs OFICIALES PARA EVENTOS
+    const agendaEventosUrls = cityConfig?.agendaEventosUrls || [];
+    const agendaUrlsText = agendaEventosUrls.length > 0 
+      ? `
+🔒 URLs OFICIALES CONFIGURADAS PARA EVENTOS:
+- ${agendaEventosUrls.join('\n- ')}
+
+🔒 INSTRUCCIONES DE BÚSQUEDA OBLIGATORIAS PARA EVENTOS:
+- 🔒 OBLIGATORIO: Para cualquier consulta sobre eventos, SIEMPRE busca PRIMERO en estas webs oficiales
+- 🔒 CRÍTICO: Usa términos como "eventos ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}" en Google Search
+- 🔒 PRIORIDAD MÁXIMA: Si no encuentras información en estas URLs oficiales, entonces busca en otras fuentes
+- 🔒 FORMATO DE BÚSQUEDA: "eventos [mes] [año] ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
+- 🔒 EJEMPLOS DE BÚSQUEDA:
+  * "eventos octubre 2025 ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
+  * "agenda cultural ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
+  * "actividades ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"`
+      : '🔒 No hay URLs oficiales configuradas para eventos en esta ciudad';
+
+    console.log('🔍 Event URLs configuration:', {
+      hasEventUrls: agendaEventosUrls.length > 0,
+      eventUrls: agendaEventosUrls,
+      query: query.substring(0, 100)
+    });
+
     let systemPrompt = `Eres WeAreCity, el asistente inteligente de ${cityContext || 'la ciudad'}. 
 Tienes acceso a Google Search en tiempo real para proporcionar información actualizada y precisa.
 
@@ -137,7 +183,7 @@ Tienes acceso a Google Search en tiempo real para proporcionar información actu
 - Para consultas sobre eventos, noticias, horarios o información actual, utiliza Google Search automáticamente
 - Busca información específica en webs oficiales cuando sea posible
 - SIEMPRE cita las fuentes de información cuando uses datos de búsquedas
-- Para eventos en ${cityContext || 'la ciudad'}, busca en webs oficiales del ayuntamiento, turismo local, etc.
+${agendaUrlsText}
 
 ⚠️ RESTRICCIÓN GEOGRÁFICA CRÍTICA:
 - SOLO incluye eventos que tengan lugar en ${cityContext || 'la ciudad'}, España
@@ -320,7 +366,7 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
     const fullPrompt = `${systemPrompt}${conversationContext}\n\nConsulta: ${query}`;
 
     const result = await model({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: fullPrompt,
       config,
     });
@@ -401,6 +447,27 @@ INFORMACIÓN ACTUAL:
 - Fecha y hora actual: ${currentDateTime} (España)
 - Usa esta fecha y hora como referencia
 
+🗺️ FORMATO ESPECIAL PARA LUGARES:
+Cuando la consulta sea sobre encontrar lugares (restaurantes, hoteles, tiendas, museos, etc.), también incluye un bloque JSON para lugares:
+\`\`\`json
+{
+  "places": [
+    {
+      "name": "Nombre del lugar",
+      "address": "Dirección completa",
+      "rating": 4.5 (opcional),
+      "type": "restaurante/hotel/museo/etc",
+      "description": "Breve descripción del lugar"
+    }
+  ]
+}
+\`\`\`
+
+⚠️ IMPORTANTE PARA LUGARES:
+- SOLO incluye lugares ubicados en ${cityContext || 'la ciudad'}, España
+- Verifica que la dirección sea específicamente en ${cityContext || 'la ciudad'}, España
+- NO incluyas lugares de ciudades cercanas o de la provincia si no son en ${cityContext || 'la ciudad'}
+
 Responde de forma concisa y directa en español.
 Mantén un tono amigable y profesional.`;
 
@@ -425,10 +492,37 @@ Mantén un tono amigable y profesional.`;
     // Extract events from JSON if present
     const events = extractEventsFromResponse(responseText);
     
+    // Extract places from JSON if present
+    const places = extractPlacesFromResponse(responseText);
+    
+    // 🗺️ DETECCIÓN Y BÚSQUEDA DE LUGARES TAMBIÉN EN CONSULTAS SIMPLES
+    let additionalPlaces: PlaceResult[] = [];
+    const placeKeywords = ['restaurante', 'restaurantes', 'hotel', 'hoteles', 'tienda', 'tiendas', 'museo', 'museos', 'parque', 'parques', 'lugar', 'lugares', 'sitio', 'sitios', 'buscar', 'encuentra', 'donde', 'dónde', 'localiza', 'ubica', 'recomienda', 'recomendame', 'mejor', 'mejores'];
+    const hasPlaceQuery = placeKeywords.some(keyword => query.toLowerCase().includes(keyword));
+    
+    console.log('🔍 Simple query place detection:', {
+      query: query.toLowerCase(),
+      placeKeywords,
+      matchedKeywords: placeKeywords.filter(keyword => query.toLowerCase().includes(keyword)),
+      hasPlaceQuery,
+      cityContext
+    });
+    
+    if (hasPlaceQuery && cityContext) {
+      console.log('🗺️ Detected place query in simple query, searching Google Places...');
+      additionalPlaces = await searchPlaces(query, cityContext);
+      
+      // Add photo URLs to places
+      additionalPlaces = additionalPlaces.map(place => ({
+        ...place,
+        photoUrl: place.photos?.[0] ? getPlacePhotoUrl(place.photos[0].photo_reference) : undefined
+      }));
+    }
+    
     return {
       text: responseText,
       events: events,
-      places: []
+      places: [...places, ...additionalPlaces]
     };
 
   } catch (error) {
@@ -441,13 +535,14 @@ Mantén un tono amigable y profesional.`;
 export const processUserQuery = async (
   query: string,
   cityContext?: string,
-  conversationHistory?: any[]
+  conversationHistory?: any[],
+  cityConfig?: any // Nueva: configuración completa de la ciudad
 ): Promise<{
   response: string;
   events?: any[];
   places?: PlaceResult[];
-  modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-pro';
-  complexity: 'simple' | 'complex' | 'institutional';
+  modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-flash';
+  complexity: 'simple' | 'institutional';
   searchPerformed: boolean;
 }> => {
   const complexity = classifyQueryComplexity(query);
@@ -456,27 +551,21 @@ export const processUserQuery = async (
   
   let modelMessage = '';
   if (complexity === 'institutional') {
-    modelMessage = 'Gemini 2.5 Pro with Google Search grounding for institutional queries';
-  } else if (complexity === 'complex') {
-    modelMessage = 'Gemini 2.5 Flash-Lite with Google Search';
+    modelMessage = 'Gemini 2.5 Flash with Google Search grounding for real-time information';
   } else {
-    modelMessage = 'Gemini 2.5 Flash-Lite';
+    modelMessage = 'Gemini 2.5 Flash-Lite for simple/historical queries only';
   }
   console.log(`🤖 Using model: ${modelMessage}`);
 
   try {
     let result: { text: string; events?: any[]; places?: PlaceResult[] };
     let searchPerformed = false;
-    let modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-pro';
+    let modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-flash';
 
     if (complexity === 'institutional') {
-      result = await processInstitutionalQuery(query, cityContext, conversationHistory);
+      result = await processInstitutionalQuery(query, cityContext, conversationHistory, cityConfig);
       searchPerformed = true;
-      modelUsed = 'gemini-2.5-pro';
-    } else if (complexity === 'complex') {
-      result = await processComplexQuery(query, cityContext, conversationHistory);
-      searchPerformed = true; // Grounding nativo activado
-      modelUsed = 'gemini-2.5-flash-lite';
+      modelUsed = 'gemini-2.5-flash';
     } else {
       result = await processSimpleQuery(query, cityContext, conversationHistory);
       modelUsed = 'gemini-2.5-flash-lite';
@@ -542,7 +631,7 @@ Responde en español de manera clara y útil.`;
       const imageData = await fetchMediaAsBase64(mediaUrl);
       
       const result = await model({
-        model: "gemini-2.5-pro",
+        model: "gemini-2.5-flash",
         contents: [
           { text: `${systemPrompt}\n\nConsulta: ${query}` },
           {
@@ -568,7 +657,7 @@ Responde en español de manera clara y útil.`;
       const fullPrompt = `${systemPrompt}\n\nContenido del documento:\n${documentText}\n\nConsulta: ${query}`;
 
       const result = await model({
-        model: "gemini-2.5-pro",
+        model: "gemini-2.5-flash",
         contents: fullPrompt
       });
 

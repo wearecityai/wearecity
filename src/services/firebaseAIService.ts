@@ -18,45 +18,45 @@ import { app } from '../integrations/firebase/config';
 // AI Response interface
 export interface AIResponse {
   response: string;
-  modelUsed: 'gemini-2.5-flash-lite' | 'gemini-2.5-pro';
-  complexity: 'simple' | 'complex';
+  modelUsed: 'gemini-2.5-flash-lite' | 'gemini-2.5-flash';
+  complexity: 'simple' | 'institutional';
   searchPerformed: boolean;
   multimodal?: boolean;
 }
 
 // Query complexity classifier
-export const classifyQueryComplexity = (query: string): 'simple' | 'complex' => {
-  const complexIndicators = [
-    'buscar', 'busca', 'encuentra', 'localizar', 'ubicar', 'donde está', 'dónde está',
-    'información actual', 'noticias', 'eventos', 'horarios', 'agenda', 'tiempo real',
-    'analizar', 'comparar', 'evaluar', 'explicar en detalle', 'profundizar',
-    'múltiples', 'varios', 'opciones', 'alternativas',
-    'paso a paso', 'proceso', 'procedimiento', 'cómo hacer', 'tutorial',
-    'imagen', 'foto', 'mapa', 'ubicación', 'documento', 'pdf',
-    'eventos este mes', 'eventos', 'actividades', 'cultura', 'deportes'
+export const classifyQueryComplexity = (query: string): 'simple' | 'institutional' => {
+  // 🎯 Flash Lite SOLO para casos muy específicos
+  const flashLiteIndicators = [
+    // Preguntas históricas que nunca cambian
+    'historia', 'historico', 'historica', 'fundacion', 'fundado', 'origen', 'origenes',
+    'cuando se fundo', 'cuando se creo', 'siglo', 'antigua', 'antiguo', 'epoca', 'pasado',
+    'patrimonio historico', 'monumento historico', 'edificio historico',
+    // Saludos y bienvenidas
+    'hola', 'buenos dias', 'buenas tardes', 'buenas noches', 'saludos', 'bienvenido',
+    'gracias', 'de nada', 'por favor', 'disculpa', 'perdon',
+    // Respuestas muy rápidas y simples
+    'si', 'no', 'ok', 'vale', 'perfecto', 'entendido', 'claro',
+    'que tal', 'como estas', 'como va', 'todo bien',
+    // Itinerarios turísticos básicos (información que no cambia frecuentemente)
+    'ruta turistica', 'itinerario turistico', 'que ver en', 'lugares turisticos',
+    'sitios turisticos', 'puntos de interes', 'monumentos principales'
   ];
 
-  const simpleIndicators = [
-    'hola', 'gracias', 'sí', 'no', 'ok', 'vale',
-    'qué tal', 'cómo estás', 'buenos días', 'buenas tardes',
-    'definir', 'qué es', 'significa'
-  ];
-
-  const queryLower = query.toLowerCase();
+  const queryNormalized = query.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
   
-  if (simpleIndicators.some(indicator => queryLower.includes(indicator))) {
+  // Verificar si es consulta que necesita Flash Lite (casos muy específicos)
+  const needsFlashLite = flashLiteIndicators.some(indicator => {
+    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    return regex.test(queryNormalized);
+  });
+
+  if (needsFlashLite) {
     return 'simple';
   }
 
-  if (complexIndicators.some(indicator => queryLower.includes(indicator))) {
-    return 'complex';
-  }
-
-  if (query.length > 100 || query.split(' ').length > 20) {
-    return 'complex';
-  }
-
-  return 'simple';
+  // Por defecto, usar Flash + Grounding para todo lo demás
+  return 'institutional';
 };
 
 // Initialize Firebase AI
@@ -212,7 +212,7 @@ export const processComplexQuery = async (
     console.log('🔍 Processing complex query with Gemini 2.5 Pro');
     
     const model = getGenerativeModel(ai, {
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.1,
         topP: 0.8,
@@ -269,7 +269,7 @@ Consulta: ${query}`;
     
     return {
       response,
-      modelUsed: 'gemini-2.5-pro',
+      modelUsed: 'gemini-2.5-flash',
       complexity: 'complex',
       searchPerformed: true // Complex queries should perform search
     };
@@ -289,10 +289,10 @@ export const processUserQuery = async (
   const complexity = classifyQueryComplexity(query);
   
   console.log(`🎯 Query classified as: ${complexity}`);
-  console.log(`🤖 Using model: ${complexity === 'complex' ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash-Lite'}`);
+  console.log(`🤖 Using model: ${complexity === 'institutional' ? 'Gemini 2.5 Flash + Grounding' : 'Gemini 2.5 Flash-Lite'}`);
 
   try {
-    if (complexity === 'complex') {
+    if (complexity === 'institutional') {
       return await processComplexQuery(query, cityContext, conversationHistory);
     } else {
       return await processSimpleQuery(query, cityContext, conversationHistory);
@@ -321,7 +321,7 @@ export const processMultimodalQuery = async (
     console.log('🖼️ Processing multimodal query with Gemini 2.5 Pro');
     
     const model = getGenerativeModel(ai, {
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.1,
         topP: 0.8,
@@ -349,7 +349,7 @@ Procesa esta consulta considerando el contenido multimedia proporcionado.`;
     
     return {
       response,
-      modelUsed: 'gemini-2.5-pro',
+      modelUsed: 'gemini-2.5-flash',
       complexity: 'complex',
       searchPerformed: false,
       multimodal: true

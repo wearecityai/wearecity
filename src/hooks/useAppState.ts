@@ -55,7 +55,6 @@ export const useAppState = (citySlug?: string) => {
   // Decidir qué configuración usar según el rol del usuario
   // Los administradores siempre usan su configuración personal, ciudadanos usan configuración pública
   const isAdmin = profile?.role === 'administrativo';
-  console.log('🔍 useAppState config decision:', { citySlug, isAdmin, profileRole: profile?.role });
   
   const chatConfig = isAdmin ? assistantConfigHook.config : publicChatConfig;
   const setChatConfig = isAdmin ? assistantConfigHook.setConfig : setPublicChatConfig;

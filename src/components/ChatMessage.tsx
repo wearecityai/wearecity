@@ -9,6 +9,7 @@ import { Skeleton } from './ui/skeleton';
 import { ChatMessage as ChatMessageType, MessageRole, PlaceCardInfo } from '../types';
 import EventCard from './EventCard';
 import PlaceCard from './PlaceCard';
+import { FormButton } from './FormButton';
 import { EnhancedAIResponseRenderer } from './EnhancedAIResponseRenderer';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { useStrictSequentialReveal } from '../hooks/useStrictSequentialReveal';
@@ -77,14 +78,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   const cleanContent = (content: string): string => {
     if (!content || typeof content !== 'string') return content;
     
-    // Si hay eventos o place cards, eliminar todo el JSON y marcadores
+    // Si hay eventos o place cards, eliminar solo los marcadores específicos y JSON
     if (message.events && message.events.length > 0 || message.placeCards && message.placeCards.length > 0) {
       return content
         .replace(/\[EVENT_CARD_START\][\s\S]*?\[EVENT_CARD_END\]/g, '')
         .replace(/\[PLACE_CARD_START\][\s\S]*?\[PLACE_CARD_END\]/g, '')
-        .replace(/```json[\s\S]*?```/g, '')
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/```/g, '')
+        .replace(/```json[\s\S]*?```/g, '') // Solo eliminar bloques JSON específicos
         .replace(/^`?json\s*$/i, '')
         .replace(/\{[^}]*"events"[^}]*\}/g, '') // Eliminar objetos JSON con eventos
         .replace(/\{[^}]*"places"[^}]*\}/g, '') // Eliminar objetos JSON con lugares
@@ -92,27 +91,32 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
         .replace(/\{[^}]*"eventCards"[^}]*\}/g, '') // Eliminar objetos JSON con eventCards
         .trim();
     } else {
-      // Si no hay tarjetas, solo limpiar formato JSON básico
+      // Si no hay tarjetas, solo limpiar formato JSON básico, preservar Markdown
       return content
-        .replace(/```json[\s\S]*?```/g, '')
-        .replace(/```/g, '')
-        .replace(/^`?json\s*$/i, '');
+        .replace(/```json[\s\S]*?```/g, '') // Solo eliminar bloques JSON específicos
+        .replace(/^`?json\s*$/i, '')
+        .trim();
     }
   };
 
   // Limpiar el contenido original antes de pasarlo al typewriter
   const cleanedContent = cleanContent(message.content || '');
 
-  // Debug: Log typewriter decision
-  console.log('🔍 Typewriter debug:', {
-    messageId: message.id,
-    shouldAnimate: message.shouldAnimate,
-    isUser,
-    isTyping: message.isTyping,
-    error: message.error,
-    hasContent: !!message.content,
-    shouldUseTypewriter
-  });
+  // Debug: Log typewriter decision only when it changes
+  const debugRef = useRef<string>('');
+  const debugKey = `${message.id}-${shouldUseTypewriter}-${!!message.content}`;
+  if (debugRef.current !== debugKey) {
+    debugRef.current = debugKey;
+    console.log('🔍 Typewriter debug:', {
+      messageId: message.id,
+      shouldAnimate: message.shouldAnimate,
+      isUser,
+      isTyping: message.isTyping,
+      error: message.error,
+      hasContent: !!message.content,
+      shouldUseTypewriter
+    });
+  }
   
   // Only call useTypewriter if we should animate, otherwise use empty string to avoid any side effects
   const { displayText, isTyping: typewriterIsTyping, skipToEnd } = useTypewriter(
@@ -134,24 +138,31 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
   // Strict sequential reveal for cards - only after text is complete
   const totalCards = (message.events?.length || 0) + (message.placeCards?.length || 0);
   
-  console.log('🔍 DEBUG - ChatMessage render:', {
-    messageId: message.id,
-    hasEvents: !!message.events?.length,
-    eventsCount: message.events?.length || 0,
-    hasPlaceCards: !!message.placeCards?.length,
-    placeCardsCount: message.placeCards?.length || 0,
-    totalCards,
-    contentToDisplay: contentToDisplay?.substring(0, 100),
-    messageContent: message.content?.substring(0, 100)
-  });
+  // Only log debug info for new messages or when cards change
+  const renderDebugRef = useRef<string>('');
+  const renderDebugKey = `${message.id}-${totalCards}-${!!contentToDisplay}`;
+  if (renderDebugRef.current !== renderDebugKey) {
+    renderDebugRef.current = renderDebugKey;
+    console.log('🔍 DEBUG - ChatMessage render:', {
+      messageId: message.id,
+      hasEvents: !!message.events?.length,
+      eventsCount: message.events?.length || 0,
+      hasPlaceCards: !!message.placeCards?.length,
+      placeCardsCount: message.placeCards?.length || 0,
+      totalCards,
+      contentToDisplay: contentToDisplay?.substring(0, 100)
+    });
+    
+    if (message.events === undefined || message.placeCards === undefined) {
+      console.log('🚨 DEBUG - ChatMessage message.events:', message.events);
+      console.log('🚨 DEBUG - ChatMessage message.placeCards:', message.placeCards);
+    }
+  }
   
-  // 🚨 DEBUG ADICIONAL - Verificar estructura completa del mensaje
-  console.log('🚨 DEBUG - ChatMessage message completo:', message);
-  console.log('🚨 DEBUG - ChatMessage message.events:', message.events);
-  console.log('🚨 DEBUG - ChatMessage message.placeCards:', message.placeCards);
-  
-  // 🔍 Logs de identificación del sistema de respuesta
-  if (message.metadata) {
+  // 🔍 Logs de identificación del sistema de respuesta - only log once per message
+  const metadataDebugRef = useRef<string>('');
+  if (message.metadata && metadataDebugRef.current !== message.id) {
+    metadataDebugRef.current = message.id;
     console.log('🔍 ===== SISTEMA DE RESPUESTA IDENTIFICADO (FRONTEND) =====');
     console.log('📊 RAG used:', message.metadata.ragUsed);
     console.log('📈 RAG results count:', message.metadata.ragResultsCount);
@@ -172,24 +183,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
         console.log(`   - Tipo de búsqueda: ${message.metadata.ragSearchType}`);
       }
     } else if (message.metadata.searchPerformed) {
-      if (message.metadata.modelUsed === 'gemini-2.5-pro') {
-        console.log('✅ RESPUESTA: Gemini 2.5 Pro + Google Search Grounding');
-      } else {
-        console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite + Google Search Grounding');
-      }
+      console.log('✅ RESPUESTA: Gemini 2.5 Flash + Google Search Grounding');
     } else {
-      console.log('✅ RESPUESTA: Gemini 2.5 Flash-Lite (Sin búsqueda)');
+      console.log('✅ RESPUESTA: Gemini 2.5 Flash (Sin búsqueda)');
     }
     console.log('🔍 ========================================================');
   }
   
-  const { shouldShowCard } = useStrictSequentialReveal({
+  const { shouldShowCard, visibleCards } = useStrictSequentialReveal({
     textContent: contentToDisplay, // Use the content that's actually being displayed
     totalCards,
-    typewriterIsComplete: shouldUseTypewriter ? (!typewriterIsTyping && contentToDisplay === message.content) : true,
+    typewriterIsComplete: shouldUseTypewriter ? (!typewriterIsTyping && contentToDisplay && contentToDisplay.trim().length > 0) : true,
     cardDelay: 400,
     messageId: message.id
   });
+  
+  // Logs removidos para evitar bucle infinito
 
   const processTextForParagraphs = (text: string): React.ReactNode => {
     // Split by double line breaks (paragraph breaks) but preserve single line breaks
@@ -318,7 +327,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
              style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}
            >
             <Card className="bg-muted border-0 overflow-hidden">
-              <CardContent className="px-3 sm:px-4 py-3 rounded-2xl rounded-br-sm">
+              <CardContent className="px-3 sm:px-4 py-2 rounded-md">
                 {(message.content && message.content.trim() !== "") && (
                   <EnhancedAIResponseRenderer 
                     content={message.content}
@@ -377,7 +386,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                       
                       
                       {/* Event Cards y Place Cards */}
-                      {((message.events && message.events.length > 0) || filteredPlaceCards.length > 0) && (
+                      {((message.events && message.events.length > 0) || filteredPlaceCards.length > 0 || (message.formButtonsForMessage && message.formButtonsForMessage.length > 0)) && (
                         <div className="space-y-0">
                           {isFiltering && (
                             <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
@@ -386,33 +395,78 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                             </div>
                           )}
                           
-                          {message.events && message.events.map((event, index) => (
-                            <div key={`${message.id}-event-${index}`} className="mb-0">
-                              <EventCard event={event} />
-                              {index < message.events.length - 1 && (
-                                <div className="border-t border-border/30 my-3"></div>
-                              )}
-                            </div>
-                          ))}
+                          {message.events && message.events.map((event, index) => {
+                            const eventCardIndex = index; // Event cards come first
+                            const shouldShow = shouldShowCard(eventCardIndex);
+                            
+                            // Logs removidos para evitar bucle infinito
+                            
+                            if (!shouldShow) {
+                              return null; // Don't render if not yet revealed
+                            }
+                            
+                            return (
+                              <div key={`${message.id}-event-${index}`} className="mb-0">
+                                <EventCard event={event} />
+                                {index < message.events.length - 1 && (
+                                  <div className="border-t border-border/30 my-3"></div>
+                                )}
+                              </div>
+                            );
+                          })}
                           
-                          {filteredPlaceCards.map((place, index) => (
-                            <div key={`${message.id}-place-${place.id}`} className="mb-0">
-                              <PlaceCard 
-                                place={place} 
-                                onRetry={(placeId) => {
-                                  if (setMessages) {
-                                    const placeCard = message.placeCards?.find(card => card.id === placeId);
-                                    if (placeCard) {
-                                      retryPlaceCard(message.id, placeCard, setMessages);
+                          {filteredPlaceCards.map((place, index) => {
+                            const placeCardIndex = (message.events?.length || 0) + index; // Place cards come after events
+                            const shouldShow = shouldShowCard(placeCardIndex);
+                            
+                            // Logs removidos para evitar bucle infinito
+                            
+                            if (!shouldShow) {
+                              return null; // Don't render if not yet revealed
+                            }
+                            
+                            return (
+                              <div key={`${message.id}-place-${place.id}`} className="mb-0">
+                                <PlaceCard 
+                                  place={place} 
+                                  onRetry={(placeId) => {
+                                    if (setMessages) {
+                                      const placeCard = message.placeCards?.find(card => card.id === placeId);
+                                      if (placeCard) {
+                                        retryPlaceCard(message.id, placeCard, setMessages);
+                                      }
                                     }
-                                  }
-                                }}
-                              />
-                              {index < filteredPlaceCards.length - 1 && (
-                                <div className="border-t border-border/30 my-3"></div>
-                              )}
-                            </div>
-                          ))}
+                                  }}
+                                />
+                                {index < filteredPlaceCards.length - 1 && (
+                                  <div className="border-t border-border/30 my-3"></div>
+                                )}
+                              </div>
+                            );
+                          })}
+                          
+                          {/* Renderizar formularios */}
+                          {message.formButtonsForMessage?.map((formButton, index) => {
+                            const formButtonIndex = (message.events?.length || 0) + (message.placeCards?.length || 0) + index;
+                            const shouldShow = shouldShowCard(formButtonIndex);
+                            
+                            if (!shouldShow) {
+                              return null;
+                            }
+                            
+                            return (
+                              <div key={`${message.id}-form-${index}`} className="mb-0">
+                                <FormButton 
+                                  title={formButton.title}
+                                  url={formButton.url}
+                                  description={formButton.description}
+                                />
+                                {index < message.formButtonsForMessage.length - 1 && (
+                                  <div className="border-t border-border/30 my-3"></div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                        
@@ -424,7 +478,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                            </p>
                          </div>
                        )}
-                      {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (
+                      {(!message.content || message.content.trim() === "") && (!message.events || message.events.length === 0) && (!message.placeCards || message.placeCards.length === 0) && (!message.formButtonsForMessage || message.formButtonsForMessage.length === 0) && (
                         <p className="text-muted-foreground text-sm">{t('common.error')}</p>
                       )}
                     </div>
@@ -464,11 +518,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDownloadPdf, confi
                         </span>
                       ) : message.metadata.searchPerformed ? (
                         <span className="px-1.5 py-0.5 bg-green-50 text-green-600 rounded-md text-xs opacity-70">
-                          🔍 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'} + Google
+                          🔍 2.5 Flash + Google
                         </span>
                       ) : (
                         <span className="px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded-md text-xs opacity-70">
-                          🤖 {message.metadata.modelUsed === 'gemini-2.5-pro' ? '2.5 Pro' : '2.5 Flash'}
+                          🤖 2.5 Flash
                         </span>
                       )}
                     </div>

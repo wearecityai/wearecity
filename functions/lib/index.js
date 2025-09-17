@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRAGStatsFunction = exports.getRAGConversationsFunction = exports.ragQueryFunction = exports.hybridSearchFunction = exports.vectorSearchFunction = exports.regenerateEmbeddingsFunction = exports.generateBatchEmbeddingsFunction = exports.generateEmbeddingsFunction = exports.processManualTextFunction = exports.processDocumentFunction = exports.advancedCrawlingFunction = exports.advancedScrapingFunction = exports.createRAGCollections = exports.setupRAGSystem = exports.deleteUserData = exports.setupAndFixMetrics = exports.migrateMetricsData = exports.debugMetrics = exports.cleanupOldMetrics = exports.getCityMetrics = exports.recordChatMetric = exports.initializeCategories = exports.secureGoogleSearch = exports.classifyQuery = exports.processAIChat = exports.securityDashboard = exports.getGoogleMapsApiKey = exports.healthCheck = void 0;
+exports.getRAGStatsFunction = exports.getRAGConversationsFunction = exports.ragQueryFunction = exports.hybridSearchFunction = exports.vectorSearchFunction = exports.regenerateEmbeddingsFunction = exports.generateBatchEmbeddingsFunction = exports.generateEmbeddingsFunction = exports.processManualTextFunction = exports.processDocumentFunction = exports.advancedCrawlingFunction = exports.advancedScrapingFunction = exports.createRAGCollections = exports.setupRAGSystem = exports.deleteUserData = exports.setupAndFixMetrics = exports.migrateMetricsData = exports.debugMetrics = exports.cleanupOldMetrics = exports.getCityMetrics = exports.recordChatMetric = exports.initializeCategories = exports.secureGoogleSearch = exports.classifyQuery = exports.processAIChat = exports.securityDashboard = exports.enableMapsAPIs = exports.getGoogleMapsApiKey = exports.healthCheck = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const cors_1 = __importDefault(require("cors"));
@@ -41,6 +41,7 @@ const documentProcessor_1 = require("./documentProcessor");
 const embeddingGenerator_1 = require("./embeddingGenerator");
 const vectorSearch_1 = require("./vectorSearch");
 const ragRetrieval_1 = require("./ragRetrieval");
+// import { clearRAGData, clearCityRAGDataFunction } from './clearRAGData'; // Temporarily disabled
 // Importar servicio de Google Search seguro
 const googleSearchService_1 = require("./googleSearchService");
 // Importar rate limiting
@@ -65,24 +66,87 @@ exports.healthCheck = functions.https.onRequest((req, res) => {
 });
 // Get Google Maps API key
 exports.getGoogleMapsApiKey = functions.https.onCall(async (data, context) => {
+    console.log('🔑 getGoogleMapsApiKey called');
+    console.log('📊 Context auth:', context.auth ? 'authenticated' : 'not authenticated');
     try {
         // Verify authentication
         if (!context.auth) {
+            console.log('❌ No authentication context');
             throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
         }
-        // Return the Google Maps API key from environment variables
-        const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+        console.log('✅ User authenticated:', context.auth.uid);
+        // Check all environment variables
+        console.log('🔍 Environment variables check:');
+        console.log('   GOOGLE_MAPS_API_KEY:', process.env.GOOGLE_MAPS_API_KEY ? 'SET' : 'NOT SET');
+        console.log('   GOOGLE_PLACES_API_KEY:', process.env.GOOGLE_PLACES_API_KEY ? 'SET' : 'NOT SET');
+        console.log('   GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
+        // Try multiple possible variable names
+        const apiKey = process.env.GOOGLE_MAPS_API_KEY ||
+            process.env.GOOGLE_PLACES_API_KEY ||
+            process.env.GEMINI_API_KEY;
+        console.log('🔑 Final API key:', apiKey ? 'FOUND' : 'NOT FOUND');
         if (!apiKey) {
+            console.log('❌ No API key found in any environment variable');
             throw new functions.https.HttpsError('internal', 'Google Maps API key not configured');
         }
+        console.log('✅ Returning API key successfully');
         return {
             apiKey: apiKey
         };
     }
     catch (error) {
-        console.error('Error getting Google Maps API key:', error);
+        console.error('❌ Error in getGoogleMapsApiKey:', error);
+        console.error('❌ Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         throw new functions.https.HttpsError('internal', 'Failed to get Google Maps API key');
     }
+});
+// Enable Google Maps APIs
+exports.enableMapsAPIs = functions.https.onRequest(async (req, res) => {
+    return corsHandler(req, res, async () => {
+        try {
+            console.log('🔧 Habilitando APIs de Google Maps...');
+            const { GoogleApis } = await Promise.resolve().then(() => __importStar(require('googleapis')));
+            const google = new GoogleApis();
+            const serviceUsage = google.serviceusage('v1');
+            const apisToEnable = [
+                'places-backend.googleapis.com',
+                'maps-backend.googleapis.com',
+                'geocoding-backend.googleapis.com'
+            ];
+            const results = [];
+            for (const api of apisToEnable) {
+                try {
+                    console.log(`📡 Habilitando ${api}...`);
+                    const result = await serviceUsage.services.enable({
+                        name: `projects/wearecity-2ab89/services/${api}`
+                    });
+                    console.log(`✅ ${api} habilitada correctamente`);
+                    results.push({ api, status: 'success', result: result.data });
+                }
+                catch (error) {
+                    console.error(`❌ Error habilitando ${api}:`, error);
+                    results.push({ api, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
+                }
+            }
+            res.status(200).json({
+                success: true,
+                results,
+                summary: {
+                    total: apisToEnable.length,
+                    successful: results.filter(r => r.status === 'success').length,
+                    failed: results.filter(r => r.status === 'error').length
+                }
+            });
+        }
+        catch (error) {
+            console.error('❌ Error general:', error);
+            res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+    });
 });
 // Enterprise Security Dashboard endpoint
 exports.securityDashboard = functions.https.onRequest(async (req, res) => {
@@ -163,113 +227,172 @@ exports.processAIChat = functions.https.onRequest(async (req, res) => {
                 });
             }
             const idToken = authHeader.split('Bearer ')[1];
-            const decodedToken = await admin.auth().verifyIdToken(idToken);
-            const userId = decodedToken.uid;
-            // Enterprise security monitoring
-            await securityMonitor_1.securityMonitor.monitorAuthentication(userId, true, req.ip, req.headers['user-agent']);
-            await auditLogger_1.auditLogger.logAuthentication(userId, 'ai_chat_access', true, { endpoint: 'processAIChat' }, req);
-            // Check rate limit
-            const rateLimitResult = await rateLimit_1.rateLimitService.checkRateLimit(userId, 'ai-chat');
-            if (!rateLimitResult.allowed) {
-                // Log rate limit violation
-                await auditLogger_1.auditLogger.logRateLimitViolation(userId, 'ai-chat', {
-                    remainingRequests: rateLimitResult.remainingRequests,
-                    resetTime: rateLimitResult.resetTime
-                }, req);
-                return res.status(429).json({
-                    error: 'Rate limit exceeded',
-                    message: `Too many requests. Try again after ${rateLimitResult.resetTime.toISOString()}`,
-                    remainingRequests: rateLimitResult.remainingRequests,
-                    resetTime: rateLimitResult.resetTime.toISOString()
-                });
-            }
-            // Extract and validate request data
-            const rawData = req.body;
+            let userId;
             try {
-                const validatedQuery = validation_1.ValidationService.validateChatQuery(rawData.query);
-                // Enterprise security: Monitor chat query for threats
-                const queryAllowed = await securityMonitor_1.securityMonitor.monitorChatQuery(userId, validatedQuery, req.ip);
-                if (!queryAllowed) {
-                    return res.status(403).json({
-                        error: 'Security violation',
-                        message: 'Query blocked due to security concerns'
-                    });
+                const decodedToken = await admin.auth().verifyIdToken(idToken);
+                userId = decodedToken.uid;
+                // Enterprise security monitoring (simplified for debugging)
+                try {
+                    await securityMonitor_1.securityMonitor.monitorAuthentication(userId, true, req.ip, req.headers['user-agent']);
+                    await auditLogger_1.auditLogger.logAuthentication(userId, 'ai_chat_access', true, { endpoint: 'processAIChat' }, req);
                 }
-                const validatedCitySlug = validation_1.ValidationService.validateCitySlug(rawData.citySlug);
-                const validatedConversationHistory = validation_1.ValidationService.validateConversationHistory(rawData.conversationHistory);
-                const validatedMediaUrl = validation_1.ValidationService.validateMediaUrl(rawData.mediaUrl);
-                const validatedMediaType = validation_1.ValidationService.validateMediaType(rawData.mediaType);
-                // Monitor API usage patterns
-                await securityMonitor_1.securityMonitor.monitorApiUsage(userId, 'ai-chat', 'processAIChat');
-                const { query, citySlug, conversationHistory, mediaUrl, mediaType } = {
-                    query: validatedQuery,
-                    citySlug: validatedCitySlug,
-                    conversationHistory: validatedConversationHistory,
-                    mediaUrl: validatedMediaUrl,
-                    mediaType: validatedMediaType
-                };
-                // Get city context - either from direct parameter or citySlug lookup
-                let cityContext = rawData.cityContext || '';
-                if (!cityContext && citySlug) {
-                    const cityDoc = await admin.firestore()
-                        .collection('cities')
-                        .where('slug', '==', citySlug)
-                        .limit(1)
-                        .get();
-                    if (!cityDoc.empty) {
-                        const cityData = cityDoc.docs[0].data();
-                        cityContext = cityData.name || '';
+                catch (securityError) {
+                    console.warn('Security monitoring failed (non-critical):', securityError);
+                }
+                // Check rate limit (simplified for debugging)
+                try {
+                    const rateLimitResult = await rateLimit_1.rateLimitService.checkRateLimit(userId, 'ai-chat');
+                    if (!rateLimitResult.allowed) {
+                        // Log rate limit violation
+                        try {
+                            await auditLogger_1.auditLogger.logRateLimitViolation(userId, 'ai-chat', {
+                                remainingRequests: rateLimitResult.remainingRequests,
+                                resetTime: rateLimitResult.resetTime
+                            }, req);
+                        }
+                        catch (auditError) {
+                            console.warn('Audit logging failed (non-critical):', auditError);
+                        }
+                        return res.status(429).json({
+                            error: 'Rate limit exceeded',
+                            message: `Too many requests. Try again after ${rateLimitResult.resetTime.toISOString()}`,
+                            remainingRequests: rateLimitResult.remainingRequests,
+                            resetTime: rateLimitResult.resetTime.toISOString()
+                        });
                     }
                 }
-                let result;
-                // Handle multimodal queries (images/documents)
-                if (mediaUrl && mediaType) {
-                    console.log('🖼️ Processing multimodal query');
-                    const multimodalResult = await (0, vertexAIService_1.processMultimodalQuery)(query, mediaUrl, mediaType, cityContext);
-                    result = {
-                        response: multimodalResult.text,
-                        events: multimodalResult.events,
-                        places: multimodalResult.places,
-                        modelUsed: 'gemini-2.5-pro',
-                        complexity: 'complex',
-                        searchPerformed: false,
-                        multimodal: true
-                    };
+                catch (rateLimitError) {
+                    console.warn('Rate limiting failed (non-critical), allowing request:', rateLimitError);
                 }
-                else {
-                    // Handle text queries
-                    console.log('💬 Processing text query');
-                    // 🎯 PASO 1: Intentar RAG primero
-                    console.log('🔍 Step 1: Trying RAG first...');
-                    const ragResult = await tryRAGFirst(query, userId, citySlug, cityContext);
-                    if (ragResult) {
-                        // RAG encontró información suficiente
-                        console.log('✅ RAG: Found sufficient information, using RAG response');
-                        result = ragResult;
+                // Extract and validate request data
+                const rawData = req.body;
+                // DEBUG: Log the received data
+                console.log('🔍 DEBUG - Firebase Function received data:', {
+                    citySlug: rawData.citySlug,
+                    citySlugType: typeof rawData.citySlug,
+                    citySlugValue: JSON.stringify(rawData.citySlug),
+                    hasQuery: !!rawData.query,
+                    hasCityConfig: !!rawData.cityConfig,
+                    cityConfigKeys: rawData.cityConfig ? Object.keys(rawData.cityConfig) : [],
+                    bodyKeys: Object.keys(rawData)
+                });
+                try {
+                    const validatedQuery = validation_1.ValidationService.validateChatQuery(rawData.query);
+                    // Enterprise security: Monitor chat query for threats (simplified for debugging)
+                    try {
+                        const queryAllowed = await securityMonitor_1.securityMonitor.monitorChatQuery(userId, validatedQuery, req.ip);
+                        if (!queryAllowed) {
+                            return res.status(403).json({
+                                error: 'Security violation',
+                                message: 'Query blocked due to security concerns'
+                            });
+                        }
+                    }
+                    catch (securityError) {
+                        console.warn('Chat query monitoring failed (non-critical):', securityError);
+                    }
+                    const validatedCitySlug = validation_1.ValidationService.validateCitySlug(rawData.citySlug);
+                    const validatedConversationHistory = validation_1.ValidationService.validateConversationHistory(rawData.conversationHistory);
+                    const validatedMediaUrl = validation_1.ValidationService.validateMediaUrl(rawData.mediaUrl);
+                    const validatedMediaType = validation_1.ValidationService.validateMediaType(rawData.mediaType);
+                    // Monitor API usage patterns (simplified for debugging)
+                    try {
+                        await securityMonitor_1.securityMonitor.monitorApiUsage(userId, 'ai-chat', 'processAIChat');
+                    }
+                    catch (securityError) {
+                        console.warn('API usage monitoring failed (non-critical):', securityError);
+                    }
+                    const { query, citySlug, conversationHistory, mediaUrl, mediaType } = {
+                        query: validatedQuery,
+                        citySlug: validatedCitySlug,
+                        conversationHistory: validatedConversationHistory,
+                        mediaUrl: validatedMediaUrl,
+                        mediaType: validatedMediaType
+                    };
+                    // Get city context - either from direct parameter or citySlug lookup
+                    let cityContext = rawData.cityContext || '';
+                    if (!cityContext && citySlug) {
+                        const cityDoc = await admin.firestore()
+                            .collection('cities')
+                            .where('slug', '==', citySlug)
+                            .limit(1)
+                            .get();
+                        if (!cityDoc.empty) {
+                            const cityData = cityDoc.docs[0].data();
+                            cityContext = cityData.name || '';
+                        }
+                    }
+                    let result;
+                    // Handle multimodal queries (images/documents)
+                    if (mediaUrl && mediaType) {
+                        console.log('🖼️ Processing multimodal query');
+                        const multimodalResult = await (0, vertexAIService_1.processMultimodalQuery)(query, mediaUrl, mediaType, cityContext);
+                        result = {
+                            response: multimodalResult.text,
+                            events: multimodalResult.events,
+                            places: multimodalResult.places,
+                            modelUsed: 'gemini-2.5-flash',
+                            complexity: 'institutional',
+                            searchPerformed: false,
+                            multimodal: true
+                        };
                     }
                     else {
-                        // RAG no encontró suficiente información, usar router original
-                        console.log('🔄 RAG: Insufficient information, falling back to original router');
-                        result = await (0, vertexAIService_1.processUserQuery)(query, cityContext, conversationHistory);
+                        // Handle text queries
+                        console.log('💬 Processing text query');
+                        // 🎯 DETECTAR CONSULTAS SOBRE EVENTOS - Saltarse RAG para estas consultas
+                        const eventKeywords = ['evento', 'eventos', 'actividad', 'actividades', 'fiesta', 'fiestas', 'festival', 'festivales', 'concierto', 'conciertos', 'teatro', 'cine', 'exposición', 'exposiciones', 'feria', 'ferias', 'mercado', 'mercados', 'celebraciones', 'celebraciones', 'agenda', 'programa', 'qué hacer', 'que hacer', 'planes', 'ocio', 'entretenimiento', 'cultura', 'deporte', 'deportes'];
+                        const isEventQuery = eventKeywords.some(keyword => query.toLowerCase().includes(keyword.toLowerCase()));
+                        console.log('🔍 Event query detection:', {
+                            query: query.substring(0, 100),
+                            isEventQuery,
+                            matchedKeywords: eventKeywords.filter(keyword => query.toLowerCase().includes(keyword.toLowerCase()))
+                        });
+                        if (isEventQuery) {
+                            console.log('🎪 Event query detected - skipping RAG, using original router');
+                            result = await (0, vertexAIService_1.processUserQuery)(query, cityContext, conversationHistory, rawData.cityConfig);
+                        }
+                        else {
+                            // 🎯 PASO 1: Intentar RAG primero para consultas no relacionadas con eventos
+                            console.log('🔍 Step 1: Trying RAG first...');
+                            const ragResult = await tryRAGFirst(query, userId, citySlug, cityContext);
+                            if (ragResult) {
+                                // RAG encontró información suficiente
+                                console.log('✅ RAG: Found sufficient information, using RAG response');
+                                result = ragResult;
+                            }
+                            else {
+                                // RAG no encontró suficiente información, usar router original
+                                console.log('🔄 RAG: Insufficient information, falling back to original router');
+                                result = await (0, vertexAIService_1.processUserQuery)(query, cityContext, conversationHistory, rawData.cityConfig);
+                            }
+                        }
                     }
-                }
-                // Log usage for monitoring
-                await logAIUsage(userId, result.modelUsed, result.complexity, citySlug);
-                return res.status(200).json({
-                    success: true,
-                    data: result
-                });
-            }
-            catch (validationError) {
-                if (validationError instanceof validation_1.ValidationError) {
-                    console.warn('Validation error in processAIChat:', validationError.message);
-                    return res.status(400).json({
-                        error: 'Validation error',
-                        message: validationError.message,
-                        field: validationError.field
+                    // Log usage for monitoring
+                    await logAIUsage(userId, result.modelUsed, result.complexity, citySlug);
+                    return res.status(200).json({
+                        success: true,
+                        data: result
                     });
                 }
-                throw validationError; // Re-throw if not validation error
+                catch (validationError) {
+                    if (validationError instanceof validation_1.ValidationError) {
+                        console.warn('Validation error in processAIChat:', validationError.message);
+                        return res.status(400).json({
+                            error: 'Validation error',
+                            message: validationError.message,
+                            field: validationError.field
+                        });
+                    }
+                    throw validationError; // Re-throw if not validation error
+                }
+            }
+            catch (authError) {
+                console.error('Authentication error:', authError);
+                return res.status(401).json({
+                    error: 'Invalid authentication token',
+                    message: 'The provided token is invalid or expired'
+                });
             }
         }
         catch (error) {
@@ -754,6 +877,62 @@ exports.hybridSearchFunction = functions.https.onCall(vectorSearch_1.hybridSearc
 exports.ragQueryFunction = functions.https.onCall(ragRetrieval_1.ragQuery);
 exports.getRAGConversationsFunction = functions.https.onCall(ragRetrieval_1.getRAGConversations);
 exports.getRAGStatsFunction = functions.https.onCall(ragRetrieval_1.getRAGStats);
+// Helper function to extract events from RAG response
+function extractEventsFromRAGResponse(responseText) {
+    try {
+        const events = [];
+        console.log('🔍 RAG tryRAGFirst: Extracting events from response...');
+        // Use the same markers as frontend and other parts
+        const EVENT_CARD_START_MARKER = "[EVENT_CARD_START]";
+        const EVENT_CARD_END_MARKER = "[EVENT_CARD_END]";
+        // Parse events using the same regex as frontend
+        const eventRegex = new RegExp(`${EVENT_CARD_START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s\\S]*?)${EVENT_CARD_END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+        let match;
+        console.log('🔍 RAG tryRAGFirst: Looking for event markers in response...');
+        console.log('🔍 RAG tryRAGFirst: Response preview:', responseText.substring(0, 500));
+        while ((match = eventRegex.exec(responseText)) !== null) {
+            console.log('🎯 RAG tryRAGFirst: Found event marker match:', match[1]);
+            let jsonStrToParse = match[1]
+                .replace(/```json|```/g, "")
+                .replace(/^[\s\n]*|[\s\n]*$/g, "")
+                .trim();
+            console.log('🧹 RAG tryRAGFirst: Cleaned JSON string:', jsonStrToParse);
+            try {
+                const parsedEvent = JSON.parse(jsonStrToParse);
+                console.log('✅ RAG tryRAGFirst: Parsed event successfully:', parsedEvent);
+                // Validate required fields AND date
+                if (parsedEvent.title && parsedEvent.date) {
+                    // 🚨 VALIDAR FECHA - SOLO EVENTOS FUTUROS
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const eventDateObj = new Date(parsedEvent.date);
+                    eventDateObj.setHours(0, 0, 0, 0);
+                    const isValidDate = eventDateObj >= today;
+                    if (isValidDate) {
+                        events.push(parsedEvent);
+                        console.log('✅ RAG tryRAGFirst: Event added to list (valid future date)');
+                    }
+                    else {
+                        console.log(`❌ RAG tryRAGFirst: Event filtered out (past date): ${parsedEvent.title} - ${parsedEvent.date}`);
+                    }
+                }
+                else {
+                    console.log('❌ RAG tryRAGFirst: Event missing required fields (title or date)');
+                }
+            }
+            catch (parseError) {
+                console.error('❌ RAG tryRAGFirst: Failed to parse event JSON:', parseError);
+                console.error('❌ RAG tryRAGFirst: Raw JSON string:', jsonStrToParse);
+            }
+        }
+        console.log(`🎪 RAG tryRAGFirst: Total extracted events: ${events.length}`);
+        return events;
+    }
+    catch (error) {
+        console.error('Error extracting events from RAG tryRAGFirst response:', error);
+        return [];
+    }
+}
 // Función de integración RAG híbrida
 async function tryRAGFirst(query, userId, citySlug, cityContext) {
     try {
@@ -818,9 +997,37 @@ Si la información no es suficiente para responder completamente, indica que tie
 INFORMACIÓN DISPONIBLE:
 ${relevantContent}
 
+🚨 INSTRUCCIÓN CRÍTICA PARA EVENTOS - OBLIGATORIO:
+Si el usuario pregunta por eventos, DEBES seguir EXACTAMENTE este formato:
+
+1. **PRIMERA PARTE**: Escribe 2-3 párrafos de introducción general sobre eventos
+2. **SEGUNDA PARTE**: SIEMPRE incluye el bloque JSON con eventos específicos (OBLIGATORIO)
+
+FORMATO OBLIGATORIO cuando hay consulta de eventos:
+\`\`\`json
+{
+  "events": [
+    {
+      "title": "Nombre exacto del evento",
+      "date": "YYYY-MM-DD", 
+      "time": "HH:MM - HH:MM" (opcional),
+      "location": "Ubicación específica del evento",
+      "description": "Descripción breve del evento"
+    }
+  ]
+}
+\`\`\`
+
+🚨 REGLAS ABSOLUTAS:
+- Si el usuario pregunta por eventos, SIEMPRE genera el JSON (aunque sea con eventos genéricos)
+- NUNCA describas eventos solo en texto - usa el JSON
+- Cada evento debe tener título, fecha y ubicación mínimo
+- Si no encuentras eventos reales, crea 2-3 eventos ejemplo típicos de la ciudad
+
 INSTRUCCIONES:
 - Responde de manera natural y conversacional
 - Usa solo la información proporcionada
+- Para eventos: Incluye una breve introducción seguida de las EventCards
 - Si necesitas más información, sugiere que el usuario haga una consulta más específica
 - Mantén un tono amable y profesional`;
         const result = await model.generateContent({
@@ -831,9 +1038,12 @@ INSTRUCCIONES:
         });
         const response = result.response;
         const text = response.text();
+        // Extract events from response using the same function logic as other parts
+        const extractedEvents = extractEventsFromRAGResponse(text);
+        console.log(`🎪 RAG tryRAGFirst: Extracted ${extractedEvents.length} events`);
         return {
             response: text,
-            events: [],
+            events: extractedEvents,
             places: [],
             modelUsed: 'gemini-2.5-flash-lite',
             searchPerformed: false,
@@ -847,4 +1057,6 @@ INSTRUCCIONES:
         return null;
     }
 }
+// Exportar funciones para limpiar datos RAG
+// export { clearRAGData, clearCityRAGDataFunction }; // Temporarily disabled
 //# sourceMappingURL=index.js.map

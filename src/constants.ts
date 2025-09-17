@@ -52,6 +52,10 @@ export const PLACE_CARD_END_MARKER = "[PLACE_CARD_END]";
 export const TECA_LINK_BUTTON_START_MARKER = "[TECA_LINK_BUTTON_START]";
 export const TECA_LINK_BUTTON_END_MARKER = "[TECA_LINK_BUTTON_END]";
 
+// Form button markers
+export const FORM_BUTTON_START_MARKER = "[FORM_BUTTON_START]";
+export const FORM_BUTTON_END_MARKER = "[FORM_BUTTON_END]";
+
 export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
   { code: 'es-ES', name: 'Español (España)', abbr: 'ES', flagEmoji: '🇪🇸' },
   { code: 'en-US', name: 'English (US)', abbr: 'EN', flagEmoji: '🇺🇸' },

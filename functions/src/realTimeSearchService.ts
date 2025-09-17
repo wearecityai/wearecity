@@ -136,20 +136,24 @@ export class RealTimeSearchService {
         const results = await googlePlacesService.searchByCategory(placeType, location);
         places = results || [];
       } else {
-        // Búsqueda general de lugares
+        // Búsqueda general de lugares - búsqueda MUY específica por ciudad
+        const specificQuery = `${query} ${city}, España`;
         const response = await googlePlacesService.searchPlaces({
-          query: `${query} ${city}`,
+          query: specificQuery,
           location,
-          radius: userType === 'tourist' ? 5000 : 3000,
-          maxResults: 10
+          radius: userType === 'tourist' ? 2000 : 1500, // Radio mucho más pequeño
+          maxResults: 10,
+          region: 'es' // Forzar región España
         });
         places = response.results || [];
       }
 
-      // Convertir a formato PlaceCardInfo
-      return places.map(place => 
-        googlePlacesService.convertToPlaceCardInfo(place, query)
-      );
+      // 🔍 FILTRAR POR CIUDAD: Solo lugares que realmente estén en la ciudad especificada
+      const filteredPlaces = this.filterPlacesByCity(places, city);
+      console.log(`🗺️ Places filtered by city "${city}": ${places.length} → ${filteredPlaces.length}`);
+
+      // Convertir a formato PlaceCardInfo y enriquecer con detalles
+      return await this.enrichPlacesWithDetails(filteredPlaces, query);
     } catch (error) {
       console.error('Error searching places:', error);
       return [];
@@ -208,37 +212,47 @@ export class RealTimeSearchService {
       switch (category) {
         case 'restaurants':
           if (location) {
-            response.places = await googlePlacesService.searchRestaurants(location);
+            const places = await googlePlacesService.searchRestaurants(location, 1500, city);
+            const filteredPlaces = this.filterPlacesByCity(places, city);
+            response.places = await this.enrichPlacesWithDetails(filteredPlaces, 'restaurantes');
           }
           response.searchResults = await googleSearchService.searchRestaurantInfo(city);
           break;
 
         case 'monuments':
           if (location) {
-            response.places = await googlePlacesService.searchMonuments(location);
+            const places = await googlePlacesService.searchMonuments(location, 2000, city);
+            const filteredPlaces = this.filterPlacesByCity(places, city);
+            response.places = await this.enrichPlacesWithDetails(filteredPlaces, 'monumentos');
           }
           response.searchResults = await googleSearchService.searchTouristInfo(city, 'monumentos');
           break;
 
         case 'institutions':
           if (location) {
-            response.places = await googlePlacesService.searchInstitutions(location);
+            const places = await googlePlacesService.searchInstitutions(location, 2000, city);
+            const filteredPlaces = this.filterPlacesByCity(places, city);
+            response.places = await this.enrichPlacesWithDetails(filteredPlaces, 'instituciones');
           }
           response.searchResults = await googleSearchService.searchOfficialInfo('instituciones públicas', city);
           break;
 
         case 'transport':
           if (location) {
-            response.places = await googlePlacesService.searchTransportStations(location);
+            const places = await googlePlacesService.searchTransportStations(location, 1500, city);
+            const filteredPlaces = this.filterPlacesByCity(places, city);
+            response.places = await this.enrichPlacesWithDetails(filteredPlaces, 'transporte');
           }
           response.searchResults = await googleSearchService.searchTransportInfo(city);
           break;
 
         case 'emergency':
           if (location) {
-            response.places = await googlePlacesService.searchHospitals(location);
-            const pharmacies = await googlePlacesService.searchPharmacies(location);
-            response.places = [...(response.places || []), ...pharmacies];
+            const hospitals = await googlePlacesService.searchHospitals(location, 2000, city);
+            const pharmacies = await googlePlacesService.searchPharmacies(location, 1500, city);
+            const allEmergencyPlaces = [...hospitals, ...pharmacies];
+            const filteredPlaces = this.filterPlacesByCity(allEmergencyPlaces, city);
+            response.places = await this.enrichPlacesWithDetails(filteredPlaces, 'emergencias');
           }
           response.searchResults = await googleSearchService.searchEmergencyInfo(city);
           break;
@@ -342,6 +356,135 @@ export class RealTimeSearchService {
     }
 
     return null;
+  }
+
+  /**
+   * Filtrar lugares por ciudad especificada - VERIFICACIÓN EXACTA DE CIUDAD Y CÓDIGO POSTAL
+   */
+  private filterPlacesByCity(places: any[], restrictedCity: string): any[] {
+    if (!restrictedCity || !places) return places;
+
+    const cityName = restrictedCity.toLowerCase().trim();
+    
+    // Mapeo de ciudades con sus códigos postales específicos
+    const cityPostalCodes: { [key: string]: string[] } = {
+      'villajoyosa': ['03570'],
+      'vila joiosa': ['03570'],
+      'la vila joiosa': ['03570'],
+      'benidorm': ['03501', '03502', '03503'],
+      'alicante': ['03001', '03002', '03003', '03004', '03005', '03006', '03007', '03008', '03009', '03010', '03011', '03012', '03013', '03014', '03015', '03016', '03540'],
+      'valencia': ['46001', '46002', '46003', '46004', '46005', '46006', '46007', '46008', '46009', '46010', '46011', '46012', '46013', '46014', '46015', '46016', '46017', '46018', '46019', '46020', '46021', '46022', '46023'],
+      'torrevieja': ['03181', '03182', '03183', '03184', '03185'],
+      'denia': ['03700'],
+      'calpe': ['03710'],
+      'altea': ['03590'],
+      'javea': ['03730'],
+      'xabia': ['03730']
+    };
+
+    // Obtener códigos postales de la ciudad restringida
+    const restrictedPostalCodes = cityPostalCodes[cityName] || [];
+    
+    // Crear variaciones exactas del nombre de la ciudad
+    const exactCityNames = [
+      cityName,
+      cityName.replace(/^la\s+/, ''),
+      cityName.replace(/^el\s+/, ''),
+      cityName.replace(/\s+/g, ''),
+      cityName.replace('vila joiosa', 'villajoyosa'),
+      cityName.replace('villajoyosa', 'vila joiosa')
+    ];
+    
+    const filteredPlaces = places.filter(place => {
+      const fullAddress = (place.formatted_address || place.vicinity || '').toLowerCase();
+      const placeName = (place.name || '').toLowerCase();
+      
+      console.log(`🔍 Checking place: "${place.name}" - Address: "${fullAddress}"`);
+      
+      // 1. VERIFICACIÓN POR CÓDIGO POSTAL (más preciso)
+      if (restrictedPostalCodes.length > 0) {
+        const hasValidPostalCode = restrictedPostalCodes.some(postalCode => 
+          fullAddress.includes(postalCode)
+        );
+        
+        if (hasValidPostalCode) {
+          console.log(`✅ Place ACCEPTED by postal code: "${place.name}" - Found valid postal code`);
+          return true;
+        }
+      }
+      
+      // 2. VERIFICACIÓN POR NOMBRE EXACTO DE CIUDAD en la dirección
+      const cityInAddress = exactCityNames.some(exactName => {
+        // Buscar el nombre de la ciudad como palabra completa en la dirección
+        const regex = new RegExp(`\\b${exactName}\\b`, 'i');
+        return regex.test(fullAddress);
+      });
+      
+      if (!cityInAddress) {
+        // 3. VERIFICACIÓN FINAL: Excluir si contiene nombres de otras ciudades conocidas
+        const otherKnownCities = Object.keys(cityPostalCodes).filter(c => c !== cityName);
+        const hasOtherCity = otherKnownCities.some(otherCity => {
+          const regex = new RegExp(`\\b${otherCity}\\b`, 'i');
+          return regex.test(fullAddress);
+        });
+        
+        if (hasOtherCity) {
+          console.log(`🚫 Place REJECTED: "${place.name}" - Contains other city in address: "${fullAddress}"`);
+          return false;
+        }
+        
+        console.log(`🚫 Place REJECTED: "${place.name}" - City not found in address: "${fullAddress}"`);
+        return false;
+      }
+      
+      console.log(`✅ Place ACCEPTED by city name: "${place.name}" - City found in address`);
+      return true;
+    });
+
+    console.log(`🗺️ City filtering results for "${restrictedCity}": ${places.length} → ${filteredPlaces.length}`);
+    return filteredPlaces;
+  }
+
+  /**
+   * Enriquecer lista de lugares con detalles completos
+   */
+  private async enrichPlacesWithDetails(places: any[], query: string): Promise<any[]> {
+    const enrichedPlaces = await Promise.all(
+      places.map(async (place) => {
+        try {
+          // Obtener detalles completos del lugar
+          let detailedPlace = place;
+          if (place.place_id && !place.opening_hours && !place.reviews) {
+            const details = await googlePlacesService.getPlaceDetails(place.place_id);
+            if (details) {
+              // Combinar datos básicos con detalles completos
+              detailedPlace = {
+                ...place,
+                ...details,
+                // Preservar datos originales si son mejores
+                rating: details.rating || place.rating,
+                user_ratings_total: details.user_ratings_total || place.user_ratings_total,
+                photos: details.photos || place.photos,
+                opening_hours: details.opening_hours || place.opening_hours,
+                website: details.website || place.website,
+                reviews: details.reviews || place.reviews,
+                price_level: details.price_level || place.price_level,
+                international_phone_number: details.international_phone_number || place.international_phone_number
+              };
+              console.log(`✅ Enriched place with details: ${place.name}`);
+            }
+          }
+          
+          return googlePlacesService.convertToPlaceCardInfo(detailedPlace, query);
+        } catch (error) {
+          console.warn(`⚠️ Failed to get details for place ${place.name}:`, error);
+          // Usar datos básicos si falla la obtención de detalles
+          return googlePlacesService.convertToPlaceCardInfo(place, query);
+        }
+      })
+    );
+
+    return enrichedPlaces;
   }
 
   /**

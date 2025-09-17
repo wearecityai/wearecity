@@ -55,7 +55,7 @@ export function LoginForm() {
             const profile = docSnap.data();
             if (profile && profile.role === 'administrativo') {
               // Admin goes to admin view with city slug
-              navigate('/admin/valencia')
+              navigate('/admin')
             } else {
               // Citizen goes to chat view with city slug
               navigate('/chat/valencia')
@@ -97,7 +97,7 @@ export function LoginForm() {
             const profile = docSnap.data();
             if (profile && profile.role === 'administrativo') {
               // Admin goes to admin view with city slug
-              navigate('/admin/valencia')
+              navigate('/admin')
             } else {
               // Citizen goes to chat view with city slug
               navigate('/chat/valencia')

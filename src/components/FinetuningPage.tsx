@@ -35,6 +35,7 @@ import { LibraryPage } from './LibraryPage';
 import CityGoogleAutocomplete from './CityGoogleAutocomplete';
 import CityCombobox from './CityCombobox';
 import CountryCombobox from './CountryCombobox';
+import { RAGService } from '../services/ragService';
 const LazyAyuntamientoCrawlerInline = React.lazy(() => import('./AyuntamientoCrawlerInline'));
 
 // Modern card component
@@ -99,6 +100,8 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
   const [newPrompt, setNewPrompt] = useState('');
   const [newPromptIcon, setNewPromptIcon] = useState('help');
   const [currentLanguageCode, setCurrentLanguageCode] = useState<string>(currentConfig.currentLanguageCode || DEFAULT_LANGUAGE_CODE);
+  const [showRAGClearModal, setShowRAGClearModal] = useState(false);
+  const [isClearingCityRAG, setIsClearingCityRAG] = useState(false);
   const [municipalityInputName, setMunicipalityInputName] = useState<string>(currentConfig.restrictedCity?.name || '');
   const [restrictedCity, setRestrictedCity] = useState<RestrictedCityInfo | null>(currentConfig.restrictedCity);
   const [procedureSourceUrls, setProcedureSourceUrls] = useState<string[]>(Array.isArray(currentConfig.procedureSourceUrls) ? currentConfig.procedureSourceUrls : []);
@@ -426,6 +429,35 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
   const handleSaveAndClose = () => {
     handleSave();
     onCancel();
+  };
+
+  // Clear city RAG data function
+  const handleClearCityRAG = async () => {
+    if (!citySlug) {
+      alert('❌ No se puede identificar la ciudad para limpiar los datos RAG');
+      return;
+    }
+
+    if (!confirm(`⚠️ ¿Estás seguro de que quieres vaciar los datos RAG de esta ciudad?\n\nEsta acción eliminará:\n- Chunks de documentos de ${citySlug}\n- Conversaciones RAG de ${citySlug}\n- Fuentes de biblioteca de ${citySlug}\n- Respuestas dinámicas de ${citySlug}\n\n✅ La configuración RAG se mantendrá para que funcione inmediatamente\n\nEsta acción NO se puede deshacer.`)) {
+      return;
+    }
+
+    setIsClearingCityRAG(true);
+    try {
+      const result = await RAGService.clearCityRAGData(citySlug);
+      
+      if (result.success) {
+        alert(`✅ RAG data cleared successfully for ${citySlug}!\n\nTotal documents deleted: ${result.data?.totalDeleted || 0}\n\n✅ La configuración RAG se mantuvo - el sistema estará listo para el próximo mensaje.`);
+        setShowRAGClearModal(false);
+      } else {
+        alert(`❌ Error: ${result.message || 'Failed to clear city RAG data'}`);
+      }
+    } catch (error) {
+      console.error('Error clearing city RAG data:', error);
+      alert('❌ Error al limpiar los datos RAG de la ciudad. Inténtalo de nuevo.');
+    } finally {
+      setIsClearingCityRAG(false);
+    }
   };
 
   const handleResetToAppDefaults = () => {
@@ -981,6 +1013,14 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
         {activeTab === 'customize' && (
           <div className="sticky bottom-0 z-10 bg-background border-t border-border p-4">
             <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-2 justify-end">
+              <Button 
+                className="rounded-full" 
+                variant="destructive" 
+                onClick={() => setShowRAGClearModal(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Vaciar RAG
+              </Button>
               <Button className="rounded-full" variant="outline" onClick={onCancel}>
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
@@ -1001,6 +1041,60 @@ const FinetuningPage: React.FC<FinetuningPageProps> = ({
                 Guardar
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* RAG Clear Modal */}
+        {showRAGClearModal && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md border-0 bg-input">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trash2 className="h-5 w-5 text-destructive" />
+                  Vaciar Datos RAG
+                </CardTitle>
+                <CardDescription>
+                  Esta acción eliminará todos los datos RAG de esta ciudad específica.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>⚠️ Acción irreversible</strong><br />
+                    Se eliminarán todos los chunks de documentos, conversaciones RAG, fuentes de biblioteca y respuestas dinámicas de <strong>{citySlug}</strong>.<br /><br />
+                    <strong>✅ La configuración RAG se mantendrá</strong> para que funcione inmediatamente en el próximo mensaje.
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowRAGClearModal(false)}
+                    disabled={isClearingCityRAG}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleClearCityRAG}
+                    disabled={isClearingCityRAG}
+                  >
+                    {isClearingCityRAG ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Limpiando...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Vaciar RAG
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>

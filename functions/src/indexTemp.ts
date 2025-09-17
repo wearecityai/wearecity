@@ -1,0 +1,2 @@
+export { processAIChat } from './processAIChatOnly';
+

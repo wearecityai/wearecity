@@ -27,6 +27,11 @@ export const useChatManager = (
   conversationFunctions: ConversationFunctions,
   citySlug?: string
 ) => {
+  console.log('🔍 useChatManager received citySlug:', {
+    citySlug,
+    citySlugType: typeof citySlug,
+    citySlugValue: citySlug
+  });
   // Destructure conversation functions from parameters
   const { 
     conversations, 
@@ -160,15 +165,6 @@ export const useChatManager = (
   const finalIsLoading = useMemo(() => {
     const hasTypingMessage = messages.some(msg => msg.isTyping);
     const result = isLoading || hasTypingMessage || messagesLoading;
-    
-    // Debug logging
-    console.log('🔍 Loading state calculation:', {
-      isLoading,
-      hasTypingMessage,
-      messagesLoading,
-      finalResult: result,
-      messageCount: messages.length
-    });
     
     return result;
   }, [isLoading, messagesLoading, messages]);

@@ -139,7 +139,23 @@ export const useGoogleMaps = (
       }, setMessages);
     }, 10000);
 
-    const requestFields = ['name', 'place_id', 'formatted_address', 'photo', 'rating', 'user_ratings_total', 'url', 'geometry', 'website'];
+    const requestFields = [
+      'name', 
+      'place_id', 
+      'formatted_address', 
+      'photo', 
+      'rating', 
+      'user_ratings_total', 
+      'url', 
+      'geometry', 
+      'website',
+      'price_level',
+      'types',
+      'opening_hours',
+      'international_phone_number',
+      'business_status',
+      'reviews'
+    ];
     
     const processPlaceResult = (place: google.maps.places.PlaceResult | null, status: google.maps.places.PlacesServiceStatus) => {
       // Clear both timeouts since we got a result
@@ -194,6 +210,24 @@ export const useGoogleMaps = (
           photoUrl: photoUrl ? 'available' : 'none'
         });
         
+        // Procesar horarios de apertura
+        let openingHours: string[] | undefined = undefined;
+        if (place.opening_hours?.weekday_text) {
+          openingHours = place.opening_hours.weekday_text;
+        }
+
+        // Procesar tipos de lugar
+        let types: string[] | undefined = undefined;
+        if (place.types) {
+          types = place.types;
+        }
+
+        // Procesar estado del negocio
+        let businessStatus: string | undefined = undefined;
+        if (place.business_status) {
+          businessStatus = place.business_status;
+        }
+
         updatePlaceCardInMessage(messageId, placeCardId, {
           isLoadingDetails: false, 
           photoUrl, 
@@ -203,7 +237,12 @@ export const useGoogleMaps = (
           address: place.formatted_address,
           mapsUrl: place.url, 
           website: place.website, 
-          distance: distanceString, 
+          distance: distanceString,
+          priceLevel: place.price_level,
+          types: types,
+          openingHours: openingHours,
+          phoneNumber: place.international_phone_number,
+          businessStatus: businessStatus,
           errorDetails: undefined,
         }, setMessages);
       } else {

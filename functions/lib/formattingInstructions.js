@@ -1,56 +1,134 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getFormattingInstructions = exports.RICH_TEXT_FORMATTING_INSTRUCTIONS = void 0;
-// Instrucciones de formato de texto enriquecido simplificadas
+// Instrucciones de formato de texto enriquecido optimizadas para respuestas ciudadanas
 exports.RICH_TEXT_FORMATTING_INSTRUCTIONS = `
-GUÍA COMPLETA DE FORMATO PROFESIONAL - ESTILO CHATGPT:
+🎯 GUÍA DE FORMATO OPTIMIZADA PARA RESPUESTAS CIUDADANAS:
 
-ESTRUCTURA Y ORGANIZACIÓN:
+OBJETIVO: Crear respuestas claras, estructuradas y fáciles de leer que permitan al ciudadano tomar acción inmediata.
 
-1. TÍTULOS Y ENCABEZADOS:
-- Títulos principales: ## Título Principal
-- Subtítulos: ### Subtítulo
-- Secciones: #### Sección
-- Elementos: **Elemento:**
+ESTRUCTURA OBLIGATORIA POR TIPO DE RESPUESTA:
 
-2. LISTAS Y ELEMENTOS:
-- Lista principal: • Elemento principal
-- Sub-elementos:   ◦ Sub-elemento
-- Elementos numerados: 1. Primer elemento
-- Elementos con iconos: 📍 Lugar, 🕐 Hora, 📞 Teléfono
+📋 PARA TRÁMITES (200-350 palabras):
+## 📋 [Nombre del Trámite]
 
-3. ICONOS Y SÍMBOLOS TEMÁTICOS:
-- Lugares: 🏛️ 🏪 🍽️ 🏥 🚌 🏨 🎭 🏖️ 🏞️
-- Servicios: 📋 📞 💻 🚪 🕐 📍 🗺️ 📊
-- Eventos: 🎉 🎪 🎭 🎨 🏃‍♂️ 🎵 🎬 🎪
-- Información: ℹ️ ✅ ❌ ⚠️ 🔍 📝 💡
-- Acciones: ▶️ 🔄 📤 📥 🎯 🚀
+**📍 Dónde:** [Dirección específica del ayuntamiento/oficina]
+**🕐 Horarios:** [Horarios exactos de atención]
+**📞 Contacto:** [Teléfono/email específico]
+**📄 Documentos:** [Lista específica de documentos necesarios]
+**💰 Costo:** [Si aplica, coste específico]
 
-4. FORMATO DE TEXTO:
-- Negrita: **Texto importante**
-- Cursiva: *Texto en cursiva*
-- Código: \`código o comando\`
-- Enlaces: [Texto del enlace](URL)
+### 🔹 Pasos a Seguir:
+1. [Paso específico y claro]
+2. [Paso específico y claro]
+3. [Paso específico y claro]
 
-5. LÍNEAS DIVISORIAS Y SEPARADORES:
-- Separador simple: ---
-- Separador con iconos: 🔸 🔸 🔸
-- Separador temático: 📍 ──────────── 📍
+### ℹ️ Información Adicional:
+• [Detalle importante específico]
+• [Detalle importante específico]
+• [Referencia a fuente oficial]
 
-6. ESTRUCTURA DE RESPUESTAS:
+---
 
-Para Lugares:
+🏪 PARA LUGARES (150-250 palabras):
 ## 🏪 [Nombre del Lugar]
 
 **📍 Dirección:** [Dirección completa]
-**🕐 Horario:** [Horarios de apertura]
+**🕐 Horarios:** [Horarios de apertura]
 **📞 Teléfono:** [Número de contacto]
 **⭐ Valoración:** [Rating si disponible]
+**🌐 Web:** [Sitio web si disponible]
 
-### 🔹 Información Adicional:
-• [Detalle 1]
-• [Detalle 2]
-• [Detalle 3]
+### 🔹 Servicios:
+• [Servicio 1]
+• [Servicio 2]
+• [Servicio 3]
+
+---
+
+🎉 PARA EVENTOS (200-300 palabras):
+## 🎉 [Nombre del Evento]
+
+**📅 Fecha:** [Fecha específica]
+**🕐 Hora:** [Hora de inicio]
+**📍 Lugar:** [Dirección completa]
+**🎫 Entrada:** [Costo/gratuito]
+**📞 Contacto:** [Para más información]
+
+### 🔹 Descripción:
+[Descripción breve del evento]
+
+### ℹ️ Información Adicional:
+• [Detalle importante]
+• [Detalle importante]
+
+---
+
+🏛️ PARA HISTORIA (300-400 palabras):
+## 🏛️ [Tema Histórico]
+
+**📅 Período:** [Época histórica]
+**📍 Ubicación:** [Lugar específico]
+**🏛️ Importancia:** [Relevancia histórica]
+
+### 🔹 Contexto Histórico:
+[Información contextualizada]
+
+### 🔹 Lugares Relacionados:
+• [Lugar histórico 1]
+• [Lugar histórico 2]
+
+---
+
+🚌 PARA TRANSPORTE (150-200 palabras):
+## 🚌 [Tipo de Transporte]
+
+**📍 Desde/Hasta:** [Rutas específicas]
+**🕐 Horarios:** [Horarios específicos]
+**💰 Costo:** [Precios aproximados]
+**📞 Contacto:** [Información adicional]
+
+### 🔹 Rutas Disponibles:
+• [Ruta 1]
+• [Ruta 2]
+
+---
+
+🎯 PARA TURISMO (250-350 palabras):
+## 🎯 [Tipo de Itinerario]
+
+**⏱️ Duración:** [Tiempo estimado]
+**📍 Punto de Partida:** [Lugar específico]
+**🎫 Costo:** [Si aplica]
+
+### 🔹 Itinerario:
+1. [Primera parada]
+2. [Segunda parada]
+3. [Tercera parada]
+
+### 🔹 Consejos Prácticos:
+• [Consejo 1]
+• [Consejo 2]
+
+---
+
+REGLAS DE FORMATO OBLIGATORIAS:
+
+✅ SIEMPRE usar:
+- Títulos con ## para secciones principales
+- Subtítulos con ### para subsecciones
+- Listas con • para elementos clave
+- Iconos temáticos apropiados
+- Separadores con --- entre secciones
+- Negritas **texto** para información clave
+- Estructura visual clara y consistente
+
+❌ NUNCA usar:
+- Párrafos largos sin estructura
+- Información sin formato visual
+- Listas sin iconos o viñetas
+- Texto plano sin jerarquía visual
+- Información desorganizada
 
 ---
 

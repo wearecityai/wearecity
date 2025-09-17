@@ -11,11 +11,9 @@ import LandingPage from '@/pages/LandingPage';
 import SearchCityPage from '@/pages/SearchCityPage';
 import { SuperAdminDashboard } from '@/pages/SuperAdminDashboard';
 import { SuperAdminGuard } from '@/components/SuperAdminGuard';
+import { SuperAdminRedirect } from '@/components/SuperAdminRedirect';
 import NotFound from '@/pages/NotFound';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
-import { SuperAdminGuard } from '@/components/SuperAdminGuard';
-import { SuperAdminRedirect } from '@/components/SuperAdminRedirect';
-import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
 
 const App = () => {
   useAutoLanguage();
