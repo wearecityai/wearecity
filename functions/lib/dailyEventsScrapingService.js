@@ -1,0 +1,550 @@
+"use strict";
+/**
+ * Servicio de scraping automático diario de eventos
+ * Procesa todas las ciudades configuradas y extrae eventos desde hoy hasta donde haya eventos
+ */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DailyEventsScrapingService = void 0;
+const puppeteer = __importStar(require("puppeteer"));
+class DailyEventsScrapingService {
+    constructor(db) {
+        this.db = db;
+    }
+    /**
+     * Procesar todas las ciudades activas
+     */
+    async processAllCities() {
+        console.log('🌍 Starting daily events scraping for all cities...');
+        try {
+            // Obtener todas las ciudades activas con URLs de eventos configuradas
+            const citiesSnapshot = await this.db
+                .collection('cities')
+                .where('isActive', '==', true)
+                .get();
+            const results = {
+                totalCities: 0,
+                processedCities: 0,
+                totalEvents: 0,
+                errors: []
+            };
+            for (const cityDoc of citiesSnapshot.docs) {
+                const cityData = cityDoc.data();
+                if (cityData.agendaEventosUrls && cityData.agendaEventosUrls.length > 0) {
+                    results.totalCities++;
+                    try {
+                        const cityResult = await this.processCityEvents(cityData);
+                        results.processedCities++;
+                        results.totalEvents += cityResult.eventsSaved;
+                        console.log(`✅ Processed ${cityData.name}: ${cityResult.eventsSaved} events`);
+                    }
+                    catch (error) {
+                        const errorMsg = `Failed to process ${cityData.name}: ${error.message}`;
+                        console.error(`❌ ${errorMsg}`);
+                        results.errors.push(errorMsg);
+                    }
+                }
+            }
+            // Guardar log del procesamiento
+            await this.saveProcessingLog({
+                type: 'daily_automatic_scraping',
+                timestamp: new Date(),
+                results,
+                success: results.errors.length === 0
+            });
+            console.log('🎉 Daily scraping completed:', results);
+            return results;
+        }
+        catch (error) {
+            console.error('❌ Daily scraping failed:', error);
+            await this.saveProcessingLog({
+                type: 'daily_automatic_scraping',
+                timestamp: new Date(),
+                results: { error: error.message },
+                success: false
+            });
+            throw error;
+        }
+    }
+    /**
+     * Procesar eventos de una ciudad específica
+     */
+    async processCityEvents(cityConfig) {
+        console.log(`🏙️ Processing events for ${cityConfig.name}...`);
+        const results = {
+            citySlug: cityConfig.slug,
+            cityName: cityConfig.name,
+            eventsExtracted: 0,
+            eventsSaved: 0,
+            eventsUpdated: 0
+        };
+        let browser = null;
+        try {
+            // Configurar Puppeteer
+            browser = await puppeteer.launch({
+                headless: true,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu'
+                ]
+            });
+            const allEvents = [];
+            // Scraping de todas las URLs configuradas
+            for (const url of cityConfig.agendaEventosUrls) {
+                console.log(`🕷️ Scraping: ${url}`);
+                try {
+                    const events = await this.scrapeEventsFromUrl(browser, url);
+                    allEvents.push(...events);
+                    console.log(`   Found ${events.length} events`);
+                }
+                catch (error) {
+                    console.error(`   ❌ Failed to scrape ${url}:`, error.message);
+                }
+            }
+            results.eventsExtracted = allEvents.length;
+            if (allEvents.length > 0) {
+                // Procesar eventos con IA
+                const processedEvents = await this.processEventsWithAI(allEvents, cityConfig);
+                // Filtrar solo eventos futuros
+                const futureEvents = this.filterFutureEvents(processedEvents);
+                // Guardar en Firestore usando la nueva estructura
+                const saveResults = await this.saveEventsToCity(futureEvents, cityConfig.slug);
+                results.eventsSaved = saveResults.saved;
+                results.eventsUpdated = saveResults.updated;
+            }
+            return results;
+        }
+        finally {
+            if (browser) {
+                await browser.close();
+            }
+        }
+    }
+    /**
+     * Scraping específico para villajoyosa.com (MEC - Modern Events Calendar)
+     */
+    async scrapeEventsFromUrl(browser, url) {
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1920, height: 1080 });
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        try {
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+            await page.waitForSelector('body', { timeout: 10000 }).catch(() => { });
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Detectar tipo de sitio y usar estrategia apropiada
+            if (url.includes('villajoyosa.com')) {
+                return await this.scrapeMECEvents(page);
+            }
+            else {
+                return await this.scrapeGenericEvents(page);
+            }
+        }
+        finally {
+            await page.close();
+        }
+    }
+    /**
+     * Scraper específico para MEC (Modern Events Calendar)
+     */
+    async scrapeMECEvents(page) {
+        return await page.evaluate(() => {
+            const events = [];
+            // Buscar dividers de mes/año
+            const monthDividers = document.querySelectorAll('.mec-month-divider h5');
+            const monthData = [];
+            monthDividers.forEach(divider => {
+                if (divider.textContent) {
+                    const monthText = divider.textContent.trim();
+                    const monthMatch = monthText.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\\s+(\\d{4})/);
+                    if (monthMatch) {
+                        monthData.push({
+                            month: monthMatch[1],
+                            year: monthMatch[2]
+                        });
+                    }
+                }
+            });
+            // Mapeo de meses y abreviaciones
+            const monthMap = {
+                'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
+                'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
+                'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12'
+            };
+            const abbrevMap = {
+                'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04',
+                'may': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+                'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+            };
+            // Buscar eventos MEC
+            const mecEvents = document.querySelectorAll('.mec-event-article');
+            console.log(`🔍 Found ${mecEvents.length} MEC events`);
+            mecEvents.forEach((eventEl, index) => {
+                var _a, _b, _c;
+                try {
+                    // Extraer título
+                    const titleEl = eventEl.querySelector('.mec-event-title a');
+                    const title = ((_a = titleEl === null || titleEl === void 0 ? void 0 : titleEl.textContent) === null || _a === void 0 ? void 0 : _a.trim()) || '';
+                    // Extraer fecha
+                    const dateEl = eventEl.querySelector('.mec-start-date-label');
+                    let dateStr = '';
+                    if (dateEl === null || dateEl === void 0 ? void 0 : dateEl.textContent) {
+                        const dayText = dateEl.textContent.trim();
+                        console.log(`🔍 Found date text: "${dayText}"`);
+                        const dayMatch = dayText.match(/(\\d{1,2})\\s+(\\w+)/);
+                        if (dayMatch) {
+                            const day = dayMatch[1].padStart(2, '0');
+                            const monthAbbr = dayMatch[2].toLowerCase().substring(0, 3);
+                            // CORRECCIÓN: Sin fallback problemático
+                            const month = abbrevMap[monthAbbr];
+                            if (!month) {
+                                console.log(`❌ Unknown month abbreviation: "${monthAbbr}"`);
+                                return; // Saltar evento si no conocemos el mes
+                            }
+                            const year = '2025';
+                            dateStr = `${year}-${month}-${day}`;
+                            console.log(`✅ Extracted date: ${dateStr} from "${dayText}"`);
+                        } else {
+                            console.log(`❌ Could not parse date: "${dayText}"`);
+                            return; // Saltar evento si no se puede parsear la fecha
+                        }
+                    } else {
+                        console.log(`❌ No date element found`);
+                        return; // Saltar evento sin fecha
+                    }
+                    // Extraer ubicación
+                    const locationEl = eventEl.querySelector('.mec-event-address span');
+                    const location = ((_b = locationEl === null || locationEl === void 0 ? void 0 : locationEl.textContent) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+                    // Extraer descripción
+                    const descEl = eventEl.querySelector('.mec-event-description');
+                    let description = ((_c = descEl === null || descEl === void 0 ? void 0 : descEl.textContent) === null || _c === void 0 ? void 0 : _c.trim()) || '';
+                    if (description.length > 300) {
+                        description = description.substring(0, 300) + '...';
+                    }
+                    // Extraer URL
+                    const linkEl = eventEl.querySelector('.mec-event-title a');
+                    const url = (linkEl === null || linkEl === void 0 ? void 0 : linkEl.href) || '';
+                    if (title && dateStr) {
+                        events.push({
+                            title,
+                            date: dateStr,
+                            location: location || undefined,
+                            description: description || undefined,
+                            url: url || undefined
+                        });
+                    }
+                }
+                catch (error) {
+                    console.error('Error processing MEC event:', error);
+                }
+            });
+            return events;
+        });
+    }
+    /**
+     * Scraper genérico para otros sitios web
+     */
+    async scrapeGenericEvents(page) {
+        return await page.evaluate(() => {
+            const events = [];
+            // Estrategia genérica: buscar elementos con patrones comunes
+            const selectors = [
+                '.event', '.evento', 'article', '.post', '.entry', '.item'
+            ];
+            for (const selector of selectors) {
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > 0) {
+                    elements.forEach((element) => {
+                        var _a;
+                        try {
+                            // Buscar título
+                            const titleSelectors = ['h1', 'h2', 'h3', 'h4', '.title', '.titulo'];
+                            let title = '';
+                            for (const titleSel of titleSelectors) {
+                                const titleEl = element.querySelector(titleSel);
+                                if ((_a = titleEl === null || titleEl === void 0 ? void 0 : titleEl.textContent) === null || _a === void 0 ? void 0 : _a.trim()) {
+                                    title = titleEl.textContent.trim();
+                                    break;
+                                }
+                            }
+                            // Buscar fecha en el texto
+                            const fullText = element.textContent || '';
+                            const dateMatches = fullText.match(/\\d{1,2}[\/\\-]\\d{1,2}[\/\\-]\\d{4}/);
+                            const dateStr = dateMatches ? dateMatches[0] : '';
+                            if (title && title.length > 3) {
+                                events.push({
+                                    title,
+                                    date: dateStr || '',
+                                    description: fullText.substring(0, 200)
+                                });
+                            }
+                        }
+                        catch (error) {
+                            console.error('Error processing generic event:', error);
+                        }
+                    });
+                    break; // Solo usar el primer selector que funcione
+                }
+            }
+            return events;
+        });
+    }
+    /**
+     * Procesar eventos con IA para clasificación y enriquecimiento
+     */
+    async processEventsWithAI(rawEvents, cityConfig) {
+        return rawEvents.map((event, index) => {
+            // Normalizar fecha
+            let normalizedDate = event.date;
+            if (!normalizedDate || !this.isValidDate(normalizedDate)) {
+                // Si no hay fecha válida, generar fecha futura
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + index + 1);
+                normalizedDate = futureDate.toISOString().split('T')[0];
+            }
+            // Clasificar categoría
+            const category = this.classifyEventCategory(event.title, event.description);
+            // Generar tags
+            const tags = this.generateEventTags(event.title, event.description, category, cityConfig.slug);
+            // Generar ID único
+            const eventId = `${cityConfig.slug}_${normalizedDate}_${event.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20)}`;
+            // Formatear fecha para EventCard (formato legible)
+            const eventDate = new Date(normalizedDate);
+            const formattedDate = eventDate.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            return {
+                id: eventId,
+                title: event.title,
+                date: normalizedDate,
+                time: event.time,
+                location: event.location || cityConfig.name,
+                description: event.description || `Evento en ${cityConfig.name}: ${event.title}`,
+                category,
+                sourceUrl: cityConfig.agendaEventosUrls[0],
+                eventDetailUrl: event.url,
+                citySlug: cityConfig.slug,
+                cityName: cityConfig.name,
+                isActive: true,
+                isRecurring: false,
+                tags,
+                // Formato específico para EventCards - listo para mostrar en la AI
+                eventCard: {
+                    title: event.title,
+                    date: formattedDate,
+                    time: event.time,
+                    location: event.location || cityConfig.name,
+                    description: event.description || `Evento en ${cityConfig.name}: ${event.title}`,
+                    category: category,
+                    url: event.url,
+                    imageUrl: undefined,
+                    price: this.extractPrice(event.description || event.title),
+                    organizer: this.extractOrganizer(event.description || event.title)
+                },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                scrapedAt: new Date()
+            };
+        });
+    }
+    /**
+     * Filtrar solo eventos futuros
+     */
+    filterFutureEvents(events) {
+        const today = new Date().toISOString().split('T')[0];
+        return events.filter(event => event.date >= today);
+    }
+    /**
+     * Guardar eventos en la nueva estructura: cities/{cityId}/events
+     */
+    async saveEventsToCity(events, citySlug) {
+        let saved = 0;
+        let updated = 0;
+        const batch = this.db.batch();
+        let batchOps = 0;
+        for (const event of events) {
+            try {
+                const eventRef = this.db
+                    .collection('cities')
+                    .doc(citySlug)
+                    .collection('events')
+                    .doc(event.id);
+                const existingEvent = await eventRef.get();
+                if (existingEvent.exists) {
+                    batch.update(eventRef, Object.assign(Object.assign({}, event), { updatedAt: new Date() }));
+                    updated++;
+                }
+                else {
+                    batch.set(eventRef, event);
+                    saved++;
+                }
+                batchOps++;
+                // Ejecutar batch cada 500 operaciones (límite de Firestore)
+                if (batchOps >= 500) {
+                    await batch.commit();
+                    batchOps = 0;
+                }
+            }
+            catch (error) {
+                console.error(`Error saving event "${event.title}":`, error.message);
+            }
+        }
+        // Ejecutar operaciones restantes
+        if (batchOps > 0) {
+            await batch.commit();
+        }
+        return { saved, updated };
+    }
+    /**
+     * Clasificar categoría del evento basándose en IA simple
+     */
+    classifyEventCategory(title, description) {
+        const titleLower = title.toLowerCase();
+        const descLower = (description || '').toLowerCase();
+        const fullText = `${titleLower} ${descLower}`;
+        if (fullText.includes('concierto') || fullText.includes('música') || fullText.includes('musical') || fullText.includes('concert') || fullText.includes('tributo')) {
+            return 'concierto';
+        }
+        else if (fullText.includes('teatro') || fullText.includes('obra')) {
+            return 'teatro';
+        }
+        else if (fullText.includes('danza') || fullText.includes('baile') || fullText.includes('danses')) {
+            return 'danza';
+        }
+        else if (fullText.includes('cine') || fullText.includes('película') || fullText.includes('film')) {
+            return 'cine';
+        }
+        else if (fullText.includes('exposición') || fullText.includes('museo') || fullText.includes('arte')) {
+            return 'exposicion';
+        }
+        else if (fullText.includes('festival') || fullText.includes('fiesta') || fullText.includes('aplec')) {
+            return 'festival';
+        }
+        else if (fullText.includes('deporte') || fullText.includes('deportivo')) {
+            return 'deporte';
+        }
+        else if (fullText.includes('cultural') || fullText.includes('cultura')) {
+            return 'cultural';
+        }
+        return 'general';
+    }
+    /**
+     * Generar tags automáticos
+     */
+    generateEventTags(title, description, category, citySlug) {
+        const tags = [];
+        if (citySlug)
+            tags.push(citySlug);
+        tags.push('evento');
+        const fullText = `${title.toLowerCase()} ${(description || '').toLowerCase()}`;
+        if (fullText.includes('música') || fullText.includes('musical'))
+            tags.push('musica');
+        if (fullText.includes('teatro'))
+            tags.push('teatro');
+        if (fullText.includes('danza') || fullText.includes('baile'))
+            tags.push('danza');
+        if (fullText.includes('cine'))
+            tags.push('cine');
+        if (fullText.includes('cultural') || fullText.includes('cultura'))
+            tags.push('cultura');
+        if (fullText.includes('familia'))
+            tags.push('familia');
+        if (fullText.includes('gratis') || fullText.includes('gratuito'))
+            tags.push('gratis');
+        if (fullText.includes('joven') || fullText.includes('juvenil'))
+            tags.push('joven');
+        if (fullText.includes('infantil') || fullText.includes('niños'))
+            tags.push('infantil');
+        if (category && category !== 'general' && !tags.includes(category)) {
+            tags.push(category);
+        }
+        return [...new Set(tags)]; // Eliminar duplicados
+    }
+    /**
+     * Validar si una fecha es válida
+     */
+    isValidDate(dateStr) {
+        const date = new Date(dateStr);
+        return !isNaN(date.getTime()) && dateStr.match(/^\d{4}-\d{2}-\d{2}$/);
+    }
+    /**
+     * Extraer precio del texto del evento
+     */
+    extractPrice(text) {
+        const pricePatterns = [
+            /(\d+)\s*€/,
+            /(\d+)\s*euros?/i,
+            /precio:\s*(\d+)/i,
+            /(\d+)\s*€\s*[\/|]\s*(\d+)\s*€/,
+            /gratis|gratuito|entrada\s+libre/i
+        ];
+        for (const pattern of pricePatterns) {
+            const match = text.match(pattern);
+            if (match) {
+                if (match[0].toLowerCase().includes('gratis') || match[0].toLowerCase().includes('gratuito')) {
+                    return 'Gratuito';
+                }
+                return match[0];
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Extraer organizador del texto del evento
+     */
+    extractOrganizer(text) {
+        const organizerPatterns = [
+            /organiza:\s*([^\.]+)/i,
+            /organizador:\s*([^\.]+)/i,
+            /cía\.\s*([^\.]+)/i,
+            /compañía\s*([^\.]+)/i,
+            /grupo\s*([^\.]+)/i,
+            /teatro\s*([^\.]+)/i
+        ];
+        for (const pattern of organizerPatterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) {
+                return match[1].trim();
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Guardar log de procesamiento
+     */
+    async saveProcessingLog(logData) {
+        await this.db
+            .collection('events_processing_logs')
+            .doc(`daily_scraping_${Date.now()}`)
+            .set(logData);
+    }
+}
+exports.DailyEventsScrapingService = DailyEventsScrapingService;
+//# sourceMappingURL=dailyEventsScrapingService.js.map

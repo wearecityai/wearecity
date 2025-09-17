@@ -349,8 +349,12 @@ exports.processAIChat = functions.https.onRequest(async (req, res) => {
                             matchedKeywords: eventKeywords.filter(keyword => query.toLowerCase().includes(keyword.toLowerCase()))
                         });
                         if (isEventQuery) {
-                            console.log('🎪 Event query detected - skipping RAG, using original router');
-                            result = await (0, vertexAIService_1.processUserQuery)(query, cityContext, conversationHistory, rawData.cityConfig);
+                            console.log('🎪 Event query detected - using Events Firestore system');
+                            result = await tryEventsFirestoreFirst(query, citySlug, cityContext);
+                            if (!result) {
+                                console.log('🔄 Events system failed, falling back to original router');
+                                result = await (0, vertexAIService_1.processUserQuery)(query, cityContext, conversationHistory, rawData.cityConfig);
+                            }
                         }
                         else {
                             // 🎯 PASO 1: Intentar RAG primero para consultas no relacionadas con eventos
@@ -1057,6 +1061,72 @@ INSTRUCCIONES:
         return null;
     }
 }
+// Función de integración Events Firestore
+async function tryEventsFirestoreFirst(query, citySlug, cityContext) {
+    try {
+        console.log('🎪 Events Firestore NEW: Starting search for query:', query.substring(0, 50) + '...');
+        // Usar el nuevo servicio de eventos AI con estructura cities/{cityId}/events
+        const { NewEventsAIService } = await Promise.resolve().then(() => __importStar(require('./newEventsAIService')));
+        const eventsAIService = new NewEventsAIService(admin.firestore());
+        // Procesar consulta de eventos
+        const eventsResult = await eventsAIService.processEventsQuery(query, citySlug, cityContext || 'la ciudad', 15 // límite de eventos
+        );
+        if (eventsResult.totalEvents === 0) {
+            console.log('❌ Events Firestore NEW: No events found');
+            return null;
+        }
+        console.log(`✅ Events Firestore NEW: Found ${eventsResult.totalEvents} events with EventCards format`);
+        // Los eventos ya vienen en formato EventCard desde el servicio
+        const eventCards = eventsResult.events;
+        return {
+            response: eventsResult.text,
+            events: eventCards,
+            places: [],
+            modelUsed: 'gemini-2.5-flash',
+            searchPerformed: false,
+            eventsFromFirestore: true,
+            eventsCount: eventsResult.totalEvents,
+            newStructure: true // Indicador de que usa la nueva estructura
+        };
+    }
+    catch (error) {
+        console.error('❌ Events Firestore NEW: Error in tryEventsFirestoreFirst:', error);
+        // Fallback al sistema anterior si hay error
+        try {
+            console.log('🔄 Falling back to legacy events system...');
+            const { eventsAIService } = await Promise.resolve().then(() => __importStar(require('./eventsAIService')));
+            const legacyResult = await eventsAIService.processEventsQuery(query, citySlug, cityContext || 'la ciudad', 15);
+            if (legacyResult.totalEvents > 0) {
+                console.log(`✅ Legacy Events: Found ${legacyResult.totalEvents} events`);
+                const eventCards = legacyResult.events.map((event) => ({
+                    title: event.title,
+                    date: event.date,
+                    endDate: event.endDate,
+                    time: event.time,
+                    location: event.location,
+                    sourceUrl: event.sourceUrl,
+                    eventDetailUrl: event.eventDetailUrl,
+                    description: event.description
+                }));
+                return {
+                    response: legacyResult.text,
+                    events: eventCards,
+                    places: [],
+                    modelUsed: 'gemini-2.5-flash',
+                    searchPerformed: false,
+                    eventsFromFirestore: true,
+                    eventsCount: legacyResult.totalEvents,
+                    usedFallback: true
+                };
+            }
+        }
+        catch (fallbackError) {
+            console.error('❌ Legacy Events fallback also failed:', fallbackError);
+        }
+        return null;
+    }
+}
+
 // Exportar funciones para limpiar datos RAG
 // export { clearRAGData, clearCityRAGDataFunction }; // Temporarily disabled
 //# sourceMappingURL=index.js.map

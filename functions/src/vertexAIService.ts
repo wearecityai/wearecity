@@ -1,5 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { searchPlaces, getPlacePhotoUrl, PlaceResult } from './placesService';
+import { scrapeEventsFromUrl } from './eventScraper';
+import * as admin from 'firebase-admin';
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'wearecity-2ab89';
 
@@ -48,7 +50,12 @@ export const classifyQueryComplexity = (query: string): 'simple' | 'institutiona
     // 🎯 HORARIOS Y TRANSPORTE (SIEMPRE 2.5 Flash + grounding)
     'horario', 'horarios', 'abierto', 'cerrado', 'funcionamiento',
     'transporte', 'autobus', 'autobuses', 'tren', 'metro', 'taxi',
-    'itinerario', 'itinerarios', 'ruta', 'rutas', 'linea', 'lineas'
+    'itinerario', 'itinerarios', 'ruta', 'rutas', 'linea', 'lineas',
+    // 🎯 EVENTOS Y ACTIVIDADES (SIEMPRE 2.5 Flash + grounding)
+    'evento', 'eventos', 'actividad', 'actividades', 'agenda', 'programacion',
+    'concierto', 'conciertos', 'festival', 'festivales', 'espectaculo', 'espectaculos',
+    'teatro', 'cine', 'exposicion', 'exposiciones', 'cultural', 'culturales',
+    'fiesta', 'fiestas', 'celebracion', 'celebraciones'
   ];
 
   const queryNormalized = query.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
@@ -124,14 +131,51 @@ export const processInstitutionalQuery = async (
   try {
     console.log('🏛️ Processing institutional query with Gemini 2.5 Flash + Google Search grounding');
     
-    // Use Gemini 2.5 Flash with Google Search grounding for institutional queries
+    // Configure grounding tool (will be used conditionally)
     const groundingTool = {
       googleSearch: {},
     };
 
-    const config = {
+    let config = {
       tools: [groundingTool],
     };
+
+    // 🎯 PRIORIDAD 1: Intentar eventos de Firestore PRIMERO (más rápido)
+    const isEventQuery = /eventos?|actividades|agenda|cultural|teatro|cine|concierto|festival/i.test(query);
+    
+    if (isEventQuery) {
+      console.log('🎪 Event query detected - trying Firestore first...');
+      try {
+        const { NewEventsAIService } = await import('./newEventsAIService');
+        const eventsAIService = new NewEventsAIService(admin.firestore());
+        
+        const eventsResult = await eventsAIService.processEventsQuery(
+          query,
+          citySlug,
+          cityContext || 'la ciudad',
+          15
+        );
+        
+        if (eventsResult.totalEvents > 0) {
+          console.log(`✅ Firestore Events: Found ${eventsResult.totalEvents} events - skipping Google Search`);
+          
+          // Devolver directamente los resultados de Firestore (sin Google Search)
+          return {
+            response: eventsResult.text,
+            modelUsed: 'gemini-2.5-flash',
+            complexity: 'institutional',
+            searchPerformed: false,
+            events: eventsResult.events,
+            eventsFromFirestore: true,
+            eventsCount: eventsResult.totalEvents
+          };
+        } else {
+          console.log('⚠️ No events found in Firestore, proceeding with Google Search...');
+        }
+      } catch (firestoreError) {
+        console.log('❌ Firestore events failed, proceeding with Google Search:', firestoreError.message);
+      }
+    }
 
     const model = ai.models.generateContent;
 
@@ -154,15 +198,15 @@ export const processInstitutionalQuery = async (
 🔒 URLs OFICIALES CONFIGURADAS PARA EVENTOS:
 - ${agendaEventosUrls.join('\n- ')}
 
-🔒 INSTRUCCIONES DE BÚSQUEDA OBLIGATORIAS PARA EVENTOS:
-- 🔒 OBLIGATORIO: Para cualquier consulta sobre eventos, SIEMPRE busca PRIMERO en estas webs oficiales
-- 🔒 CRÍTICO: Usa términos como "eventos ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}" en Google Search
-- 🔒 PRIORIDAD MÁXIMA: Si no encuentras información en estas URLs oficiales, entonces busca en otras fuentes
-- 🔒 FORMATO DE BÚSQUEDA: "eventos [mes] [año] ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
-- 🔒 EJEMPLOS DE BÚSQUEDA:
-  * "eventos octubre 2025 ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
-  * "agenda cultural ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
-  * "actividades ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"`
+🔒 BÚSQUEDAS OBLIGATORIAS PARA EVENTOS:
+
+🔍 BUSCA EXACTAMENTE ESTOS TÉRMINOS:
+1. "${agendaEventosUrls[0]}" (URL completa)
+2. "eventos La Vila Joiosa septiembre 2025"
+3. "villajoyosa.com/evento/ agenda"
+4. "teatro concierto villajoyosa"
+
+🔒 ACCESO DIRECTO: Ve a ${agendaEventosUrls[0]} y extrae los eventos actuales`
       : '🔒 No hay URLs oficiales configuradas para eventos en esta ciudad';
 
     console.log('🔍 Event URLs configuration:', {
@@ -174,6 +218,14 @@ export const processInstitutionalQuery = async (
     let systemPrompt = `Eres WeAreCity, el asistente inteligente de ${cityContext || 'la ciudad'}. 
 Tienes acceso a Google Search en tiempo real para proporcionar información actualizada y precisa.
 
+🚨🚨🚨 INSTRUCCIÓN CRÍTICA PARA EVENTOS 🚨🚨🚨
+Para consultas sobre eventos, tienes acceso a:
+1. 🕷️ SCRAPING DIRECTO de la web oficial (información más actualizada)
+2. 🔍 Google Search Grounding (como respaldo)
+
+Si recibes información de scraping directo (marcada con 🕷️), úsala PRIORITARIAMENTE.
+Si no hay información de scraping, entonces usa Google Search para buscar eventos.
+
 🎯 INFORMACIÓN ACTUAL:
 - Fecha y hora actual: ${currentDateTime} (España)
 - Usa SIEMPRE esta fecha y hora como referencia para información temporal
@@ -184,6 +236,22 @@ Tienes acceso a Google Search en tiempo real para proporcionar información actu
 - Busca información específica en webs oficiales cuando sea posible
 - SIEMPRE cita las fuentes de información cuando uses datos de búsquedas
 ${agendaUrlsText}
+
+🎪 PROTOCOLO OBLIGATORIO PARA CONSULTAS DE EVENTOS:
+
+🔍 PASO 1 - BÚSQUEDA OBLIGATORIA:
+Para CUALQUIER consulta sobre eventos, debes hacer estas búsquedas OBLIGATORIAS usando Google Search:
+1. Busca: "${agendaEventosUrls.length > 0 ? agendaEventosUrls[0] : 'eventos villajoyosa.com'}"
+2. Busca: "eventos septiembre 2025 villajoyosa.com"
+3. Busca: "agenda cultural La Vila Joiosa 2025"
+4. Busca: "teatro concierto villajoyosa septiembre octubre"
+
+🚨 CRÍTICO - DEBES BUSCAR ANTES DE RESPONDER:
+- NO respondas sobre eventos hasta haber hecho las búsquedas
+- Si Google Search no funciona, dilo explícitamente: "Estoy consultando la web oficial de eventos..."
+- Accede directamente a la página: ${agendaEventosUrls.length > 0 ? agendaEventosUrls[0] : 'https://www.villajoyosa.com/evento/'}
+
+⚠️ PROHIBIDO decir "no hay eventos" sin haber buscado primero
 
 ⚠️ RESTRICCIÓN GEOGRÁFICA CRÍTICA:
 - SOLO incluye eventos que tengan lugar en ${cityContext || 'la ciudad'}, España
@@ -363,13 +431,87 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
       });
     }
 
-    const fullPrompt = `${systemPrompt}${conversationContext}\n\nConsulta: ${query}`;
+    // Check if this is an event query and try Puppeteer scraping
+    const isEventQuery = /eventos?|actividades|agenda|cultural|teatro|cine|concierto|festival/i.test(query);
+    let scrapedEventsContent = '';
+    
+    if (isEventQuery && agendaEventosUrls.length > 0) {
+      console.log('🎪 Event query detected, attempting Puppeteer scraping...');
+      
+      try {
+        const scrapingResult = await scrapeEventsFromUrl(agendaEventosUrls[0], cityContext || 'la ciudad');
+        
+        if (scrapingResult.success && scrapingResult.events.length > 0) {
+          console.log(`✅ Puppeteer found ${scrapingResult.events.length} events - disabling Google Search Grounding for efficiency`);
+          
+          // Disable Google Search Grounding since we have direct data
+          config = {}; // Remove grounding tools to speed up processing
+          
+          // Format scraped events for AI processing
+          scrapedEventsContent = `
+🕷️ EVENTOS EXTRAÍDOS DIRECTAMENTE DE LA WEB OFICIAL (${agendaEventosUrls[0]}):
 
-    const result = await model({
-      model: "gemini-2.5-flash",
-      contents: fullPrompt,
-      config,
-    });
+${scrapingResult.events.map((event, index) => `
+📅 EVENTO ${index + 1}:
+• Título: ${event.title}
+• Fecha: ${event.date}
+• Hora: ${event.time}
+• Ubicación: ${event.location}
+• Descripción: ${event.description}
+• URL: ${event.url}
+`).join('\n')}
+
+🎯 INFORMACIÓN EXTRAÍDA: ${scrapingResult.scrapedAt}
+📊 TOTAL DE EVENTOS ENCONTRADOS: ${scrapingResult.events.length}
+
+INSTRUCCIONES: Usa ÚNICAMENTE esta información extraída directamente de la web oficial para responder sobre eventos. NO uses Google Search ya que tienes datos directos y actualizados.`;
+        } else {
+          console.log('⚠️ Puppeteer scraping did not find events or failed');
+          if (scrapingResult.error) {
+            console.error('Scraping error:', scrapingResult.error);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error in Puppeteer scraping:', error);
+      }
+    }
+
+    const fullPrompt = `${systemPrompt}${conversationContext}
+
+${scrapedEventsContent}
+
+Consulta: ${query}`;
+
+    // Retry mechanism for overloaded model errors
+    let result;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`🤖 Attempting AI generation (attempt ${retryCount + 1}/${maxRetries})`);
+        
+        result = await model({
+          model: "gemini-2.5-flash",
+          contents: fullPrompt,
+          config,
+        });
+        
+        break; // Success, exit retry loop
+        
+      } catch (error: any) {
+        retryCount++;
+        
+        if (error.status === 503 && retryCount < maxRetries) {
+          console.log(`⚠️ Model overloaded (503), retrying in ${retryCount * 2} seconds... (${retryCount}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, retryCount * 2000)); // Exponential backoff
+          continue;
+        }
+        
+        // If not a 503 error or we've exhausted retries, throw the error
+        throw error;
+      }
+    }
 
     // Log if grounding was used
     if (result.candidates?.[0]?.groundingMetadata) {

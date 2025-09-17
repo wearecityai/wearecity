@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.processMultimodalQuery = exports.processUserQuery = exports.processSimpleQuery = exports.processInstitutionalQuery = exports.classifyQueryComplexity = void 0;
 const genai_1 = require("@google/genai");
 const placesService_1 = require("./placesService");
+const eventScraper_1 = require("./eventScraper");
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'wearecity-2ab89';
 console.log('🔑 Google AI Config:', { PROJECT_ID });
 // Initialize Google AI
@@ -110,11 +111,11 @@ const processInstitutionalQuery = async (query, cityContext, conversationHistory
     var _a, _b;
     try {
         console.log('🏛️ Processing institutional query with Gemini 2.5 Flash + Google Search grounding');
-        // Use Gemini 2.5 Flash with Google Search grounding for institutional queries
+        // Configure grounding tool (will be used conditionally)
         const groundingTool = {
             googleSearch: {},
         };
-        const config = {
+        let config = {
             tools: [groundingTool],
         };
         const model = ai.models.generateContent;
@@ -136,15 +137,15 @@ const processInstitutionalQuery = async (query, cityContext, conversationHistory
 🔒 URLs OFICIALES CONFIGURADAS PARA EVENTOS:
 - ${agendaEventosUrls.join('\n- ')}
 
-🔒 INSTRUCCIONES DE BÚSQUEDA OBLIGATORIAS PARA EVENTOS:
-- 🔒 OBLIGATORIO: Para cualquier consulta sobre eventos, SIEMPRE busca PRIMERO en estas webs oficiales
-- 🔒 CRÍTICO: Usa términos como "eventos ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}" en Google Search
-- 🔒 PRIORIDAD MÁXIMA: Si no encuentras información en estas URLs oficiales, entonces busca en otras fuentes
-- 🔒 FORMATO DE BÚSQUEDA: "eventos [mes] [año] ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
-- 🔒 EJEMPLOS DE BÚSQUEDA:
-  * "eventos octubre 2025 ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
-  * "agenda cultural ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"
-  * "actividades ${cityContext} site:${agendaEventosUrls[0].replace('https://', '').replace('http://', '')}"`
+🔒 BÚSQUEDAS OBLIGATORIAS PARA EVENTOS:
+
+🔍 BUSCA EXACTAMENTE ESTOS TÉRMINOS:
+1. "${agendaEventosUrls[0]}" (URL completa)
+2. "eventos La Vila Joiosa septiembre 2025"
+3. "villajoyosa.com/evento/ agenda"
+4. "teatro concierto villajoyosa"
+
+🔒 ACCESO DIRECTO: Ve a ${agendaEventosUrls[0]} y extrae los eventos actuales`
             : '🔒 No hay URLs oficiales configuradas para eventos en esta ciudad';
         console.log('🔍 Event URLs configuration:', {
             hasEventUrls: agendaEventosUrls.length > 0,
@@ -153,6 +154,14 @@ const processInstitutionalQuery = async (query, cityContext, conversationHistory
         });
         let systemPrompt = `Eres WeAreCity, el asistente inteligente de ${cityContext || 'la ciudad'}. 
 Tienes acceso a Google Search en tiempo real para proporcionar información actualizada y precisa.
+
+🚨🚨🚨 INSTRUCCIÓN CRÍTICA PARA EVENTOS 🚨🚨🚨
+Para consultas sobre eventos, tienes acceso a:
+1. 🕷️ SCRAPING DIRECTO de la web oficial (información más actualizada)
+2. 🔍 Google Search Grounding (como respaldo)
+
+Si recibes información de scraping directo (marcada con 🕷️), úsala PRIORITARIAMENTE.
+Si no hay información de scraping, entonces usa Google Search para buscar eventos.
 
 🎯 INFORMACIÓN ACTUAL:
 - Fecha y hora actual: ${currentDateTime} (España)
@@ -164,6 +173,22 @@ Tienes acceso a Google Search en tiempo real para proporcionar información actu
 - Busca información específica en webs oficiales cuando sea posible
 - SIEMPRE cita las fuentes de información cuando uses datos de búsquedas
 ${agendaUrlsText}
+
+🎪 PROTOCOLO OBLIGATORIO PARA CONSULTAS DE EVENTOS:
+
+🔍 PASO 1 - BÚSQUEDA OBLIGATORIA:
+Para CUALQUIER consulta sobre eventos, debes hacer estas búsquedas OBLIGATORIAS usando Google Search:
+1. Busca: "${agendaEventosUrls.length > 0 ? agendaEventosUrls[0] : 'eventos villajoyosa.com'}"
+2. Busca: "eventos septiembre 2025 villajoyosa.com"
+3. Busca: "agenda cultural La Vila Joiosa 2025"
+4. Busca: "teatro concierto villajoyosa septiembre octubre"
+
+🚨 CRÍTICO - DEBES BUSCAR ANTES DE RESPONDER:
+- NO respondas sobre eventos hasta haber hecho las búsquedas
+- Si Google Search no funciona, dilo explícitamente: "Estoy consultando la web oficial de eventos..."
+- Accede directamente a la página: ${agendaEventosUrls.length > 0 ? agendaEventosUrls[0] : 'https://www.villajoyosa.com/evento/'}
+
+⚠️ PROHIBIDO decir "no hay eventos" sin haber buscado primero
 
 ⚠️ RESTRICCIÓN GEOGRÁFICA CRÍTICA:
 - SOLO incluye eventos que tengan lugar en ${cityContext || 'la ciudad'}, España
@@ -341,12 +366,77 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
                 conversationContext += `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content}\n`;
             });
         }
-        const fullPrompt = `${systemPrompt}${conversationContext}\n\nConsulta: ${query}`;
-        const result = await model({
-            model: "gemini-2.5-flash",
-            contents: fullPrompt,
-            config,
-        });
+        // Check if this is an event query and try Puppeteer scraping
+        const isEventQuery = /eventos?|actividades|agenda|cultural|teatro|cine|concierto|festival/i.test(query);
+        let scrapedEventsContent = '';
+        if (isEventQuery && agendaEventosUrls.length > 0) {
+            console.log('🎪 Event query detected, attempting Puppeteer scraping...');
+            try {
+                const scrapingResult = await (0, eventScraper_1.scrapeEventsFromUrl)(agendaEventosUrls[0], cityContext || 'la ciudad');
+                if (scrapingResult.success && scrapingResult.events.length > 0) {
+                    console.log(`✅ Puppeteer found ${scrapingResult.events.length} events - disabling Google Search Grounding for efficiency`);
+                    // Disable Google Search Grounding since we have direct data
+                    config = {}; // Remove grounding tools to speed up processing
+                    // Format scraped events for AI processing
+                    scrapedEventsContent = `
+🕷️ EVENTOS EXTRAÍDOS DIRECTAMENTE DE LA WEB OFICIAL (${agendaEventosUrls[0]}):
+
+${scrapingResult.events.map((event, index) => `
+📅 EVENTO ${index + 1}:
+• Título: ${event.title}
+• Fecha: ${event.date}
+• Hora: ${event.time}
+• Ubicación: ${event.location}
+• Descripción: ${event.description}
+• URL: ${event.url}
+`).join('\n')}
+
+🎯 INFORMACIÓN EXTRAÍDA: ${scrapingResult.scrapedAt}
+📊 TOTAL DE EVENTOS ENCONTRADOS: ${scrapingResult.events.length}
+
+INSTRUCCIONES: Usa ÚNICAMENTE esta información extraída directamente de la web oficial para responder sobre eventos. NO uses Google Search ya que tienes datos directos y actualizados.`;
+                }
+                else {
+                    console.log('⚠️ Puppeteer scraping did not find events or failed');
+                    if (scrapingResult.error) {
+                        console.error('Scraping error:', scrapingResult.error);
+                    }
+                }
+            }
+            catch (error) {
+                console.error('❌ Error in Puppeteer scraping:', error);
+            }
+        }
+        const fullPrompt = `${systemPrompt}${conversationContext}
+
+${scrapedEventsContent}
+
+Consulta: ${query}`;
+        // Retry mechanism for overloaded model errors
+        let result;
+        let retryCount = 0;
+        const maxRetries = 3;
+        while (retryCount < maxRetries) {
+            try {
+                console.log(`🤖 Attempting AI generation (attempt ${retryCount + 1}/${maxRetries})`);
+                result = await model({
+                    model: "gemini-2.5-flash",
+                    contents: fullPrompt,
+                    config,
+                });
+                break; // Success, exit retry loop
+            }
+            catch (error) {
+                retryCount++;
+                if (error.status === 503 && retryCount < maxRetries) {
+                    console.log(`⚠️ Model overloaded (503), retrying in ${retryCount * 2} seconds... (${retryCount}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, retryCount * 2000)); // Exponential backoff
+                    continue;
+                }
+                // If not a 503 error or we've exhausted retries, throw the error
+                throw error;
+            }
+        }
         // Log if grounding was used
         if ((_b = (_a = result.candidates) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.groundingMetadata) {
             console.log('🔍 Google Search grounding activated:', result.candidates[0].groundingMetadata);

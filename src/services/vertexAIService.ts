@@ -86,7 +86,7 @@ export const processWithVertexAI = async (
     
     // Create an AbortController for timeout handling
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+    const timeoutId = setTimeout(() => controller.abort(), 540000); // 9 minutes timeout to match Firebase Function
 
     let response;
     try {
@@ -101,8 +101,8 @@ export const processWithVertexAI = async (
     } catch (error) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        console.error('❌ Request timeout after 2 minutes');
-        throw new Error('Request timeout - the query is taking too long to process');
+        console.error('❌ Request timeout after 9 minutes');
+        throw new Error('Request timeout - the query is taking too long to process. This may happen with complex event searches.');
       }
       throw error;
     }
