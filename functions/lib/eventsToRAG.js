@@ -125,7 +125,11 @@ async function migrateEventsToRAG(cityId, cityName) {
                         userId: ragDocument.userId,
                         chunkIndex: i,
                         content: chunks[i],
-                        metadata: Object.assign(Object.assign({}, ragDocument.metadata), { chunkIndex: i, totalChunks: chunks.length }),
+                        metadata: {
+                            ...ragDocument.metadata,
+                            chunkIndex: i,
+                            totalChunks: chunks.length
+                        },
                         createdAt: new Date()
                     };
                     await db.collection('document_chunks').add(chunkData);
@@ -252,7 +256,12 @@ async function migrateEventsForCity(citySlug) {
             const cityData = cityDoc.data();
             if (cityData.slug === citySlug || cityDoc.id === citySlug) {
                 const result = await migrateEventsToRAG(cityDoc.id, cityData.name || cityDoc.id);
-                return Object.assign({ success: true, cityId: cityDoc.id, cityName: cityData.name || cityDoc.id }, result);
+                return {
+                    success: true,
+                    cityId: cityDoc.id,
+                    cityName: cityData.name || cityDoc.id,
+                    ...result
+                };
             }
         }
         throw new Error(`City not found: ${citySlug}`);

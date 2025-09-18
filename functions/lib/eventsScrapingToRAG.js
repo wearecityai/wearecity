@@ -105,18 +105,17 @@ async function scrapeEventsFromUrl(url, cityConfig) {
             const eventElements = document.querySelectorAll(selectors.eventContainer || '.event, .evento, .agenda-item');
             const extractedEvents = [];
             eventElements.forEach((element) => {
-                var _a, _b, _c, _d, _e;
                 try {
                     const titleEl = element.querySelector(selectors.title || 'h2, h3, .title, .titulo');
                     const descEl = element.querySelector(selectors.description || '.description, .descripcion, p');
                     const dateEl = element.querySelector(selectors.date || '.date, .fecha, .when');
                     const locationEl = element.querySelector(selectors.location || '.location, .lugar, .where');
                     const categoryEl = element.querySelector(selectors.category || '.category, .categoria, .tipo');
-                    const title = (_a = titleEl === null || titleEl === void 0 ? void 0 : titleEl.textContent) === null || _a === void 0 ? void 0 : _a.trim();
-                    const description = (_b = descEl === null || descEl === void 0 ? void 0 : descEl.textContent) === null || _b === void 0 ? void 0 : _b.trim();
-                    const date = (_c = dateEl === null || dateEl === void 0 ? void 0 : dateEl.textContent) === null || _c === void 0 ? void 0 : _c.trim();
-                    const location = (_d = locationEl === null || locationEl === void 0 ? void 0 : locationEl.textContent) === null || _d === void 0 ? void 0 : _d.trim();
-                    const category = (_e = categoryEl === null || categoryEl === void 0 ? void 0 : categoryEl.textContent) === null || _e === void 0 ? void 0 : _e.trim();
+                    const title = titleEl?.textContent?.trim();
+                    const description = descEl?.textContent?.trim();
+                    const date = dateEl?.textContent?.trim();
+                    const location = locationEl?.textContent?.trim();
+                    const category = categoryEl?.textContent?.trim();
                     if (title && title.length > 3) {
                         extractedEvents.push({
                             title,
@@ -151,17 +150,16 @@ async function scrapeEventsFromUrl(url, cityConfig) {
  * Limpiar y normalizar datos del evento
  */
 function cleanEventData(event) {
-    var _a, _b, _c;
     return {
         title: event.title.trim(),
         description: event.description.trim(),
         date: normalizeDate(event.date),
-        time: (_a = event.time) === null || _a === void 0 ? void 0 : _a.trim(),
+        time: event.time?.trim(),
         location: event.location.trim(),
         category: event.category.trim() || 'cultural',
         url: event.url,
-        price: (_b = event.price) === null || _b === void 0 ? void 0 : _b.trim(),
-        organizer: (_c = event.organizer) === null || _c === void 0 ? void 0 : _c.trim(),
+        price: event.price?.trim(),
+        organizer: event.organizer?.trim(),
         tags: generateTags(event)
     };
 }
@@ -180,7 +178,7 @@ function normalizeDate(dateStr) {
         }
         return parsed.toISOString().split('T')[0];
     }
-    catch (_a) {
+    catch {
         return new Date().toISOString().split('T')[0];
     }
 }
@@ -282,7 +280,11 @@ async function saveEventToRAG(event, cityId, cityName) {
                 userId: ragDocument.userId,
                 chunkIndex: i,
                 content: chunks[i],
-                metadata: Object.assign(Object.assign({}, ragDocument.metadata), { chunkIndex: i, totalChunks: chunks.length }),
+                metadata: {
+                    ...ragDocument.metadata,
+                    chunkIndex: i,
+                    totalChunks: chunks.length
+                },
                 createdAt: new Date()
             };
             await db.collection('document_chunks').add(chunkData);

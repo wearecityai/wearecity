@@ -50,6 +50,7 @@ import { db, auth } from '@/integrations/firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { RAGService } from '@/services/ragService';
 import AgentsSection from '@/components/admin/AgentsSection';
+import MonitoringSection from '@/components/admin/MonitoringSection';
 
 
 // Interfaces
@@ -1039,10 +1040,15 @@ export const SuperAdminDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* Agents Tab */}
-            {activeTab === 'agents' && (
-              <AgentsSection />
-            )}
+                {/* Agents Tab */}
+                {activeTab === 'agents' && (
+                  <AgentsSection />
+                )}
+
+                {/* Monitoring Tab */}
+                {activeTab === 'monitoring' && (
+                  <MonitoringSection />
+                )}
 
             {/* Settings Tab */}
             {activeTab === 'settings' && (

@@ -188,7 +188,7 @@ class ValidationService {
             }
             return mediaUrl;
         }
-        catch (_a) {
+        catch {
             throw new ValidationError('mediaUrl', 'Invalid media URL format');
         }
     }

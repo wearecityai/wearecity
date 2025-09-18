@@ -43,12 +43,11 @@ class EventsService {
      * Procesar eventos de una ciudad específica
      */
     async processEventsForCity(citySlug) {
-        var _a;
         try {
             console.log(`🎪 Processing events for city: ${citySlug}`);
             // Obtener configuración de la ciudad
             const cityConfig = await this.getCityConfig(citySlug);
-            if (!cityConfig || !((_a = cityConfig.agendaEventosUrls) === null || _a === void 0 ? void 0 : _a.length)) {
+            if (!cityConfig || !cityConfig.agendaEventosUrls?.length) {
                 return {
                     success: false,
                     totalEvents: 0,
@@ -264,7 +263,11 @@ ${JSON.stringify(rawEvents, null, 2)}`;
             const existingEvent = await eventRef.get();
             if (existingEvent.exists) {
                 // Actualizar evento existente
-                batch.update(eventRef, Object.assign(Object.assign({}, event), { updatedAt: new Date(), scrapedAt: new Date() }));
+                batch.update(eventRef, {
+                    ...event,
+                    updatedAt: new Date(),
+                    scrapedAt: new Date()
+                });
                 updatedEvents++;
             }
             else {
@@ -295,7 +298,10 @@ ${JSON.stringify(rawEvents, null, 2)}`;
                 query = query.where('category', '==', category);
             }
             const snapshot = await query.get();
-            return snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
         }
         catch (error) {
             console.error('❌ Error getting events from Firestore:', error);
@@ -365,7 +371,7 @@ ${JSON.stringify(rawEvents, null, 2)}`;
             const date = new Date(dateStr);
             return date.toISOString().split('T')[0];
         }
-        catch (_a) {
+        catch {
             return new Date().toISOString().split('T')[0];
         }
     }
@@ -379,7 +385,7 @@ ${JSON.stringify(rawEvents, null, 2)}`;
             today.setHours(0, 0, 0, 0);
             return eventDate >= today;
         }
-        catch (_a) {
+        catch {
             return false;
         }
     }

@@ -121,7 +121,7 @@ ${html.substring(0, 25000)}
                     const eventDate = new Date(event.date);
                     return eventDate >= today;
                 }
-                catch (_a) {
+                catch {
                     return false;
                 }
             });
@@ -256,7 +256,6 @@ ${html.substring(0, 25000)}
      * Crear contenido enriquecido para embeddings
      */
     createEnrichedContent(event, citySlug) {
-        var _a;
         return `
 🎯 EVENTO EXTRAÍDO POR VERTEX AI AGENT
 Título: ${event.title}
@@ -269,7 +268,7 @@ Organizador: ${event.organizer || 'No especificado'}
 Precio: ${event.price || 'No especificado'}
 Ciudad: ${citySlug}
 Enlace: ${event.link || 'No disponible'}
-Tags: ${((_a = event.tags) === null || _a === void 0 ? void 0 : _a.join(', ')) || 'evento'}
+Tags: ${event.tags?.join(', ') || 'evento'}
 
 CONTENIDO COMPLETO:
 ${event.fullContent}
@@ -405,8 +404,7 @@ Este evento fue extraído automáticamente usando el agente inteligente de Verte
             // Analizar categorías
             const categoryCount = {};
             sourcesSnapshot.docs.forEach(doc => {
-                var _a;
-                const category = ((_a = doc.data().metadata) === null || _a === void 0 ? void 0 : _a.category) || 'Sin categoría';
+                const category = doc.data().metadata?.category || 'Sin categoría';
                 categoryCount[category] = (categoryCount[category] || 0) + 1;
             });
             return {

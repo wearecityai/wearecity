@@ -34,7 +34,12 @@ if (!admin.apps.length) {
 /**
  * Nuevo agente de IA inteligente para scraping - Función Firebase
  */
-exports.newIntelligentScraping = functions.https.onCall(async (data, context) => {
+exports.newIntelligentScraping = functions
+    .runWith({
+    timeoutSeconds: 540,
+    memory: '1GB'
+})
+    .https.onCall(async (data, context) => {
     console.log('🚀 Iniciando nuevo agente de IA inteligente...');
     // Verificar autenticación
     if (!context.auth) {

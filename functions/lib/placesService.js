@@ -77,9 +77,8 @@ const searchPlaces = async (query, location, radius = 1000 // 1km default - muy 
             const nearbyCities = ['benidorm', 'alicante', 'el campello', 'campello', 'villajoyosa', 'vila joiosa'];
             const isTargetCity = nearbyCities.includes(cityName);
             places = places.filter(place => {
-                var _a, _b;
-                const address = ((_a = place.formatted_address) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '';
-                const name = ((_b = place.name) === null || _b === void 0 ? void 0 : _b.toLowerCase()) || '';
+                const address = place.formatted_address?.toLowerCase() || '';
+                const name = place.name?.toLowerCase() || '';
                 // Verificar si la dirección contiene alguna variación del nombre de la ciudad
                 const isInCity = cityVariations.some(variation => address.includes(variation) || name.includes(variation));
                 // 🚨 EXCLUIR CIUDADES CERCANAS: Si estamos buscando en La Vila Joiosa, excluir Benidorm
@@ -96,26 +95,23 @@ const searchPlaces = async (query, location, radius = 1000 // 1km default - muy 
         // Limitar a 6 resultados finales
         places = places.slice(0, 6);
         console.log('✅ Found places after city filtering:', places.length);
-        return places.map(place => {
-            var _a;
-            return ({
-                place_id: place.place_id || '',
-                name: place.name || '',
-                formatted_address: place.formatted_address || '',
-                geometry: place.geometry || { location: { lat: 0, lng: 0 } },
-                rating: place.rating,
-                user_ratings_total: place.user_ratings_total,
-                price_level: place.price_level,
-                photos: (_a = place.photos) === null || _a === void 0 ? void 0 : _a.slice(0, 1),
-                types: place.types || [],
-                opening_hours: place.opening_hours,
-                website: place.website,
-                international_phone_number: place.international_phone_number,
-                business_status: place.business_status,
-                reviews: place.reviews,
-                plus_code: place.plus_code,
-            });
-        });
+        return places.map(place => ({
+            place_id: place.place_id || '',
+            name: place.name || '',
+            formatted_address: place.formatted_address || '',
+            geometry: place.geometry || { location: { lat: 0, lng: 0 } },
+            rating: place.rating,
+            user_ratings_total: place.user_ratings_total,
+            price_level: place.price_level,
+            photos: place.photos?.slice(0, 1),
+            types: place.types || [],
+            opening_hours: place.opening_hours,
+            website: place.website,
+            international_phone_number: place.international_phone_number,
+            business_status: place.business_status,
+            reviews: place.reviews,
+            plus_code: place.plus_code,
+        }));
     }
     catch (error) {
         console.error('❌ Error searching places:', error);

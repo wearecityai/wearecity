@@ -26,8 +26,8 @@ async function buildSimplifiedInstructions(config, userLocation) {
 USAR SIEMPRE: Gemini 2.5 Flash con Web Grounding habilitado
 GROUNDING: SIEMPRE activar para obtener información actualizada y verificable`);
     // Ciudad restringida
-    const restrictedCity = config === null || config === void 0 ? void 0 : config.restricted_city;
-    if (restrictedCity === null || restrictedCity === void 0 ? void 0 : restrictedCity.name) {
+    const restrictedCity = config?.restricted_city;
+    if (restrictedCity?.name) {
         instructions.push(`🎯 ÁMBITO GEOGRÁFICO:
 TODAS las respuestas deben estar EXCLUSIVAMENTE relacionadas con ${restrictedCity.name}, España.
 
@@ -39,7 +39,7 @@ REGLAS ANTI-INVENCIÓN:
 ✅ Si no tienes información verificable, dilo claramente`);
     }
     // Geolocalización
-    const allowGeolocation = (config === null || config === void 0 ? void 0 : config.allow_geolocation) !== false;
+    const allowGeolocation = config?.allow_geolocation !== false;
     if (allowGeolocation && userLocation) {
         instructions.push(`📍 UBICACIÓN DEL USUARIO:
 Coordenadas: ${userLocation.lat}, ${userLocation.lng}
@@ -56,7 +56,6 @@ exports.buildSimplifiedInstructions = buildSimplifiedInstructions;
  * Prompt del sistema simplificado
  */
 async function buildSimplifiedSystemPrompt(userMessage, config, userLocation, webResults, placesResults) {
-    var _a, _b, _c;
     const parts = [];
     // Información temporal
     const now = new Date();
@@ -142,7 +141,7 @@ SIEMPRE convertir URLs en botones usando:
     const isAboutProcedures = /trámite|documento|certificado|empadron|licencia/.test(userMessage.toLowerCase());
     // Instrucciones específicas por tipo
     if (isAboutProcedures) {
-        const cityName = ((_a = config === null || config === void 0 ? void 0 : config.restricted_city) === null || _a === void 0 ? void 0 : _a.name) || 'la ciudad';
+        const cityName = config?.restricted_city?.name || 'la ciudad';
         parts.push(`📋 INSTRUCCIONES PARA TRÁMITES - ${cityName}:
 
 INFORMACIÓN OBLIGATORIA:
@@ -161,7 +160,7 @@ ESTRUCTURA REQUERIDA:
 - Referencias oficiales`);
     }
     if (isAboutPlaces) {
-        const cityName = ((_b = config === null || config === void 0 ? void 0 : config.restricted_city) === null || _b === void 0 ? void 0 : _b.name) || 'la ciudad';
+        const cityName = config?.restricted_city?.name || 'la ciudad';
         parts.push(`🏪 INSTRUCCIONES PARA LUGARES - ${cityName}:
 
 SOLO recomienda lugares con información REAL:
@@ -173,7 +172,7 @@ SI NO TIENES INFORMACIÓN REAL:
 Di claramente: "No tengo información verificable sobre lugares específicos en ${cityName}"`);
     }
     if (isAboutEvents) {
-        const cityName = ((_c = config === null || config === void 0 ? void 0 : config.restricted_city) === null || _c === void 0 ? void 0 : _c.name) || 'la ciudad';
+        const cityName = config?.restricted_city?.name || 'la ciudad';
         parts.push(`🎉 INSTRUCCIONES PARA EVENTOS - ${cityName}:
 
 SOLO menciona eventos con información REAL:

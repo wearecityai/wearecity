@@ -23,7 +23,6 @@ class SecretManager {
      * Get secret with caching and automatic refresh
      */
     async getSecret(secretName, version = 'latest') {
-        var _a;
         const cacheKey = `${secretName}_${version}`;
         const now = Date.now();
         // Check cache first
@@ -34,7 +33,7 @@ class SecretManager {
         try {
             const name = `projects/${this.projectId}/secrets/${secretName}/versions/${version}`;
             const [response] = await this.client.accessSecretVersion({ name });
-            if (!((_a = response.payload) === null || _a === void 0 ? void 0 : _a.data)) {
+            if (!response.payload?.data) {
                 throw new Error(`Secret ${secretName} not found or empty`);
             }
             const secretValue = response.payload.data.toString();
@@ -130,7 +129,7 @@ class SecretManager {
                 await this.getSecret(secretName);
                 results[secretName] = true;
             }
-            catch (_a) {
+            catch {
                 results[secretName] = false;
             }
         }

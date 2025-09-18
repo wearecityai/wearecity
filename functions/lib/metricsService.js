@@ -82,7 +82,10 @@ exports.initializeCategories = functions.https.onRequest(async (req, res) => {
         const batch = db.batch();
         for (const [key, category] of Object.entries(DEFAULT_CATEGORIES)) {
             const categoryRef = db.collection('chat_categories').doc(key);
-            batch.set(categoryRef, Object.assign(Object.assign({}, category), { created_at: admin.firestore.FieldValue.serverTimestamp() }));
+            batch.set(categoryRef, {
+                ...category,
+                created_at: admin.firestore.FieldValue.serverTimestamp()
+            });
         }
         await batch.commit();
         res.status(200).json({
@@ -113,7 +116,6 @@ async function getCategoryIdByName(categoryName) {
 }
 // Función para clasificar mensajes usando IA
 async function classifyMessageWithAI(message) {
-    var _a, _b, _c, _d, _e;
     try {
         const model = vertex_ai.preview.getGenerativeModel({
             model: 'gemini-1.5-flash-002',
@@ -135,7 +137,7 @@ MENSAJE: "${message}"
 Responde ÚNICAMENTE con el nombre de la categoría (sin explicación adicional).`;
         const result = await model.generateContent(prompt);
         const response = result.response;
-        const text = ((_e = (_d = (_c = (_b = (_a = response.candidates) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.content) === null || _c === void 0 ? void 0 : _c.parts) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.text) || '';
+        const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const classification = text.trim().toLowerCase();
         // Verificar que la clasificación es válida
         if (Object.keys(DEFAULT_CATEGORIES).includes(classification)) {
@@ -334,16 +336,25 @@ exports.setupAndFixMetrics = functions.https.onCall(async (data, context) => {
         // Step 3: Get debug data
         console.log('🔍 Collecting debug data...');
         const finalCategoriesSnapshot = await db.collection('chat_categories').get();
-        results.data.categories = finalCategoriesSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        results.data.categories = finalCategoriesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         const finalAnalyticsSnapshot = await db.collection('chat_analytics').limit(5).get();
-        results.data.analytics = finalAnalyticsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        results.data.analytics = finalAnalyticsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         const cityAnalytics = await db.collection('chat_analytics')
             .where('city_id', '==', 'la-vila-joiosa')
             .limit(5)
             .get();
-        results.data.cityData = cityAnalytics.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        results.data.cityData = cityAnalytics.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         console.log('✅ Setup complete!');
-        return Object.assign({ success: true }, results);
+        return { success: true, ...results };
     }
     catch (error) {
         console.error('Setup error:', error);
@@ -356,15 +367,24 @@ exports.debugMetrics = functions.https.onCall(async (data, context) => {
         console.log('🔍 Debug metrics called');
         // Check categories
         const categoriesSnapshot = await db.collection('chat_categories').get();
-        const categoriesData = categoriesSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const categoriesData = categoriesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         // Check analytics
         const analyticsSnapshot = await db.collection('chat_analytics').limit(10).get();
-        const analyticsData = analyticsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const analyticsData = analyticsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         // Check specific city
         const cityAnalytics = await db.collection('chat_analytics')
             .where('city_id', '==', 'la-vila-joiosa')
             .get();
-        const cityData = cityAnalytics.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const cityData = cityAnalytics.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         return {
             success: true,
             categories: categoriesData,
@@ -396,7 +416,10 @@ exports.getCityMetrics = functions.https.onCall(async (data, context) => {
             query = query.where('created_at', '<=', admin.firestore.Timestamp.fromDate(new Date(endDate)));
         }
         const snapshot = await query.get();
-        const metrics = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const metrics = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         return {
             success: true,
             metrics: metrics,

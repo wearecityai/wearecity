@@ -92,7 +92,6 @@ class DailyEventsScrapingService {
      * Encontrar el ID real de la ciudad por slug o nombre
      */
     async findRealCityId(targetSlug, targetName) {
-        var _a, _b, _c, _d, _e;
         try {
             console.log(`🔍 Looking for real city ID for: ${targetName} (slug: ${targetSlug})`);
             const citiesSnapshot = await this.db.collection('cities').get();
@@ -100,11 +99,11 @@ class DailyEventsScrapingService {
                 const cityData = cityDoc.data();
                 const cityId = cityDoc.id;
                 // Buscar por múltiples criterios
-                const nameMatch = ((_a = cityData.name) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(targetName.toLowerCase())) ||
-                    targetName.toLowerCase().includes(((_b = cityData.name) === null || _b === void 0 ? void 0 : _b.toLowerCase()) || '');
-                const slugMatch = ((_c = cityData.slug) === null || _c === void 0 ? void 0 : _c.toLowerCase()) === targetSlug.toLowerCase() ||
-                    ((_d = cityData.slug) === null || _d === void 0 ? void 0 : _d.toLowerCase().includes(targetSlug.toLowerCase())) ||
-                    targetSlug.toLowerCase().includes(((_e = cityData.slug) === null || _e === void 0 ? void 0 : _e.toLowerCase()) || '');
+                const nameMatch = cityData.name?.toLowerCase().includes(targetName.toLowerCase()) ||
+                    targetName.toLowerCase().includes(cityData.name?.toLowerCase() || '');
+                const slugMatch = cityData.slug?.toLowerCase() === targetSlug.toLowerCase() ||
+                    cityData.slug?.toLowerCase().includes(targetSlug.toLowerCase()) ||
+                    targetSlug.toLowerCase().includes(cityData.slug?.toLowerCase() || '');
                 if (nameMatch || slugMatch) {
                     console.log(`✅ Found real city: ${cityData.name} with ID: ${cityId}`);
                     return cityId;
@@ -222,11 +221,10 @@ class DailyEventsScrapingService {
             const mecEvents = document.querySelectorAll('.mec-event-article');
             console.log(`🔍 Found ${mecEvents.length} MEC events`);
             mecEvents.forEach((eventEl, index) => {
-                var _a, _b, _c;
                 try {
                     // Extraer título - FUNCIONA
                     const titleEl = eventEl.querySelector('.mec-event-title a');
-                    const title = ((_a = titleEl === null || titleEl === void 0 ? void 0 : titleEl.textContent) === null || _a === void 0 ? void 0 : _a.trim()) || '';
+                    const title = titleEl?.textContent?.trim() || '';
                     if (!title || title.length < 3) {
                         console.log(`⏭️ Skipping MEC event ${index}: no valid title`);
                         return;
@@ -234,7 +232,7 @@ class DailyEventsScrapingService {
                     // Extraer fecha - AQUÍ ESTABA EL PROBLEMA
                     const dateEl = eventEl.querySelector('.mec-start-date-label');
                     let dateStr = '';
-                    if (dateEl === null || dateEl === void 0 ? void 0 : dateEl.textContent) {
+                    if (dateEl?.textContent) {
                         const dayText = dateEl.textContent.trim(); // Ej: "18 Sep"
                         console.log(`🔍 Found date text: "${dayText}"`);
                         const dayMatch = dayText.match(/(\\d{1,2})\\s+(\\w+)/);
@@ -262,16 +260,16 @@ class DailyEventsScrapingService {
                     }
                     // Extraer ubicación - FUNCIONA
                     const locationEl = eventEl.querySelector('.mec-event-address span');
-                    const location = ((_b = locationEl === null || locationEl === void 0 ? void 0 : locationEl.textContent) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+                    const location = locationEl?.textContent?.trim() || '';
                     // Extraer descripción - FUNCIONA
                     const descEl = eventEl.querySelector('.mec-event-description');
-                    let description = ((_c = descEl === null || descEl === void 0 ? void 0 : descEl.textContent) === null || _c === void 0 ? void 0 : _c.trim()) || '';
+                    let description = descEl?.textContent?.trim() || '';
                     if (description.length > 300) {
                         description = description.substring(0, 300) + '...';
                     }
                     // Extraer URL - FUNCIONA
                     const linkEl = eventEl.querySelector('.mec-event-title a');
-                    const url = (linkEl === null || linkEl === void 0 ? void 0 : linkEl.href) || '';
+                    const url = linkEl?.href || '';
                     // Solo añadir eventos con título y fecha válidos
                     if (title && dateStr) {
                         events.push({
@@ -306,14 +304,13 @@ class DailyEventsScrapingService {
                 const elements = document.querySelectorAll(selector);
                 if (elements.length > 0) {
                     elements.forEach((element) => {
-                        var _a;
                         try {
                             // Buscar título
                             const titleSelectors = ['h1', 'h2', 'h3', 'h4', '.title', '.titulo'];
                             let title = '';
                             for (const titleSel of titleSelectors) {
                                 const titleEl = element.querySelector(titleSel);
-                                if ((_a = titleEl === null || titleEl === void 0 ? void 0 : titleEl.textContent) === null || _a === void 0 ? void 0 : _a.trim()) {
+                                if (titleEl?.textContent?.trim()) {
                                     title = titleEl.textContent.trim();
                                     break;
                                 }
@@ -428,7 +425,10 @@ class DailyEventsScrapingService {
                     .doc(event.id);
                 const existingEvent = await eventRef.get();
                 if (existingEvent.exists) {
-                    batch.update(eventRef, Object.assign(Object.assign({}, event), { updatedAt: new Date() }));
+                    batch.update(eventRef, {
+                        ...event,
+                        updatedAt: new Date()
+                    });
                     updated++;
                 }
                 else {

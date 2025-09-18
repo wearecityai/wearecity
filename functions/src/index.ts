@@ -48,6 +48,12 @@ import { securityMonitor } from './securityMonitor';
 
 // Importar Vertex AI Agent Engine
 import { processAIWithAgentEngine, testAgentEngine } from './vertexAIAgentEngine';
+import { adminAgentAPI } from './vertexAIAdminProxy';
+import { publicAgentAPI } from './vertexAIPublicProxy';
+import { simpleAgentProxy } from './vertexAISimpleProxy';
+import { handleScheduledScraping } from './scheduledScrapingHandler';
+import { getSystemHealth, getSystemMetrics } from './monitoringService';
+import { hybridIntelligentProxy } from './hybridIntelligentRouter';
 
 // Inicializar Firebase Admin
 admin.initializeApp();
@@ -303,44 +309,43 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
             bodyKeys: Object.keys(rawData)
           });
           
+          const validatedQuery = ValidationService.validateChatQuery(rawData.query);
+          
+          // Enterprise security: Monitor chat query for threats (simplified for debugging)
           try {
-            const validatedQuery = ValidationService.validateChatQuery(rawData.query);
-            
-            // Enterprise security: Monitor chat query for threats (simplified for debugging)
-            try {
-              const queryAllowed = await securityMonitor.monitorChatQuery(userId, validatedQuery, req.ip);
-              if (!queryAllowed) {
-                return res.status(403).json({
-                  error: 'Security violation',
-                  message: 'Query blocked due to security concerns'
-                });
-              }
-            } catch (securityError) {
-              console.warn('Chat query monitoring failed (non-critical):', securityError);
+            const queryAllowed = await securityMonitor.monitorChatQuery(userId, validatedQuery, req.ip);
+            if (!queryAllowed) {
+              return res.status(403).json({
+                error: 'Security violation',
+                message: 'Query blocked due to security concerns'
+              });
             }
-            
-            const validatedCitySlug = ValidationService.validateCitySlug(rawData.citySlug);
-            const validatedConversationHistory = ValidationService.validateConversationHistory(rawData.conversationHistory);
-            const validatedMediaUrl = ValidationService.validateMediaUrl(rawData.mediaUrl);
-            const validatedMediaType = ValidationService.validateMediaType(rawData.mediaType);
-            
-            // Monitor API usage patterns (simplified for debugging)
-            try {
-              await securityMonitor.monitorApiUsage(userId, 'ai-chat', 'processAIChat');
-            } catch (securityError) {
-              console.warn('API usage monitoring failed (non-critical):', securityError);
-            }
+          } catch (securityError) {
+            console.warn('Chat query monitoring failed (non-critical):', securityError);
+          }
+          
+          const validatedCitySlug = ValidationService.validateCitySlug(rawData.citySlug);
+          const validatedConversationHistory = ValidationService.validateConversationHistory(rawData.conversationHistory);
+          const validatedMediaUrl = ValidationService.validateMediaUrl(rawData.mediaUrl);
+          const validatedMediaType = ValidationService.validateMediaType(rawData.mediaType);
+          
+          // Monitor API usage patterns (simplified for debugging)
+          try {
+            await securityMonitor.monitorApiUsage(userId, 'ai-chat', 'processAIChat');
+          } catch (securityError) {
+            console.warn('API usage monitoring failed (non-critical):', securityError);
+          }
 
-            const { query, citySlug, conversationHistory, mediaUrl, mediaType } = {
-              query: validatedQuery,
-              citySlug: validatedCitySlug,
-              conversationHistory: validatedConversationHistory,
-              mediaUrl: validatedMediaUrl,
-              mediaType: validatedMediaType
-            };
+          const { query, citySlug, conversationHistory, mediaUrl, mediaType } = {
+            query: validatedQuery,
+            citySlug: validatedCitySlug,
+            conversationHistory: validatedConversationHistory,
+            mediaUrl: validatedMediaUrl,
+            mediaType: validatedMediaType
+          };
 
         // Get city context - either from direct parameter or citySlug lookup
-            let cityContext = rawData.cityContext || '';
+        let cityContext = rawData.cityContext || '';
         if (!cityContext && citySlug) {
           const cityDoc = await admin.firestore()
             .collection('cities')
@@ -370,51 +375,10 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
             multimodal: true
           };
         } else {
-          // Handle text queries
-          console.log('💬 Processing text query');
+          // 🎯 SISTEMA HÍBRIDO RAG + VECTOR SEARCH
+          console.log('🚀 RAG HYBRID: Starting RAG search for query:', query.substring(0, 50));
           
-              // 🎯 DETECTAR CONSULTAS SOBRE EVENTOS - Usar sistema de eventos de Firestore
-              const eventKeywords = ['evento', 'eventos', 'actividad', 'actividades', 'fiesta', 'fiestas', 'festival', 'festivales', 'concierto', 'conciertos', 'teatro', 'cine', 'exposición', 'exposiciones', 'feria', 'ferias', 'mercado', 'mercados', 'celebraciones', 'celebraciones', 'agenda', 'programa', 'qué hacer', 'que hacer', 'planes', 'ocio', 'entretenimiento', 'cultura', 'deporte', 'deportes'];
-              const isEventQuery = eventKeywords.some(keyword => 
-                query.toLowerCase().includes(keyword.toLowerCase())
-              );
-              
-              console.log('🔍 Event query detection:', {
-                query: query.substring(0, 100),
-                isEventQuery,
-                matchedKeywords: eventKeywords.filter(keyword => 
-                  query.toLowerCase().includes(keyword.toLowerCase())
-                )
-              });
-              
-              if (isEventQuery) {
-                console.log('🎪 Event query detected - using RAG Events system');
-                result = await tryRAGEventsFirst(query, citySlug, cityContext);
-                
-                if (!result) {
-                  console.log('🔄 RAG Events failed, trying traditional Events system');
-                  result = await tryEventsFirestoreFirst(query, citySlug, cityContext);
-                  
-                  if (!result) {
-                    console.log('🔄 All events systems failed, falling back to original router');
-                    result = await processUserQuery(query, cityContext, conversationHistory, rawData.cityConfig);
-                  }
-                }
-              } else {
-                // 🎯 PASO 1: Intentar RAG primero para consultas no relacionadas con eventos
-                console.log('🔍 Step 1: Trying RAG first...');
-                const ragResult = await tryRAGFirst(query, userId, citySlug, cityContext);
-                
-                if (ragResult) {
-                  // RAG encontró información suficiente
-                  console.log('✅ RAG: Found sufficient information, using RAG response');
-                  result = ragResult;
-                } else {
-                  // RAG no encontró suficiente información, usar router original
-                  console.log('🔄 RAG: Insufficient information, falling back to original router');
-                  result = await processUserQuery(query, cityContext, conversationHistory, rawData.cityConfig);
-                }
-              }
+          result = await processRAGHybridQuery(query, userId, citySlug, cityContext, conversationHistory, rawData.cityConfig);
         }
 
         // Log usage for monitoring
@@ -424,6 +388,7 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
           success: true,
           data: result
         });
+        
       } catch (error) {
         console.error('Error in processAIChat:', error);
         
@@ -1044,75 +1009,420 @@ function extractEventsFromRAGResponse(responseText: string): any[] {
   }
 }
 
-// Función de integración RAG híbrida
+// Función principal del sistema híbrido RAG + Vector Search
+async function processRAGHybridQuery(query: string, userId: string, citySlug: string, cityContext: any, conversationHistory: any[], cityConfig: any): Promise<any> {
+  try {
+    console.log('🔍 RAG HYBRID: Step 1 - Searching RAG database...');
+    
+    // Buscar en RAG primero
+    const db = admin.firestore();
+    const ragSnapshot = await db.collection('RAG')
+      .where('citySlug', '==', citySlug)
+      .limit(10)
+      .get();
+    
+    if (!ragSnapshot.empty) {
+      console.log(`✅ RAG HYBRID: Found ${ragSnapshot.size} RAG documents, using RAG response`);
+      
+      // 🎯 PASO 1: Intentar búsqueda vectorial si hay embeddings
+      const docsWithEmbeddings = ragSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.embedding && data.embedding.length > 0;
+      });
+      
+      let relevantDocs = ragSnapshot.docs;
+      
+      if (docsWithEmbeddings.length > 0) {
+        console.log(`🔍 RAG HYBRID: Found ${docsWithEmbeddings.length} documents with embeddings, using vector search`);
+        
+        // Generar embedding de la consulta
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+        const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+        
+        const queryResult = await model.embedContent(query);
+        const queryEmbedding = queryResult.embedding.values;
+        
+        // Calcular similitudes
+        const similarities: any[] = [];
+        for (const doc of docsWithEmbeddings) {
+          const data = doc.data();
+          const similarity = cosineSimilarity(queryEmbedding, data.embedding);
+          similarities.push({
+            doc,
+            similarity
+          });
+        }
+        
+        // Ordenar por similitud y tomar los mejores
+        similarities.sort((a, b) => b.similarity - a.similarity);
+        const topResults = similarities.filter(item => item.similarity > 0.7).slice(0, 5);
+        
+        if (topResults.length > 0) {
+          console.log(`✅ RAG HYBRID: Found ${topResults.length} relevant documents with high similarity`);
+          relevantDocs = topResults.map(item => item.doc);
+        }
+      }
+      
+      // Generar respuesta usando AI Agent con información RAG
+      const ragContent = relevantDocs.map(doc => {
+        const data = doc.data();
+        return `${data.title}\n${data.content}`;
+      }).join('\n\n');
+      
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      
+      const systemInstruction = `Eres un asistente virtual especializado para ${cityContext || 'la ciudad'}. 
+      
+Responde a la consulta del usuario usando ÚNICAMENTE la información proporcionada a continuación.
+Si la información no es suficiente para responder completamente, indica que tienes información parcial.
+
+INFORMACIÓN DISPONIBLE (obtenida mediante búsqueda RAG):
+${ragContent}
+
+🚨 INSTRUCCIONES CRÍTICAS:
+1. **ESPECIFICIDAD**: Usa solo la información proporcionada, no inventes nada
+2. **HONESTIDAD**: Si no tienes suficiente información, dilo claramente
+3. **FORMATO**: Responde de manera clara y estructurada
+4. **CONTEXTO**: Adapta toda la información al contexto de ${cityContext || 'la ciudad'}
+
+PARA EVENTOS (si aplica):
+Si encuentras información sobre eventos, incluye:
+- Fechas específicas
+- Ubicaciones exactas
+- Descripciones detalladas
+- Enlaces a fuentes oficiales si están disponibles
+
+PARA LUGARES (si aplica):
+Si encuentras información sobre lugares, incluye:
+- Direcciones completas
+- Horarios de atención
+- Información de contacto
+- Descripciones útiles`;
+
+      const result_rag = await model.generateContent({
+        contents: [
+          { role: "user", parts: [{ text: systemInstruction }] },
+          { role: "user", parts: [{ text: query }] }
+        ]
+      });
+      
+      return {
+        response: result_rag.response.text(),
+        events: [],
+        places: [],
+        modelUsed: 'gemini-2.5-flash-lite',
+        complexity: 'institutional',
+        searchPerformed: false,
+        ragUsed: true,
+        ragResultsCount: relevantDocs.length,
+        success: true
+      };
+      
+    } else {
+      console.log('🔄 RAG HYBRID: No RAG data found, falling back to Gemini + Google Search');
+      // Fallback al sistema original
+      return await processUserQuery(query, cityContext, conversationHistory, cityConfig);
+    }
+    
+  } catch (error) {
+    console.error('❌ RAG HYBRID: Error in processRAGHybridQuery:', error);
+    // Fallback al sistema original en caso de error
+    return await processUserQuery(query, cityContext, conversationHistory, cityConfig);
+  }
+}
+
+// Función auxiliar para calcular similitud coseno
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error('Vectors must have the same length');
+  }
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  
+  normA = Math.sqrt(normA);
+  normB = Math.sqrt(normB);
+  
+  if (normA === 0 || normB === 0) {
+    return 0;
+  }
+  
+  return dotProduct / (normA * normB);
+}
+
+// Función de integración RAG híbrida inteligente con vector search (LEGACY)
+async function tryRAGWithVectorSearch(query: string, userId: string, citySlug: string, cityContext: any): Promise<any | null> {
+  try {
+    console.log('🚀 RAG Vector Search: Starting intelligent RAG search for query:', query.substring(0, 50) + '...');
+    
+    // 🎯 PASO 1: Intentar búsqueda vectorial en RAG
+    console.log('🔍 Step 1: Trying vector search in RAG...');
+    
+    // Buscar en la colección RAG centralizada
+    const db = admin.firestore();
+    
+    // Buscar datos RAG para la ciudad específica
+    const ragSnapshot = await db.collection('RAG')
+      .where('citySlug', '==', citySlug)
+      .limit(20)
+      .get();
+    
+    if (ragSnapshot.empty) {
+      console.log('❌ RAG Vector Search: No RAG data found for city:', citySlug);
+      return null;
+    }
+    
+    console.log(`📊 RAG Vector Search: Found ${ragSnapshot.size} RAG documents for ${citySlug}`);
+    
+    // Obtener todos los documentos RAG
+    const allRagDocs: any[] = [];
+    ragSnapshot.forEach(doc => {
+      const data = doc.data();
+      allRagDocs.push({
+        id: doc.id,
+        content: data.content || data.description || data.title || '',
+        title: data.title || '',
+        url: data.url || '',
+        type: data.type || 'unknown',
+        citySlug: data.citySlug,
+        createdAt: data.createdAt,
+        embedding: data.embedding // Incluir embedding si existe
+      });
+    });
+    
+    // 🎯 PASO 2: Si hay embeddings, usar búsqueda vectorial
+    const docsWithEmbeddings = allRagDocs.filter(doc => doc.embedding && doc.embedding.length > 0);
+    
+    if (docsWithEmbeddings.length > 0) {
+      console.log(`🔍 RAG Vector Search: Found ${docsWithEmbeddings.length} documents with embeddings, using vector search`);
+      
+      // Generar embedding de la consulta
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+      const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+      
+      const queryResult = await model.embedContent(query);
+      const queryEmbedding = queryResult.embedding.values;
+      
+      // Calcular similitudes
+      const similarities: any[] = [];
+      for (const doc of docsWithEmbeddings) {
+        const similarity = cosineSimilarity(queryEmbedding, doc.embedding);
+        similarities.push({
+          ...doc,
+          similarity
+        });
+      }
+      
+      // Ordenar por similitud y tomar los mejores
+      similarities.sort((a, b) => b.similarity - a.similarity);
+      const relevantDocs = similarities.filter(doc => doc.similarity > 0.7).slice(0, 5);
+      
+      if (relevantDocs.length > 0) {
+        console.log(`✅ RAG Vector Search: Found ${relevantDocs.length} relevant documents with high similarity`);
+        
+        // Generar respuesta usando AI Agent con la información RAG
+        return await generateRAGResponse(query, relevantDocs, cityContext, 'vectorial');
+      }
+    }
+    
+    // 🎯 PASO 3: Fallback a búsqueda por texto si no hay embeddings o no se encontraron resultados
+    console.log('🔄 RAG Vector Search: No vector results, trying text search...');
+    
+    const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2);
+    const relevantDocs = allRagDocs.filter(doc => {
+      const searchableContent = `${doc.content} ${doc.title}`.toLowerCase();
+      return queryWords.some(word => searchableContent.includes(word));
+    });
+    
+    if (relevantDocs.length > 0) {
+      console.log(`✅ RAG Text Search: Found ${relevantDocs.length} relevant documents`);
+      
+      // Generar respuesta usando AI Agent con la información RAG
+      return await generateRAGResponse(query, relevantDocs, cityContext, 'textual');
+    }
+    
+    console.log('❌ RAG Vector Search: No relevant documents found for query');
+    return null;
+    
+  } catch (error) {
+    console.error('❌ RAG Vector Search: Error in tryRAGWithVectorSearch:', error);
+    return null;
+  }
+}
+
+// Función auxiliar para calcular similitud coseno
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error('Vectors must have the same length');
+  }
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  
+  normA = Math.sqrt(normA);
+  normB = Math.sqrt(normB);
+  
+  if (normA === 0 || normB === 0) {
+    return 0;
+  }
+  
+  return dotProduct / (normA * normB);
+}
+
+// Función para generar respuesta usando AI Agent con información RAG
+async function generateRAGResponse(query: string, relevantDocs: any[], cityContext: any, searchType: string): Promise<any> {
+  try {
+    console.log(`🤖 RAG AI Agent: Generating response with ${relevantDocs.length} documents (${searchType} search)`);
+    
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    
+    const relevantContent = relevantDocs
+      .map(doc => `${doc.title}\n${doc.content}`)
+      .join('\n\n');
+    
+    const systemInstruction = `Eres un asistente virtual especializado para ${cityContext || 'la ciudad'}. 
+    
+Responde a la consulta del usuario usando ÚNICAMENTE la información proporcionada a continuación.
+Si la información no es suficiente para responder completamente, indica que tienes información parcial.
+
+INFORMACIÓN DISPONIBLE (obtenida mediante búsqueda ${searchType}):
+${relevantContent}
+
+🚨 INSTRUCCIONES CRÍTICAS:
+
+1. **ESPECIFICIDAD**: Usa solo la información proporcionada, no inventes nada
+2. **HONESTIDAD**: Si no tienes suficiente información, dilo claramente
+3. **FORMATO**: Responde de manera clara y estructurada
+4. **CONTEXTO**: Adapta toda la información al contexto de ${cityContext || 'la ciudad'}
+
+PARA EVENTOS (si aplica):
+Si encuentras información sobre eventos, incluye:
+- Fechas específicas
+- Ubicaciones exactas
+- Descripciones detalladas
+- Enlaces a fuentes oficiales si están disponibles
+
+PARA LUGARES (si aplica):
+Si encuentras información sobre lugares, incluye:
+- Direcciones completas
+- Horarios de atención
+- Información de contacto
+- Descripciones útiles
+
+INSTRUCCIONES:
+- Responde de manera natural y conversacional
+- Usa solo la información proporcionada
+- Si necesitas más información, sugiere que el usuario haga una consulta más específica
+- Mantén un tono amable y profesional`;
+
+    const result = await model.generateContent({
+      contents: [
+        { role: "user", parts: [{ text: systemInstruction }] },
+        { role: "user", parts: [{ text: query }] }
+      ]
+    });
+    
+    const response = result.response;
+    const text = response.text();
+    
+    return {
+      response: text,
+      events: [],
+      places: [],
+      modelUsed: 'gemini-2.5-flash-lite',
+      complexity: 'institutional',
+      searchPerformed: false,
+      ragUsed: true,
+      ragResultsCount: relevantDocs.length,
+      ragSearchType: searchType,
+      success: true
+    };
+    
+  } catch (error) {
+    console.error('❌ RAG AI Agent: Error generating response:', error);
+    return null;
+  }
+}
+
+// Función de integración RAG híbrida - NUEVA VERSIÓN con colección RAG (LEGACY - mantener por compatibilidad)
 async function tryRAGFirst(query: string, userId: string, citySlug: string, cityContext: any): Promise<any | null> {
   try {
     console.log('🔍 RAG: Starting search for query:', query.substring(0, 50) + '...');
     
-    // Buscar fuentes en Firestore directamente
+    // Buscar en la nueva colección RAG centralizada
     const db = admin.firestore();
     
-    // Buscar fuentes para el usuario y ciudad
-    const sourcesSnapshot = await db.collection('library_sources_enhanced')
-      .where('userId', '==', userId)
+    // Buscar datos RAG para la ciudad específica
+    const ragSnapshot = await db.collection('RAG')
       .where('citySlug', '==', citySlug)
-      .limit(5)
+      .limit(20)
       .get();
     
-    if (sourcesSnapshot.empty) {
-      console.log('❌ RAG: No sources found for user and city');
+    if (ragSnapshot.empty) {
+      console.log('❌ RAG: No data found for city:', citySlug);
       return null;
     }
     
-    console.log(`📊 RAG: Found ${sourcesSnapshot.size} sources`);
+    console.log(`📊 RAG: Found ${ragSnapshot.size} documents for ${citySlug}`);
     
-    // Buscar chunks relacionados
-    const allChunks: any[] = [];
-    
-    for (const sourceDoc of sourcesSnapshot.docs) {
-      const sourceId = sourceDoc.id;
-      const chunksSnapshot = await db.collection('document_chunks')
-        .where('sourceId', '==', sourceId)
-        .limit(3)
-        .get();
-      
-      chunksSnapshot.forEach(chunkDoc => {
-        const chunkData = chunkDoc.data();
-        allChunks.push({
-          content: chunkData.content,
-          sourceId: sourceId,
-          chunkIndex: chunkData.chunkIndex
-        });
+    // Obtener todos los documentos RAG
+    const allRagDocs: any[] = [];
+    ragSnapshot.forEach(doc => {
+      const data = doc.data();
+      allRagDocs.push({
+        id: doc.id,
+        content: data.content || data.description || data.title || '',
+        title: data.title || '',
+        url: data.url || '',
+        type: data.type || 'unknown',
+        citySlug: data.citySlug,
+        createdAt: data.createdAt
       });
-    }
-    
-    if (allChunks.length === 0) {
-      console.log('❌ RAG: No chunks found');
-      return null;
-    }
-    
-    console.log(`📄 RAG: Found ${allChunks.length} chunks`);
-    
-    // Búsqueda simple por palabras clave
-    const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2);
-    const relevantChunks = allChunks.filter(chunk => {
-      const content = chunk.content.toLowerCase();
-      return queryWords.some(word => content.includes(word));
     });
     
-    if (relevantChunks.length === 0) {
-      console.log('❌ RAG: No relevant chunks found');
+    console.log(`📄 RAG: Processing ${allRagDocs.length} documents`);
+    
+    // Búsqueda simple por palabras clave en contenido
+    const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2);
+    const relevantDocs = allRagDocs.filter(doc => {
+      const searchableContent = `${doc.content} ${doc.title}`.toLowerCase();
+      return queryWords.some(word => searchableContent.includes(word));
+    });
+    
+    if (relevantDocs.length === 0) {
+      console.log('❌ RAG: No relevant documents found for query');
       return null;
     }
     
-    console.log(`✅ RAG: Found ${relevantChunks.length} relevant chunks`);
+    console.log(`✅ RAG: Found ${relevantDocs.length} relevant documents`);
     
     // Generar respuesta usando la información RAG
-    const genAI = new (await import('@google/generative-ai')).GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     
-    const relevantContent = relevantChunks
-      .map(chunk => chunk.content)
+    const relevantContent = relevantDocs
+      .map(doc => `${doc.title}\n${doc.content}`)
       .join('\n\n');
     
     const systemInstruction = `Eres un asistente virtual para ${cityContext || 'la ciudad'}. 
@@ -1178,7 +1488,7 @@ INSTRUCCIONES:
       modelUsed: 'gemini-2.5-flash-lite',
       searchPerformed: false,
       ragUsed: true,
-      ragResultsCount: relevantChunks.length,
+      ragResultsCount: relevantDocs.length,
       ragSearchType: 'text'
     };
     
@@ -1188,54 +1498,121 @@ INSTRUCCIONES:
   }
 }
 
-// Función de integración Vector Events
+// Función de integración Vector Events - NUEVA VERSIÓN con colección RAG
 async function tryRAGEventsFirst(query: string, citySlug: string, cityContext: any): Promise<any | null> {
   try {
     console.log('🚀 RAG Events: Starting RAG search for query:', query.substring(0, 50) + '...');
     
-    // Buscar eventos en el sistema RAG
-    const { ragQuery: ragQueryFunction } = await import('./ragRetrieval');
+    // Buscar eventos en la nueva colección RAG centralizada
+    const db = admin.firestore();
     
-    // Crear query específica para eventos de la ciudad
-    const eventQuery = `eventos ${query} en ${cityContext}`;
+    // Buscar datos RAG de eventos para la ciudad específica
+    const ragSnapshot = await db.collection('RAG')
+      .where('citySlug', '==', citySlug)
+      .where('type', '==', 'event')  // Solo eventos
+      .limit(20)
+      .get();
     
-    // Llamar al sistema RAG con filtros para eventos de la ciudad específica
-    const ragResult = await ragQueryFunction(
-      {
-        query: eventQuery,
-        userId: `city-${citySlug}`, // Filtrar por ciudad
-        limit: 10,
-        filters: {
-          sourceType: 'event',
-          cityId: citySlug
-        }
-      },
-      { auth: { uid: 'system' } }
-    );
-    
-    console.log(`📊 RAG Events: Found ${ragResult.relevantChunks?.length || 0} relevant chunks`);
-    
-    if (!ragResult.answer || ragResult.relevantChunks?.length === 0) {
-      console.log('❌ RAG Events: No relevant events found');
+    if (ragSnapshot.empty) {
+      console.log('❌ RAG Events: No event data found for city:', citySlug);
       return null;
     }
     
-    // Extraer eventos de los chunks RAG
-    const events = extractEventsFromRAGChunks(ragResult.relevantChunks);
+    console.log(`📊 RAG Events: Found ${ragSnapshot.size} event documents for ${citySlug}`);
     
-    console.log(`✅ RAG Events: Extracted ${events.length} events`);
+    // Obtener todos los documentos RAG de eventos
+    const allEventDocs: any[] = [];
+    ragSnapshot.forEach(doc => {
+      const data = doc.data();
+      allEventDocs.push({
+        id: doc.id,
+        content: data.content || data.description || data.title || '',
+        title: data.title || '',
+        url: data.url || '',
+        type: data.type || 'event',
+        citySlug: data.citySlug,
+        createdAt: data.createdAt
+      });
+    });
+    
+    // Búsqueda simple por palabras clave en contenido de eventos
+    const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2);
+    const relevantEventDocs = allEventDocs.filter(doc => {
+      const searchableContent = `${doc.content} ${doc.title}`.toLowerCase();
+      return queryWords.some(word => searchableContent.includes(word));
+    });
+    
+    if (relevantEventDocs.length === 0) {
+      console.log('❌ RAG Events: No relevant event documents found for query');
+      return null;
+    }
+    
+    console.log(`✅ RAG Events: Found ${relevantEventDocs.length} relevant event documents`);
+    
+    // Generar respuesta usando la información RAG de eventos
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    
+    const relevantEventContent = relevantEventDocs
+      .map(doc => `${doc.title}\n${doc.content}`)
+      .join('\n\n');
+    
+    const eventSystemInstruction = `Eres un asistente virtual de eventos para ${cityContext || 'la ciudad'}. 
+    
+Responde a la consulta del usuario sobre eventos usando ÚNICAMENTE la información proporcionada a continuación.
+
+INFORMACIÓN DE EVENTOS DISPONIBLE:
+${relevantEventContent}
+
+🚨 FORMATO OBLIGATORIO para consultas de eventos:
+1. **PRIMERA PARTE**: Escribe 2-3 párrafos de introducción sobre los eventos
+2. **SEGUNDA PARTE**: SIEMPRE incluye el bloque JSON con eventos específicos:
+
+\`\`\`json
+{
+  "events": [
+    {
+      "title": "Nombre exacto del evento",
+      "date": "YYYY-MM-DD", 
+      "time": "HH:MM - HH:MM" (opcional),
+      "location": "Ubicación específica del evento",
+      "description": "Descripción breve del evento"
+    }
+  ]
+}
+\`\`\`
+
+INSTRUCCIONES:
+- Usa solo la información proporcionada
+- Genera eventos reales basados en la información disponible
+- Mantén un tono amable y profesional`;
+
+    const eventResult = await model.generateContent({
+      contents: [
+        { role: "user", parts: [{ text: eventSystemInstruction }] },
+        { role: "user", parts: [{ text: query }] }
+      ]
+    });
+    
+    const eventResponse = eventResult.response;
+    const eventText = eventResponse.text();
+    
+    // Extraer eventos de la respuesta
+    const extractedEvents = extractEventsFromRAGResponse(eventText);
+    console.log(`✅ RAG Events: Extracted ${extractedEvents.length} events`);
     
     return {
-      response: ragResult.answer,
-      events: events,
+      response: eventText,
+      events: extractedEvents,
       places: [],
-      modelUsed: 'gemini-2.5-flash',
+      modelUsed: 'gemini-2.5-flash-lite',
       searchPerformed: false,
       eventsFromFirestore: true,
-      eventsCount: events.length,
-      searchMethod: 'rag',
+      eventsCount: extractedEvents.length,
+      searchMethod: 'rag-events',
       ragSearch: true,
-      ragChunks: ragResult.relevantChunks?.length || 0
+      ragChunks: relevantEventDocs.length
     };
     
   } catch (error) {
@@ -1449,3 +1826,18 @@ export {
   processAIWithAgentEngine,
   testAgentEngine
 } from './vertexAIAgentEngine';
+
+
+// NUEVO: Vertex AI Agent Engine Simple - Export HTTP endpoint
+// DISABLED: Causing ERR_HTTP_HEADERS_SENT conflicts
+// export { queryVertexAIAgent } from './vertexAIAgentSimple';
+
+
+// NUEVO: APIs de Agente con separación de capas
+export { adminAgentAPI, publicAgentAPI };
+
+export { handleScheduledScraping };
+
+export { getSystemHealth, getSystemMetrics };
+
+export { hybridIntelligentProxy };

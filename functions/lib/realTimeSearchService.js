@@ -352,9 +352,19 @@ class RealTimeSearchService {
                     const details = await googlePlacesService_1.googlePlacesService.getPlaceDetails(place.place_id);
                     if (details) {
                         // Combinar datos básicos con detalles completos
-                        detailedPlace = Object.assign(Object.assign(Object.assign({}, place), details), { 
+                        detailedPlace = {
+                            ...place,
+                            ...details,
                             // Preservar datos originales si son mejores
-                            rating: details.rating || place.rating, user_ratings_total: details.user_ratings_total || place.user_ratings_total, photos: details.photos || place.photos, opening_hours: details.opening_hours || place.opening_hours, website: details.website || place.website, reviews: details.reviews || place.reviews, price_level: details.price_level || place.price_level, international_phone_number: details.international_phone_number || place.international_phone_number });
+                            rating: details.rating || place.rating,
+                            user_ratings_total: details.user_ratings_total || place.user_ratings_total,
+                            photos: details.photos || place.photos,
+                            opening_hours: details.opening_hours || place.opening_hours,
+                            website: details.website || place.website,
+                            reviews: details.reviews || place.reviews,
+                            price_level: details.price_level || place.price_level,
+                            international_phone_number: details.international_phone_number || place.international_phone_number
+                        };
                         console.log(`✅ Enriched place with details: ${place.name}`);
                     }
                 }

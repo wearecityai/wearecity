@@ -119,7 +119,6 @@ class SecurityMonitor {
      * Monitor chat queries for prompt injection
      */
     async monitorChatQuery(userId, query, ipAddress) {
-        var _a;
         const suspiciousPatterns = [
             // Prompt injection patterns
             /ignore\s+all\s+previous\s+instructions/i,
@@ -153,7 +152,7 @@ class SecurityMonitor {
                 evidence.push({
                     type: 'malicious_pattern',
                     pattern: pattern.source,
-                    match: (_a = query.match(pattern)) === null || _a === void 0 ? void 0 : _a[0]
+                    match: query.match(pattern)?.[0]
                 });
             }
         }
@@ -213,7 +212,13 @@ class SecurityMonitor {
      * Detect and handle security threats
      */
     async detectThreat(threat) {
-        const fullThreat = Object.assign({ threatId: this.generateThreatId(), timestamp: new Date(), status: 'detected', autoMitigated: false }, threat);
+        const fullThreat = {
+            threatId: this.generateThreatId(),
+            timestamp: new Date(),
+            status: 'detected',
+            autoMitigated: false,
+            ...threat
+        };
         // Store threat
         await this.db.collection('security_threats').doc(fullThreat.threatId).set(fullThreat);
         // Log audit event

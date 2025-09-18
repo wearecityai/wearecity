@@ -33,14 +33,13 @@ exports.processAIChat = functions.https.onCall(async (data, context) => {
     return processAIChatLogic(data, context);
 });
 async function processAIChatLogic(data, context) {
-    var _a;
     try {
         console.log('🔍 DEBUG - Firebase Function received data:', {
             hasData: !!data,
             dataKeys: data ? Object.keys(data) : [],
-            hasQuery: !!(data === null || data === void 0 ? void 0 : data.query),
-            hasCitySlug: !!(data === null || data === void 0 ? void 0 : data.citySlug),
-            hasCityContext: !!(data === null || data === void 0 ? void 0 : data.cityContext)
+            hasQuery: !!data?.query,
+            hasCitySlug: !!data?.citySlug,
+            hasCityContext: !!data?.cityContext
         });
         // Basic validation
         if (!data) {
@@ -54,7 +53,7 @@ async function processAIChatLogic(data, context) {
             throw new Error('Query cannot be empty');
         }
         // Get user ID
-        const userId = ((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid) || 'anonymous';
+        const userId = context.auth?.uid || 'anonymous';
         // Get city context
         let cityContext = data.cityContext || '';
         if (!cityContext && data.citySlug) {

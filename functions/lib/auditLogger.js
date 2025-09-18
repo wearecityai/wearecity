@@ -62,9 +62,18 @@ class AuditLogger {
      * Log audit event with full traceability
      */
     async logEvent(event) {
-        var _a;
         try {
-            const fullEvent = Object.assign({ eventId: this.generateEventId(), eventType: event.eventType || AuditEventType.SYSTEM_EVENT, severity: event.severity || AuditSeverity.LOW, timestamp: new Date(), source: event.source || 'firebase-functions', action: event.action || 'unknown', success: (_a = event.success) !== null && _a !== void 0 ? _a : true, details: event.details || {} }, event);
+            const fullEvent = {
+                eventId: this.generateEventId(),
+                eventType: event.eventType || AuditEventType.SYSTEM_EVENT,
+                severity: event.severity || AuditSeverity.LOW,
+                timestamp: new Date(),
+                source: event.source || 'firebase-functions',
+                action: event.action || 'unknown',
+                success: event.success ?? true,
+                details: event.details || {},
+                ...event
+            };
             // Store in Firestore with partitioning by date for performance
             const datePartition = this.getDatePartition(fullEvent.timestamp);
             await this.db
@@ -95,7 +104,6 @@ class AuditLogger {
      * Log authentication events
      */
     async logAuthentication(userId, action, success, details = {}, req) {
-        var _a;
         await this.logEvent({
             eventType: AuditEventType.AUTHENTICATION,
             severity: success ? AuditSeverity.LOW : AuditSeverity.HIGH,
@@ -104,14 +112,13 @@ class AuditLogger {
             success,
             details,
             ipAddress: this.extractIpAddress(req),
-            userAgent: (_a = req === null || req === void 0 ? void 0 : req.headers) === null || _a === void 0 ? void 0 : _a['user-agent']
+            userAgent: req?.headers?.['user-agent']
         });
     }
     /**
      * Log authorization violations
      */
     async logAuthorizationViolation(userId, resource, details = {}, req) {
-        var _a;
         await this.logEvent({
             eventType: AuditEventType.AUTHORIZATION,
             severity: AuditSeverity.HIGH,
@@ -121,23 +128,25 @@ class AuditLogger {
             success: false,
             details,
             ipAddress: this.extractIpAddress(req),
-            userAgent: (_a = req === null || req === void 0 ? void 0 : req.headers) === null || _a === void 0 ? void 0 : _a['user-agent']
+            userAgent: req?.headers?.['user-agent']
         });
     }
     /**
      * Log suspicious activity
      */
     async logSuspiciousActivity(userId, action, details, req) {
-        var _a;
         await this.logEvent({
             eventType: AuditEventType.SUSPICIOUS_ACTIVITY,
             severity: AuditSeverity.CRITICAL,
             userId,
             action,
             success: false,
-            details: Object.assign({ suspicionReason: details.reason }, details),
+            details: {
+                suspicionReason: details.reason,
+                ...details
+            },
             ipAddress: this.extractIpAddress(req),
-            userAgent: (_a = req === null || req === void 0 ? void 0 : req.headers) === null || _a === void 0 ? void 0 : _a['user-agent']
+            userAgent: req?.headers?.['user-agent']
         });
     }
     /**
@@ -161,7 +170,6 @@ class AuditLogger {
      * Log rate limit violations
      */
     async logRateLimitViolation(userId, service, details, req) {
-        var _a;
         await this.logEvent({
             eventType: AuditEventType.RATE_LIMIT,
             severity: AuditSeverity.MEDIUM,
@@ -171,7 +179,7 @@ class AuditLogger {
             success: false,
             details,
             ipAddress: this.extractIpAddress(req),
-            userAgent: (_a = req === null || req === void 0 ? void 0 : req.headers) === null || _a === void 0 ? void 0 : _a['user-agent']
+            userAgent: req?.headers?.['user-agent']
         });
     }
     /**
@@ -185,7 +193,11 @@ class AuditLogger {
             action: 'api_call',
             resource: service,
             success: true,
-            details: Object.assign({ cost, currency: 'USD' }, details)
+            details: {
+                cost,
+                currency: 'USD',
+                ...details
+            }
         });
     }
     /**
@@ -228,14 +240,13 @@ class AuditLogger {
      * Extract IP address from request
      */
     extractIpAddress(req) {
-        var _a, _b, _c, _d, _e, _f;
         if (!req)
             return undefined;
         return req.ip ||
-            ((_a = req.connection) === null || _a === void 0 ? void 0 : _a.remoteAddress) ||
-            ((_b = req.socket) === null || _b === void 0 ? void 0 : _b.remoteAddress) ||
-            ((_e = (_d = (_c = req.headers) === null || _c === void 0 ? void 0 : _c['x-forwarded-for']) === null || _d === void 0 ? void 0 : _d.split(',')[0]) === null || _e === void 0 ? void 0 : _e.trim()) ||
-            ((_f = req.headers) === null || _f === void 0 ? void 0 : _f['x-real-ip']);
+            req.connection?.remoteAddress ||
+            req.socket?.remoteAddress ||
+            req.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
+            req.headers?.['x-real-ip'];
     }
     /**
      * Send critical alerts (integrate with monitoring systems)

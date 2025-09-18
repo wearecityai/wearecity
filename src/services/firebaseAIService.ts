@@ -18,7 +18,7 @@ import { app } from '../integrations/firebase/config';
 // AI Response interface
 export interface AIResponse {
   response: string;
-  modelUsed: 'gemini-2.5-flash-lite' | 'gemini-2.5-flash';
+  modelUsed: 'gemini-2.5-flash-lite' | 'gemini-2.5-flash' | 'vertex-ai-agent-engine';
   complexity: 'simple' | 'institutional';
   searchPerformed: boolean;
   multimodal?: boolean;

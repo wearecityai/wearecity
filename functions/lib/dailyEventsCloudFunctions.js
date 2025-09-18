@@ -75,14 +75,14 @@ exports.dailyEventsScrapingManual = functions
         // }
         const scrapingService = new dailyEventsScrapingService_1.DailyEventsScrapingService(admin.firestore());
         // Permitir procesar una ciudad específica o todas
-        if (data === null || data === void 0 ? void 0 : data.citySlug) {
+        if (data?.citySlug) {
             console.log(`Processing specific city: ${data.citySlug}`);
             const cityDoc = await admin.firestore().collection('cities').doc(data.citySlug).get();
             if (!cityDoc.exists) {
                 throw new functions.https.HttpsError('not-found', `City ${data.citySlug} not found`);
             }
             const cityData = cityDoc.data();
-            if (!(cityData === null || cityData === void 0 ? void 0 : cityData.agendaEventosUrls) || cityData.agendaEventosUrls.length === 0) {
+            if (!cityData?.agendaEventosUrls || cityData.agendaEventosUrls.length === 0) {
                 throw new functions.https.HttpsError('invalid-argument', `City ${data.citySlug} has no event URLs configured`);
             }
             const results = await scrapingService.processCityEvents(cityData);
@@ -164,7 +164,10 @@ exports.getCityEvents = functions.https.onCall(async (data, context) => {
             query = query.where('date', '<=', endDate);
         }
         const eventsSnapshot = await query.get();
-        const events = eventsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const events = eventsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         return {
             success: true,
             citySlug,

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/integrations/firebase/config';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { db, auth } from '@/integrations/firebase/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -21,10 +23,40 @@ import {
   Loader2,
   RefreshCw,
   Database,
-  Brain
+  Brain,
+  Globe,
+  Link,
+  Plus,
+  Minus,
+  Save,
+  Eye,
+  Activity
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuthFirebase';
+
+interface CityConfig {
+  name: string;
+  slug: string;
+  displayName: string;
+  officialWebsite: string;
+  agendaEventosUrls: string[];
+  tramitesUrls: string[];
+  noticiasUrls: string[];
+  turismoUrls: string[];
+  contactUrls: string[];
+  serviciosUrls: string[];
+  scrapingConfig: {
+    enabled: boolean;
+    selectors: {
+      eventContainer: string;
+      title: string;
+      description: string;
+      date: string;
+      location: string;
+    };
+  };
+}
 
 interface AgentStats {
   totalEvents: number;
@@ -32,241 +64,308 @@ interface AgentStats {
   eventsBySource: { [key: string]: number };
   averageConfidence: number;
   citySlug: string;
-}
-
-interface ScheduleConfig {
-  citySlug: string;
-  url: string;
-  schedule: string;
-  enabled: boolean;
+  activeCities: number;
 }
 
 const AgentsSection: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedCity, setSelectedCity] = useState('la-vila-joiosa');
+  const [cities, setCities] = useState<string[]>(['valencia', 'la-vila-joiosa', 'alicante']);
+  const [cityConfig, setCityConfig] = useState<CityConfig | null>(null);
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [scraping, setScraping] = useState(false);
-  const [selectedCity, setSelectedCity] = useState('la-vila-joiosa');
-  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
-    citySlug: 'la-vila-joiosa',
-    url: 'https://www.lavilajoiosa.es/es/agenda',
-    schedule: 'daily',
-    enabled: false
-  });
+  const [saving, setSaving] = useState(false);
+  
   const { toast } = useToast();
-  const { user, session, profile } = useAuth();
+  const { user } = useAuth();
 
-  // Funciones del agente - VERTEX AI AGENT
-  const vertexAIIntelligentScraping = httpsCallable(functions, 'vertexAIIntelligentScraping');
-  const cleanupVertexAIAgent = httpsCallable(functions, 'cleanupVertexAIAgent');
-  const getVertexAIAgentStats = httpsCallable(functions, 'getVertexAIAgentStats');
-  
-  // Funciones del agente - NUEVO AGENTE (backup)
-  const newIntelligentScraping = httpsCallable(functions, 'newIntelligentScraping');
-  const cleanupNewAgent = httpsCallable(functions, 'cleanupNewAgent');
-  const getNewAgentStats = httpsCallable(functions, 'getNewAgentStats');
-  
-  // Funciones del agente antiguo (backup)
-  const intelligentScraping = httpsCallable(functions, 'intelligentScraping');
-  const cleanupRAGForCity = httpsCallable(functions, 'cleanupRAGForCity');
-  const getAgentStats = httpsCallable(functions, 'getAgentStats');
-  const scheduleAgentScraping = httpsCallable(functions, 'scheduleAgentScraping');
-
-  // Cargar estadísticas al montar el componente
-  useEffect(() => {
-    if (user) {
-      // Solo inicializar estadísticas por defecto, no cargar desde servidor para evitar errores
-      setStats({
-        totalEvents: 0,
-        totalRAGSources: 0,
-        eventsBySource: {},
-        averageConfidence: 0,
-        citySlug: selectedCity
-      });
-    }
-  }, [selectedCity, user]);
-
-  const loadStats = async () => {
-    if (!user) {
-      console.error('Usuario no autenticado');
-      toast({
-        title: "Error",
-        description: "Debe estar autenticado para acceder a las estadísticas",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  // Cargar configuración de ciudad
+  const loadCityConfig = async (citySlug: string) => {
     try {
       setLoading(true);
-      console.log('🔍 Cargando estadísticas del VERTEX AI agente para:', selectedCity);
+      console.log(`📍 Cargando configuración para ${citySlug}...`);
       
-      const result = await getVertexAIAgentStats({ citySlug: selectedCity });
-      console.log('📊 Resultado de getNewAgentStats:', result);
+      const cityDoc = await getDoc(doc(db, 'cities', citySlug));
       
-      if (result.data && result.data.success) {
-        const stats = result.data.stats;
-        setStats({
-          totalEvents: stats.totalEvents,
-          totalRAGSources: stats.totalRAGSources,
-          eventsBySource: { [stats.agentVersion]: stats.totalEvents },
-          averageConfidence: 95, // Valor fijo para el nuevo agente
-          citySlug: selectedCity
-        });
-        console.log('✅ Estadísticas del Vertex AI agente cargadas:', result.data.stats);
+      if (cityDoc.exists()) {
+        const data = cityDoc.data() as CityConfig;
+        setCityConfig(data);
+        console.log(`✅ Configuración cargada:`, data);
       } else {
-        console.warn('⚠️ Resultado sin éxito:', result);
-        // Establecer estadísticas por defecto si no hay datos
-        setStats({
-          totalEvents: 0,
-          totalRAGSources: 0,
-          eventsBySource: {},
-          averageConfidence: 0,
-          citySlug: selectedCity
-        });
+        // Crear configuración por defecto
+        const defaultConfig: CityConfig = {
+          name: citySlug,
+          slug: citySlug,
+          displayName: citySlug.charAt(0).toUpperCase() + citySlug.slice(1),
+          officialWebsite: '',
+          agendaEventosUrls: [],
+          tramitesUrls: [],
+          noticiasUrls: [],
+          turismoUrls: [],
+          contactUrls: [],
+          serviciosUrls: [],
+          scrapingConfig: {
+            enabled: false,
+            selectors: {
+              eventContainer: 'article, .post, .event-item',
+              title: 'h1, h2, h3, .entry-title, .event-title',
+              description: '.entry-content, .event-description, .content',
+              date: '.event-date, .entry-date, .published, time',
+              location: '.event-location, .venue, .location'
+            }
+          }
+        };
+        setCityConfig(defaultConfig);
       }
     } catch (error) {
-      console.error('Error cargando estadísticas del nuevo agente:', error);
-      // Mostrar estadísticas por defecto en caso de error
-      setStats({
-        totalEvents: 0,
-        totalRAGSources: 0,
-        eventsBySource: {},
-        averageConfidence: 0,
-        citySlug: selectedCity
-      });
-      
+      console.error('Error cargando configuración:', error);
       toast({
-        title: "Información",
-        description: "Panel del nuevo agente inicializado. Las estadísticas se actualizarán después del primer scraping.",
-        variant: "default"
+        title: "Error",
+        description: "No se pudo cargar la configuración de la ciudad",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleManualScraping = async () => {
-    if (!user || !session) {
+  // Guardar configuración de ciudad
+  const saveCityConfig = async () => {
+    if (!cityConfig) return;
+    
+    try {
+      setSaving(true);
+      console.log(`💾 Guardando configuración para ${selectedCity}...`);
+      
+      await setDoc(doc(db, 'cities', selectedCity), {
+        ...cityConfig,
+        updatedAt: new Date(),
+        updatedBy: user?.uid || 'system'
+      });
+      
+      toast({
+        title: "✅ Configuración Guardada",
+        description: `La configuración de ${cityConfig.name} se ha guardado correctamente`,
+        variant: "default"
+      });
+      
+      console.log(`✅ Configuración guardada exitosamente`);
+      
+    } catch (error) {
+      console.error('Error guardando configuración:', error);
       toast({
         title: "Error",
-        description: "Debe estar autenticado para ejecutar el scraping",
+        description: "No se pudo guardar la configuración",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setSaving(false);
     }
+  };
 
+  // Obtener estadísticas del agente
+  const getAgentStats = async () => {
+    try {
+      setLoading(true);
+      console.log(`📊 Obteniendo estadísticas para ${selectedCity}...`);
+      
+      const { auth } = await import('../../integrations/firebase/config');
+      const user = auth.currentUser;
+      
+      if (!user) {
+        toast({
+          title: "❌ Error de Autenticación",
+          description: "Debes estar autenticado para obtener estadísticas",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const token = await user.getIdToken();
+      
+      const response = await fetch('https://us-central1-wearecity-2ab89.cloudfunctions.net/hybridIntelligentProxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          query: `Obtener estadísticas completas del sistema RAG para ${selectedCity}`,
+          citySlug: selectedCity,
+          userId: user.uid,
+          isAdmin: true
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Parsear estadísticas de la respuesta
+        const statsData: AgentStats = {
+          totalEvents: 0,
+          totalRAGSources: 0,
+          eventsBySource: {},
+          averageConfidence: 0,
+          citySlug: selectedCity,
+          activeCities: 0
+        };
+        
+        // Extraer números de la respuesta
+        const responseText = result.response;
+        const eventMatch = responseText.match(/(\d+)\s*eventos?/i);
+        const sourceMatch = responseText.match(/(\d+)\s*fuentes?/i);
+        const cityMatch = responseText.match(/(\d+)\s*ciudades?/i);
+        
+        if (eventMatch) statsData.totalEvents = parseInt(eventMatch[1]);
+        if (sourceMatch) statsData.totalRAGSources = parseInt(sourceMatch[1]);
+        if (cityMatch) statsData.activeCities = parseInt(cityMatch[1]);
+        
+        setStats(statsData);
+        
+        toast({
+          title: "✅ Estadísticas Obtenidas",
+          description: `${statsData.totalEvents} eventos, ${statsData.totalRAGSources} fuentes RAG`,
+          variant: "default"
+        });
+        
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
+      
+    } catch (error) {
+      console.error('Error obteniendo estadísticas:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron obtener las estadísticas",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ejecutar scraping manual
+  const runManualScraping = async () => {
     try {
       setScraping(true);
+      console.log(`🕷️ Iniciando scraping manual para ${selectedCity}...`);
+      
+      const { auth } = await import('../../integrations/firebase/config');
+      const user = auth.currentUser;
+      
+      if (!user) {
+        toast({
+          title: "❌ Error de Autenticación",
+          description: "Debes estar autenticado para ejecutar scraping",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const token = await user.getIdToken();
+      
+      const response = await fetch('https://us-central1-wearecity-2ab89.cloudfunctions.net/hybridIntelligentProxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          query: `Obtener URLs configuradas para ${selectedCity}, luego scrapear eventos de todas las URLs encontradas e insertarlos en el sistema RAG`,
+          citySlug: selectedCity,
+          userId: user.uid,
+          isAdmin: true
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "✅ Scraping Completado",
+          description: `Scraping ejecutado exitosamente para ${selectedCity}`,
+          variant: "default"
+        });
+        
+        // Actualizar estadísticas
+        await getAgentStats();
+        
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
+      
+    } catch (error) {
+      console.error('Error en scraping:', error);
       toast({
-        title: "Iniciando scraping",
-        description: "El agente inteligente está procesando la web de eventos..."
+        title: "Error",
+        description: "No se pudo ejecutar el scraping",
+        variant: "destructive"
       });
-
-      console.log('🤖 Iniciando scraping manual para:', selectedCity);
-      console.log('🔍 Estado de autenticación completo:', {
-        hasUser: !!user,
-        hasSession: !!session,
-        uid: user?.id,
-        email: user?.email,
-        profile: profile ? `${profile.role} - ${profile.email}` : 'No profile'
-      });
-
-      // Verificar el estado de Firebase Auth directamente
-      const { auth } = await import('@/integrations/firebase/config');
-      const currentUser = auth.currentUser;
-      console.log('🔍 Firebase Auth currentUser:', {
-        exists: !!currentUser,
-        uid: currentUser?.uid,
-        email: currentUser?.email,
-        isSignedIn: !!currentUser
-      });
-
-      if (!currentUser) {
-        throw new Error('No hay usuario autenticado en Firebase Auth');
-      }
-      
-      const result = await vertexAIIntelligentScraping({
-        url: 'https://www.lavilajoiosa.es/es/agenda',
-        citySlug: selectedCity,
-        cityName: 'La Vila Joiosa',
-        maxRetries: 3,
-        cleanupBefore: true
-      });
-
-      console.log('📊 Resultado del scraping:', result);
-
-      if (result.data && result.data.success) {
-        toast({
-          title: "Scraping completado",
-          description: `${result.data.eventsExtracted || 0} eventos extraídos exitosamente`,
-        });
-        await loadStats(); // Recargar estadísticas
-      } else {
-        // En caso de que la función devuelva un formato diferente
-        console.warn('⚠️ Formato de respuesta inesperado:', result);
-        toast({
-          title: "Scraping ejecutado",
-          description: "El scraping se ejecutó. Verifique los logs para más detalles.",
-        });
-        await loadStats(); // Recargar estadísticas de todas formas
-      }
-    } catch (error: any) {
-      console.error('Error en scraping manual:', error);
-      
-      if (error.message.includes('User must be authenticated')) {
-        toast({
-          title: "Error de autenticación",
-          description: "Problemas de autenticación con Firebase. Recargue la página e inténtelo de nuevo.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error en scraping",
-          description: error.message || "Error durante el scraping. Verifique la consola para más detalles.",
-          variant: "destructive"
-        });
-      }
     } finally {
       setScraping(false);
     }
   };
 
-  const handleCleanRAG = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "Debe estar autenticado para limpiar el RAG",
-        variant: "destructive"
-      });
+  // Limpiar datos de ciudad
+  const clearCityData = async () => {
+    if (!confirm(`¿Estás seguro de que quieres limpiar TODOS los datos de ${selectedCity}? Esta acción no se puede deshacer.`)) {
       return;
     }
-
+    
     try {
       setLoading(true);
+      console.log(`🧹 Limpiando datos para ${selectedCity}...`);
       
-      console.log('🧹 Iniciando limpieza del nuevo agente para:', selectedCity);
+      const { auth } = await import('../../integrations/firebase/config');
+      const user = auth.currentUser;
       
-      const result = await cleanupVertexAIAgent({ citySlug: selectedCity });
-      
-      if (result.data && result.data.success) {
+      if (!user) {
         toast({
-          title: "Limpieza completada",
-          description: `Se eliminaron ${result.data.chunksDeleted} chunks del nuevo agente`,
-        });
-        await loadStats(); // Recargar estadísticas
-      } else {
-        toast({
-          title: "Error en limpieza",
-          description: "No se pudo completar la limpieza del nuevo agente",
+          title: "❌ Error de Autenticación",
+          description: "Debes estar autenticado para limpiar datos",
           variant: "destructive"
         });
+        return;
       }
       
-    } catch (error: any) {
-      console.error('Error limpiando datos del nuevo agente:', error);
+      const token = await user.getIdToken();
+      
+      const response = await fetch('https://us-central1-wearecity-2ab89.cloudfunctions.net/hybridIntelligentProxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          query: `Limpiar todos los eventos y datos RAG de ${selectedCity}`,
+          citySlug: selectedCity,
+          userId: user.uid,
+          isAdmin: true
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "✅ Datos Limpiados",
+          description: `Todos los datos de ${selectedCity} han sido eliminados`,
+          variant: "default"
+        });
+        
+        // Actualizar estadísticas
+        await getAgentStats();
+        
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
+      
+    } catch (error) {
+      console.error('Error limpiando datos:', error);
       toast({
         title: "Error",
-        description: "No se pudo limpiar los datos del nuevo agente",
+        description: "No se pudieron limpiar los datos",
         variant: "destructive"
       });
     } finally {
@@ -274,243 +373,623 @@ const AgentsSection: React.FC = () => {
     }
   };
 
-  const handleScheduleChange = async (field: keyof ScheduleConfig, value: any) => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "Debe estar autenticado para cambiar la configuración",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const newConfig = { ...scheduleConfig, [field]: value };
-    setScheduleConfig(newConfig);
-
-    // Guardar configuración localmente mientras implementamos la función de servidor
-    toast({
-      title: "Configuración guardada localmente",
-      description: "La programación automática estará disponible próximamente",
-      variant: "default"
+  // Agregar nueva URL
+  const addUrl = (category: keyof Pick<CityConfig, 'agendaEventosUrls' | 'tramitesUrls' | 'noticiasUrls' | 'turismoUrls' | 'contactUrls' | 'serviciosUrls'>) => {
+    if (!cityConfig) return;
+    
+    setCityConfig({
+      ...cityConfig,
+      [category]: [...cityConfig[category], '']
     });
   };
 
+  // Eliminar URL
+  const removeUrl = (category: keyof Pick<CityConfig, 'agendaEventosUrls' | 'tramitesUrls' | 'noticiasUrls' | 'turismoUrls' | 'contactUrls' | 'serviciosUrls'>, index: number) => {
+    if (!cityConfig) return;
+    
+    const newUrls = [...cityConfig[category]];
+    newUrls.splice(index, 1);
+    
+    setCityConfig({
+      ...cityConfig,
+      [category]: newUrls
+    });
+  };
+
+  // Actualizar URL
+  const updateUrl = (category: keyof Pick<CityConfig, 'agendaEventosUrls' | 'tramitesUrls' | 'noticiasUrls' | 'turismoUrls' | 'contactUrls' | 'serviciosUrls'>, index: number, value: string) => {
+    if (!cityConfig) return;
+    
+    const newUrls = [...cityConfig[category]];
+    newUrls[index] = value;
+    
+    setCityConfig({
+      ...cityConfig,
+      [category]: newUrls
+    });
+  };
+
+  // Efectos
+  useEffect(() => {
+    loadCityConfig(selectedCity);
+  }, [selectedCity]);
+
+  useEffect(() => {
+    getAgentStats();
+  }, [selectedCity]);
+
+  if (loading && !cityConfig) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+          <p>Cargando configuración...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Bot className="h-6 w-6" />
-          <h2 className="text-2xl font-bold">Vertex AI Agente Inteligente</h2>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Agentes Inteligentes</h2>
+          <p className="text-muted-foreground">
+            Gestión completa del sistema de scraping y RAG dinámico
+          </p>
         </div>
-        <Button 
-          onClick={loadStats} 
-          disabled={loading}
-          variant="outline"
-          size="sm"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Actualizar
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Select value={selectedCity} onValueChange={setSelectedCity}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Seleccionar ciudad" />
+            </SelectTrigger>
+            <SelectContent>
+              {cities.map((city) => (
+                <SelectItem key={city} value={city}>
+                  {city === 'la-vila-joiosa' ? 'La Vila Joiosa' : 
+                   city.charAt(0).toUpperCase() + city.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Estadísticas del Agente */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart3 className="h-5 w-5" />
-            <span>Estadísticas del Nuevo Agente IA</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stats ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.totalEvents}</div>
-                <div className="text-sm text-gray-600">Eventos Totales</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.totalRAGSources}</div>
-                <div className="text-sm text-gray-600">Fuentes RAG</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.averageConfidence}</div>
-                <div className="text-sm text-gray-600">Confianza Promedio</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{Object.keys(stats.eventsBySource).length}</div>
-                <div className="text-sm text-gray-600">Fuentes Diferentes</div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-              <p>Cargando estadísticas...</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Resumen
+          </TabsTrigger>
+          <TabsTrigger value="config">
+            <Settings className="h-4 w-4 mr-2" />
+            Configuración
+          </TabsTrigger>
+          <TabsTrigger value="scraping">
+            <Bot className="h-4 w-4 mr-2" />
+            Scraping
+          </TabsTrigger>
+          <TabsTrigger value="monitoring">
+            <Activity className="h-4 w-4 mr-2" />
+            Monitoreo
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Control Manual del Agente */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Play className="h-5 w-5" />
-              <span>Control Manual</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="city-select">Ciudad</Label>
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar ciudad" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="la-vila-joiosa">La Vila Joiosa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Tab: Resumen */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Estadísticas */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Database className="h-5 w-5 mr-2" />
+                  Eventos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {stats?.totalEvents || 0}
+                </div>
+                <p className="text-muted-foreground">
+                  eventos almacenados
+                </p>
+              </CardContent>
+            </Card>
 
-            <Separator />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="h-5 w-5 mr-2" />
+                  Fuentes RAG
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {stats?.totalRAGSources || 0}
+                </div>
+                <p className="text-muted-foreground">
+                  documentos indexados
+                </p>
+              </CardContent>
+            </Card>
 
-            <div className="space-y-3">
-              <Button 
-                onClick={handleManualScraping}
-                disabled={scraping || loading}
-                className="w-full"
-                size="lg"
-              >
-                {scraping ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Escrapeando...
-                  </>
-                ) : (
-                  <>
-                    <Bot className="h-4 w-4 mr-2" />
-                    Ejecutar Nuevo Agente IA
-                  </>
-                )}
-              </Button>
-
-              <Button 
-                onClick={handleCleanRAG}
-                disabled={loading}
-                variant="destructive"
-                className="w-full"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Limpiar RAG de la Ciudad
-              </Button>
-            </div>
-
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>• El scraping manual ejecuta el agente inmediatamente</p>
-              <p>• Limpiar RAG elimina todos los datos de la ciudad</p>
-              <p>• Se regenerarán automáticamente con el próximo scraping</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Configuración Automática */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Settings className="h-5 w-5" />
-              <span>Configuración Automática</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="schedule-url">URL de Eventos</Label>
-              <Input
-                id="schedule-url"
-                value={scheduleConfig.url}
-                onChange={(e) => handleScheduleChange('url', e.target.value)}
-                placeholder="https://www.lavilajoiosa.es/es/agenda"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="schedule-frequency">Frecuencia</Label>
-              <Select 
-                value={scheduleConfig.schedule} 
-                onValueChange={(value) => handleScheduleChange('schedule', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar frecuencia" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hourly">Cada hora</SelectItem>
-                  <SelectItem value="daily">Diariamente</SelectItem>
-                  <SelectItem value="weekly">Semanalmente</SelectItem>
-                  <SelectItem value="monthly">Mensualmente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="schedule-enabled">Activar Scraping Automático</Label>
-              <Switch
-                id="schedule-enabled"
-                checked={scheduleConfig.enabled}
-                onCheckedChange={(checked) => handleScheduleChange('enabled', checked)}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center space-x-2">
-              {scheduleConfig.enabled ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-gray-400" />
-              )}
-              <span className={`text-sm ${scheduleConfig.enabled ? 'text-green-600' : 'text-gray-600'}`}>
-                {scheduleConfig.enabled ? 'Scraping automático activo' : 'Scraping automático desactivado'}
-              </span>
-            </div>
-
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>• El agente se ejecutará automáticamente según la frecuencia</p>
-              <p>• Se generarán embeddings automáticamente</p>
-              <p>• Los datos se actualizarán en tiempo real</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Estado del Sistema */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Database className="h-5 w-5" />
-            <span>Estado del Sistema</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <Bot className="h-4 w-4 text-blue-600" />
-              <span className="text-sm">Agente Inteligente</span>
-              <Badge variant="secondary">Activo</Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Brain className="h-4 w-4 text-purple-600" />
-              <span className="text-sm">Sistema RAG</span>
-              <Badge variant="secondary">Funcionando</Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Programación</span>
-              <Badge variant={scheduleConfig.enabled ? "default" : "secondary"}>
-                {scheduleConfig.enabled ? 'Activa' : 'Inactiva'}
-              </Badge>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Globe className="h-5 w-5 mr-2" />
+                  Ciudades
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {stats?.activeCities || 0}
+                </div>
+                <p className="text-muted-foreground">
+                  ciudades activas
+                </p>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Acciones Rápidas */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Acciones Rápidas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  onClick={runManualScraping}
+                  disabled={scraping}
+                  className="flex items-center"
+                >
+                  {scraping ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  Ejecutar Scraping
+                </Button>
+
+                <Button 
+                  onClick={getAgentStats}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex items-center"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Actualizar Stats
+                </Button>
+
+                <Button 
+                  onClick={clearCityData}
+                  disabled={loading}
+                  variant="destructive"
+                  className="flex items-center"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Limpiar Datos
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Estado del Sistema */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Estado del Sistema</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <Bot className="h-4 w-4 mr-2" />
+                    Agent Engine
+                  </span>
+                  <Badge variant="default" className="bg-green-500">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Operativo
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <Globe className="h-4 w-4 mr-2" />
+                    Puppeteer Service
+                  </span>
+                  <Badge variant="default" className="bg-green-500">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Operativo
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <Database className="h-4 w-4 mr-2" />
+                    Firestore
+                  </span>
+                  <Badge variant="default" className="bg-green-500">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Operativo
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Configuración */}
+        <TabsContent value="config" className="space-y-6">
+          {cityConfig && (
+            <>
+              {/* Información Básica */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Información Básica</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Nombre de la Ciudad</Label>
+                      <Input
+                        id="name"
+                        value={cityConfig.name}
+                        onChange={(e) => setCityConfig({
+                          ...cityConfig,
+                          name: e.target.value
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="displayName">Nombre para Mostrar</Label>
+                      <Input
+                        id="displayName"
+                        value={cityConfig.displayName}
+                        onChange={(e) => setCityConfig({
+                          ...cityConfig,
+                          displayName: e.target.value
+                        })}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="officialWebsite">Sitio Web Oficial</Label>
+                    <Input
+                      id="officialWebsite"
+                      value={cityConfig.officialWebsite}
+                      onChange={(e) => setCityConfig({
+                        ...cityConfig,
+                        officialWebsite: e.target.value
+                      })}
+                      placeholder="https://www.ciudad.com"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* URLs por Categoría */}
+              {[
+                { key: 'agendaEventosUrls' as const, label: 'URLs de Eventos', icon: <Bot className="h-4 w-4" /> },
+                { key: 'tramitesUrls' as const, label: 'URLs de Trámites', icon: <Settings className="h-4 w-4" /> },
+                { key: 'noticiasUrls' as const, label: 'URLs de Noticias', icon: <Activity className="h-4 w-4" /> },
+                { key: 'turismoUrls' as const, label: 'URLs de Turismo', icon: <Globe className="h-4 w-4" /> },
+                { key: 'contactUrls' as const, label: 'URLs de Contacto', icon: <Link className="h-4 w-4" /> },
+                { key: 'serviciosUrls' as const, label: 'URLs de Servicios', icon: <Database className="h-4 w-4" /> }
+              ].map(({ key, label, icon }) => (
+                <Card key={key}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center">
+                        {icon}
+                        <span className="ml-2">{label}</span>
+                      </span>
+                      <Button
+                        onClick={() => addUrl(key)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {cityConfig[key].map((url, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <Input
+                            value={url}
+                            onChange={(e) => updateUrl(key, index, e.target.value)}
+                            placeholder="https://..."
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={() => removeUrl(key, index)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      {cityConfig[key].length === 0 && (
+                        <p className="text-muted-foreground text-sm">
+                          No hay URLs configuradas para esta categoría
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Configuración de Scraping */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configuración de Scraping</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="scraping-enabled">Scraping Habilitado</Label>
+                    <input
+                      id="scraping-enabled"
+                      type="checkbox"
+                      checked={cityConfig.scrapingConfig.enabled}
+                      onChange={(e) => setCityConfig({
+                        ...cityConfig,
+                        scrapingConfig: {
+                          ...cityConfig.scrapingConfig,
+                          enabled: e.target.checked
+                        }
+                      })}
+                      className="rounded"
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(cityConfig.scrapingConfig.selectors).map(([key, value]) => (
+                      <div key={key}>
+                        <Label htmlFor={`selector-${key}`}>
+                          {key === 'eventContainer' ? 'Contenedor de Eventos' :
+                           key === 'title' ? 'Título' :
+                           key === 'description' ? 'Descripción' :
+                           key === 'date' ? 'Fecha' :
+                           key === 'location' ? 'Ubicación' : key}
+                        </Label>
+                        <Input
+                          id={`selector-${key}`}
+                          value={value}
+                          onChange={(e) => setCityConfig({
+                            ...cityConfig,
+                            scrapingConfig: {
+                              ...cityConfig.scrapingConfig,
+                              selectors: {
+                                ...cityConfig.scrapingConfig.selectors,
+                                [key]: e.target.value
+                              }
+                            }
+                          })}
+                          placeholder="Selector CSS"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Botón Guardar */}
+              <div className="flex justify-end">
+                <Button
+                  onClick={saveCityConfig}
+                  disabled={saving}
+                  size="lg"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Guardar Configuración
+                </Button>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        {/* Tab: Scraping */}
+        <TabsContent value="scraping" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Control de Scraping Manual</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Ejecuta scraping manual usando las URLs configuradas dinámicamente para {selectedCity}
+              </p>
+              
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={runManualScraping}
+                  disabled={scraping}
+                  size="lg"
+                >
+                  {scraping ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  Ejecutar Scraping Completo
+                </Button>
+
+                <Button 
+                  onClick={() => {
+                    // Probar URLs configuradas
+                    if (cityConfig?.agendaEventosUrls.length) {
+                      window.open(cityConfig.agendaEventosUrls[0], '_blank');
+                    }
+                  }}
+                  variant="outline"
+                  disabled={!cityConfig?.agendaEventosUrls.length}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver Sitio Web
+                </Button>
+              </div>
+
+              {cityConfig && (
+                <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">URLs Configuradas para Scraping:</h4>
+                  <div className="space-y-1 text-sm">
+                    {cityConfig.agendaEventosUrls.length > 0 ? (
+                      cityConfig.agendaEventosUrls.map((url, index) => (
+                        <div key={index} className="flex items-center">
+                          <Link className="h-3 w-3 mr-2" />
+                          <span className="font-mono text-xs">{url}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">
+                        No hay URLs de eventos configuradas
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Scraping Programado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <Clock className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Diario</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      6:00 AM - Agenda principal
+                    </p>
+                    <Badge variant="default" className="mt-2 bg-green-500">
+                      Activo
+                    </Badge>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <Clock className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Semanal</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Lunes 3:00 AM - Fuentes adicionales
+                    </p>
+                    <Badge variant="default" className="mt-2 bg-green-500">
+                      Activo
+                    </Badge>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <Clock className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Mensual</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Día 1, 2:00 AM - Limpieza completa
+                    </p>
+                    <Badge variant="default" className="mt-2 bg-green-500">
+                      Activo
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Monitoreo */}
+        <TabsContent value="monitoring" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Estado del Sistema</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Servicios</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span>Agent Engine</span>
+                      <Badge className="bg-green-500">Operativo</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Puppeteer Service</span>
+                      <Badge className="bg-green-500">Operativo</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Vector Search</span>
+                      <Badge className="bg-green-500">Configurado</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-medium">Métricas</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span>Eventos Totales</span>
+                      <span className="font-mono">{stats?.totalEvents || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Fuentes RAG</span>
+                      <span className="font-mono">{stats?.totalRAGSources || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Ciudades Activas</span>
+                      <span className="font-mono">{stats?.activeCities || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Acciones de Mantenimiento</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Button 
+                  onClick={getAgentStats}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Actualizar Estadísticas
+                </Button>
+
+                <Button 
+                  onClick={clearCityData}
+                  disabled={loading}
+                  variant="destructive"
+                  className="w-full justify-start"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Limpiar Datos de {selectedCity}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

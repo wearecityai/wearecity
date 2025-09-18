@@ -16,6 +16,9 @@ export interface AIResponse {
 
 const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || 'https://us-central1-wearecity-2ab89.cloudfunctions.net';
 
+// Flag para usar Agent Engine (DESHABILITADO - usar sistema original)
+const USE_AGENT_ENGINE = false; // Usar sistema original que funciona correctamente
+
 // Main function to process queries with Firebase Functions
 export const processWithVertexAI = async (
   query: string,
@@ -52,12 +55,12 @@ export const processWithVertexAI = async (
     const idToken = await user.getIdToken();
     console.log('🎫 Token obtained:', idToken ? 'YES' : 'NO');
     
-    // Prepare request body
+    // Prepare request body - formato original
     const requestBody = {
       query,
       citySlug: cityContext?.slug,
-      cityContext: cityContext?.name || '', // Enviar cityContext como string
-      cityConfig: cityConfig || null, // Nueva: enviar configuración completa de la ciudad
+      cityContext: cityContext?.name || '',
+      cityConfig: cityConfig || null,
       conversationHistory,
       mediaUrl,
       mediaType
@@ -90,7 +93,12 @@ export const processWithVertexAI = async (
 
     let response;
     try {
-      response = await fetch(`${FUNCTIONS_BASE_URL}/processAIChat`, {
+      // 🚀 NUEVO: Usar processAIChat con RAG como primera capa
+      const endpoint = `${FUNCTIONS_BASE_URL}/processAIChat`;
+      
+      console.log(`📡 Usando endpoint: ${endpoint} (Agent Engine: ${USE_AGENT_ENGINE})`);
+      
+      response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
@@ -112,9 +120,14 @@ export const processWithVertexAI = async (
     if (!response.ok) {
       let errorData;
       try {
-        errorData = await response.json();
+        const responseText = await response.text();
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (parseError) {
+          errorData = { message: responseText };
+        }
       } catch (e) {
-        errorData = { message: await response.text() };
+        errorData = { message: 'Error reading response' };
       }
       
       console.error('❌ Firebase Function error details:', {
@@ -144,13 +157,36 @@ export const processWithVertexAI = async (
     }
 
     console.log('✅ Firebase Functions response received:', {
-      modelUsed: result.data.modelUsed,
-      complexity: result.data.complexity,
-      searchPerformed: result.data.searchPerformed,
-      responseLength: result.data.response.length
+      modelUsed: result.data?.modelUsed,
+      complexity: result.data?.complexity,
+      searchPerformed: result.data?.searchPerformed,
+      responseLength: result.data?.response?.length,
+      fullResult: result
     });
 
-    return result.data;
+    // Handle response format variations - formato original
+    if (result.data) {
+      return result.data;
+    } else if (result.response) {
+      // Handle direct response format
+      return {
+        response: result.response,
+        modelUsed: result.modelUsed || 'gemini-2.5-flash',
+        complexity: result.complexity || 'simple',
+        searchPerformed: result.searchPerformed || false,
+        events: result.events,
+        places: result.places
+      };
+    } else {
+      // Handle unexpected format
+      console.warn('⚠️ Unexpected response format:', result);
+      return {
+        response: result.response || result.message || 'Respuesta procesada correctamente',
+        modelUsed: 'gemini-2.5-flash',
+        complexity: 'simple',
+        searchPerformed: false
+      };
+    }
 
   } catch (error) {
     console.error('❌ Error in processWithVertexAI:', error);

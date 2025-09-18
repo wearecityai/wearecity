@@ -144,11 +144,14 @@ exports.vectorSearch = functions.https.onCall(async (data, context) => {
         for (const sourceId of uniqueSourceIds) {
             const sourceDoc = await db.collection('library_sources_enhanced').doc(sourceId).get();
             if (sourceDoc.exists) {
-                sourcesMap.set(sourceId, Object.assign({ id: sourceDoc.id }, sourceDoc.data()));
+                sourcesMap.set(sourceId, { id: sourceDoc.id, ...sourceDoc.data() });
             }
         }
         // 7. Combinar resultados con información de fuentes
-        const results = topResults.map(result => (Object.assign(Object.assign({}, result), { source: sourcesMap.get(result.sourceId) })));
+        const results = topResults.map(result => ({
+            ...result,
+            source: sourcesMap.get(result.sourceId)
+        }));
         return {
             success: true,
             results,
@@ -168,7 +171,6 @@ exports.vectorSearch = functions.https.onCall(async (data, context) => {
  * Firebase Function para búsqueda híbrida (vectorial + texto)
  */
 exports.hybridSearch = functions.https.onCall(async (data, context) => {
-    var _a, _b;
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
     }
@@ -198,7 +200,7 @@ exports.hybridSearch = functions.https.onCall(async (data, context) => {
                 content: data.content,
                 similarity: score / queryWords.length,
                 metadata: data.metadata,
-                source: Object.assign({ id: doc.id }, data)
+                source: { id: doc.id, ...data }
             };
         })
             .filter(result => result.similarity > 0)
@@ -207,18 +209,30 @@ exports.hybridSearch = functions.https.onCall(async (data, context) => {
         // 3. Combinar resultados (eliminar duplicados)
         const combinedResults = new Map();
         // Agregar resultados vectoriales
-        (_a = vectorResults.results) === null || _a === void 0 ? void 0 : _a.forEach(result => {
-            combinedResults.set(result.sourceId, Object.assign(Object.assign({}, result), { searchType: 'vectorial', vectorSimilarity: result.similarity }));
+        vectorResults.results?.forEach(result => {
+            combinedResults.set(result.sourceId, {
+                ...result,
+                searchType: 'vectorial',
+                vectorSimilarity: result.similarity
+            });
         });
         // Agregar resultados de texto (si no están ya)
         textMatches.forEach(result => {
             if (!combinedResults.has(result.sourceId)) {
-                combinedResults.set(result.sourceId, Object.assign(Object.assign({}, result), { searchType: 'textual', textSimilarity: result.similarity }));
+                combinedResults.set(result.sourceId, {
+                    ...result,
+                    searchType: 'textual',
+                    textSimilarity: result.similarity
+                });
             }
             else {
                 // Combinar si ya existe
                 const existing = combinedResults.get(result.sourceId);
-                combinedResults.set(result.sourceId, Object.assign(Object.assign({}, existing), { textSimilarity: result.similarity, searchType: 'hybrid' }));
+                combinedResults.set(result.sourceId, {
+                    ...existing,
+                    textSimilarity: result.similarity,
+                    searchType: 'hybrid'
+                });
             }
         });
         // 4. Ordenar por relevancia combinada
@@ -233,7 +247,7 @@ exports.hybridSearch = functions.https.onCall(async (data, context) => {
         return {
             success: true,
             results: finalResults,
-            vectorResults: ((_b = vectorResults.results) === null || _b === void 0 ? void 0 : _b.length) || 0,
+            vectorResults: vectorResults.results?.length || 0,
             textResults: textMatches.length,
             totalCombined: finalResults.length
         };

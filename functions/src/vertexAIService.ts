@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { searchPlaces, getPlacePhotoUrl, PlaceResult } from './placesService';
 import { scrapeEventsFromUrl } from './eventScraper';
 import * as admin from 'firebase-admin';
+import { spawn } from 'child_process';
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'wearecity-2ab89';
 
@@ -9,6 +10,109 @@ console.log('🔑 Google AI Config:', { PROJECT_ID });
 
 // Initialize Google AI
 const ai = new GoogleGenAI({});
+
+/**
+ * Función para consultar el Vertex AI Agent Engine usando Python
+ */
+async function queryVertexAIAgent(query: string, citySlug: string, userId: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    console.log('🤖 Consultando Vertex AI Agent Engine...');
+    
+    const pythonScript = `
+import sys
+import asyncio
+import vertexai
+
+async def query_agent():
+    try:
+        PROJECT_ID = "wearecity-2ab89"
+        LOCATION = "us-central1"
+        AGENT_ENGINE_ID = "3094997688840617984"
+        
+        vertexai.init(project=PROJECT_ID, location=LOCATION)
+        client = vertexai.Client(location=LOCATION)
+        
+        agent_engine_resource = f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ENGINE_ID}"
+        agent_engine = client.agent_engines.get(name=agent_engine_resource)
+        
+        query_with_context = f"""
+Ciudad: ${citySlug}
+Contexto: Asistente especializado en información municipal, trámites, eventos y servicios de la ciudad de ${citySlug}.
+Usuario: ${userId}
+
+Consulta: ${query}
+"""
+        
+        response_parts = []
+        async for event in agent_engine.async_stream_query(
+            message=query_with_context, 
+            user_id="${userId}"
+        ):
+            if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts'):
+                for part in event.content.parts:
+                    if hasattr(part, 'text') and part.text:
+                        response_parts.append(part.text)
+        
+        full_response = ''.join(response_parts)
+        print(full_response)
+        
+    except Exception as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
+
+asyncio.run(query_agent())
+`;
+
+    const pythonProcess = spawn('python3', ['-c', pythonScript], {
+      cwd: '/Users/tonillorens/Desktop/wearecity_app/wearecity-agent',
+      env: {
+        ...process.env,
+        VIRTUAL_ENV: '/Users/tonillorens/Desktop/wearecity_app/wearecity-agent/.venv',
+        PATH: '/Users/tonillorens/Desktop/wearecity_app/wearecity-agent/.venv/bin:' + process.env.PATH
+      }
+    });
+
+    let output = '';
+    let errorOutput = '';
+
+    pythonProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    // Manejar errores del proceso (como ENOENT cuando python3 no está disponible)
+    pythonProcess.on('error', (error) => {
+      console.warn('⚠️ Agent Engine no disponible (python3 no encontrado), usando fallback:', error.message);
+      resolve(null);
+    });
+
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        const response = output.trim();
+        if (response && !response.startsWith('ERROR:')) {
+          console.log('✅ Agent Engine respondió exitosamente');
+          resolve(response);
+        } else {
+          console.log('❌ Agent Engine no devolvió respuesta válida');
+          resolve(null);
+        }
+      } else {
+        console.error('❌ Error ejecutando Agent Engine:', errorOutput);
+        resolve(null);
+      }
+    });
+
+    // Timeout después de 5 segundos (reducido para fallback más rápido)
+    setTimeout(() => {
+      pythonProcess.kill();
+      console.log('⏰ Timeout en Agent Engine');
+      resolve(null);
+    }, 5000);
+  });
+}
 
 // Query complexity classifier
 export const classifyQueryComplexity = (query: string): 'simple' | 'institutional' => {
@@ -683,7 +787,7 @@ export const processUserQuery = async (
   response: string;
   events?: any[];
   places?: PlaceResult[];
-  modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-flash';
+  modelUsed: 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-2.5-flash' | 'vertex-ai-agent-engine';
   complexity: 'simple' | 'institutional';
   searchPerformed: boolean;
 }> => {
@@ -691,13 +795,41 @@ export const processUserQuery = async (
   
   console.log(`🎯 Query classified as: ${complexity}`);
   
+  // 🚀 NUEVO: Intentar usar Vertex AI Agent Engine primero para consultas complejas
+  if (complexity === 'institutional') {
+    console.log('🤖 Intentando Vertex AI Agent Engine...');
+    
+    const citySlug = cityConfig?.slug || 'unknown';
+    const userId = 'system-user'; // Se puede pasar como parámetro en el futuro
+    
+    try {
+      const agentResponse = await queryVertexAIAgent(query, citySlug, userId);
+      
+      if (agentResponse && agentResponse.length > 10) {
+        console.log('✅ Agent Engine respondió exitosamente');
+        return {
+          response: agentResponse,
+          modelUsed: 'vertex-ai-agent-engine',
+          complexity,
+          searchPerformed: true,
+          events: [],
+          places: []
+        };
+      } else {
+        console.log('🔄 Agent Engine no respondió, usando fallback...');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error en Agent Engine, usando fallback:', error);
+    }
+  }
+  
   let modelMessage = '';
   if (complexity === 'institutional') {
     modelMessage = 'Gemini 2.5 Flash with Google Search grounding for real-time information';
   } else {
     modelMessage = 'Gemini 2.5 Flash-Lite for simple/historical queries only';
   }
-  console.log(`🤖 Using model: ${modelMessage}`);
+  console.log(`🤖 Using fallback model: ${modelMessage}`);
 
   try {
     let result: { text: string; events?: any[]; places?: PlaceResult[] };

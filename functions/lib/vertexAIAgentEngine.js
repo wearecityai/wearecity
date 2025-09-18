@@ -1,16 +1,36 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.testAgentEngine = exports.processAIWithAgentEngine = void 0;
-
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-const { GoogleAuth } = require("google-auth-library");
-
+const functions = __importStar(require("firebase-functions"));
+const admin = __importStar(require("firebase-admin"));
+const google_auth_library_1 = require("google-auth-library");
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
     admin.initializeApp();
 }
-
 /**
  * Función Firebase que conecta con Vertex AI Agent Engine
  */
@@ -19,50 +39,44 @@ exports.processAIWithAgentEngine = functions.https.onRequest(async (req, res) =>
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
     if (req.method === 'OPTIONS') {
         res.status(200).send('');
         return;
     }
-
     try {
         const { query, citySlug, conversationHistory = [], userId } = req.body;
-
         console.log('🤖 Procesando consulta con Vertex AI Agent Engine:', {
             query: query?.substring(0, 100),
             citySlug,
             userId,
             hasHistory: conversationHistory.length > 0
         });
-
         // Validación de parámetros
         if (!query || !citySlug || !userId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Faltan parámetros requeridos: query, citySlug, userId'
-            });
+            if (!res.headersSent) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Faltan parámetros requeridos: query, citySlug, userId'
+                });
+            }
+            return;
         }
-
         // Configurar autenticación para Vertex AI
-        const auth = new GoogleAuth({
+        const auth = new google_auth_library_1.GoogleAuth({
             scopes: ['https://www.googleapis.com/auth/cloud-platform']
         });
-
         const authClient = await auth.getClient();
         const projectId = process.env.GCLOUD_PROJECT || 'wearecity-2ab89';
         const location = 'us-central1';
         const agentEngineId = '3094997688840617984';
-
         // Construir el contexto de la ciudad
         const cityContext = `
 Ciudad: ${citySlug}
 Contexto: Asistente especializado en información municipal, trámites, eventos y servicios de la ciudad de ${citySlug}.
 Instrucciones: Proporciona información precisa y actualizada sobre la ciudad. Si necesitas información específica sobre eventos, utiliza el sistema RAG para buscar en la base de datos.
 `;
-
         // Preparar el prompt con historial de conversación
         let fullPrompt = cityContext + '\n\n';
-        
         if (conversationHistory.length > 0) {
             fullPrompt += 'Historial de conversación:\n';
             conversationHistory.slice(-5).forEach(msg => {
@@ -70,12 +84,9 @@ Instrucciones: Proporciona información precisa y actualizada sobre la ciudad. S
             });
             fullPrompt += '\n';
         }
-        
         fullPrompt += `Consulta actual: ${query}`;
-
         // Llamar al Agent Engine
         const url = `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${projectId}/locations/${location}/reasoningEngines/${agentEngineId}:query`;
-        
         const requestBody = {
             input: {
                 text: fullPrompt
@@ -85,28 +96,25 @@ Instrucciones: Proporciona información precisa y actualizada sobre la ciudad. S
                 maxTokens: 2048
             }
         };
-
         console.log('📡 Llamando a Vertex AI Agent Engine...');
-        
         const response = await authClient.request({
             url,
             method: 'POST',
             data: requestBody
         });
-
         const agentResponse = response.data;
         console.log('✅ Respuesta recibida del Agent Engine');
-
         // Procesar la respuesta
         let responseText = '';
         if (agentResponse.output && agentResponse.output.text) {
             responseText = agentResponse.output.text;
-        } else if (agentResponse.response) {
+        }
+        else if (agentResponse.response) {
             responseText = agentResponse.response;
-        } else {
+        }
+        else {
             responseText = 'Lo siento, no pude procesar tu consulta en este momento.';
         }
-
         // Registrar métricas (opcional)
         try {
             await admin.firestore().collection('ai_metrics').add({
@@ -118,10 +126,10 @@ Instrucciones: Proporciona información precisa y actualizada sobre la ciudad. S
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 success: true
             });
-        } catch (metricsError) {
+        }
+        catch (metricsError) {
             console.warn('Error guardando métricas:', metricsError);
         }
-
         const result = {
             success: true,
             response: responseText,
@@ -129,13 +137,13 @@ Instrucciones: Proporciona información precisa y actualizada sobre la ciudad. S
             eventsFromFirestore: true,
             searchPerformed: true
         };
-
         console.log('🎯 Respuesta procesada exitosamente');
-        return res.status(200).json(result);
-
-    } catch (error) {
+        if (!res.headersSent) {
+            return res.status(200).json(result);
+        }
+    }
+    catch (error) {
         console.error('❌ Error en processAIWithAgentEngine:', error);
-        
         // Registrar error en métricas
         try {
             await admin.firestore().collection('ai_metrics').add({
@@ -147,10 +155,10 @@ Instrucciones: Proporciona información precisa y actualizada sobre la ciudad. S
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 success: false
             });
-        } catch (metricsError) {
+        }
+        catch (metricsError) {
             console.warn('Error guardando métricas de error:', metricsError);
         }
-
         const errorResponse = {
             success: false,
             response: 'Lo siento, ha ocurrido un error procesando tu consulta. Por favor, inténtalo de nuevo.',
@@ -159,11 +167,11 @@ Instrucciones: Proporciona información precisa y actualizada sobre la ciudad. S
             searchPerformed: false,
             error: error.message
         };
-
-        return res.status(500).json(errorResponse);
+        if (!res.headersSent) {
+            return res.status(500).json(errorResponse);
+        }
     }
 });
-
 /**
  * Función para probar la conexión con Agent Engine
  */
@@ -172,19 +180,15 @@ exports.testAgentEngine = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
     }
-
     try {
-        const auth = new GoogleAuth({
+        const auth = new google_auth_library_1.GoogleAuth({
             scopes: ['https://www.googleapis.com/auth/cloud-platform']
         });
-
         const authClient = await auth.getClient();
         const projectId = process.env.GCLOUD_PROJECT || 'wearecity-2ab89';
         const location = 'us-central1';
         const agentEngineId = '3094997688840617984';
-
         const url = `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/${projectId}/locations/${location}/reasoningEngines/${agentEngineId}:query`;
-        
         const response = await authClient.request({
             url,
             method: 'POST',
@@ -194,16 +198,16 @@ exports.testAgentEngine = functions.https.onCall(async (data, context) => {
                 }
             }
         });
-
         return {
             success: true,
             message: 'Agent Engine está funcionando correctamente',
             agentEngineId,
             response: response.data
         };
-
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Error testing Agent Engine:', error);
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
+//# sourceMappingURL=vertexAIAgentEngine.js.map

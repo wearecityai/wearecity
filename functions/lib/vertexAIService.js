@@ -28,10 +28,107 @@ const genai_1 = require("@google/genai");
 const placesService_1 = require("./placesService");
 const eventScraper_1 = require("./eventScraper");
 const admin = __importStar(require("firebase-admin"));
+const child_process_1 = require("child_process");
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'wearecity-2ab89';
 console.log('🔑 Google AI Config:', { PROJECT_ID });
 // Initialize Google AI
 const ai = new genai_1.GoogleGenAI({});
+/**
+ * Función para consultar el Vertex AI Agent Engine usando Python
+ */
+async function queryVertexAIAgent(query, citySlug, userId) {
+    return new Promise((resolve, reject) => {
+        console.log('🤖 Consultando Vertex AI Agent Engine...');
+        const pythonScript = `
+import sys
+import asyncio
+import vertexai
+
+async def query_agent():
+    try:
+        PROJECT_ID = "wearecity-2ab89"
+        LOCATION = "us-central1"
+        AGENT_ENGINE_ID = "3094997688840617984"
+        
+        vertexai.init(project=PROJECT_ID, location=LOCATION)
+        client = vertexai.Client(location=LOCATION)
+        
+        agent_engine_resource = f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ENGINE_ID}"
+        agent_engine = client.agent_engines.get(name=agent_engine_resource)
+        
+        query_with_context = f"""
+Ciudad: ${citySlug}
+Contexto: Asistente especializado en información municipal, trámites, eventos y servicios de la ciudad de ${citySlug}.
+Usuario: ${userId}
+
+Consulta: ${query}
+"""
+        
+        response_parts = []
+        async for event in agent_engine.async_stream_query(
+            message=query_with_context, 
+            user_id="${userId}"
+        ):
+            if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts'):
+                for part in event.content.parts:
+                    if hasattr(part, 'text') and part.text:
+                        response_parts.append(part.text)
+        
+        full_response = ''.join(response_parts)
+        print(full_response)
+        
+    except Exception as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
+
+asyncio.run(query_agent())
+`;
+        const pythonProcess = (0, child_process_1.spawn)('python3', ['-c', pythonScript], {
+            cwd: '/Users/tonillorens/Desktop/wearecity_app/wearecity-agent',
+            env: {
+                ...process.env,
+                VIRTUAL_ENV: '/Users/tonillorens/Desktop/wearecity_app/wearecity-agent/.venv',
+                PATH: '/Users/tonillorens/Desktop/wearecity_app/wearecity-agent/.venv/bin:' + process.env.PATH
+            }
+        });
+        let output = '';
+        let errorOutput = '';
+        pythonProcess.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+        pythonProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+        });
+        // Manejar errores del proceso (como ENOENT cuando python3 no está disponible)
+        pythonProcess.on('error', (error) => {
+            console.warn('⚠️ Agent Engine no disponible (python3 no encontrado), usando fallback:', error.message);
+            resolve(null);
+        });
+        pythonProcess.on('close', (code) => {
+            if (code === 0) {
+                const response = output.trim();
+                if (response && !response.startsWith('ERROR:')) {
+                    console.log('✅ Agent Engine respondió exitosamente');
+                    resolve(response);
+                }
+                else {
+                    console.log('❌ Agent Engine no devolvió respuesta válida');
+                    resolve(null);
+                }
+            }
+            else {
+                console.error('❌ Error ejecutando Agent Engine:', errorOutput);
+                resolve(null);
+            }
+        });
+        // Timeout después de 5 segundos (reducido para fallback más rápido)
+        setTimeout(() => {
+            pythonProcess.kill();
+            console.log('⏰ Timeout en Agent Engine');
+            resolve(null);
+        }, 5000);
+    });
+}
 // Query complexity classifier
 const classifyQueryComplexity = (query) => {
     // 🎯 NUEVA LÓGICA: Detectar consultas que necesitan Gemini 2.5 Flash + Google Search Grounding
@@ -137,7 +234,6 @@ exports.classifyQueryComplexity = classifyQueryComplexity;
 // Gemini 2.5 Flash for institutional queries with Google Search grounding
 const processInstitutionalQuery = async (query, cityContext, conversationHistory, cityConfig // Nueva: configuración completa de la ciudad
 ) => {
-    var _a, _b;
     try {
         console.log('🏛️ Processing institutional query with Gemini 2.5 Flash + Google Search grounding');
         // Configure grounding tool (will be used conditionally)
@@ -189,7 +285,7 @@ const processInstitutionalQuery = async (query, cityContext, conversationHistory
             minute: '2-digit'
         });
         // 🎯 CONFIGURACIÓN DE URLs OFICIALES PARA EVENTOS
-        const agendaEventosUrls = (cityConfig === null || cityConfig === void 0 ? void 0 : cityConfig.agendaEventosUrls) || [];
+        const agendaEventosUrls = cityConfig?.agendaEventosUrls || [];
         const agendaUrlsText = agendaEventosUrls.length > 0
             ? `
 🔒 URLs OFICIALES CONFIGURADAS PARA EVENTOS:
@@ -496,7 +592,7 @@ Consulta: ${query}`;
             }
         }
         // Log if grounding was used
-        if ((_b = (_a = result.candidates) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.groundingMetadata) {
+        if (result.candidates?.[0]?.groundingMetadata) {
             console.log('🔍 Google Search grounding activated:', result.candidates[0].groundingMetadata);
         }
         const responseText = result.text || 'No se pudo generar una respuesta adecuada.';
@@ -519,10 +615,10 @@ Consulta: ${query}`;
                 console.log('🗺️ Detected place query, searching Google Places...');
                 additionalPlaces = await (0, placesService_1.searchPlaces)(query, cityContext);
                 // Add photo URLs to places
-                additionalPlaces = additionalPlaces.map(place => {
-                    var _a;
-                    return (Object.assign(Object.assign({}, place), { photoUrl: ((_a = place.photos) === null || _a === void 0 ? void 0 : _a[0]) ? (0, placesService_1.getPlacePhotoUrl)(place.photos[0].photo_reference) : undefined }));
-                });
+                additionalPlaces = additionalPlaces.map(place => ({
+                    ...place,
+                    photoUrl: place.photos?.[0] ? (0, placesService_1.getPlacePhotoUrl)(place.photos[0].photo_reference) : undefined
+                }));
             }
         }
         return {
@@ -614,10 +710,10 @@ Mantén un tono amigable y profesional.`;
             console.log('🗺️ Detected place query in simple query, searching Google Places...');
             additionalPlaces = await (0, placesService_1.searchPlaces)(query, cityContext);
             // Add photo URLs to places
-            additionalPlaces = additionalPlaces.map(place => {
-                var _a;
-                return (Object.assign(Object.assign({}, place), { photoUrl: ((_a = place.photos) === null || _a === void 0 ? void 0 : _a[0]) ? (0, placesService_1.getPlacePhotoUrl)(place.photos[0].photo_reference) : undefined }));
-            });
+            additionalPlaces = additionalPlaces.map(place => ({
+                ...place,
+                photoUrl: place.photos?.[0] ? (0, placesService_1.getPlacePhotoUrl)(place.photos[0].photo_reference) : undefined
+            }));
         }
         return {
             text: responseText,
@@ -636,6 +732,32 @@ const processUserQuery = async (query, cityContext, conversationHistory, cityCon
 ) => {
     const complexity = (0, exports.classifyQueryComplexity)(query);
     console.log(`🎯 Query classified as: ${complexity}`);
+    // 🚀 NUEVO: Intentar usar Vertex AI Agent Engine primero para consultas complejas
+    if (complexity === 'institutional') {
+        console.log('🤖 Intentando Vertex AI Agent Engine...');
+        const citySlug = cityConfig?.slug || 'unknown';
+        const userId = 'system-user'; // Se puede pasar como parámetro en el futuro
+        try {
+            const agentResponse = await queryVertexAIAgent(query, citySlug, userId);
+            if (agentResponse && agentResponse.length > 10) {
+                console.log('✅ Agent Engine respondió exitosamente');
+                return {
+                    response: agentResponse,
+                    modelUsed: 'vertex-ai-agent-engine',
+                    complexity,
+                    searchPerformed: true,
+                    events: [],
+                    places: []
+                };
+            }
+            else {
+                console.log('🔄 Agent Engine no respondió, usando fallback...');
+            }
+        }
+        catch (error) {
+            console.warn('⚠️ Error en Agent Engine, usando fallback:', error);
+        }
+    }
     let modelMessage = '';
     if (complexity === 'institutional') {
         modelMessage = 'Gemini 2.5 Flash with Google Search grounding for real-time information';
@@ -643,7 +765,7 @@ const processUserQuery = async (query, cityContext, conversationHistory, cityCon
     else {
         modelMessage = 'Gemini 2.5 Flash-Lite for simple/historical queries only';
     }
-    console.log(`🤖 Using model: ${modelMessage}`);
+    console.log(`🤖 Using fallback model: ${modelMessage}`);
     try {
         let result;
         let searchPerformed = false;

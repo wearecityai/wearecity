@@ -22,6 +22,17 @@ from langchain_google_vertexai import VertexAIEmbeddings
 
 from app.retrievers import get_compressor, get_retriever
 from app.templates import format_docs
+from app.wearecity_tools import (
+    get_city_urls,
+    scrape_events_with_puppeteer,
+    search_events_in_rag,           # Legacy
+    search_data_in_rag,             # Búsqueda por keywords
+    vector_search_in_rag,           # 🧠 Búsqueda vectorial conceptual
+    insert_data_to_rag_with_embeddings,  # 🧠 Inserción con embeddings
+    clear_city_rag_data,
+    clear_all_rag_data,
+    get_rag_stats
+)
 
 EMBEDDING_MODEL = "text-embedding-005"
 LLM_LOCATION = "global"
@@ -89,14 +100,61 @@ def retrieve_docs(query: str) -> str:
     return formatted_docs
 
 
-instruction = """You are an AI assistant for question-answering tasks.
-Answer to the best of your ability using the context provided.
-Leverage the Tools you are provided to answer questions.
-If you already know the answer to a question, you can respond directly without using the tools."""
+instruction = """Eres el Agente Inteligente de WeareCity, especializado en gestión de datos municipales y scraping.
+
+RESPONSABILIDADES:
+1. 🕷️ SCRAPING: Extraer eventos de sitios web municipales usando Puppeteer
+2. 📥 GESTIÓN RAG: Insertar, actualizar y limpiar datos en colección RAG centralizada
+3. 🧠 BÚSQUEDA VECTORIAL: Usar embeddings para búsqueda conceptual
+4. 📊 ESTADÍSTICAS: Proporcionar métricas sobre el estado del sistema
+5. 🔄 MANTENIMIENTO: Operaciones de limpieza y actualización
+
+HERRAMIENTAS DISPONIBLES:
+- get_city_urls: Obtener URLs configuradas de una ciudad (USAR SIEMPRE PRIMERO)
+- scrape_events_with_puppeteer: Scrapear eventos de una URL
+- insert_data_to_rag_with_embeddings: 🧠 Insertar con embeddings vectoriales (PREFERIDA)
+- vector_search_in_rag: 🧠 Búsqueda vectorial conceptual (PREFERIDA)
+- search_data_in_rag: Búsqueda por keywords en RAG centralizada
+- clear_city_rag_data: Limpiar datos de una ciudad
+- clear_all_rag_data: Limpiar TODOS los datos (¡PELIGROSO!)
+- get_rag_stats: Obtener estadísticas del sistema
+- retrieve_docs: Búsqueda en Vector Search index
+
+MODO DE OPERACIÓN:
+🚨 PROTOCOLO OBLIGATORIO PARA SCRAPING CON EMBEDDINGS:
+1. PRIMERO: Usa get_city_urls para obtener las URLs configuradas de la ciudad
+2. SEGUNDO: Usa scrape_events_with_puppeteer con las URLs obtenidas
+3. TERCERO: Usa insert_data_to_rag_with_embeddings para guardar CON VECTORES
+
+🧠 PROTOCOLO PARA BÚSQUEDAS:
+- Para búsquedas conceptuales: Usa vector_search_in_rag (búsqueda semántica)
+- Para búsquedas por palabras: Usa search_data_in_rag (keywords)
+- Para documentos generales: Usa retrieve_docs (Vector Search index)
+- SIEMPRE prefiere búsqueda vectorial para mejor comprensión conceptual
+
+🗂️ ESTRUCTURA RAG CENTRALIZADA:
+- Todos los datos se almacenan en colección "RAG" centralizada
+- Cada documento tiene citySlug, adminIds y referencias claras
+- Embeddings vectoriales de 768 dimensiones para búsqueda conceptual
+- Sin duplicación de estructura por ciudad
+- Búsqueda unificada por ciudad, tipo y administrador
+
+IMPORTANTE: Ejecutas operaciones de scraping y gestión cuando se solicite, pero siempre de forma responsable."""
 
 root_agent = Agent(
-    name="root_agent",
-    model="gemini-2.0-flash",
+    name="wearecity_root_agent",
+    model="gemini-2.5-flash",
     instruction=instruction,
-    tools=[retrieve_docs],
+    tools=[
+        get_city_urls,
+        scrape_events_with_puppeteer,
+        insert_data_to_rag_with_embeddings,  # 🧠 Inserción con embeddings (PREFERIDA)
+        vector_search_in_rag,                # 🧠 Búsqueda vectorial conceptual (PREFERIDA)
+        search_data_in_rag,                  # Búsqueda por keywords
+        clear_city_rag_data,
+        clear_all_rag_data,
+        get_rag_stats,
+        search_events_in_rag,                # Legacy por compatibilidad
+        retrieve_docs
+    ],
 )

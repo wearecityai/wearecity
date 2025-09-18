@@ -53,17 +53,16 @@ async function scrapeVillaJoyosaEvents(eventUrl = 'https://www.villajoyosa.com/e
                 elementsToProcess = document.querySelectorAll('article, .post, .entry, [class*="card"]');
             }
             elementsToProcess.forEach((element) => {
-                var _a, _b, _c, _d, _e;
                 try {
                     // Extract title
                     const titleElement = element.querySelector('h1, h2, h3, h4, .title, .titulo, [class*="title"]');
-                    const title = ((_a = titleElement === null || titleElement === void 0 ? void 0 : titleElement.textContent) === null || _a === void 0 ? void 0 : _a.trim()) || '';
+                    const title = titleElement?.textContent?.trim() || '';
                     // Skip if no title or if it doesn't look like an event
                     if (!title || title.length < 3)
                         return;
                     // Extract date information
                     const dateElement = element.querySelector('.date, .fecha, [class*="date"], [class*="fecha"], time');
-                    let dateText = ((_b = dateElement === null || dateElement === void 0 ? void 0 : dateElement.textContent) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+                    let dateText = dateElement?.textContent?.trim() || '';
                     // Look for date patterns in the text content if no specific date element
                     if (!dateText) {
                         const textContent = element.textContent || '';
@@ -74,7 +73,7 @@ async function scrapeVillaJoyosaEvents(eventUrl = 'https://www.villajoyosa.com/e
                     }
                     // Extract time
                     const timeElement = element.querySelector('.time, .hora, [class*="time"], [class*="hora"]');
-                    let timeText = ((_c = timeElement === null || timeElement === void 0 ? void 0 : timeElement.textContent) === null || _c === void 0 ? void 0 : _c.trim()) || '';
+                    let timeText = timeElement?.textContent?.trim() || '';
                     // Look for time patterns if no specific time element
                     if (!timeText) {
                         const textContent = element.textContent || '';
@@ -85,17 +84,17 @@ async function scrapeVillaJoyosaEvents(eventUrl = 'https://www.villajoyosa.com/e
                     }
                     // Extract location
                     const locationElement = element.querySelector('.location, .ubicacion, [class*="location"], [class*="ubicacion"]');
-                    const location = ((_d = locationElement === null || locationElement === void 0 ? void 0 : locationElement.textContent) === null || _d === void 0 ? void 0 : _d.trim()) || '';
+                    const location = locationElement?.textContent?.trim() || '';
                     // Extract description
                     const descElement = element.querySelector('.description, .descripcion, .excerpt, p');
-                    let description = ((_e = descElement === null || descElement === void 0 ? void 0 : descElement.textContent) === null || _e === void 0 ? void 0 : _e.trim()) || '';
+                    let description = descElement?.textContent?.trim() || '';
                     // Limit description length
                     if (description.length > 200) {
                         description = description.substring(0, 200) + '...';
                     }
                     // Extract URL
                     const linkElement = element.querySelector('a[href]');
-                    const url = (linkElement === null || linkElement === void 0 ? void 0 : linkElement.href) || '';
+                    const url = linkElement?.href || '';
                     // Only add if we have at least title and some additional info
                     if (title && (dateText || timeText || location || description)) {
                         extractedEvents.push({

@@ -97,7 +97,10 @@ class EventsAIService {
                 .orderBy('date', 'asc')
                 .limit(limit * 2); // Obtenemos más para filtrar después
             const snapshot = await firestoreQuery.get();
-            let events = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+            let events = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
             // Filtrado inteligente por palabras clave
             if (filters.keywords.length > 0) {
                 events = this.filterEventsByKeywords(events, filters.keywords);
@@ -313,7 +316,7 @@ Aquí tienes todos los detalles de los eventos disponibles. La información est�
                 day: 'numeric'
             });
         }
-        catch (_a) {
+        catch {
             return dateStr;
         }
     }

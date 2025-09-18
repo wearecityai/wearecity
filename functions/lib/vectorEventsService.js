@@ -12,17 +12,16 @@ class VectorEventsService {
      * Encontrar el ID real de la ciudad
      */
     async findRealCityId(citySlug, cityName) {
-        var _a, _b, _c, _d, _e;
         try {
             const citiesSnapshot = await this.db.collection('cities').get();
             for (const cityDoc of citiesSnapshot.docs) {
                 const cityData = cityDoc.data();
                 const cityId = cityDoc.id;
-                const nameMatch = ((_a = cityData.name) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(cityName.toLowerCase())) ||
-                    cityName.toLowerCase().includes(((_b = cityData.name) === null || _b === void 0 ? void 0 : _b.toLowerCase()) || '');
-                const slugMatch = ((_c = cityData.slug) === null || _c === void 0 ? void 0 : _c.toLowerCase()) === citySlug.toLowerCase() ||
-                    ((_d = cityData.slug) === null || _d === void 0 ? void 0 : _d.toLowerCase().includes(citySlug.toLowerCase())) ||
-                    citySlug.toLowerCase().includes(((_e = cityData.slug) === null || _e === void 0 ? void 0 : _e.toLowerCase()) || '');
+                const nameMatch = cityData.name?.toLowerCase().includes(cityName.toLowerCase()) ||
+                    cityName.toLowerCase().includes(cityData.name?.toLowerCase() || '');
+                const slugMatch = cityData.slug?.toLowerCase() === citySlug.toLowerCase() ||
+                    cityData.slug?.toLowerCase().includes(citySlug.toLowerCase()) ||
+                    citySlug.toLowerCase().includes(cityData.slug?.toLowerCase() || '');
                 if (nameMatch || slugMatch) {
                     console.log(`✅ Vector Events: Found real city: ${cityData.name} (${cityId})`);
                     return cityId;
@@ -130,11 +129,13 @@ class VectorEventsService {
                     searchMethod: 'fallback'
                 };
             }
-            let events = eventsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+            let events = eventsSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
             console.log(`📊 Retrieved ${events.length} events for enhanced search`);
             // Filtrado inteligente por relevancia
             const scoredEvents = events.map(event => {
-                var _a, _b;
                 let score = 0;
                 const queryLower = query.toLowerCase();
                 const searchableText = `${event.title} ${event.description} ${event.category}`.toLowerCase();
@@ -142,10 +143,10 @@ class VectorEventsService {
                 if (event.title.toLowerCase().includes(queryLower))
                     score += 10;
                 // Puntuación por coincidencias en descripción
-                if ((_a = event.description) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(queryLower))
+                if (event.description?.toLowerCase().includes(queryLower))
                     score += 5;
                 // Puntuación por categoría
-                if ((_b = event.category) === null || _b === void 0 ? void 0 : _b.toLowerCase().includes(queryLower))
+                if (event.category?.toLowerCase().includes(queryLower))
                     score += 8;
                 // Palabras clave específicas
                 const keywords = queryLower.split(' ').filter(word => word.length > 2);
@@ -160,7 +161,7 @@ class VectorEventsService {
                     score += 2; // Eventos esta semana
                 if (daysFromNow <= 3)
                     score += 1; // Eventos próximos
-                return Object.assign(Object.assign({}, event), { relevanceScore: score });
+                return { ...event, relevanceScore: score };
             });
             // Ordenar por relevancia y tomar los mejores
             const relevantEvents = scoredEvents
