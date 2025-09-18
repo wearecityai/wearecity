@@ -36,6 +36,10 @@ const cors = require('cors')({ origin: true });
  * Procesa todas las ciudades activas y extrae eventos
  */
 exports.dailyEventsScrapingScheduled = functions
+    .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB'
+})
     .pubsub
     .schedule('0 6 * * *') // Todos los días a las 6:00 AM
     .timeZone('Europe/Madrid')
@@ -57,6 +61,10 @@ exports.dailyEventsScrapingScheduled = functions
  * Permite ejecutar el scraping manualmente desde el admin
  */
 exports.dailyEventsScrapingManual = functions
+    .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB'
+})
     .https
     .onCall(async (data, context) => {
     console.log('🔧 Starting manual events scraping...');
@@ -97,6 +105,10 @@ exports.dailyEventsScrapingManual = functions
  * Cloud Function HTTP para webhook o triggers externos
  */
 exports.dailyEventsScrapingWebhook = functions
+    .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB'
+})
     .https
     .onRequest((req, res) => {
     return cors(req, res, async () => {

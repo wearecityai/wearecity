@@ -84,9 +84,11 @@ export class EventsAIService {
       // Detectar filtros en la consulta
       const filters = this.extractFilters(query);
       
-      // Construir query base
-      let firestoreQuery = this.db.collection('events')
-        .where('citySlug', '==', citySlug)
+      // 🔧 CORREGIR: Usar la estructura correcta cities/{citySlug}/events
+      let firestoreQuery = this.db
+        .collection('cities')
+        .doc(citySlug)
+        .collection('events')
         .where('isActive', '==', true)
         .where('date', '>=', filters.startDate || today);
 

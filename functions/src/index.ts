@@ -11,6 +11,25 @@ import { processDocument, processManualText } from './documentProcessor';
 import { generateEmbeddings, generateBatchEmbeddings, regenerateEmbeddings } from './embeddingGenerator';
 import { vectorSearch, hybridSearch } from './vectorSearch';
 import { ragQuery, getRAGConversations, getRAGStats } from './ragRetrieval';
+
+// Importar generación de embeddings para eventos
+import { generateEventEmbeddingsFunction } from './generateEventEmbeddings';
+
+// Importar migración de eventos a RAG
+import { migrateEventsToRAGFunction } from './eventsToRAG';
+
+// Importar agente de escrapeo inteligente
+import { 
+  intelligentScraping, 
+  intelligentScrapingAllCities, 
+  cleanupBeforeIntelligentScraping,
+  cleanupRAGForCity,
+  getAgentStats,
+  scheduleAgentScraping
+} from './intelligentScrapingFunction';
+
+// Importar scraping de eventos directo a RAG
+import { scrapeEventsToRAGFunction } from './eventsScrapingToRAG';
 // import { clearRAGData, clearCityRAGDataFunction } from './clearRAGData'; // Temporarily disabled
 
 // Importar servicio de Google Search seguro
@@ -26,6 +45,9 @@ import { ValidationService, ValidationError } from './validation';
 import { secretManager, getGoogleSearchApiKey } from './secretManager';
 import { auditLogger, AuditEventType } from './auditLogger';
 import { securityMonitor } from './securityMonitor';
+
+// Importar Vertex AI Agent Engine
+import { processAIWithAgentEngine, testAgentEngine } from './vertexAIAgentEngine';
 
 // Inicializar Firebase Admin
 admin.initializeApp();
@@ -366,12 +388,17 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
               });
               
               if (isEventQuery) {
-                console.log('🎪 Event query detected - using Events Firestore system');
-                result = await tryEventsFirestoreFirst(query, citySlug, cityContext);
+                console.log('🎪 Event query detected - using RAG Events system');
+                result = await tryRAGEventsFirst(query, citySlug, cityContext);
                 
                 if (!result) {
-                  console.log('🔄 Events system failed, falling back to original router');
-                  result = await processUserQuery(query, cityContext, conversationHistory, rawData.cityConfig);
+                  console.log('🔄 RAG Events failed, trying traditional Events system');
+                  result = await tryEventsFirestoreFirst(query, citySlug, cityContext);
+                  
+                  if (!result) {
+                    console.log('🔄 All events systems failed, falling back to original router');
+                    result = await processUserQuery(query, cityContext, conversationHistory, rawData.cityConfig);
+                  }
                 }
               } else {
                 // 🎯 PASO 1: Intentar RAG primero para consultas no relacionadas con eventos
@@ -397,36 +424,25 @@ export const processAIChat = functions.https.onRequest(async (req, res) => {
           success: true,
           data: result
         });
-
-          } catch (validationError) {
-            if (validationError instanceof ValidationError) {
-              console.warn('Validation error in processAIChat:', validationError.message);
-              return res.status(400).json({
-                error: 'Validation error',
-                message: validationError.message,
-                field: validationError.field
-              });
-            }
-            throw validationError; // Re-throw if not validation error
-          }
-
-        } catch (authError) {
-          console.error('Authentication error:', authError);
-          return res.status(401).json({
-            error: 'Invalid authentication token',
-            message: 'The provided token is invalid or expired'
-          });
-        }
-
       } catch (error) {
         console.error('Error in processAIChat:', error);
+        
+        if (error instanceof ValidationError) {
+          console.warn('Validation error in processAIChat:', error.message);
+          return res.status(400).json({
+            error: 'Validation error',
+            message: error.message,
+            field: error.field
+          });
+        }
+        
         return res.status(500).json({
           error: 'Internal server error',
           message: error instanceof Error ? error.message : 'Unknown error'
         });
       }
     });
-  });
+});
 
 // Query complexity classification endpoint
 export const classifyQuery = functions
@@ -1172,6 +1188,107 @@ INSTRUCCIONES:
   }
 }
 
+// Función de integración Vector Events
+async function tryRAGEventsFirst(query: string, citySlug: string, cityContext: any): Promise<any | null> {
+  try {
+    console.log('🚀 RAG Events: Starting RAG search for query:', query.substring(0, 50) + '...');
+    
+    // Buscar eventos en el sistema RAG
+    const { ragQuery: ragQueryFunction } = await import('./ragRetrieval');
+    
+    // Crear query específica para eventos de la ciudad
+    const eventQuery = `eventos ${query} en ${cityContext}`;
+    
+    // Llamar al sistema RAG con filtros para eventos de la ciudad específica
+    const ragResult = await ragQueryFunction(
+      {
+        query: eventQuery,
+        userId: `city-${citySlug}`, // Filtrar por ciudad
+        limit: 10,
+        filters: {
+          sourceType: 'event',
+          cityId: citySlug
+        }
+      },
+      { auth: { uid: 'system' } }
+    );
+    
+    console.log(`📊 RAG Events: Found ${ragResult.relevantChunks?.length || 0} relevant chunks`);
+    
+    if (!ragResult.answer || ragResult.relevantChunks?.length === 0) {
+      console.log('❌ RAG Events: No relevant events found');
+      return null;
+    }
+    
+    // Extraer eventos de los chunks RAG
+    const events = extractEventsFromRAGChunks(ragResult.relevantChunks);
+    
+    console.log(`✅ RAG Events: Extracted ${events.length} events`);
+    
+    return {
+      response: ragResult.answer,
+      events: events,
+      places: [],
+      modelUsed: 'gemini-2.5-flash',
+      searchPerformed: false,
+      eventsFromFirestore: true,
+      eventsCount: events.length,
+      searchMethod: 'rag',
+      ragSearch: true,
+      ragChunks: ragResult.relevantChunks?.length || 0
+    };
+    
+  } catch (error) {
+    console.error('❌ RAG Events: Error in tryRAGEventsFirst:', error);
+    console.error('❌ RAG Error type:', error.constructor.name);
+    console.error('❌ RAG Error message:', error.message);
+    
+    // En caso de error, retornar null para que use el sistema tradicional
+    return null;
+  }
+}
+
+/**
+ * Extraer eventos de chunks RAG
+ */
+function extractEventsFromRAGChunks(chunks: any[]): any[] {
+  const events: any[] = [];
+  
+  if (!chunks || chunks.length === 0) {
+    return events;
+  }
+  
+  for (const chunk of chunks) {
+    try {
+      const metadata = chunk.metadata;
+      
+      // Verificar que es un evento
+      if (metadata?.contentType === 'event' && metadata?.eventId) {
+        const eventCard = {
+          title: metadata.eventTitle,
+          date: metadata.eventDate,
+          location: metadata.eventLocation,
+          category: metadata.eventCategory,
+          description: chunk.content.split('\n\n')[2] || chunk.content, // Extraer descripción
+          url: `https://wearecity.com/${metadata.cityId}/eventos/${metadata.eventId}`,
+          city: metadata.cityName
+        };
+        
+        events.push(eventCard);
+      }
+    } catch (error) {
+      console.error('Error extracting event from chunk:', error);
+    }
+  }
+  
+  // Eliminar duplicados por eventId
+  const uniqueEvents = events.filter((event, index, self) => 
+    index === self.findIndex((e) => e.title === event.title && e.date === event.date)
+  );
+  
+  return uniqueEvents.slice(0, 10); // Limitar a 10 eventos
+}
+
 // Función de integración Events Firestore
 async function tryEventsFirestoreFirst(query: string, citySlug: string, cityContext: any): Promise<any | null> {
   try {
@@ -1189,9 +1306,12 @@ async function tryEventsFirestoreFirst(query: string, citySlug: string, cityCont
       15 // límite de eventos
     );
     
+    // ✅ SIEMPRE retornar respuesta de eventos, incluso si no hay eventos
+    // Esto evita el fallback a Google Search
+    console.log(`✅ Events Firestore NEW: Found ${eventsResult.totalEvents} events`);
+    
     if (eventsResult.totalEvents === 0) {
-      console.log('❌ Events Firestore NEW: No events found');
-      return null;
+      console.log('📝 Events Firestore NEW: No events found, but returning Firebase response');
     }
     
     console.log(`✅ Events Firestore NEW: Found ${eventsResult.totalEvents} events with EventCards format`);
@@ -1263,6 +1383,29 @@ async function tryEventsFirestoreFirst(query: string, citySlug: string, cityCont
 
 // ===== SISTEMA DE EVENTOS =====
 
+// ===== EVENT EMBEDDINGS GENERATION =====
+
+// Generate embeddings for events to enable vector search
+export const generateEventEmbeddings = functions.https.onRequest(async (req, res) => {
+  return corsHandler(req, res, async () => {
+    return generateEventEmbeddingsFunction(req, res);
+  });
+});
+
+// Migrate events to RAG system with vector embeddings
+export const migrateEventsToRAG = functions.https.onRequest(async (req, res) => {
+  return corsHandler(req, res, async () => {
+    return migrateEventsToRAGFunction(req, res);
+  });
+});
+
+// Scrape events and save directly to RAG with embeddings
+export const scrapeEventsToRAG = functions.https.onRequest(async (req, res) => {
+  return corsHandler(req, res, async () => {
+    return scrapeEventsToRAGFunction(req, res);
+  });
+});
+
 // NUEVO: Sistema de scraping diario automático con estructura cities/{cityId}/events
 // Temporalmente comentado para resolver errores de sintaxis
 /*
@@ -1283,3 +1426,26 @@ export {
   cleanupOldEvents
 } from './eventsCloudFunctions';
 */
+
+// NUEVO: Agente de escrapeo inteligente con IA
+export {
+  intelligentScraping,
+  intelligentScrapingAllCities,
+  cleanupBeforeIntelligentScraping,
+  cleanupRAGForCity,
+  getAgentStats,
+  scheduleAgentScraping
+};
+
+// NUEVO: Agente de IA inteligente mejorado
+export {
+  newIntelligentScraping,
+  getNewAgentStats,
+  cleanupNewAgent
+} from './newIntelligentScraping';
+
+// NUEVO: Vertex AI Agent Engine
+export {
+  processAIWithAgentEngine,
+  testAgentEngine
+} from './vertexAIAgentEngine';

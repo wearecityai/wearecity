@@ -89,13 +89,50 @@ class DailyEventsScrapingService {
         }
     }
     /**
+     * Encontrar el ID real de la ciudad por slug o nombre
+     */
+    async findRealCityId(targetSlug, targetName) {
+        var _a, _b, _c, _d, _e;
+        try {
+            console.log(`🔍 Looking for real city ID for: ${targetName} (slug: ${targetSlug})`);
+            const citiesSnapshot = await this.db.collection('cities').get();
+            for (const cityDoc of citiesSnapshot.docs) {
+                const cityData = cityDoc.data();
+                const cityId = cityDoc.id;
+                // Buscar por múltiples criterios
+                const nameMatch = ((_a = cityData.name) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(targetName.toLowerCase())) ||
+                    targetName.toLowerCase().includes(((_b = cityData.name) === null || _b === void 0 ? void 0 : _b.toLowerCase()) || '');
+                const slugMatch = ((_c = cityData.slug) === null || _c === void 0 ? void 0 : _c.toLowerCase()) === targetSlug.toLowerCase() ||
+                    ((_d = cityData.slug) === null || _d === void 0 ? void 0 : _d.toLowerCase().includes(targetSlug.toLowerCase())) ||
+                    targetSlug.toLowerCase().includes(((_e = cityData.slug) === null || _e === void 0 ? void 0 : _e.toLowerCase()) || '');
+                if (nameMatch || slugMatch) {
+                    console.log(`✅ Found real city: ${cityData.name} with ID: ${cityId}`);
+                    return cityId;
+                }
+            }
+            console.log(`❌ No real city found for ${targetName} (${targetSlug})`);
+            return null;
+        }
+        catch (error) {
+            console.error('❌ Error finding real city ID:', error);
+            return null;
+        }
+    }
+    /**
      * Procesar eventos de una ciudad específica
      */
     async processCityEvents(cityConfig) {
         console.log(`🏙️ Processing events for ${cityConfig.name}...`);
+        // 🔧 NUEVO: Encontrar el ID real de la ciudad
+        const realCityId = await this.findRealCityId(cityConfig.slug, cityConfig.name);
+        if (!realCityId) {
+            throw new Error(`Cannot find real city ID for ${cityConfig.name} (${cityConfig.slug})`);
+        }
+        console.log(`✅ Using real city ID: ${realCityId} instead of slug: ${cityConfig.slug}`);
         const results = {
             citySlug: cityConfig.slug,
             cityName: cityConfig.name,
+            realCityId: realCityId,
             eventsExtracted: 0,
             eventsSaved: 0,
             eventsUpdated: 0
@@ -132,8 +169,8 @@ class DailyEventsScrapingService {
                 const processedEvents = await this.processEventsWithAI(allEvents, cityConfig);
                 // Filtrar solo eventos futuros
                 const futureEvents = this.filterFutureEvents(processedEvents);
-                // Guardar en Firestore usando la nueva estructura
-                const saveResults = await this.saveEventsToCity(futureEvents, cityConfig.slug);
+                // 🔧 NUEVO: Guardar usando el ID real de la ciudad
+                const saveResults = await this.saveEventsToCity(futureEvents, realCityId);
                 results.eventsSaved = saveResults.saved;
                 results.eventsUpdated = saveResults.updated;
             }
@@ -169,51 +206,36 @@ class DailyEventsScrapingService {
         }
     }
     /**
-     * Scraper específico para MEC (Modern Events Calendar)
+     * Scraper específico para MEC (Modern Events Calendar) - CORREGIDO
      */
     async scrapeMECEvents(page) {
         return await page.evaluate(() => {
             const events = [];
-            // Buscar dividers de mes/año
-            const monthDividers = document.querySelectorAll('.mec-month-divider h5');
-            const monthData = [];
-            monthDividers.forEach(divider => {
-                if (divider.textContent) {
-                    const monthText = divider.textContent.trim();
-                    const monthMatch = monthText.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\\s+(\\d{4})/);
-                    if (monthMatch) {
-                        monthData.push({
-                            month: monthMatch[1],
-                            year: monthMatch[2]
-                        });
-                    }
-                }
-            });
-            // Mapeo de meses y abreviaciones
-            const monthMap = {
-                'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
-                'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
-                'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12'
-            };
+            console.log('🏛️ Scraping MEC events (Villa Joyosa)...');
+            // Mapeo de meses en español - CORREGIDO
             const abbrevMap = {
                 'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04',
                 'may': '05', 'jun': '06', 'jul': '07', 'ago': '08',
                 'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
             };
-            // Buscar eventos MEC
+            // Buscar eventos MEC - ESTOS SELECTORES SÍ FUNCIONAN
             const mecEvents = document.querySelectorAll('.mec-event-article');
             console.log(`🔍 Found ${mecEvents.length} MEC events`);
             mecEvents.forEach((eventEl, index) => {
                 var _a, _b, _c;
                 try {
-                    // Extraer título
+                    // Extraer título - FUNCIONA
                     const titleEl = eventEl.querySelector('.mec-event-title a');
                     const title = ((_a = titleEl === null || titleEl === void 0 ? void 0 : titleEl.textContent) === null || _a === void 0 ? void 0 : _a.trim()) || '';
-                    // Extraer fecha
+                    if (!title || title.length < 3) {
+                        console.log(`⏭️ Skipping MEC event ${index}: no valid title`);
+                        return;
+                    }
+                    // Extraer fecha - AQUÍ ESTABA EL PROBLEMA
                     const dateEl = eventEl.querySelector('.mec-start-date-label');
                     let dateStr = '';
                     if (dateEl === null || dateEl === void 0 ? void 0 : dateEl.textContent) {
-                        const dayText = dateEl.textContent.trim();
+                        const dayText = dateEl.textContent.trim(); // Ej: "18 Sep"
                         console.log(`🔍 Found date text: "${dayText}"`);
                         const dayMatch = dayText.match(/(\\d{1,2})\\s+(\\w+)/);
                         if (dayMatch) {
@@ -225,29 +247,32 @@ class DailyEventsScrapingService {
                                 console.log(`❌ Unknown month abbreviation: "${monthAbbr}"`);
                                 return; // Saltar evento si no conocemos el mes
                             }
-                            const year = '2025';
+                            const year = '2025'; // Año actual
                             dateStr = `${year}-${month}-${day}`;
                             console.log(`✅ Extracted date: ${dateStr} from "${dayText}"`);
-                        } else {
+                        }
+                        else {
                             console.log(`❌ Could not parse date: "${dayText}"`);
                             return; // Saltar evento si no se puede parsear la fecha
                         }
-                    } else {
-                        console.log(`❌ No date element found`);
+                    }
+                    else {
+                        console.log(`❌ No date element found for event ${index}`);
                         return; // Saltar evento sin fecha
                     }
-                    // Extraer ubicación
+                    // Extraer ubicación - FUNCIONA
                     const locationEl = eventEl.querySelector('.mec-event-address span');
                     const location = ((_b = locationEl === null || locationEl === void 0 ? void 0 : locationEl.textContent) === null || _b === void 0 ? void 0 : _b.trim()) || '';
-                    // Extraer descripción
+                    // Extraer descripción - FUNCIONA
                     const descEl = eventEl.querySelector('.mec-event-description');
                     let description = ((_c = descEl === null || descEl === void 0 ? void 0 : descEl.textContent) === null || _c === void 0 ? void 0 : _c.trim()) || '';
                     if (description.length > 300) {
                         description = description.substring(0, 300) + '...';
                     }
-                    // Extraer URL
+                    // Extraer URL - FUNCIONA
                     const linkEl = eventEl.querySelector('.mec-event-title a');
                     const url = (linkEl === null || linkEl === void 0 ? void 0 : linkEl.href) || '';
+                    // Solo añadir eventos con título y fecha válidos
                     if (title && dateStr) {
                         events.push({
                             title,
@@ -256,12 +281,14 @@ class DailyEventsScrapingService {
                             description: description || undefined,
                             url: url || undefined
                         });
+                        console.log(`✅ Added MEC event: ${title} - ${dateStr}`);
                     }
                 }
                 catch (error) {
-                    console.error('Error processing MEC event:', error);
+                    console.error(`❌ Error processing MEC event ${index}:`, error);
                 }
             });
+            console.log(`🎪 Total MEC events extracted: ${events.length}`);
             return events;
         });
     }
@@ -330,8 +357,8 @@ class DailyEventsScrapingService {
             const category = this.classifyEventCategory(event.title, event.description);
             // Generar tags
             const tags = this.generateEventTags(event.title, event.description, category, cityConfig.slug);
-            // Generar ID único
-            const eventId = `${cityConfig.slug}_${normalizedDate}_${event.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20)}`;
+            // 🔧 NUEVO: Usar un identificador más genérico para el eventId 
+            const eventId = `${normalizedDate}_${event.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20)}_${Date.now()}`;
             // Formatear fecha para EventCard (formato legible)
             const eventDate = new Date(normalizedDate);
             const formattedDate = eventDate.toLocaleDateString('es-ES', {
@@ -344,7 +371,7 @@ class DailyEventsScrapingService {
                 id: eventId,
                 title: event.title,
                 date: normalizedDate,
-                time: event.time,
+                time: event.time || null,
                 location: event.location || cityConfig.name,
                 description: event.description || `Evento en ${cityConfig.name}: ${event.title}`,
                 category,
@@ -359,14 +386,14 @@ class DailyEventsScrapingService {
                 eventCard: {
                     title: event.title,
                     date: formattedDate,
-                    time: event.time,
+                    time: event.time || null,
                     location: event.location || cityConfig.name,
                     description: event.description || `Evento en ${cityConfig.name}: ${event.title}`,
                     category: category,
                     url: event.url,
-                    imageUrl: undefined,
-                    price: this.extractPrice(event.description || event.title),
-                    organizer: this.extractOrganizer(event.description || event.title)
+                    imageUrl: null,
+                    price: null,
+                    organizer: null
                 },
                 createdAt: new Date(),
                 updatedAt: new Date(),
@@ -382,18 +409,21 @@ class DailyEventsScrapingService {
         return events.filter(event => event.date >= today);
     }
     /**
-     * Guardar eventos en la nueva estructura: cities/{cityId}/events
+     * Guardar eventos en la estructura correcta: cities/{REAL_CITY_ID}/events
+     * @param events - Eventos a guardar
+     * @param realCityId - ID REAL de la ciudad (no slug), ej: 'hD3P3gXX2ZpxOysxmwEZ'
      */
-    async saveEventsToCity(events, citySlug) {
+    async saveEventsToCity(events, realCityId) {
         let saved = 0;
         let updated = 0;
         const batch = this.db.batch();
         let batchOps = 0;
         for (const event of events) {
             try {
+                // 🔧 USAR EL ID REAL DE LA CIUDAD, NO EL SLUG
                 const eventRef = this.db
                     .collection('cities')
-                    .doc(citySlug)
+                    .doc(realCityId) // <-- ID real como 'hD3P3gXX2ZpxOysxmwEZ'
                     .collection('events')
                     .doc(event.id);
                 const existingEvent = await eventRef.get();

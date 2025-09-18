@@ -49,6 +49,7 @@ import { collection, getDocs, addDoc, doc, updateDoc, setDoc } from 'firebase/fi
 import { db, auth } from '@/integrations/firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { RAGService } from '@/services/ragService';
+import AgentsSection from '@/components/admin/AgentsSection';
 
 
 // Interfaces
@@ -1036,6 +1037,11 @@ export const SuperAdminDashboard: React.FC = () => {
                   <ChartAreaInteractive />
                 </div>
               </div>
+            )}
+
+            {/* Agents Tab */}
+            {activeTab === 'agents' && (
+              <AgentsSection />
             )}
 
             {/* Settings Tab */}

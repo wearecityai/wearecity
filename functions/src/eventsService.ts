@@ -306,7 +306,12 @@ ${JSON.stringify(rawEvents, null, 2)}`;
     const batch = this.db.batch();
     
     for (const event of events) {
-      const eventRef = this.db.collection('events').doc(event.id);
+      // 🔧 CORREGIR: Usar la estructura correcta cities/{citySlug}/events
+      const eventRef = this.db
+        .collection('cities')
+        .doc(citySlug)
+        .collection('events')
+        .doc(event.id);
       const existingEvent = await eventRef.get();
       
       if (existingEvent.exists) {
@@ -340,8 +345,11 @@ ${JSON.stringify(rawEvents, null, 2)}`;
     category?: string
   ): Promise<ProcessedEvent[]> {
     try {
-      let query = this.db.collection('events')
-        .where('citySlug', '==', citySlug)
+      // 🔧 CORREGIR: Usar la estructura correcta cities/{citySlug}/events
+      let query = this.db
+        .collection('cities')
+        .doc(citySlug)
+        .collection('events')
         .where('isActive', '==', true)
         .where('date', '>=', startDate || new Date().toISOString().split('T')[0])
         .orderBy('date', 'asc')
@@ -373,8 +381,11 @@ ${JSON.stringify(rawEvents, null, 2)}`;
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-      const expiredEventsSnapshot = await this.db.collection('events')
-        .where('citySlug', '==', citySlug)
+      // 🔧 CORREGIR: Usar la estructura correcta cities/{citySlug}/events
+      const expiredEventsSnapshot = await this.db
+        .collection('cities')
+        .doc(citySlug)
+        .collection('events')
         .where('date', '<', yesterdayStr)
         .get();
 

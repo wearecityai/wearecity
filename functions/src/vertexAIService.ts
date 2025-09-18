@@ -432,7 +432,7 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
     }
 
     // Check if this is an event query and try Puppeteer scraping
-    const isEventQuery = /eventos?|actividades|agenda|cultural|teatro|cine|concierto|festival/i.test(query);
+    // isEventQuery already declared above
     let scrapedEventsContent = '';
     
     if (isEventQuery && agendaEventosUrls.length > 0) {

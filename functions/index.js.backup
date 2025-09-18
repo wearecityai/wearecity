@@ -1,0 +1,7 @@
+const intelligentScraping = require('./lib/intelligentScraping');
+
+// Export intelligent scraping functions
+exports.intelligentScraping = intelligentScraping.intelligentScraping;
+exports.getAgentStats = intelligentScraping.getAgentStats;
+exports.cleanupRAGForCity = intelligentScraping.cleanupRAGForCity;
+exports.scheduleAgentScraping = intelligentScraping.scheduleAgentScraping;

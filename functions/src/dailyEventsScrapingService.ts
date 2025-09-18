@@ -452,7 +452,7 @@ export class DailyEventsScrapingService {
         id: eventId,
         title: event.title,
         date: normalizedDate,
-        time: event.time,
+        time: event.time || null, // Usar null en lugar de undefined
         location: event.location || cityConfig.name,
         description: event.description || `Evento en ${cityConfig.name}: ${event.title}`,
         category,
@@ -467,14 +467,14 @@ export class DailyEventsScrapingService {
         eventCard: {
           title: event.title,
           date: formattedDate,
-          time: event.time,
+          time: event.time || null, // Usar null en lugar de undefined
           location: event.location || cityConfig.name,
           description: event.description || `Evento en ${cityConfig.name}: ${event.title}`,
           category: category,
           url: event.url,
-          imageUrl: undefined, // Se puede extraer después si está disponible
-          price: this.extractPrice(event.description || event.title),
-          organizer: this.extractOrganizer(event.description || event.title)
+          imageUrl: null, // Se puede extraer después si está disponible
+          price: null,
+          organizer: null
         },
         createdAt: new Date(),
         updatedAt: new Date(),

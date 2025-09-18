@@ -8,6 +8,7 @@ import {
   Settings,
   User,
   Crown,
+  Bot,
 } from "lucide-react"
 
 import {
@@ -52,6 +53,12 @@ const superAdminNavItems = [
     title: 'Mensajes y Actividad',
     icon: MessageSquare,
     description: 'Estadísticas de mensajes y uso'
+  },
+  {
+    id: 'agents',
+    title: 'Agentes Inteligentes',
+    icon: Bot,
+    description: 'Control de agentes de scraping y RAG'
   },
   {
     id: 'settings',

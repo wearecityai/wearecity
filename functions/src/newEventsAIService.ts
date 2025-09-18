@@ -301,13 +301,26 @@ export class NewEventsAIService {
     }
 
     // Extraer palabras clave (eliminar palabras vacías comunes)
-    const stopWords = ['qué', 'que', 'hay', 'eventos', 'en', 'la', 'el', 'de', 'para', 'con', 'un', 'una', 'me', 'recomiendas', 'recomiendan', 'hacer', 'ver'];
+    const stopWords = ['qué', 'que', 'hay', 'eventos', 'en', 'la', 'el', 'de', 'para', 'con', 'un', 'una', 'me', 'recomiendas', 'recomiendan', 'hacer', 'ver', 'esta', 'este', 'hoy', 'mañana', 'semana', 'mes', 'fin', 'día', 'días'];
     const words = queryLower.split(/\s+/)
       .filter(word => word.length > 2 && !stopWords.includes(word))
       .filter(word => !Object.keys(categoryMap).includes(word)); // Excluir palabras de categoría
 
-    if (words.length > 0) {
+    // 🔧 MEJORADO: Si ya hay categoría detectada, no usar keywords de categoría para evitar filtrado excesivo
+    if (words.length > 0 && !filters.category) {
       filters.keywords = words;
+    } else if (words.length > 0 && filters.category) {
+      // Solo usar keywords que NO sean relacionadas con la categoría ya detectada
+      const nonCategoryWords = words.filter(word => {
+        const isCategoryRelated = Object.keys(categoryMap).some(categoryWord => 
+          word.includes(categoryWord) || categoryWord.includes(word)
+        );
+        return !isCategoryRelated;
+      });
+      
+      if (nonCategoryWords.length > 0) {
+        filters.keywords = nonCategoryWords;
+      }
     }
 
     return filters;

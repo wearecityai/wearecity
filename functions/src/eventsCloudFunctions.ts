@@ -203,15 +203,22 @@ export const getEventsStats = functions
         upcomingEventsSnapshot,
         lastProcessingLogSnapshot
       ] = await Promise.all([
-        admin.firestore().collection('events')
-          .where('citySlug', '==', citySlug)
+        // 🔧 CORREGIR: Usar la estructura correcta cities/{citySlug}/events
+        admin.firestore()
+          .collection('cities')
+          .doc(citySlug)
+          .collection('events')
           .get(),
-        admin.firestore().collection('events')
-          .where('citySlug', '==', citySlug)
+        admin.firestore()
+          .collection('cities')
+          .doc(citySlug)
+          .collection('events')
           .where('isActive', '==', true)
           .get(),
-        admin.firestore().collection('events')
-          .where('citySlug', '==', citySlug)
+        admin.firestore()
+          .collection('cities')
+          .doc(citySlug)
+          .collection('events')
           .where('isActive', '==', true)
           .where('date', '>=', today)
           .get(),
@@ -271,7 +278,10 @@ export const cleanupOldEvents = functions
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const cutoffDate = thirtyDaysAgo.toISOString().split('T')[0];
 
-      const oldEventsSnapshot = await admin.firestore().collection('events')
+      // 🔧 NOTA: Para cleanup global, necesitamos usar collectionGroup
+      // Ya que los eventos están distribuidos en cities/{cityId}/events
+      const oldEventsSnapshot = await admin.firestore()
+        .collectionGroup('events')
         .where('date', '<', cutoffDate)
         .get();
 

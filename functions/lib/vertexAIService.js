@@ -1,9 +1,33 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processMultimodalQuery = exports.processUserQuery = exports.processSimpleQuery = exports.processInstitutionalQuery = exports.classifyQueryComplexity = void 0;
 const genai_1 = require("@google/genai");
 const placesService_1 = require("./placesService");
 const eventScraper_1 = require("./eventScraper");
+const admin = __importStar(require("firebase-admin"));
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'wearecity-2ab89';
 console.log('🔑 Google AI Config:', { PROJECT_ID });
 // Initialize Google AI
@@ -48,7 +72,12 @@ const classifyQueryComplexity = (query) => {
         // 🎯 HORARIOS Y TRANSPORTE (SIEMPRE 2.5 Flash + grounding)
         'horario', 'horarios', 'abierto', 'cerrado', 'funcionamiento',
         'transporte', 'autobus', 'autobuses', 'tren', 'metro', 'taxi',
-        'itinerario', 'itinerarios', 'ruta', 'rutas', 'linea', 'lineas'
+        'itinerario', 'itinerarios', 'ruta', 'rutas', 'linea', 'lineas',
+        // 🎯 EVENTOS Y ACTIVIDADES (SIEMPRE 2.5 Flash + grounding)
+        'evento', 'eventos', 'actividad', 'actividades', 'agenda', 'programacion',
+        'concierto', 'conciertos', 'festival', 'festivales', 'espectaculo', 'espectaculos',
+        'teatro', 'cine', 'exposicion', 'exposiciones', 'cultural', 'culturales',
+        'fiesta', 'fiestas', 'celebracion', 'celebraciones'
     ];
     const queryNormalized = query.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
     // 🎯 NUEVA LÓGICA: Flash Lite SOLO para casos muy específicos
@@ -118,6 +147,35 @@ const processInstitutionalQuery = async (query, cityContext, conversationHistory
         let config = {
             tools: [groundingTool],
         };
+        // 🎯 PRIORIDAD 1: Intentar eventos de Firestore PRIMERO (más rápido)
+        const isEventQuery = /eventos?|actividades|agenda|cultural|teatro|cine|concierto|festival/i.test(query);
+        if (isEventQuery) {
+            console.log('🎪 Event query detected - trying Firestore first...');
+            try {
+                const { NewEventsAIService } = await Promise.resolve().then(() => __importStar(require('./newEventsAIService')));
+                const eventsAIService = new NewEventsAIService(admin.firestore());
+                const eventsResult = await eventsAIService.processEventsQuery(query, citySlug, cityContext || 'la ciudad', 15);
+                if (eventsResult.totalEvents > 0) {
+                    console.log(`✅ Firestore Events: Found ${eventsResult.totalEvents} events - skipping Google Search`);
+                    // Devolver directamente los resultados de Firestore (sin Google Search)
+                    return {
+                        response: eventsResult.text,
+                        modelUsed: 'gemini-2.5-flash',
+                        complexity: 'institutional',
+                        searchPerformed: false,
+                        events: eventsResult.events,
+                        eventsFromFirestore: true,
+                        eventsCount: eventsResult.totalEvents
+                    };
+                }
+                else {
+                    console.log('⚠️ No events found in Firestore, proceeding with Google Search...');
+                }
+            }
+            catch (firestoreError) {
+                console.log('❌ Firestore events failed, proceeding with Google Search:', firestoreError.message);
+            }
+        }
         const model = ai.models.generateContent;
         // Get current date and time for context
         const now = new Date();
@@ -367,7 +425,7 @@ IMPORTANTE: Solo incluye el JSON si hay eventos específicos. Si no hay eventos,
             });
         }
         // Check if this is an event query and try Puppeteer scraping
-        const isEventQuery = /eventos?|actividades|agenda|cultural|teatro|cine|concierto|festival/i.test(query);
+        // isEventQuery already declared above
         let scrapedEventsContent = '';
         if (isEventQuery && agendaEventosUrls.length > 0) {
             console.log('🎪 Event query detected, attempting Puppeteer scraping...');

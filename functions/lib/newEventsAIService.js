@@ -10,37 +10,115 @@ class NewEventsAIService {
         this.db = db;
     }
     /**
+     * Encontrar el ID real de la ciudad
+     */
+    async findRealCityId(citySlug, cityName) {
+        var _a, _b, _c, _d, _e;
+        try {
+            const citiesSnapshot = await this.db.collection('cities').get();
+            for (const cityDoc of citiesSnapshot.docs) {
+                const cityData = cityDoc.data();
+                const cityId = cityDoc.id;
+                // Buscar por múltiples criterios
+                const nameMatch = ((_a = cityData.name) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(cityName.toLowerCase())) ||
+                    cityName.toLowerCase().includes(((_b = cityData.name) === null || _b === void 0 ? void 0 : _b.toLowerCase()) || '');
+                const slugMatch = ((_c = cityData.slug) === null || _c === void 0 ? void 0 : _c.toLowerCase()) === citySlug.toLowerCase() ||
+                    ((_d = cityData.slug) === null || _d === void 0 ? void 0 : _d.toLowerCase().includes(citySlug.toLowerCase())) ||
+                    citySlug.toLowerCase().includes(((_e = cityData.slug) === null || _e === void 0 ? void 0 : _e.toLowerCase()) || '');
+                if (nameMatch || slugMatch) {
+                    console.log(`✅ Found real city for AI query: ${cityData.name} (${cityId})`);
+                    return cityId;
+                }
+            }
+            console.log(`❌ No real city found for AI query: ${cityName} (${citySlug})`);
+            return null;
+        }
+        catch (error) {
+            console.error('❌ Error finding real city ID for AI:', error);
+            return null;
+        }
+    }
+    /**
      * Procesar consulta de eventos usando la nueva estructura
      */
     async processEventsQuery(query, citySlug, cityName, limit = 15) {
         var _a, _b;
         try {
             console.log(`🎭 New Events AI: Processing query "${query}" for ${cityName}`);
+            // 🔧 NUEVO: Encontrar ID real de la ciudad
+            const realCityId = await this.findRealCityId(citySlug, cityName);
+            if (!realCityId) {
+                return {
+                    success: false,
+                    totalEvents: 0,
+                    events: [],
+                    text: `No se pudo encontrar la ciudad ${cityName} en la base de datos.`,
+                    filters: { keywords: [query] }
+                };
+            }
+            console.log(`✅ Using real city ID for AI query: ${realCityId}`);
             // 1. Extraer filtros de la consulta
             const filters = this.extractFilters(query);
             console.log('🔍 Extracted filters:', filters);
-            // 2. Construir consulta Firestore usando nueva estructura
-            let eventsQuery = this.db
+            // 2. Construir consulta Firestore MUY SIMPLE (sin filtros)
+            // Obtener todos los eventos y filtrar en memoria
+            const eventsQuery = this.db
                 .collection('cities')
-                .doc(citySlug)
-                .collection('events')
-                .where('isActive', '==', true)
-                .where('date', '>=', new Date().toISOString().split('T')[0])
-                .orderBy('date', 'asc')
-                .limit(limit);
-            // 3. Aplicar filtros
-            if (filters.category) {
-                eventsQuery = eventsQuery.where('category', '==', filters.category);
-            }
-            if ((_a = filters.dateRange) === null || _a === void 0 ? void 0 : _a.start) {
-                eventsQuery = eventsQuery.where('date', '>=', filters.dateRange.start);
-            }
-            if ((_b = filters.dateRange) === null || _b === void 0 ? void 0 : _b.end) {
-                eventsQuery = eventsQuery.where('date', '<=', filters.dateRange.end);
-            }
-            // 4. Ejecutar consulta
+                .doc(realCityId) // <-- Usar ID real
+                .collection('events');
+            // 3. Ejecutar consulta simple
+            console.log('🔍 Executing simple Firestore query (no filters)...');
             const eventsSnapshot = await eventsQuery.get();
             if (eventsSnapshot.empty) {
+                console.log('❌ No events collection found');
+                return {
+                    success: true,
+                    totalEvents: 0,
+                    events: [],
+                    text: `No he encontrado eventos en ${cityName}.`,
+                    filters
+                };
+            }
+            // 4. Procesar todos los eventos
+            let events = eventsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+            console.log(`📊 Retrieved ${events.length} total events, filtering in memory...`);
+            // 5. FILTRAR EN MEMORIA - Eventos activos
+            events = events.filter(event => event.isActive === true);
+            console.log(`✅ After isActive filter: ${events.length} events`);
+            // 6. FILTRAR EN MEMORIA - Eventos del mes actual (no solo futuros)
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = today.substring(0, 7); // '2025-09'
+            events = events.filter(event => event.date && event.date.startsWith(currentMonth));
+            console.log(`✅ After current month filter (${currentMonth}): ${events.length} events`);
+            // 7. FILTRAR EN MEMORIA - Rango de fechas
+            if ((_a = filters.dateRange) === null || _a === void 0 ? void 0 : _a.start) {
+                events = events.filter(event => event.date >= filters.dateRange.start);
+                console.log(`✅ After start date filter (>= ${filters.dateRange.start}): ${events.length} events`);
+            }
+            if ((_b = filters.dateRange) === null || _b === void 0 ? void 0 : _b.end) {
+                events = events.filter(event => event.date <= filters.dateRange.end);
+                console.log(`✅ After end date filter (<= ${filters.dateRange.end}): ${events.length} events`);
+            }
+            // 8. FILTRAR EN MEMORIA - Categoría
+            if (filters.category) {
+                events = events.filter(event => event.category === filters.category);
+                console.log(`✅ After category filter (${filters.category}): ${events.length} events`);
+            }
+            // 9. FILTRAR EN MEMORIA - Palabras clave
+            if (filters.keywords && filters.keywords.length > 0) {
+                events = events.filter(event => {
+                    var _a;
+                    const searchText = `${event.title} ${event.description} ${(_a = event.tags) === null || _a === void 0 ? void 0 : _a.join(' ')}`.toLowerCase();
+                    return filters.keywords.some(keyword => searchText.includes(keyword.toLowerCase()));
+                });
+                console.log(`✅ After keywords filter: ${events.length} events`);
+            }
+            // 10. ORDENAR por fecha
+            events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            // 11. LIMITAR resultados
+            events = events.slice(0, limit);
+            console.log(`✅ Final result: ${events.length} events after limit ${limit}`);
+            if (events.length === 0) {
                 return {
                     success: true,
                     totalEvents: 0,
@@ -48,16 +126,6 @@ class NewEventsAIService {
                     text: `No he encontrado eventos que coincidan con tu búsqueda en ${cityName}.`,
                     filters
                 };
-            }
-            // 5. Procesar eventos encontrados
-            let events = eventsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
-            // 6. Filtrar por palabras clave si es necesario (filtro en memoria)
-            if (filters.keywords && filters.keywords.length > 0) {
-                events = events.filter(event => {
-                    var _a;
-                    const searchText = `${event.title} ${event.description} ${(_a = event.tags) === null || _a === void 0 ? void 0 : _a.join(' ')}`.toLowerCase();
-                    return filters.keywords.some(keyword => searchText.includes(keyword.toLowerCase()));
-                });
             }
             // 7. Generar respuesta AI
             const responseText = this.generateAIResponse(events, cityName, query, filters);
@@ -148,12 +216,23 @@ class NewEventsAIService {
             };
         }
         // Extraer palabras clave (eliminar palabras vacías comunes)
-        const stopWords = ['qué', 'que', 'hay', 'eventos', 'en', 'la', 'el', 'de', 'para', 'con', 'un', 'una', 'me', 'recomiendas', 'recomiendan', 'hacer', 'ver'];
+        const stopWords = ['qué', 'que', 'hay', 'eventos', 'en', 'la', 'el', 'de', 'para', 'con', 'un', 'una', 'me', 'recomiendas', 'recomiendan', 'hacer', 'ver', 'esta', 'este', 'hoy', 'mañana', 'semana', 'mes', 'fin', 'día', 'días'];
         const words = queryLower.split(/\s+/)
             .filter(word => word.length > 2 && !stopWords.includes(word))
             .filter(word => !Object.keys(categoryMap).includes(word)); // Excluir palabras de categoría
-        if (words.length > 0) {
+        // 🔧 MEJORADO: Si ya hay categoría detectada, no usar keywords de categoría para evitar filtrado excesivo
+        if (words.length > 0 && !filters.category) {
             filters.keywords = words;
+        }
+        else if (words.length > 0 && filters.category) {
+            // Solo usar keywords que NO sean relacionadas con la categoría ya detectada
+            const nonCategoryWords = words.filter(word => {
+                const isCategoryRelated = Object.keys(categoryMap).some(categoryWord => word.includes(categoryWord) || categoryWord.includes(word));
+                return !isCategoryRelated;
+            });
+            if (nonCategoryWords.length > 0) {
+                filters.keywords = nonCategoryWords;
+            }
         }
         return filters;
     }
@@ -220,7 +299,13 @@ class NewEventsAIService {
      */
     async getCityEventsStats(citySlug) {
         try {
-            const eventsRef = this.db.collection('cities').doc(citySlug).collection('events');
+            // 🔧 NUEVO: Encontrar ID real de la ciudad
+            const realCityId = await this.findRealCityId(citySlug, citySlug);
+            if (!realCityId) {
+                console.error(`Cannot find real city for stats: ${citySlug}`);
+                return null;
+            }
+            const eventsRef = this.db.collection('cities').doc(realCityId).collection('events');
             const [totalEvents, activeEvents, futureEvents] = await Promise.all([
                 eventsRef.get().then(s => s.size),
                 eventsRef.where('isActive', '==', true).get().then(s => s.size),

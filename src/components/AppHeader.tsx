@@ -25,16 +25,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onLogin
 }) => {
   const { t } = useTranslation();
-  const [userMenuAnchorEl, setUserMenuAnchorEl] = React.useState<null | HTMLElement>(null);
-  const openUserMenu = Boolean(userMenuAnchorEl);
-
-  const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setUserMenuAnchorEl(event.currentTarget);
-  };
-
-  const handleUserMenuClose = () => {
-    setUserMenuAnchorEl(null);
-  };
 
   return (
     <>
@@ -62,23 +52,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           {/* Right-aligned user menu */}
           <div className="flex items-center justify-end flex-1">
             {isAuthenticated ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleUserMenuClick}
-                className="relative h-8 w-8 rounded-full"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
+              <UserMenu
+                currentThemeMode={currentThemeMode}
+                onToggleTheme={onToggleTheme}
+                onOpenSettings={onOpenSettings}
+                isAuthenticated={isAuthenticated}
+                onLogin={onLogin}
+              />
             ) : (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleUserMenuClick}
+                onClick={onLogin}
                 className="bg-white text-black hover:bg-gray-100 border border-gray-300 rounded-full"
               >
                 Iniciar sesión
@@ -87,17 +72,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
         </div>
       </header>
-      
-      <UserMenu
-        anchorEl={userMenuAnchorEl}
-        open={openUserMenu}
-        onClose={handleUserMenuClose}
-        currentThemeMode={currentThemeMode}
-        onToggleTheme={onToggleTheme}
-        onOpenSettings={onOpenSettings}
-        isAuthenticated={isAuthenticated}
-        onLogin={onLogin}
-      />
     </>
   );
 };

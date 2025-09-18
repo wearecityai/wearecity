@@ -7,12 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Sun, Moon, Settings, LogIn, LogOut } from 'lucide-react';
+import { Button } from './ui/button';
+import { Avatar, AvatarFallback } from './ui/avatar';
+import { Sun, Moon, Settings, LogIn, LogOut, User } from 'lucide-react';
 
 interface UserMenuProps {
-  anchorEl: null | HTMLElement;
-  open: boolean;
-  onClose: () => void;
   currentThemeMode: 'light' | 'dark';
   onToggleTheme: () => void;
   onOpenSettings: () => void;
@@ -21,9 +20,6 @@ interface UserMenuProps {
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({
-  anchorEl,
-  open,
-  onClose,
   currentThemeMode,
   onToggleTheme,
   onOpenSettings,
@@ -38,12 +34,10 @@ const UserMenu: React.FC<UserMenuProps> = ({
 
   const handleToggleTheme = () => {
     onToggleTheme();
-    onClose();
   };
 
   const handleOpenSettings = () => {
     onOpenSettings();
-    onClose();
   };
 
   const handleLogin = () => {
@@ -53,19 +47,27 @@ const UserMenu: React.FC<UserMenuProps> = ({
     } else {
       navigate('/auth');
     }
-    onClose();
   };
 
   const handleLogout = async () => {
     console.log('Logout button clicked');
     await signOut();
-    onClose();
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={(open) => !open && onClose()}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-full"
+        >
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>
+              <User className="h-4 w-4" />
+            </AvatarFallback>
+          </Avatar>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
