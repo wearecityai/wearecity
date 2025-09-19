@@ -63,17 +63,9 @@ export interface FormButtonInfo {
   description?: string;
 }
 
-export interface UploadedProcedureDocument {
-  procedureName: string; // User-defined name for the trámite
-  fileName: string;      // Original filename of the PDF
-  mimeType: string;      // e.g., "application/pdf"
-  base64Data: string;    // The PDF content encoded as a base64 string
-}
+// REMOVED: UploadedProcedureDocument interface
 
-export interface RecommendedPrompt {
-  text: string;
-  img: string;
-}
+// REMOVED: RecommendedPrompt interface
 
 export interface ChatMessage {
   id: string;
@@ -118,19 +110,9 @@ export interface SupportedLanguage {
 
 export interface CustomChatConfig {
   assistantName: string;
-  systemInstruction: string;
-  recommendedPrompts: RecommendedPrompt[];
-  serviceTags: string[];
-  enableGoogleSearch: boolean;
-  allowMapDisplay: boolean;
-  allowGeolocation: boolean;
   currentLanguageCode?: string;
-  procedureSourceUrls: string[];
-  uploadedProcedureDocuments: UploadedProcedureDocument[];
   restrictedCity: RestrictedCityInfo | null;
   restrictedCountryCode?: string; // ISO 3166-1 alpha-2 for filtering cities
-  sedeElectronicaUrl?: string; // URL for the City Council's Electronic Office
-  agendaEventosUrls?: string[]; // URLs for event calendars and agendas
   profileImageUrl?: string; // Nueva propiedad para la foto de perfil
 }
 

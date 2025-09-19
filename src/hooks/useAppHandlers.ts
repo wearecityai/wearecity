@@ -68,10 +68,7 @@ export const useAppHandlers = ({
     configToSave.systemInstruction = typeof newConfig.systemInstruction === 'string' ? newConfig.systemInstruction.trim() : DEFAULT_CHAT_CONFIG.systemInstruction;
     configToSave.currentLanguageCode = newConfig.currentLanguageCode && SUPPORTED_LANGUAGES.some(l => l.code === newConfig.currentLanguageCode) ? newConfig.currentLanguageCode : DEFAULT_CHAT_CONFIG.currentLanguageCode;
     configToSave.restrictedCity = newConfig.restrictedCity !== undefined ? newConfig.restrictedCity : DEFAULT_CHAT_CONFIG.restrictedCity;
-    configToSave.procedureSourceUrls = newConfig.procedureSourceUrls || DEFAULT_CHAT_CONFIG.procedureSourceUrls;
-    configToSave.uploadedProcedureDocuments = newConfig.uploadedProcedureDocuments || DEFAULT_CHAT_CONFIG.uploadedProcedureDocuments;
-    configToSave.sedeElectronicaUrl = newConfig.sedeElectronicaUrl || DEFAULT_CHAT_CONFIG.sedeElectronicaUrl;
-    configToSave.agendaEventosUrls = newConfig.agendaEventosUrls || DEFAULT_CHAT_CONFIG.agendaEventosUrls || [];
+    // REMOVED: procedure and event URL fields
     configToSave.profileImageUrl = newConfig.profileImageUrl || DEFAULT_CHAT_CONFIG.profileImageUrl;
 
     console.log('🔧 Final config to save:', configToSave);
